@@ -571,6 +571,73 @@ This project involves software development tasks.
 			expect(tasks[0].metadata.tags).not.toContain("#project/myproject");
 			expect(tasks[0].content).toBe("Task with mixed tags");
 		});
+
+		test("should parse task with Chinese characters in tags", () => {
+			const content = "- [ ] Task with Chinese tag #中文标签";
+			const tasks = parser.parseLegacy(content, "test.md");
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.tags).toContain("#中文标签");
+			expect(tasks[0].content).toBe("Task with Chinese tag");
+		});
+
+		test("should parse task with nested Chinese tags", () => {
+			const content = "- [ ] Task with nested Chinese tag #new/中文1/中文2";
+			const tasks = parser.parseLegacy(content, "test.md");
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.tags).toContain("#new/中文1/中文2");
+			expect(tasks[0].content).toBe("Task with nested Chinese tag");
+		});
+
+		test("should parse task with mixed Chinese and English nested tags", () => {
+			const content = "- [ ] Task with mixed tags #project/工作/frontend #category/学习/编程";
+			const tasks = parser.parseLegacy(content, "test.md");
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.project).toBe("工作/frontend");
+			expect(tasks[0].metadata.tags).toContain("#category/学习/编程");
+			expect(tasks[0].content).toBe("Task with mixed tags");
+		});
+
+		test("should parse task with Chinese characters in project tags", () => {
+			const content = "- [ ] Task with Chinese project #project/中文项目";
+			const tasks = parser.parseLegacy(content, "test.md");
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.project).toBe("中文项目");
+			expect(tasks[0].content).toBe("Task with Chinese project");
+		});
+
+		test("should parse task with deeply nested Chinese tags", () => {
+			const content = "- [ ] Task with deep Chinese nesting #类别/工作/项目/前端/组件";
+			const tasks = parser.parseLegacy(content, "test.md");
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.tags).toContain("#类别/工作/项目/前端/组件");
+			expect(tasks[0].content).toBe("Task with deep Chinese nesting");
+		});
+
+		test("should parse task with Chinese tags mixed with other metadata", () => {
+			const content = "- [ ] Task with Chinese and metadata #重要 @家里 🔺 #project/工作项目";
+			const tasks = parser.parseLegacy(content, "test.md");
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.tags).toContain("#重要");
+			expect(tasks[0].metadata.project).toBe("工作项目");
+			expect(tasks[0].metadata.context).toBe("家里");
+			expect(tasks[0].metadata.priority).toBeDefined();
+			expect(tasks[0].content).toBe("Task with Chinese and metadata");
+		});
+
+		test("should parse task with Chinese tags containing numbers and punctuation", () => {
+			const content = "- [ ] Task with complex Chinese tag #项目2024/第1季度/Q1-计划";
+			const tasks = parser.parseLegacy(content, "test.md");
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.tags).toContain("#项目2024/第1季度/Q1-计划");
+			expect(tasks[0].content).toBe("Task with complex Chinese tag");
+		});
 	});
 
 	describe("Recurrence Parsing", () => {

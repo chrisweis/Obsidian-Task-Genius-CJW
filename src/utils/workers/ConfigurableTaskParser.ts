@@ -10,7 +10,7 @@ import {
 	MetadataParseMode,
 } from "../../types/TaskParserConfig";
 import { parseLocalDate } from "../dateUtil";
-import { TASK_REGEX } from "../../common/regex-define";
+import { TASK_REGEX, EMOJI_TAG_REGEX } from "../../common/regex-define";
 import { TgProject } from "../../types/task";
 
 export class MarkdownTaskParser {
@@ -67,6 +67,8 @@ export class MarkdownTaskParser {
 		let i = 0;
 		let parseIteration = 0;
 		let inCodeBlock = false;
+
+		console.log("lines", lines);
 
 		while (i < lines.length) {
 			parseIteration++;
@@ -563,23 +565,16 @@ export class MarkdownTaskParser {
 
 		if (!isWordStart) return null;
 
-		const afterHash = content.substring(hashPos + 1);
-		let tagEnd = 0;
+		// Use the existing EMOJI_TAG_REGEX to match tags starting from the hash position
+		const remainingContent = content.substring(hashPos);
+		const tagMatch = remainingContent.match(EMOJI_TAG_REGEX);
 
-		// Find tag end, including '/' for special tags
-		for (let i = 0; i < afterHash.length; i++) {
-			const char = afterHash[i];
-			if (char.match(/[a-zA-Z0-9\/\-_]/)) {
-				tagEnd = i + 1;
-			} else {
-				break;
-			}
-		}
+		console.log("tagMatch", tagMatch);
 
-		if (tagEnd > 0) {
-			const fullTag = "#" + afterHash.substring(0, tagEnd); // Include # prefix
+		if (tagMatch) {
+			const fullTag = tagMatch[0];
 			const before = content.substring(0, hashPos);
-			const after = content.substring(hashPos + 1 + tagEnd);
+			const after = content.substring(hashPos + fullTag.length);
 			return [fullTag, before, after];
 		}
 
@@ -599,22 +594,16 @@ export class MarkdownTaskParser {
 		if (!isWordStart) return null;
 
 		const afterAt = content.substring(atPos + 1);
-		let contextEnd = 0;
 
-		// Find context end
-		for (let i = 0; i < afterAt.length; i++) {
-			const char = afterAt[i];
-			if (char.match(/[a-zA-Z0-9\-_]/)) {
-				contextEnd = i + 1;
-			} else {
-				break;
-			}
-		}
+		// Use regex similar to tag parsing to support Unicode characters including Chinese
+		const contextMatch = afterAt.match(
+			/^[^\u2000-\u206F\u2E00-\u2E7F'!"#$%&()*+,.:;<=>?@^`{|}~\[\]\\\s]+/
+		);
 
-		if (contextEnd > 0) {
-			const context = afterAt.substring(0, contextEnd);
+		if (contextMatch) {
+			const context = contextMatch[0];
 			const before = content.substring(0, atPos);
-			const after = content.substring(atPos + 1 + contextEnd);
+			const after = content.substring(atPos + 1 + context.length);
 			return [context, before, after];
 		}
 
