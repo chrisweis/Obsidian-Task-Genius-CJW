@@ -15,7 +15,6 @@ import {
 	MetadataMapping,
 	ProjectNamingStrategy,
 } from "../utils/ProjectConfigManager";
-import { TgProject } from "../types/task";
 
 // Mock Obsidian types
 class MockTFile {
@@ -704,6 +703,34 @@ description: A project defined in content
 
 			manager.updateOptions({ enhancedProjectEnabled: true });
 			expect(manager.isEnhancedProjectEnabled()).toBe(true);
+		});
+
+		it("should not process frontmatter metadata when enhanced project is disabled", async () => {
+			// Setup test data with frontmatter
+			vault.addFile("test.md", "# Test file");
+			metadataCache.setFileMetadata("test.md", {
+				project: "Frontmatter Project",
+				priority: 5,
+				dueDate: "2024-01-01",
+				customField: "custom value",
+			});
+
+			// Create manager with enhanced project disabled
+			const disabledManager = new ProjectConfigManager({
+				...defaultOptions,
+				enhancedProjectEnabled: false,
+			});
+
+			// All metadata-related methods should return null/empty when disabled
+			expect(disabledManager.getFileMetadata("test.md")).toBeNull();
+			expect(
+				await disabledManager.getEnhancedMetadata("test.md")
+			).toEqual({});
+
+			// Even if frontmatter exists, it should not be accessible through disabled manager
+			expect(
+				await disabledManager.determineTgProject("test.md")
+			).toBeUndefined();
 		});
 	});
 });
