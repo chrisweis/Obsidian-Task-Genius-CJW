@@ -6,6 +6,58 @@ import {
 } from "obsidian";
 import { DEFAULT_SYMBOLS, TAG_REGEX } from "../common/default-symbol";
 
+/**
+ * Remove tags while protecting content inside wiki links
+ */
+function removeTagsWithLinkProtection(text: string): string {
+	let result = "";
+	let i = 0;
+	
+	while (i < text.length) {
+		// Check if we're at the start of a wiki link
+		if (i < text.length - 1 && text[i] === '[' && text[i + 1] === '[') {
+			// Find the end of the wiki link
+			let linkEnd = i + 2;
+			let bracketCount = 1;
+			
+			while (linkEnd < text.length - 1 && bracketCount > 0) {
+				if (text[linkEnd] === ']' && text[linkEnd + 1] === ']') {
+					bracketCount--;
+					if (bracketCount === 0) {
+						linkEnd += 2;
+						break;
+					}
+				} else if (text[linkEnd] === '[' && text[linkEnd + 1] === '[') {
+					bracketCount++;
+					linkEnd++;
+				}
+				linkEnd++;
+			}
+			
+			// Add the entire wiki link without tag processing
+			result += text.substring(i, linkEnd);
+			i = linkEnd;
+		} else if (text[i] === '#') {
+			// Check if this is a tag (not inside a link)
+			const tagMatch = text.substring(i).match(TAG_REGEX);
+			if (tagMatch && tagMatch.index === 0) {
+				// Skip the entire tag
+				i += tagMatch[0].length;
+			} else {
+				// Not a tag, keep the character
+				result += text[i];
+				i++;
+			}
+		} else {
+			// Regular character, keep it
+			result += text[i];
+			i++;
+		}
+	}
+	
+	return result;
+}
+
 export function clearAllMarks(markdown: string): string {
 	if (!markdown) return markdown;
 
@@ -148,7 +200,8 @@ export function clearAllMarks(markdown: string): string {
 	}
 
 	// Remove tags from temporary markdown (where links/code are placeholders)
-	tempMarkdown = tempMarkdown.replace(TAG_REGEX, "");
+	// Use a more intelligent tag removal that doesn't affect content inside preserved segments
+	tempMarkdown = removeTagsWithLinkProtection(tempMarkdown);
 	// Remove context tags from temporary markdown
 	tempMarkdown = tempMarkdown.replace(/@([\w-]+)/g, ""); // Use non-capturing group for potentially better performance if needed
 
