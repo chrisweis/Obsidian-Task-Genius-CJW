@@ -202,3 +202,68 @@ export type TaskWorkerSettings = {
 	// File parsing configuration for metadata and tag-based task extraction
 	fileParsingConfig?: FileParsingConfiguration;
 };
+
+/**
+ * Project Data Worker Message Types
+ */
+
+export interface WorkerMessage {
+	type: string;
+	requestId: string;
+}
+
+export interface UpdateConfigMessage extends WorkerMessage {
+	type: 'updateConfig';
+	config: {
+		pathMappings: Array<{
+			pathPattern: string;
+			projectName: string;
+			enabled: boolean;
+		}>;
+		metadataMappings: Array<{
+			sourceKey: string;
+			targetKey: string;
+			enabled: boolean;
+		}>;
+		defaultProjectNaming: {
+			strategy: "filename" | "foldername" | "metadata";
+			metadataKey?: string;
+			stripExtension?: boolean;
+			enabled: boolean;
+		};
+		metadataKey: string;
+	};
+}
+
+export interface ProjectDataMessage extends WorkerMessage {
+	type: 'computeProjectData';
+	filePath: string;
+	fileMetadata: Record<string, any>;
+	configData: Record<string, any>;
+}
+
+export interface BatchProjectDataMessage extends WorkerMessage {
+	type: 'computeBatchProjectData';
+	files: Array<{
+		filePath: string;
+		fileMetadata: Record<string, any>;
+		configData: Record<string, any>;
+		directoryConfigPath?: string;
+	}>;
+}
+
+export interface ProjectDataResponse {
+	filePath: string;
+	tgProject?: any;
+	enhancedMetadata: Record<string, any>;
+	timestamp: number;
+	error?: string;
+}
+
+export interface WorkerResponse {
+	type: string;
+	requestId: string;
+	success: boolean;
+	error?: string;
+	data?: any;
+}

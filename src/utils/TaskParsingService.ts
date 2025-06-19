@@ -19,6 +19,7 @@ import {
 	ProjectConfigManager,
 	ProjectConfigManagerOptions,
 } from "./ProjectConfigManager";
+import { ProjectDataWorkerManager } from "./ProjectDataWorkerManager";
 import { TaskParserConfig, EnhancedTask } from "../types/TaskParserConfig";
 import { Task, TgProject } from "../types/task";
 
@@ -52,6 +53,7 @@ export interface TaskParsingServiceOptions {
 export class TaskParsingService {
 	private parser: MarkdownTaskParser;
 	private projectConfigManager?: ProjectConfigManager;
+	private projectDataWorkerManager?: ProjectDataWorkerManager;
 	private vault: Vault;
 	private metadataCache: MetadataCache;
 
@@ -71,6 +73,13 @@ export class TaskParsingService {
 				...options.projectConfigOptions,
 				enhancedProjectEnabled:
 					options.parserConfig.projectConfig.enableEnhancedProject,
+			});
+
+			// Initialize project data worker manager for performance optimization
+			this.projectDataWorkerManager = new ProjectDataWorkerManager({
+				vault: options.vault,
+				metadataCache: options.metadataCache,
+				projectConfigManager: this.projectConfigManager,
 			});
 		}
 	}
@@ -355,6 +364,9 @@ export class TaskParsingService {
 	 * Pre-compute enhanced project data for all files in the vault
 	 * This is designed to be called before Worker processing to provide
 	 * complete project information that requires file system access
+	 * 
+	 * PERFORMANCE OPTIMIZATION: Now uses ProjectDataWorkerManager for efficient
+	 * batch processing with caching and worker-based computation.
 	 */
 	async computeEnhancedProjectData(
 		filePaths: string[]
@@ -382,14 +394,81 @@ export class TaskParsingService {
 		const fileMetadataMap: Record<string, Record<string, any>> = {};
 		const projectConfigMap: Record<string, Record<string, any>> = {};
 
-		// Process each file to determine its project and metadata
+		// Use optimized batch processing with worker manager if available
+		if (this.projectDataWorkerManager) {
+			try {
+				console.log(`Computing enhanced project data for ${filePaths.length} files using optimized worker-based approach...`);
+				const startTime = Date.now();
+				
+				// Get batch project data using optimized cache and worker processing
+				const projectDataMap = await this.projectDataWorkerManager.getBatchProjectData(filePaths);
+				
+				// Convert to the format expected by workers
+				for (const [filePath, cachedData] of projectDataMap) {
+					if (cachedData.tgProject) {
+						fileProjectMap[filePath] = {
+							project: cachedData.tgProject.name,
+							source: cachedData.tgProject.source || cachedData.tgProject.type,
+							readonly: cachedData.tgProject.readonly ?? true,
+						};
+					}
+
+					if (Object.keys(cachedData.enhancedMetadata).length > 0) {
+						fileMetadataMap[filePath] = cachedData.enhancedMetadata;
+					}
+				}
+
+				// Build project config map from unique directories
+				const uniqueDirectories = new Set<string>();
+				for (const filePath of filePaths) {
+					const dirPath = filePath.substring(0, filePath.lastIndexOf("/"));
+					if (dirPath) {
+						uniqueDirectories.add(dirPath);
+					}
+				}
+
+				// Get project configs for unique directories only (optimization)
+				for (const dirPath of uniqueDirectories) {
+					try {
+						// Use a file from this directory to get project config
+						const sampleFilePath = filePaths.find(path => 
+							path.substring(0, path.lastIndexOf("/")) === dirPath
+						);
+						
+						if (sampleFilePath) {
+							const projectConfig = await this.projectConfigManager.getProjectConfig(sampleFilePath);
+							if (projectConfig && Object.keys(projectConfig).length > 0) {
+								const enhancedProjectConfig = this.projectConfigManager.applyMappingsToMetadata(projectConfig);
+								projectConfigMap[dirPath] = enhancedProjectConfig;
+							}
+						}
+					} catch (error) {
+						console.warn(`Failed to get project config for directory ${dirPath}:`, error);
+					}
+				}
+
+				const processingTime = Date.now() - startTime;
+				console.log(`Enhanced project data computation completed in ${processingTime}ms using optimized approach`);
+
+				return {
+					fileProjectMap,
+					fileMetadataMap,
+					projectConfigMap,
+				};
+			} catch (error) {
+				console.warn("Failed to use optimized project data computation, falling back to synchronous method:", error);
+			}
+		}
+
+		// Fallback to original synchronous method if worker manager is not available
+		console.log(`Computing enhanced project data for ${filePaths.length} files using fallback synchronous approach...`);
+		const startTime = Date.now();
+
+		// Process each file to determine its project and metadata (original logic)
 		for (const filePath of filePaths) {
 			try {
 				// Get tgProject for this file
-				const tgProject =
-					await this.projectConfigManager.determineTgProject(
-						filePath
-					);
+				const tgProject = await this.projectConfigManager.determineTgProject(filePath);
 				if (tgProject) {
 					fileProjectMap[filePath] = {
 						project: tgProject.name,
@@ -399,38 +478,28 @@ export class TaskParsingService {
 				}
 
 				// Get enhanced metadata for this file
-				const enhancedMetadata =
-					await this.projectConfigManager.getEnhancedMetadata(
-						filePath
-					);
+				const enhancedMetadata = await this.projectConfigManager.getEnhancedMetadata(filePath);
 				if (Object.keys(enhancedMetadata).length > 0) {
 					fileMetadataMap[filePath] = enhancedMetadata;
 				}
 
 				// Get project config for this file's directory
-				const projectConfig =
-					await this.projectConfigManager.getProjectConfig(filePath);
+				const projectConfig = await this.projectConfigManager.getProjectConfig(filePath);
 				if (projectConfig && Object.keys(projectConfig).length > 0) {
 					// Apply metadata mappings to project config data as well
-					const enhancedProjectConfig =
-						this.projectConfigManager.applyMappingsToMetadata(
-							projectConfig
-						);
+					const enhancedProjectConfig = this.projectConfigManager.applyMappingsToMetadata(projectConfig);
 
 					// Use directory path as key for project config
-					const dirPath = filePath.substring(
-						0,
-						filePath.lastIndexOf("/")
-					);
+					const dirPath = filePath.substring(0, filePath.lastIndexOf("/"));
 					projectConfigMap[dirPath] = enhancedProjectConfig;
 				}
 			} catch (error) {
-				console.warn(
-					`Failed to compute enhanced project data for ${filePath}:`,
-					error
-				);
+				console.warn(`Failed to compute enhanced project data for ${filePath}:`, error);
 			}
 		}
+
+		const processingTime = Date.now() - startTime;
+		console.log(`Enhanced project data computation completed in ${processingTime}ms using fallback approach`);
 
 		return {
 			fileProjectMap,
@@ -478,6 +547,55 @@ export class TaskParsingService {
 		} catch (error) {
 			console.warn(`Failed to get enhanced data for ${filePath}:`, error);
 			return {};
+		}
+	}
+
+	/**
+	 * Handle settings changes for project configuration
+	 */
+	onSettingsChange(): void {
+		if (this.projectDataWorkerManager) {
+			this.projectDataWorkerManager.onSettingsChange();
+		}
+	}
+
+	/**
+	 * Handle enhanced project setting changes
+	 */
+	onEnhancedProjectSettingChange(enabled: boolean): void {
+		if (this.projectConfigManager) {
+			this.projectConfigManager.setEnhancedProjectEnabled(enabled);
+		}
+		if (this.projectDataWorkerManager) {
+			this.projectDataWorkerManager.onEnhancedProjectSettingChange(enabled);
+		}
+	}
+
+	/**
+	 * Clear cache for project data
+	 */
+	clearProjectDataCache(filePath?: string): void {
+		if (this.projectDataWorkerManager) {
+			this.projectDataWorkerManager.clearCache(filePath);
+		}
+		if (this.projectConfigManager) {
+			this.projectConfigManager.clearCache(filePath);
+		}
+	}
+
+	/**
+	 * Get cache performance statistics
+	 */
+	getProjectDataCacheStats() {
+		return this.projectDataWorkerManager?.getCacheStats();
+	}
+
+	/**
+	 * Cleanup resources
+	 */
+	destroy(): void {
+		if (this.projectDataWorkerManager) {
+			this.projectDataWorkerManager.destroy();
 		}
 	}
 }
