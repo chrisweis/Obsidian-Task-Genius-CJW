@@ -39,6 +39,7 @@ export interface ProjectConfigManagerOptions {
 	}>;
 	metadataMappings: MetadataMapping[];
 	defaultProjectNaming: ProjectNamingStrategy;
+	enhancedProjectEnabled?: boolean; // Optional flag to control feature availability
 }
 
 export class ProjectConfigManager {
@@ -54,6 +55,7 @@ export class ProjectConfigManager {
 	}>;
 	private metadataMappings: MetadataMapping[];
 	private defaultProjectNaming: ProjectNamingStrategy;
+	private enhancedProjectEnabled: boolean;
 
 	// Cache for project configurations
 	private configCache = new Map<string, ProjectConfigData>();
@@ -72,6 +74,25 @@ export class ProjectConfigManager {
 			stripExtension: true,
 			enabled: false,
 		};
+		this.enhancedProjectEnabled = options.enhancedProjectEnabled ?? true; // Default to enabled for backward compatibility
+	}
+
+	/**
+	 * Check if enhanced project features are enabled
+	 */
+	isEnhancedProjectEnabled(): boolean {
+		return this.enhancedProjectEnabled;
+	}
+
+	/**
+	 * Set enhanced project feature state
+	 */
+	setEnhancedProjectEnabled(enabled: boolean): void {
+		this.enhancedProjectEnabled = enabled;
+		if (!enabled) {
+			// Clear cache when disabling to prevent stale data
+			this.clearCache();
+		}
 	}
 
 	/**
@@ -80,6 +101,11 @@ export class ProjectConfigManager {
 	async getProjectConfig(
 		filePath: string
 	): Promise<ProjectConfigData | null> {
+		// Early return if enhanced project features are disabled
+		if (!this.enhancedProjectEnabled) {
+			return null;
+		}
+
 		try {
 			const configFile = await this.findProjectConfigFile(filePath);
 			if (!configFile) {
@@ -130,6 +156,11 @@ export class ProjectConfigManager {
 	 * Get file metadata (frontmatter) for a given file
 	 */
 	getFileMetadata(filePath: string): Record<string, any> | null {
+		// Early return if enhanced project features are disabled
+		if (!this.enhancedProjectEnabled) {
+			return null;
+		}
+
 		try {
 			const file = this.vault.getAbstractFileByPath(filePath);
 			// Check if file exists and is a TFile (or has TFile-like properties for testing)
@@ -149,6 +180,11 @@ export class ProjectConfigManager {
 	 * Determine tgProject for a task based on various sources
 	 */
 	async determineTgProject(filePath: string): Promise<TgProject | undefined> {
+		// Early return if enhanced project features are disabled
+		if (!this.enhancedProjectEnabled) {
+			return undefined;
+		}
+
 		// 1. Check path-based mappings first (highest priority)
 		for (const mapping of this.pathMappings) {
 			if (!mapping.enabled) continue;
@@ -218,6 +254,11 @@ export class ProjectConfigManager {
 	 * Get enhanced metadata for a file (combines frontmatter and config)
 	 */
 	async getEnhancedMetadata(filePath: string): Promise<Record<string, any>> {
+		// Early return if enhanced project features are disabled
+		if (!this.enhancedProjectEnabled) {
+			return {};
+		}
+
 		const fileMetadata = this.getFileMetadata(filePath) || {};
 		const configData = (await this.getProjectConfig(filePath)) || {};
 
@@ -254,6 +295,11 @@ export class ProjectConfigManager {
 	private async findProjectConfigFile(
 		filePath: string
 	): Promise<TFile | null> {
+		// Early return if enhanced project features are disabled
+		if (!this.enhancedProjectEnabled) {
+			return null;
+		}
+
 		const file = this.vault.getAbstractFileByPath(filePath);
 		if (!file) {
 			return null;
@@ -290,6 +336,11 @@ export class ProjectConfigManager {
 	 * Synchronous version of findProjectConfigFile for cache clearing
 	 */
 	private findProjectConfigFileSync(filePath: string): TFile | null {
+		// Early return if enhanced project features are disabled
+		if (!this.enhancedProjectEnabled) {
+			return null;
+		}
+
 		const file = this.vault.getAbstractFileByPath(filePath);
 		if (!file) {
 			return null;
@@ -383,7 +434,9 @@ export class ProjectConfigManager {
 	/**
 	 * Apply metadata mappings to transform source metadata keys to target keys
 	 */
-	private applyMetadataMappings(metadata: Record<string, any>): Record<string, any> {
+	private applyMetadataMappings(
+		metadata: Record<string, any>
+	): Record<string, any> {
 		const result = { ...metadata };
 
 		for (const mapping of this.metadataMappings) {
@@ -392,7 +445,10 @@ export class ProjectConfigManager {
 			const sourceValue = metadata[mapping.sourceKey];
 			if (sourceValue !== undefined) {
 				// Apply intelligent type conversion for common field types
-				result[mapping.targetKey] = this.convertMetadataValue(mapping.targetKey, sourceValue);
+				result[mapping.targetKey] = this.convertMetadataValue(
+					mapping.targetKey,
+					sourceValue
+				);
 			}
 		}
 
@@ -405,42 +461,59 @@ export class ProjectConfigManager {
 	private convertMetadataValue(targetKey: string, value: any): any {
 		// Date field detection patterns
 		const dateFieldPatterns = [
-			'due', 'dueDate', 'deadline',
-			'start', 'startDate', 'started',
-			'scheduled', 'scheduledDate', 'scheduled_for',
-			'completed', 'completedDate', 'finished',
-			'created', 'createdDate', 'created_at'
+			"due",
+			"dueDate",
+			"deadline",
+			"start",
+			"startDate",
+			"started",
+			"scheduled",
+			"scheduledDate",
+			"scheduled_for",
+			"completed",
+			"completedDate",
+			"finished",
+			"created",
+			"createdDate",
+			"created_at",
 		];
 
 		// Priority field detection patterns
-		const priorityFieldPatterns = ['priority', 'urgency', 'importance'];
+		const priorityFieldPatterns = ["priority", "urgency", "importance"];
 
 		// Check if it's a date field
-		const isDateField = dateFieldPatterns.some(pattern => 
+		const isDateField = dateFieldPatterns.some((pattern) =>
 			targetKey.toLowerCase().includes(pattern.toLowerCase())
 		);
 
 		// Check if it's a priority field
-		const isPriorityField = priorityFieldPatterns.some(pattern => 
+		const isPriorityField = priorityFieldPatterns.some((pattern) =>
 			targetKey.toLowerCase().includes(pattern.toLowerCase())
 		);
 
-		if (isDateField && typeof value === 'string') {
+		if (isDateField && typeof value === "string") {
 			// Try to convert date string to timestamp for better performance
 			if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
 				// Use the same date parsing logic as MarkdownTaskParser
-				const { parseLocalDate } = require('./dateUtil');
+				const { parseLocalDate } = require("./dateUtil");
 				const timestamp = parseLocalDate(value);
 				return timestamp !== undefined ? timestamp : value;
 			}
-		} else if (isPriorityField && typeof value === 'string') {
+		} else if (isPriorityField && typeof value === "string") {
 			// Convert priority string to number using the standard PRIORITY_MAP scale
 			const priorityMap: Record<string, number> = {
-				'highest': 5, 'urgent': 5, 'critical': 5,
-				'high': 4, 'important': 4,
-				'medium': 3, 'normal': 3, 'moderate': 3,
-				'low': 2, 'minor': 2,
-				'lowest': 1, 'trivial': 1
+				highest: 5,
+				urgent: 5,
+				critical: 5,
+				high: 4,
+				important: 4,
+				medium: 3,
+				normal: 3,
+				moderate: 3,
+				low: 2,
+				minor: 2,
+				lowest: 1,
+				trivial: 1,
 			};
 
 			const numericPriority = parseInt(value, 10);
@@ -461,7 +534,9 @@ export class ProjectConfigManager {
 	/**
 	 * Public method to apply metadata mappings to any metadata object
 	 */
-	public applyMappingsToMetadata(metadata: Record<string, any>): Record<string, any> {
+	public applyMappingsToMetadata(
+		metadata: Record<string, any>
+	): Record<string, any> {
 		return this.applyMetadataMappings(metadata);
 	}
 
@@ -469,7 +544,11 @@ export class ProjectConfigManager {
 	 * Generate default project name based on configured strategy
 	 */
 	private generateDefaultProjectName(filePath: string): string | null {
-		if (!this.defaultProjectNaming.enabled) {
+		// Early return if enhanced project features are disabled
+		if (
+			!this.enhancedProjectEnabled ||
+			!this.defaultProjectNaming.enabled
+		) {
 			return null;
 		}
 
@@ -497,7 +576,9 @@ export class ProjectConfigManager {
 				const fileMetadata = this.getFileMetadata(filePath);
 				if (fileMetadata && fileMetadata[metadataKey]) {
 					const value = fileMetadata[metadataKey];
-					return typeof value === "string" ? value.trim() : String(value);
+					return typeof value === "string"
+						? value.trim()
+						: String(value);
 				}
 				return null;
 			}
@@ -527,6 +608,9 @@ export class ProjectConfigManager {
 		}
 		if (options.defaultProjectNaming !== undefined) {
 			this.defaultProjectNaming = options.defaultProjectNaming;
+		}
+		if (options.enhancedProjectEnabled !== undefined) {
+			this.setEnhancedProjectEnabled(options.enhancedProjectEnabled);
 		}
 
 		// Clear cache when options change

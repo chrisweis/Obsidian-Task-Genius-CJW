@@ -3,11 +3,11 @@
  *
  * Provides enhanced task parsing with project configuration support for main thread operations.
  * This service is designed to complement the Worker-based parsing system by providing:
- * 
+ *
  * 1. File system access for project configuration files
- * 2. Frontmatter metadata resolution 
+ * 2. Frontmatter metadata resolution
  * 3. Enhanced project detection that requires file system traversal
- * 
+ *
  * Note: The bulk of task parsing is handled by the Worker system, which already
  * includes basic project configuration support. This service is for cases where
  * main thread file system access is required.
@@ -69,6 +69,8 @@ export class TaskParsingService {
 				vault: options.vault,
 				metadataCache: options.metadataCache,
 				...options.projectConfigOptions,
+				enhancedProjectEnabled:
+					options.parserConfig.projectConfig.enableEnhancedProject,
 			});
 		}
 	}
@@ -89,7 +91,10 @@ export class TaskParsingService {
 			try {
 				// Always use enhanced metadata when project config manager is available
 				// as it only exists when enhanced project is enabled
-				const enhancedMetadata = await this.projectConfigManager.getEnhancedMetadata(filePath);
+				const enhancedMetadata =
+					await this.projectConfigManager.getEnhancedMetadata(
+						filePath
+					);
 				fileMetadata = enhancedMetadata;
 
 				// Get project configuration data
@@ -108,7 +113,9 @@ export class TaskParsingService {
 					error
 				);
 				// Fallback to basic file metadata if enhanced metadata fails
-				fileMetadata = this.projectConfigManager.getFileMetadata(filePath) || undefined;
+				fileMetadata =
+					this.projectConfigManager.getFileMetadata(filePath) ||
+					undefined;
 			}
 		}
 
@@ -138,7 +145,10 @@ export class TaskParsingService {
 			try {
 				// Always use enhanced metadata when project config manager is available
 				// as it only exists when enhanced project is enabled
-				const enhancedMetadata = await this.projectConfigManager.getEnhancedMetadata(filePath);
+				const enhancedMetadata =
+					await this.projectConfigManager.getEnhancedMetadata(
+						filePath
+					);
 				fileMetadata = enhancedMetadata;
 
 				// Get project configuration data
@@ -146,7 +156,7 @@ export class TaskParsingService {
 					(await this.projectConfigManager.getProjectConfig(
 						filePath
 					)) || undefined;
-				
+
 				// Determine tgProject
 				tgProject = await this.projectConfigManager.determineTgProject(
 					filePath
@@ -157,7 +167,9 @@ export class TaskParsingService {
 					error
 				);
 				// Fallback to basic file metadata if enhanced metadata fails
-				fileMetadata = this.projectConfigManager.getFileMetadata(filePath) || undefined;
+				fileMetadata =
+					this.projectConfigManager.getFileMetadata(filePath) ||
+					undefined;
 			}
 		}
 
@@ -186,7 +198,7 @@ export class TaskParsingService {
 			filePath,
 			undefined, // No file metadata
 			undefined, // No project config data
-			undefined  // No tgProject
+			undefined // No tgProject
 		);
 	}
 
@@ -311,13 +323,21 @@ export class TaskParsingService {
 					vault: this.vault,
 					metadataCache: this.metadataCache,
 					...projectConfigOptions,
+					enhancedProjectEnabled: enabled,
 				});
 			} else {
-				this.projectConfigManager.updateOptions(projectConfigOptions);
+				this.projectConfigManager.updateOptions({
+					...projectConfigOptions,
+					enhancedProjectEnabled: enabled,
+				});
 			}
 		} else if (!enabled) {
-			// Disable project config manager
-			this.projectConfigManager = undefined;
+			// Disable project config manager or set it to disabled state
+			if (this.projectConfigManager) {
+				this.projectConfigManager.setEnhancedProjectEnabled(false);
+			} else {
+				this.projectConfigManager = undefined;
+			}
 		}
 	}
 
@@ -325,7 +345,10 @@ export class TaskParsingService {
 	 * Check if enhanced project support is enabled
 	 */
 	isEnhancedProjectEnabled(): boolean {
-		return !!this.projectConfigManager;
+		return (
+			!!this.projectConfigManager &&
+			this.projectConfigManager.isEnhancedProjectEnabled()
+		);
 	}
 
 	/**
@@ -333,8 +356,14 @@ export class TaskParsingService {
 	 * This is designed to be called before Worker processing to provide
 	 * complete project information that requires file system access
 	 */
-	async computeEnhancedProjectData(filePaths: string[]): Promise<import("./workers/TaskIndexWorkerMessage").EnhancedProjectData> {
-		if (!this.projectConfigManager) {
+	async computeEnhancedProjectData(
+		filePaths: string[]
+	): Promise<import("./workers/TaskIndexWorkerMessage").EnhancedProjectData> {
+		// Early return if enhanced project features are disabled
+		if (
+			!this.projectConfigManager ||
+			!this.projectConfigManager.isEnhancedProjectEnabled()
+		) {
 			return {
 				fileProjectMap: {},
 				fileMetadataMap: {},
@@ -342,11 +371,14 @@ export class TaskParsingService {
 			};
 		}
 
-		const fileProjectMap: Record<string, {
-			project: string;
-			source: string;
-			readonly: boolean;
-		}> = {};
+		const fileProjectMap: Record<
+			string,
+			{
+				project: string;
+				source: string;
+				readonly: boolean;
+			}
+		> = {};
 		const fileMetadataMap: Record<string, Record<string, any>> = {};
 		const projectConfigMap: Record<string, Record<string, any>> = {};
 
@@ -354,7 +386,10 @@ export class TaskParsingService {
 		for (const filePath of filePaths) {
 			try {
 				// Get tgProject for this file
-				const tgProject = await this.projectConfigManager.determineTgProject(filePath);
+				const tgProject =
+					await this.projectConfigManager.determineTgProject(
+						filePath
+					);
 				if (tgProject) {
 					fileProjectMap[filePath] = {
 						project: tgProject.name,
@@ -364,23 +399,36 @@ export class TaskParsingService {
 				}
 
 				// Get enhanced metadata for this file
-				const enhancedMetadata = await this.projectConfigManager.getEnhancedMetadata(filePath);
+				const enhancedMetadata =
+					await this.projectConfigManager.getEnhancedMetadata(
+						filePath
+					);
 				if (Object.keys(enhancedMetadata).length > 0) {
 					fileMetadataMap[filePath] = enhancedMetadata;
 				}
 
 				// Get project config for this file's directory
-				const projectConfig = await this.projectConfigManager.getProjectConfig(filePath);
+				const projectConfig =
+					await this.projectConfigManager.getProjectConfig(filePath);
 				if (projectConfig && Object.keys(projectConfig).length > 0) {
 					// Apply metadata mappings to project config data as well
-					const enhancedProjectConfig = this.projectConfigManager.applyMappingsToMetadata(projectConfig);
-					
+					const enhancedProjectConfig =
+						this.projectConfigManager.applyMappingsToMetadata(
+							projectConfig
+						);
+
 					// Use directory path as key for project config
-					const dirPath = filePath.substring(0, filePath.lastIndexOf('/'));
+					const dirPath = filePath.substring(
+						0,
+						filePath.lastIndexOf("/")
+					);
 					projectConfigMap[dirPath] = enhancedProjectConfig;
 				}
 			} catch (error) {
-				console.warn(`Failed to compute enhanced project data for ${filePath}:`, error);
+				console.warn(
+					`Failed to compute enhanced project data for ${filePath}:`,
+					error
+				);
 			}
 		}
 
@@ -399,21 +447,33 @@ export class TaskParsingService {
 		fileMetadata?: Record<string, any>;
 		projectConfigData?: Record<string, any>;
 	}> {
-		if (!this.projectConfigManager) {
+		// Early return if enhanced project features are disabled
+		if (
+			!this.projectConfigManager ||
+			!this.projectConfigManager.isEnhancedProjectEnabled()
+		) {
 			return {};
 		}
 
 		try {
-			const [tgProject, enhancedMetadata, projectConfigData] = await Promise.all([
-				this.projectConfigManager.determineTgProject(filePath),
-				this.projectConfigManager.getEnhancedMetadata(filePath),
-				this.projectConfigManager.getProjectConfig(filePath),
-			]);
+			const [tgProject, enhancedMetadata, projectConfigData] =
+				await Promise.all([
+					this.projectConfigManager.determineTgProject(filePath),
+					this.projectConfigManager.getEnhancedMetadata(filePath),
+					this.projectConfigManager.getProjectConfig(filePath),
+				]);
 
 			return {
 				tgProject,
-				fileMetadata: Object.keys(enhancedMetadata).length > 0 ? enhancedMetadata : undefined,
-				projectConfigData: projectConfigData && Object.keys(projectConfigData).length > 0 ? projectConfigData : undefined,
+				fileMetadata:
+					Object.keys(enhancedMetadata).length > 0
+						? enhancedMetadata
+						: undefined,
+				projectConfigData:
+					projectConfigData &&
+					Object.keys(projectConfigData).length > 0
+						? projectConfigData
+						: undefined,
 			};
 		} catch (error) {
 			console.warn(`Failed to get enhanced data for ${filePath}:`, error);
