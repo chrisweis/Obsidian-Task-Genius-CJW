@@ -10,7 +10,7 @@ import {
 	MetadataParseMode,
 } from "../../types/TaskParserConfig";
 import { parseLocalDate } from "../dateUtil";
-import { TASK_REGEX, EMOJI_TAG_REGEX } from "../../common/regex-define";
+import { TASK_REGEX } from "../../common/regex-define";
 import { TgProject } from "../../types/task";
 
 export class MarkdownTaskParser {
@@ -67,8 +67,6 @@ export class MarkdownTaskParser {
 		let i = 0;
 		let parseIteration = 0;
 		let inCodeBlock = false;
-
-		console.log("lines", lines);
 
 		while (i < lines.length) {
 			parseIteration++;
@@ -565,16 +563,42 @@ export class MarkdownTaskParser {
 
 		if (!isWordStart) return null;
 
-		// Use the existing EMOJI_TAG_REGEX to match tags starting from the hash position
-		const remainingContent = content.substring(hashPos);
-		const tagMatch = remainingContent.match(EMOJI_TAG_REGEX);
+		const afterHash = content.substring(hashPos + 1);
+		let tagEnd = 0;
 
-		console.log("tagMatch", tagMatch);
+		// Find tag end, including '/' for special tags and Unicode characters
+		for (let i = 0; i < afterHash.length; i++) {
+			const char = afterHash[i];
+			const charCode = char.charCodeAt(0);
+			
+			// Check if character is valid for tags:
+			// - ASCII letters and numbers: a-z, A-Z, 0-9
+			// - Special characters: /, -, _
+			// - Unicode characters (including Chinese): > 127
+			// - Exclude common separators and punctuation
+			if (
+				(charCode >= 48 && charCode <= 57) ||  // 0-9
+				(charCode >= 65 && charCode <= 90) ||  // A-Z
+				(charCode >= 97 && charCode <= 122) || // a-z
+				char === '/' || char === '-' || char === '_' ||
+				(charCode > 127 && 
+				 char !== '，' && char !== '。' && char !== '；' && 
+				 char !== '：' && char !== '！' && char !== '？' &&
+				 char !== '「' && char !== '」' && char !== '『' &&
+				 char !== '』' && char !== '（' && char !== '）' &&
+				 char !== '【' && char !== '】' && char !== '"' &&
+				 char !== '"' && char !== "'" && char !== "'" && char !== ' ')
+			) {
+				tagEnd = i + 1;
+			} else {
+				break;
+			}
+		}
 
-		if (tagMatch) {
-			const fullTag = tagMatch[0];
+		if (tagEnd > 0) {
+			const fullTag = "#" + afterHash.substring(0, tagEnd); // Include # prefix
 			const before = content.substring(0, hashPos);
-			const after = content.substring(hashPos + fullTag.length);
+			const after = content.substring(hashPos + 1 + tagEnd);
 			return [fullTag, before, after];
 		}
 
@@ -594,16 +618,41 @@ export class MarkdownTaskParser {
 		if (!isWordStart) return null;
 
 		const afterAt = content.substring(atPos + 1);
+		let contextEnd = 0;
 
-		// Use regex similar to tag parsing to support Unicode characters including Chinese
-		const contextMatch = afterAt.match(
-			/^[^\u2000-\u206F\u2E00-\u2E7F'!"#$%&()*+,.:;<=>?@^`{|}~\[\]\\\s]+/
-		);
+		// Find context end, similar to tag parsing but for context
+		for (let i = 0; i < afterAt.length; i++) {
+			const char = afterAt[i];
+			const charCode = char.charCodeAt(0);
+			
+			// Check if character is valid for context:
+			// - ASCII letters and numbers: a-z, A-Z, 0-9
+			// - Special characters: -, _
+			// - Unicode characters (including Chinese): > 127
+			// - Exclude common separators and punctuation
+			if (
+				(charCode >= 48 && charCode <= 57) ||  // 0-9
+				(charCode >= 65 && charCode <= 90) ||  // A-Z
+				(charCode >= 97 && charCode <= 122) || // a-z
+				char === '-' || char === '_' ||
+				(charCode > 127 && 
+				 char !== '，' && char !== '。' && char !== '；' && 
+				 char !== '：' && char !== '！' && char !== '？' &&
+				 char !== '「' && char !== '」' && char !== '『' &&
+				 char !== '』' && char !== '（' && char !== '）' &&
+				 char !== '【' && char !== '】' && char !== '"' &&
+				 char !== '"' && char !== "'" && char !== "'" && char !== ' ')
+			) {
+				contextEnd = i + 1;
+			} else {
+				break;
+			}
+		}
 
-		if (contextMatch) {
-			const context = contextMatch[0];
+		if (contextEnd > 0) {
+			const context = afterAt.substring(0, contextEnd);
 			const before = content.substring(0, atPos);
-			const after = content.substring(atPos + 1 + context.length);
+			const after = content.substring(atPos + 1 + contextEnd);
 			return [context, before, after];
 		}
 
