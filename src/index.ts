@@ -210,11 +210,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 		this.addChild(this.versionManager);
 
 		// Initialize rebuild progress manager
-		this.rebuildProgressManager = new RebuildProgressManager(
-			this.app,
-			this
-		);
-		this.addChild(this.rebuildProgressManager);
+		this.rebuildProgressManager = new RebuildProgressManager();
 
 		// Initialize task manager
 		if (this.settings.enableView) {
@@ -643,11 +639,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 				name: t("Force reindex all tasks"),
 				callback: async () => {
 					try {
-						new Notice(
-							t("Clearing task cache and rebuilding index...")
-						);
 						await this.taskManager.forceReindex();
-						new Notice(t("Task index completely rebuilt"));
 					} catch (error) {
 						console.error("Failed to force reindex tasks:", error);
 						new Notice(t("Failed to force reindex tasks"));
@@ -1203,12 +1195,10 @@ export default class TaskProgressBarPlugin extends Plugin {
 						}
 					}
 
-					// Add progress callback to track rebuild
-					this.rebuildProgressManager.addCallback((progress) => {
-						console.log(
-							`Rebuild progress: ${progress.processedFiles}/${progress.totalFiles} files processed`
-						);
-					});
+					// Set progress manager for the task manager
+					this.taskManager.setProgressManager(
+						this.rebuildProgressManager
+					);
 
 					// Initialize task manager (this will trigger the rebuild)
 					await this.taskManager.initialize();
@@ -1265,6 +1255,11 @@ export default class TaskProgressBarPlugin extends Plugin {
 						if (this.taskManager.persister) {
 							await this.taskManager.persister.recreate();
 						}
+
+						// Set progress manager for the task manager
+						this.taskManager.setProgressManager(
+							this.rebuildProgressManager
+						);
 
 						// Initialize with minimal error handling
 						await this.taskManager.initialize();

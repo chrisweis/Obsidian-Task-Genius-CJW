@@ -4,16 +4,38 @@ import { moment } from "obsidian";
 
 /**
  * Sanitize filename by replacing unsafe characters with safe alternatives
+ * This function only sanitizes the filename part, not directory separators
  * @param filename - The filename to sanitize
  * @returns The sanitized filename
  */
 function sanitizeFilename(filename: string): string {
-	// Replace unsafe characters with safe alternatives
+	// Replace unsafe characters with safe alternatives, but keep forward slashes for paths
 	return filename
 		.replace(/[<>:"|*?\\]/g, "-") // Replace unsafe chars with dash
-		.replace(/\//g, "-") // Replace forward slash with dash
 		.replace(/\s+/g, " ") // Normalize whitespace
 		.trim(); // Remove leading/trailing whitespace
+}
+
+/**
+ * Sanitize a file path by sanitizing only the filename part while preserving directory structure
+ * @param filePath - The file path to sanitize
+ * @returns The sanitized file path
+ */
+function sanitizeFilePath(filePath: string): string {
+	const pathParts = filePath.split("/");
+	// Sanitize each part of the path except preserve the directory structure
+	const sanitizedParts = pathParts.map((part, index) => {
+		// For the last part (filename), we can be more restrictive
+		if (index === pathParts.length - 1) {
+			return sanitizeFilename(part);
+		}
+		// For directory names, we still need to avoid problematic characters but can be less restrictive
+		return part
+			.replace(/[<>:"|*?\\]/g, "-")
+			.replace(/\s+/g, " ")
+			.trim();
+	});
+	return sanitizedParts.join("/");
 }
 
 /**
@@ -27,23 +49,32 @@ export function processDateTemplates(filePath: string): string {
 	// Match patterns like {{DATE:YYYY-MM-DD}} or {{date:YYYY-MM-DD-HHmm}}
 	const dateTemplateRegex = /\{\{DATE?:([^}]+)\}\}/gi;
 
-	return filePath.replace(dateTemplateRegex, (match, format) => {
-		try {
-			// Check if format is empty or only whitespace
-			if (!format || format.trim() === "") {
-				return match; // Return original match for empty formats
-			}
+	const processedPath = filePath.replace(
+		dateTemplateRegex,
+		(match, format) => {
+			try {
+				// Check if format is empty or only whitespace
+				if (!format || format.trim() === "") {
+					return match; // Return original match for empty formats
+				}
 
-			// Use moment to format the current date with the specified format
-			const formattedDate = moment().format(format);
-			// Sanitize the result to ensure it's safe for file systems
-			return sanitizeFilename(formattedDate);
-		} catch (error) {
-			console.warn(`Invalid date format in template: ${format}`, error);
-			// Return the original match if formatting fails
-			return match;
+				// Use moment to format the current date with the specified format
+				const formattedDate = moment().format(format);
+				// Return the formatted date without sanitizing here to preserve path structure
+				return formattedDate;
+			} catch (error) {
+				console.warn(
+					`Invalid date format in template: ${format}`,
+					error
+				);
+				// Return the original match if formatting fails
+				return match;
+			}
 		}
-	});
+	);
+
+	// Sanitize the entire path while preserving directory structure
+	return sanitizeFilePath(processedPath);
 }
 
 // Save the captured content to the target file
@@ -66,11 +97,12 @@ export async function saveCapture(
 	if (targetType === "daily-note" && dailyNoteSettings) {
 		// Generate daily note file path
 		const dateStr = moment().format(dailyNoteSettings.format);
-		const sanitizedDateStr = sanitizeFilename(dateStr);
-		const fileName = `${sanitizedDateStr}.md`;
-		filePath = dailyNoteSettings.folder
-			? `${dailyNoteSettings.folder}/${fileName}`
-			: fileName;
+		// For daily notes, the format might include path separators (e.g., YYYY-MM/YYYY-MM-DD)
+		// We need to preserve the path structure and only sanitize the final filename
+		const pathWithDate = dailyNoteSettings.folder
+			? `${dailyNoteSettings.folder}/${dateStr}.md`
+			: `${dateStr}.md`;
+		filePath = sanitizeFilePath(pathWithDate);
 	} else {
 		// Use fixed file path
 		const rawFilePath = targetFile || "Quick Capture.md";

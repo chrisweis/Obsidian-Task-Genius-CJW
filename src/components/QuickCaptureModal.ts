@@ -34,16 +34,38 @@ interface TaskMetadata {
 
 /**
  * Sanitize filename by replacing unsafe characters with safe alternatives
+ * This function only sanitizes the filename part, not directory separators
  * @param filename - The filename to sanitize
  * @returns The sanitized filename
  */
 function sanitizeFilename(filename: string): string {
-	// Replace unsafe characters with safe alternatives
+	// Replace unsafe characters with safe alternatives, but keep forward slashes for paths
 	return filename
 		.replace(/[<>:"|*?\\]/g, "-") // Replace unsafe chars with dash
-		.replace(/\//g, "-") // Replace forward slash with dash
 		.replace(/\s+/g, " ") // Normalize whitespace
 		.trim(); // Remove leading/trailing whitespace
+}
+
+/**
+ * Sanitize a file path by sanitizing only the filename part while preserving directory structure
+ * @param filePath - The file path to sanitize
+ * @returns The sanitized file path
+ */
+function sanitizeFilePath(filePath: string): string {
+	const pathParts = filePath.split("/");
+	// Sanitize each part of the path except preserve the directory structure
+	const sanitizedParts = pathParts.map((part, index) => {
+		// For the last part (filename), we can be more restrictive
+		if (index === pathParts.length - 1) {
+			return sanitizeFilename(part);
+		}
+		// For directory names, we still need to avoid problematic characters but can be less restrictive
+		return part
+			.replace(/[<>:"|*?\\]/g, "-")
+			.replace(/\s+/g, " ")
+			.trim();
+	});
+	return sanitizedParts.join("/");
 }
 
 export class QuickCaptureModal extends Modal {
@@ -74,12 +96,13 @@ export class QuickCaptureModal extends Modal {
 			const dateStr = moment().format(
 				this.plugin.settings.quickCapture.dailyNoteSettings.format
 			);
-			const sanitizedDateStr = sanitizeFilename(dateStr);
-			const fileName = `${sanitizedDateStr}.md`;
-			this.tempTargetFilePath = this.plugin.settings.quickCapture
+			// For daily notes, the format might include path separators (e.g., YYYY-MM/YYYY-MM-DD)
+			// We need to preserve the path structure and only sanitize the final filename
+			const pathWithDate = this.plugin.settings.quickCapture
 				.dailyNoteSettings.folder
-				? `${this.plugin.settings.quickCapture.dailyNoteSettings.folder}/${fileName}`
-				: fileName;
+				? `${this.plugin.settings.quickCapture.dailyNoteSettings.folder}/${dateStr}.md`
+				: `${dateStr}.md`;
+			this.tempTargetFilePath = sanitizeFilePath(pathWithDate);
 		} else {
 			this.tempTargetFilePath =
 				this.plugin.settings.quickCapture.targetFile;

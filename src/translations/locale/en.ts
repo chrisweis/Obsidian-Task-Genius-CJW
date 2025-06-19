@@ -185,7 +185,7 @@ const translations = {
 		"Failed to sync daily notes settings",
 	"Daily note format": "Daily note format",
 	"Date format for daily notes (e.g., YYYY-MM-DD)":
-		"Date format for daily notes (e.g., YYYY-MM-DD)",
+		"Date format for daily notes (e.g., YYYY-MM-DD, supports nested formats like YYYY-MM/YYYY-MM-DD)",
 	"Daily note folder": "Daily note folder",
 	"Folder path for daily notes (leave empty for root)":
 		"Folder path for daily notes (leave empty for root)",

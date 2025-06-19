@@ -24,16 +24,38 @@ import "../styles/quick-capture.css";
 
 /**
  * Sanitize filename by replacing unsafe characters with safe alternatives
+ * This function only sanitizes the filename part, not directory separators
  * @param filename - The filename to sanitize
  * @returns The sanitized filename
  */
 function sanitizeFilename(filename: string): string {
-	// Replace unsafe characters with safe alternatives
+	// Replace unsafe characters with safe alternatives, but keep forward slashes for paths
 	return filename
 		.replace(/[<>:"|*?\\]/g, "-") // Replace unsafe chars with dash
-		.replace(/\//g, "-") // Replace forward slash with dash
 		.replace(/\s+/g, " ") // Normalize whitespace
 		.trim(); // Remove leading/trailing whitespace
+}
+
+/**
+ * Sanitize a file path by sanitizing only the filename part while preserving directory structure
+ * @param filePath - The file path to sanitize
+ * @returns The sanitized file path
+ */
+function sanitizeFilePath(filePath: string): string {
+	const pathParts = filePath.split("/");
+	// Sanitize each part of the path except preserve the directory structure
+	const sanitizedParts = pathParts.map((part, index) => {
+		// For the last part (filename), we can be more restrictive
+		if (index === pathParts.length - 1) {
+			return sanitizeFilename(part);
+		}
+		// For directory names, we still need to avoid problematic characters but can be less restrictive
+		return part
+			.replace(/[<>:"|*?\\]/g, "-")
+			.replace(/\s+/g, " ")
+			.trim();
+	});
+	return sanitizedParts.join("/");
 }
 
 // Effect to toggle the quick capture panel
@@ -200,11 +222,12 @@ const handleSubmit = async (
 		let displayPath = selectedTargetPath;
 		if (options.targetType === "daily-note" && options.dailyNoteSettings) {
 			const dateStr = moment().format(options.dailyNoteSettings.format);
-			const sanitizedDateStr = sanitizeFilename(dateStr);
-			const fileName = `${sanitizedDateStr}.md`;
-			displayPath = options.dailyNoteSettings.folder
-				? `${options.dailyNoteSettings.folder}/${fileName}`
-				: fileName;
+			// For daily notes, the format might include path separators (e.g., YYYY-MM/YYYY-MM-DD)
+			// We need to preserve the path structure and only sanitize the final filename
+			const pathWithDate = options.dailyNoteSettings.folder
+				? `${options.dailyNoteSettings.folder}/${dateStr}.md`
+				: `${dateStr}.md`;
+			displayPath = sanitizeFilePath(pathWithDate);
 		}
 
 		new Notice(`${t("Captured successfully to")} ${displayPath}`);
@@ -255,11 +278,12 @@ function createQuickCapturePanel(view: EditorView): Panel {
 	let selectedTargetPath: string;
 	if (options.targetType === "daily-note" && options.dailyNoteSettings) {
 		const dateStr = moment().format(options.dailyNoteSettings.format);
-		const sanitizedDateStr = sanitizeFilename(dateStr);
-		const fileName = `${sanitizedDateStr}.md`;
-		selectedTargetPath = options.dailyNoteSettings.folder
-			? `${options.dailyNoteSettings.folder}/${fileName}`
-			: fileName;
+		// For daily notes, the format might include path separators (e.g., YYYY-MM/YYYY-MM-DD)
+		// We need to preserve the path structure and only sanitize the final filename
+		const pathWithDate = options.dailyNoteSettings.folder
+			? `${options.dailyNoteSettings.folder}/${dateStr}.md`
+			: `${dateStr}.md`;
+		selectedTargetPath = sanitizeFilePath(pathWithDate);
 	} else {
 		selectedTargetPath = options.targetFile || "Quick Capture.md";
 	}

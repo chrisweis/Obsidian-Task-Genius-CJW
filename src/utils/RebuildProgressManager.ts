@@ -1,261 +1,132 @@
 /**
- * Progress Manager for handling index rebuild progress notifications
+ * Simple rebuild progress tracker using Obsidian's Notice component
  */
 
-import { App, Component, Notice } from "obsidian";
-import TaskProgressBarPlugin from "../index";
-
-export interface RebuildProgress {
-	/** Current step being processed */
-	currentStep: string;
-	/** Current file being processed */
-	currentFile?: string;
-	/** Number of files processed */
-	processedFiles: number;
-	/** Total number of files to process */
-	totalFiles: number;
-	/** Number of tasks found so far */
-	tasksFound: number;
-	/** Whether the rebuild is complete */
-	isComplete: boolean;
-	/** Any error that occurred */
-	error?: string;
-}
-
-export interface RebuildProgressCallback {
-	(progress: RebuildProgress): void;
-}
+import { Notice } from "obsidian";
 
 /**
- * Manages progress notifications during index rebuild operations
+ * Manages rebuild progress notifications using a single persistent Notice
  */
-export class RebuildProgressManager extends Component {
-	private currentProgress: RebuildProgress;
-	private callbacks: Set<RebuildProgressCallback> = new Set();
-	private currentNotice: Notice | null = null;
+export class RebuildProgressManager {
+	private notice: Notice | null = null;
 	private startTime: number = 0;
-
-	constructor(
-		private app: App,
-		private plugin: TaskProgressBarPlugin
-	) {
-		super();
-		this.currentProgress = this.createInitialProgress();
-	}
+	private processedFiles: number = 0;
+	private totalFiles: number = 0;
+	private tasksFound: number = 0;
 
 	/**
-	 * Create initial progress state
-	 */
-	private createInitialProgress(): RebuildProgress {
-		return {
-			currentStep: "Initializing",
-			processedFiles: 0,
-			totalFiles: 0,
-			tasksFound: 0,
-			isComplete: false
-		};
-	}
-
-	/**
-	 * Start a new rebuild progress session
+	 * Start tracking rebuild progress
 	 */
 	public startRebuild(totalFiles: number, reason?: string): void {
 		this.startTime = Date.now();
-		this.currentProgress = {
-			currentStep: "Starting rebuild",
-			processedFiles: 0,
-			totalFiles,
-			tasksFound: 0,
-			isComplete: false
-		};
+		this.processedFiles = 0;
+		this.totalFiles = totalFiles;
+		this.tasksFound = 0;
 
-		// Show initial notice
+		// Create persistent notice (duration: 0 means it won't auto-hide)
 		const reasonText = reason ? ` (${reason})` : "";
-		this.showNotice(`Task Genius: Rebuilding index${reasonText}...`, 0);
-		
-		this.notifyCallbacks();
+		this.notice = new Notice(
+			`Task Genius: Starting rebuild${reasonText}...`,
+			0
+		);
 	}
 
 	/**
-	 * Update progress for current step
-	 */
-	public updateProgress(updates: Partial<RebuildProgress>): void {
-		this.currentProgress = {
-			...this.currentProgress,
-			...updates
-		};
-
-		// Update notice if it exists
-		if (this.currentNotice && !this.currentProgress.isComplete) {
-			const percentage = this.currentProgress.totalFiles > 0 
-				? Math.round((this.currentProgress.processedFiles / this.currentProgress.totalFiles) * 100)
-				: 0;
-			
-			const progressText = this.formatProgressText(percentage);
-			this.updateNotice(progressText);
-		}
-
-		this.notifyCallbacks();
-	}
-
-	/**
-	 * Update step information
+	 * Update progress with current step information
 	 */
 	public updateStep(step: string, currentFile?: string): void {
-		this.updateProgress({
-			currentStep: step,
-			currentFile
-		});
+		if (!this.notice) return;
+
+		let message = `Task Genius: ${step}`;
+
+		if (this.totalFiles > 0) {
+			const percentage = Math.round(
+				(this.processedFiles / this.totalFiles) * 100
+			);
+			message += ` (${this.processedFiles}/${this.totalFiles} - ${percentage}%)`;
+		}
+
+		if (this.tasksFound > 0) {
+			message += ` - ${this.tasksFound} tasks found`;
+		}
+
+		if (currentFile) {
+			const fileName = currentFile.split("/").pop() || currentFile;
+			message += ` - ${fileName}`;
+		}
+
+		this.notice.setMessage(message);
 	}
 
 	/**
-	 * Increment processed files count
+	 * Increment processed files count and update progress
 	 */
 	public incrementProcessedFiles(tasksFound: number = 0): void {
-		this.updateProgress({
-			processedFiles: this.currentProgress.processedFiles + 1,
-			tasksFound: this.currentProgress.tasksFound + tasksFound
-		});
+		this.processedFiles++;
+		this.tasksFound += tasksFound;
+
+		if (!this.notice) return;
+
+		const percentage =
+			this.totalFiles > 0
+				? Math.round((this.processedFiles / this.totalFiles) * 100)
+				: 0;
+
+		const message = `Task Genius: Processing files (${this.processedFiles}/${this.totalFiles} - ${percentage}%) - ${this.tasksFound} tasks found`;
+		this.notice.setMessage(message);
 	}
 
 	/**
-	 * Mark rebuild as complete
+	 * Mark rebuild as complete and show final statistics
 	 */
-	public completeRebuild(tasksFound?: number): void {
-		const duration = Date.now() - this.startTime;
-		const finalTasksFound = tasksFound ?? this.currentProgress.tasksFound;
-		
-		this.currentProgress = {
-			...this.currentProgress,
-			currentStep: "Complete",
-			isComplete: true,
-			tasksFound: finalTasksFound
-		};
+	public completeRebuild(finalTaskCount?: number): void {
+		if (!this.notice) return;
 
-		// Show completion notice
-		this.showCompletionNotice(finalTasksFound, duration);
-		
-		this.notifyCallbacks();
+		const duration = Date.now() - this.startTime;
+		const durationText =
+			duration > 1000
+				? `${Math.round(duration / 1000)}s`
+				: `${duration}ms`;
+
+		const taskCount = finalTaskCount ?? this.tasksFound;
+		const message = `Task Genius: Rebuild complete! Found ${taskCount} tasks in ${durationText}`;
+
+		this.notice.setMessage(message);
+
+		// Auto-hide the completion notice after 3 seconds
+		setTimeout(() => {
+			if (this.notice) {
+				this.notice.hide();
+				this.notice = null;
+			}
+		}, 3000);
 	}
 
 	/**
-	 * Mark rebuild as failed
+	 * Mark rebuild as failed and show error
 	 */
 	public failRebuild(error: string): void {
-		this.currentProgress = {
-			...this.currentProgress,
-			currentStep: "Failed",
-			isComplete: true,
-			error
-		};
+		if (!this.notice) return;
 
-		// Show error notice
-		this.showNotice(`Task Genius: Index rebuild failed - ${error}`, 5000);
-		
-		this.notifyCallbacks();
-	}
+		const message = `Task Genius: Rebuild failed - ${error}`;
+		this.notice.setMessage(message);
 
-	/**
-	 * Add a progress callback
-	 */
-	public addCallback(callback: RebuildProgressCallback): void {
-		this.callbacks.add(callback);
-	}
-
-	/**
-	 * Remove a progress callback
-	 */
-	public removeCallback(callback: RebuildProgressCallback): void {
-		this.callbacks.delete(callback);
-	}
-
-	/**
-	 * Get current progress
-	 */
-	public getProgress(): RebuildProgress {
-		return { ...this.currentProgress };
-	}
-
-	/**
-	 * Notify all registered callbacks
-	 */
-	private notifyCallbacks(): void {
-		for (const callback of this.callbacks) {
-			try {
-				callback(this.currentProgress);
-			} catch (error) {
-				console.error("Error in rebuild progress callback:", error);
+		// Auto-hide the error notice after 5 seconds
+		setTimeout(() => {
+			if (this.notice) {
+				this.notice.hide();
+				this.notice = null;
 			}
-		}
+		}, 5000);
 	}
 
 	/**
-	 * Format progress text for display
+	 * Clean up and hide any active notice
 	 */
-	private formatProgressText(percentage: number): string {
-		const { currentStep, processedFiles, totalFiles, tasksFound, currentFile } = this.currentProgress;
-		
-		let text = `Task Genius: ${currentStep}`;
-		
-		if (totalFiles > 0) {
-			text += ` (${processedFiles}/${totalFiles} - ${percentage}%)`;
+	public cleanup(): void {
+		if (this.notice) {
+			this.notice.hide();
+			this.notice = null;
 		}
-		
-		if (tasksFound > 0) {
-			text += ` - ${tasksFound} tasks found`;
-		}
-		
-		if (currentFile) {
-			const fileName = currentFile.split('/').pop() || currentFile;
-			text += ` - ${fileName}`;
-		}
-		
-		return text;
-	}
-
-	/**
-	 * Show or update a notice
-	 */
-	private showNotice(message: string, timeout: number = 0): void {
-		// Hide existing notice
-		if (this.currentNotice) {
-			this.currentNotice.hide();
-		}
-
-		// Show new notice
-		this.currentNotice = new Notice(message, timeout);
-	}
-
-	/**
-	 * Update existing notice text
-	 */
-	private updateNotice(message: string): void {
-		if (this.currentNotice && this.currentNotice.noticeEl) {
-			this.currentNotice.setMessage(message);
-		}
-	}
-
-	/**
-	 * Show completion notice
-	 */
-	private showCompletionNotice(tasksFound: number, duration: number): void {
-		const durationText = duration > 1000 
-			? `${Math.round(duration / 1000)}s`
-			: `${duration}ms`;
-		
-		const message = `Task Genius: Index rebuilt successfully! Found ${tasksFound} tasks in ${durationText}`;
-		this.showNotice(message, 3000);
-	}
-
-	/**
-	 * Clean up resources
-	 */
-	public onunload(): void {
-		if (this.currentNotice) {
-			this.currentNotice.hide();
-			this.currentNotice = null;
-		}
-		this.callbacks.clear();
-		super.onunload();
 	}
 }

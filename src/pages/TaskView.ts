@@ -741,13 +741,7 @@ export class TaskView extends ItemView {
 						onConfirm: async (confirmed) => {
 							if (!confirmed) return;
 							try {
-								new Notice(
-									t(
-										"Clearing task cache and rebuilding index..."
-									)
-								);
 								await this.plugin.taskManager.forceReindex();
-								new Notice(t("Task index completely rebuilt"));
 							} catch (error) {
 								console.error(
 									"Failed to force reindex tasks:",

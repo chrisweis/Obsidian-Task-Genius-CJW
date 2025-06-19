@@ -28,6 +28,7 @@ import {
 import { CanvasParser } from "./parsing/CanvasParser";
 import { CanvasTaskUpdater } from "./parsing/CanvasTaskUpdater";
 import { FileMetadataTaskUpdater } from "./workers/FileMetadataTaskUpdater";
+import { RebuildProgressManager } from "./RebuildProgressManager";
 
 /**
  * TaskManager options
@@ -726,6 +727,14 @@ export class TaskManager extends Component {
 							)} (${batch.length} files)`
 						);
 
+						// Update progress
+						if (this.progressManager) {
+							this.progressManager.updateStep(
+								"Processing files",
+								batch[0]?.path
+							);
+						}
+
 						// Process each file in the batch
 						for (const file of batch) {
 							// Try to load from cache
@@ -747,6 +756,13 @@ export class TaskManager extends Component {
 										`Loaded ${cached.data.length} tasks from cache for ${file.path}`
 									);
 									cachedCount++;
+
+									// Report progress
+									if (this.progressManager) {
+										this.progressManager.incrementProcessedFiles(
+											cached.data.length
+										);
+									}
 								} else {
 									// Cache doesn't exist, is outdated, or version incompatible - process with worker
 									if (
@@ -763,11 +779,19 @@ export class TaskManager extends Component {
 										);
 									}
 									// Don't trigger events - we'll trigger once when initialization is complete
-									await this.processFileWithoutEvents(
-										file,
-										enhancedProjectData
-									);
+									const processedTasks =
+										await this.processFileWithoutEvents(
+											file,
+											enhancedProjectData
+										);
 									importedCount++;
+
+									// Report progress
+									if (this.progressManager) {
+										this.progressManager.incrementProcessedFiles(
+											processedTasks.length
+										);
+									}
 								}
 							} catch (error) {
 								console.error(
@@ -777,6 +801,13 @@ export class TaskManager extends Component {
 								// Fall back to main thread processing
 								await this.indexer.indexFile(file);
 								importedCount++;
+
+								// Report progress
+								if (this.progressManager) {
+									this.progressManager.incrementProcessedFiles(
+										0
+									);
+								}
 							}
 						}
 
@@ -807,6 +838,9 @@ export class TaskManager extends Component {
 			const totalTasks = this.indexer.getCache().tasks.size;
 			this.log(`Task manager initialized with ${totalTasks} tasks`);
 
+			// Clear progress manager reference after initialization
+			this.progressManager = undefined;
+
 			// Store the consolidated cache after we've finished processing everything
 			await this.storeConsolidatedCache();
 
@@ -832,7 +866,7 @@ export class TaskManager extends Component {
 	private async processFileWithoutEvents(
 		file: TFile,
 		enhancedProjectData?: import("./workers/TaskIndexWorkerMessage").EnhancedProjectData
-	): Promise<void> {
+	): Promise<Task[]> {
 		if (!this.workerManager) {
 			// If worker manager is not available, use main thread processing
 			await this.indexer.indexFile(file);
@@ -841,7 +875,7 @@ export class TaskManager extends Component {
 			if (tasks.length > 0) {
 				await this.persister.storeFile(file.path, tasks);
 			}
-			return;
+			return tasks;
 		}
 
 		try {
@@ -863,6 +897,7 @@ export class TaskManager extends Component {
 			}
 
 			// No event triggering in this version
+			return tasks;
 		} catch (error) {
 			console.error(`Worker error processing ${file.path}:`, error);
 			// Fall back to main thread indexing
@@ -874,6 +909,7 @@ export class TaskManager extends Component {
 			}
 
 			// No event triggering in this version
+			return tasks;
 		}
 	}
 
@@ -961,6 +997,14 @@ export class TaskManager extends Component {
 		for (let i = 0; i < files.length; i += batchSize) {
 			const batch = files.slice(i, i + batchSize);
 
+			// Update progress
+			if (this.progressManager) {
+				this.progressManager.updateStep(
+					"Processing files (main thread)",
+					batch[0]?.path
+				);
+			}
+
 			// Process each file in the batch
 			for (const file of batch) {
 				// Try to load from cache
@@ -982,6 +1026,13 @@ export class TaskManager extends Component {
 							`Loaded ${cached.data.length} tasks from cache for ${file.path}`
 						);
 						cachedCount++;
+
+						// Report progress
+						if (this.progressManager) {
+							this.progressManager.incrementProcessedFiles(
+								cached.data.length
+							);
+						}
 					} else {
 						// Remove incompatible cache if it exists
 						if (
@@ -1016,6 +1067,13 @@ export class TaskManager extends Component {
 							}
 						}
 						importedCount++;
+
+						// Report progress
+						if (this.progressManager) {
+							this.progressManager.incrementProcessedFiles(
+								tasks.length
+							);
+						}
 					}
 				} catch (error) {
 					console.error(`Error processing file ${file.path}:`, error);
@@ -1031,11 +1089,22 @@ export class TaskManager extends Component {
 						if (tasks.length > 0) {
 							await this.persister.storeFile(file.path, tasks);
 						}
+
+						// Report progress
+						if (this.progressManager) {
+							this.progressManager.incrementProcessedFiles(
+								tasks.length
+							);
+						}
 					} catch (fallbackError) {
 						console.error(
 							`Fallback parsing also failed for ${file.path}:`,
 							fallbackError
 						);
+						// Report progress even on failure
+						if (this.progressManager) {
+							this.progressManager.incrementProcessedFiles(0);
+						}
 					}
 					importedCount++;
 				}
@@ -1215,6 +1284,16 @@ export class TaskManager extends Component {
 
 	// 添加初始化节流标志
 	private initializationPending: boolean = false;
+
+	/** Optional progress manager for rebuild operations */
+	private progressManager?: RebuildProgressManager;
+
+	/**
+	 * Set the progress manager for rebuild operations
+	 */
+	public setProgressManager(progressManager: RebuildProgressManager): void {
+		this.progressManager = progressManager;
+	}
 
 	/**
 	 * Query tasks based on filters and sorting criteria
@@ -2618,8 +2697,29 @@ export class TaskManager extends Component {
 			console.error("Error clearing cache:", error);
 		}
 
+		// Get all supported files for progress tracking
+		const allFiles = this.app.vault
+			.getFiles()
+			.filter(
+				(file) => file.extension === "md" || file.extension === "canvas"
+			);
+
+		// Create and start progress manager for force reindex
+		const progressManager = new RebuildProgressManager();
+		progressManager.startRebuild(
+			allFiles.length,
+			"Force reindex requested"
+		);
+
+		// Set progress manager for the task manager
+		this.setProgressManager(progressManager);
+
 		// Re-initialize everything
 		await this.initialize();
+
+		// Mark rebuild as complete
+		const finalTaskCount = this.getAllTasks().length;
+		progressManager.completeRebuild(finalTaskCount);
 
 		// Trigger an update event
 		this.app.workspace.trigger(
