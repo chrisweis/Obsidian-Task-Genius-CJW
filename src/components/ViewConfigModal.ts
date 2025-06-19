@@ -1736,11 +1736,11 @@ export class ViewConfigModal extends Modal {
 		// Clean up existing component if any
 		this.cleanupAdvancedFilter();
 
-		// Create the TaskFilterComponent with undefined leafId to disable localStorage
+		// Create the TaskFilterComponent with view-config leafId to prevent affecting live filters
 		this.taskFilterComponent = new TaskFilterComponent(
 			this.advancedFilterContainer,
 			this.app,
-			undefined, // 使用 undefined 禁用 localStorage，完全依赖传入的状态
+			`view-config-${this.viewConfig.id}`, // 使用 view-config- 前缀确保不影响实时筛选器
 			this.plugin
 		);
 
@@ -1756,7 +1756,13 @@ export class ViewConfigModal extends Modal {
 
 		console.log("Filter state for view config:", existingFilterState);
 
-		// 手动调用 onload（由于 leafId 为 undefined，不会从 localStorage 加载）
+		// 预先保存空的筛选器状态到localStorage，防止加载意外的状态
+		this.app.saveLocalStorage(
+			`task-genius-view-filter-view-config-${this.viewConfig.id}`,
+			existingFilterState
+		);
+
+		// 手动调用 onload
 		this.taskFilterComponent.onload();
 
 		console.log("TaskFilterComponent onload called");
@@ -1770,8 +1776,11 @@ export class ViewConfigModal extends Modal {
 			filterState: RootFilterState,
 			leafId?: string
 		) => {
-			// 由于我们使用 undefined leafId，leafId 会是 undefined，所以直接更新
-			if (this.taskFilterComponent) {
+			// 只处理来自当前ViewConfig筛选器的变化
+			if (
+				this.taskFilterComponent &&
+				leafId === `view-config-${this.viewConfig.id}`
+			) {
 				console.log(
 					"Filter changed in view config modal:",
 					filterState
