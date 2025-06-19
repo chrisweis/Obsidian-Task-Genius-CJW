@@ -18,3 +18,12 @@
 	margin-right: 0;
 	margin-top: 0;
 }
+
+/* Global Filter Container Styles */
+.global-filter-container {
+	margin-bottom: 20px;
+	padding: 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background-color: var(--background-secondary);
+}

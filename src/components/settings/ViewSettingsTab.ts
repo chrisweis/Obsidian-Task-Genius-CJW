@@ -579,6 +579,14 @@ export function renderViewSettingsTab(
 			globalFilterComponent.onunload();
 		}
 
+		// Pre-save the global filter state to localStorage so TaskFilterComponent can load it
+		if (settingTab.plugin.settings.globalFilterRules.advancedFilter) {
+			settingTab.app.saveLocalStorage(
+				"task-genius-view-filter-global-filter",
+				settingTab.plugin.settings.globalFilterRules.advancedFilter
+			);
+		}
+
 		globalFilterComponent = new TaskFilterComponent(
 			globalFilterContainer,
 			settingTab.app,
@@ -586,12 +594,8 @@ export function renderViewSettingsTab(
 			settingTab.plugin
 		);
 
-		// Load existing global filter state
-		if (settingTab.plugin.settings.globalFilterRules.advancedFilter) {
-			globalFilterComponent.loadFilterState(
-				settingTab.plugin.settings.globalFilterRules.advancedFilter
-			);
-		}
+		// Load the component
+		globalFilterComponent.onload();
 
 		// Listen for filter changes
 		const handleGlobalFilterChange = (filterState: any) => {
@@ -602,6 +606,10 @@ export function renderViewSettingsTab(
 					advancedFilter: filterState,
 				};
 				settingTab.applySettingsUpdate();
+
+				// 触发视图刷新以应用新的全局筛选器
+				// 使用插件的triggerViewUpdate方法刷新所有TaskView
+				settingTab.plugin.triggerViewUpdate();
 			}
 		};
 
@@ -620,6 +628,14 @@ export function renderViewSettingsTab(
 
 	// Initialize the global filter component
 	initializeGlobalFilter();
+
+	// Store cleanup function for later use
+	(containerEl as any).cleanupGlobalFilter = () => {
+		if (globalFilterComponent) {
+			globalFilterComponent.onunload();
+			globalFilterComponent = null;
+		}
+	};
 
 	// --- New View Management Section ---
 	new Setting(containerEl)

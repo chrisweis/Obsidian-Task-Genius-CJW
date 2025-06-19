@@ -157,8 +157,12 @@ export class TaskView extends ItemView {
 				"task-genius:filter-changed",
 				(filterState: RootFilterState, leafId?: string) => {
 					// 只有来自实时过滤器组件的变更才更新liveFilterState
-					// 基础过滤器（ViewConfigModal）不会影响实时过滤器状态
-					if (leafId && !leafId.startsWith("view-config-")) {
+					// 排除基础过滤器（ViewConfigModal）和全局过滤器的变更
+					if (
+						leafId &&
+						!leafId.startsWith("view-config-") &&
+						leafId !== "global-filter"
+					) {
 						// 这是来自实时过滤器组件的变更
 						this.liveFilterState = filterState;
 						this.currentFilterState = filterState;
