@@ -555,6 +555,36 @@ export class MarkdownTaskParser {
 		const hashPos = content.indexOf("#");
 		if (hashPos === -1) return null;
 
+		// Check if the hash is inside a [[...]] link by scanning backwards and forwards
+		// Look for [[ before the hash and ]] after the hash
+		for (let i = hashPos - 1; i >= 0; i--) {
+			if (content[i] === ']' && i > 0 && content[i - 1] === ']') {
+				// Found ]] before hash, so hash is not in a link
+				break;
+			}
+			if (content[i] === '[' && i > 0 && content[i - 1] === '[') {
+				// Found [[ before hash, check if there's ]] after hash
+				let afterBrackets = 0;
+				for (let j = hashPos + 1; j < content.length - 1; j++) {
+					if (content[j] === ']' && content[j + 1] === ']') {
+						afterBrackets = j + 2;
+						break;
+					}
+				}
+				if (afterBrackets > 0) {
+					// Hash is inside a [[...]] link, skip it by recursing on the remaining content
+					const remainingContent = content.substring(afterBrackets);
+					const recurseResult = this.extractTag(remainingContent);
+					if (recurseResult) {
+						const [tag, beforeTag, afterTag] = recurseResult;
+						return [tag, content.substring(0, afterBrackets) + beforeTag, afterTag];
+					}
+					return null;
+				}
+				break;
+			}
+		}
+
 		// Check if it's a word start
 		const isWordStart =
 			hashPos === 0 ||

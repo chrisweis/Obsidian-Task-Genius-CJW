@@ -162,4 +162,36 @@ describe("Chinese Tag Parsing Performance", () => {
 		);
 		expect(parseTime).toBeLessThan(10);
 	});
+
+	test("should not treat [[Note#Title|Title]] as tags", () => {
+		const testCases = [
+			"- [ ] 任务内容 [[笔记#标题|显示标题]] #真正的标签",
+			"- [ ] Task with [[Note#Title|Title]] and #real-tag",
+			"- [ ] Multiple [[Link1#Title1|Display1]] [[Link2#Title2|Display2]] #tag1 #tag2",
+			"- [ ] Chinese [[中文笔记#中文标题|中文显示]] #中文标签",
+		];
+
+		const content = testCases.join("\n");
+		const parsedTasks = parser.parseLegacy(content, "link-test.md");
+
+		// Verify correctness
+		expect(parsedTasks).toHaveLength(4);
+		
+		// First task should only have #真正的标签, not the [[笔记#标题|显示标题]]
+		expect(parsedTasks[0].content).toContain("[[笔记#标题|显示标题]]");
+		expect(parsedTasks[0].metadata.tags).toEqual(["#真正的标签"]);
+		
+		// Second task should only have #real-tag
+		expect(parsedTasks[1].content).toContain("[[Note#Title|Title]]");
+		expect(parsedTasks[1].metadata.tags).toEqual(["#real-tag"]);
+		
+		// Third task should have #tag1 and #tag2
+		expect(parsedTasks[2].content).toContain("[[Link1#Title1|Display1]]");
+		expect(parsedTasks[2].content).toContain("[[Link2#Title2|Display2]]");
+		expect(parsedTasks[2].metadata.tags).toEqual(["#tag1", "#tag2"]);
+		
+		// Fourth task should only have #中文标签
+		expect(parsedTasks[3].content).toContain("[[中文笔记#中文标题|中文显示]]");
+		expect(parsedTasks[3].metadata.tags).toEqual(["#中文标签"]);
+	});
 });
