@@ -63,8 +63,6 @@ export class MarkdownTaskParser {
 			this.projectConfigCache = projectConfigData;
 		}
 
-		console.log("projectConfigCache", this.projectConfigCache);
-
 		const lines = input.split(/\r?\n/);
 		let i = 0;
 		let parseIteration = 0;

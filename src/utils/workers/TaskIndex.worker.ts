@@ -15,11 +15,7 @@ import {
 import { parse } from "date-fns/parse";
 import { MarkdownTaskParser } from "./ConfigurableTaskParser";
 import { getConfig } from "../../common/task-parser-config";
-import {
-	FileMetadataTaskParser,
-	FileTaskParsingResult,
-} from "./FileMetadataTaskParser";
-import { FileParsingConfiguration } from "../../common/setting-definition";
+import { FileMetadataTaskParser } from "./FileMetadataTaskParser";
 import { CanvasParser } from "../parsing/CanvasParser";
 import { SupportedFileType } from "../fileTypeUtils";
 
@@ -42,8 +38,6 @@ function parseTasksWithConfigurableParser(
 		) {
 			config.projectConfig = settings.projectConfig;
 		}
-
-		console.log("parseTasksWithConfigurableParser", config);
 
 		const parser = new MarkdownTaskParser(config);
 
