@@ -468,6 +468,7 @@ export function filterTasks(
 	let filtered = [...allTasks];
 	const viewConfig = getViewSettingOrDefault(plugin, viewId);
 	const filterRules = viewConfig.filterRules || {};
+	const globalFilterRules = plugin.settings.globalFilterRules || {};
 
 	// --- 过滤 badge 类型的 ICS 任务（仅在非日历视图中） ---
 	// Badge 任务只应该在日历视图中显示，其他视图应该过滤掉
@@ -501,6 +502,17 @@ export function filterTasks(
 
 	if (viewConfig.filterBlanks) {
 		filtered = filtered.filter((task) => task.content.trim() !== "");
+	}
+
+	// --- 应用全局筛选器（如果存在） ---
+	if (
+		globalFilterRules.advancedFilter &&
+		globalFilterRules.advancedFilter.filterGroups?.length > 0
+	) {
+		console.log("应用全局筛选器:", globalFilterRules.advancedFilter);
+		filtered = filtered.filter((task) =>
+			applyAdvancedFilter(task, globalFilterRules.advancedFilter!)
+		);
 	}
 
 	// --- 应用视图配置中的基础高级过滤器（如果存在） ---

@@ -63,7 +63,7 @@ export class TaskFilterComponent extends Component {
 	constructor(
 		hostEl: HTMLElement,
 		app: App,
-		private leafId?: string,
+		private leafId?: string | undefined,
 		plugin?: TaskProgressBarPlugin
 	) {
 		super();
@@ -79,6 +79,7 @@ export class TaskFilterComponent extends Component {
 			  )
 			: this.app.loadLocalStorage("task-genius-view-filter");
 
+		console.log("savedState", savedState, this.leafId);
 		if (
 			savedState &&
 			typeof savedState.rootCondition === "string" &&
@@ -1118,7 +1119,7 @@ export class TaskFilterComponent extends Component {
 				this.leafId
 					? `task-genius-view-filter-${this.leafId}`
 					: "task-genius-view-filter",
-				JSON.stringify(this.rootFilterState)
+				this.rootFilterState
 			);
 
 			// 只有在需要实时更新时才触发事件
@@ -1127,7 +1128,7 @@ export class TaskFilterComponent extends Component {
 				this.app.workspace.trigger(
 					"task-genius:filter-changed",
 					this.rootFilterState,
-					this.leafId
+					this.leafId || undefined
 				);
 			}
 		}

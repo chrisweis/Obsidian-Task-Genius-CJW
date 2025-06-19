@@ -156,13 +156,6 @@ export class TaskView extends ItemView {
 			this.app.workspace.on(
 				"task-genius:filter-changed",
 				(filterState: RootFilterState, leafId?: string) => {
-					console.log(
-						"过滤器实时变更:",
-						filterState,
-						"leafId:",
-						leafId
-					);
-
 					// 只有来自实时过滤器组件的变更才更新liveFilterState
 					// 基础过滤器（ViewConfigModal）不会影响实时过滤器状态
 					if (leafId && !leafId.startsWith("view-config-")) {
@@ -176,7 +169,6 @@ export class TaskView extends ItemView {
 						this.currentFilterState = filterState;
 						console.log("更新实时过滤器状态（无leafId）");
 					}
-					// 如果leafId以"view-config-"开头，则忽略，因为这是基础过滤器的变更
 
 					// 使用防抖函数应用过滤器，避免频繁更新
 					this.debouncedApplyFilter();
@@ -188,19 +180,23 @@ export class TaskView extends ItemView {
 		const savedFilterState = this.app.loadLocalStorage(
 			"task-genius-view-filter"
 		) as RootFilterState;
+		console.log("savedFilterState", savedFilterState);
+
 		if (
 			savedFilterState &&
 			typeof savedFilterState.rootCondition === "string" &&
 			Array.isArray(savedFilterState.filterGroups)
 		) {
-			console.log("已加载保存的实时过滤器状态");
+			console.log("Saved filter state", savedFilterState);
 			this.liveFilterState = savedFilterState;
 			this.currentFilterState = savedFilterState;
 		} else {
-			console.log("没有找到保存的实时过滤器状态或状态无效");
+			console.log("No saved filter state or invalid state");
 			this.liveFilterState = null;
 			this.currentFilterState = null;
 		}
+
+		console.log("currentFilterState", this.currentFilterState);
 
 		// 3. 初始化组件（但先不传入数据）
 		this.initializeComponents();
@@ -224,6 +220,13 @@ export class TaskView extends ItemView {
 
 		// 6. 使用加载的数据显示视图
 		this.switchView(this.currentViewId);
+
+		console.log("currentFilterState", this.currentFilterState);
+		// 7. 在组件初始化完成后应用筛选器状态
+		if (this.currentFilterState) {
+			console.log("应用保存的筛选器状态");
+			this.applyCurrentFilter();
+		}
 
 		this.toggleDetailsVisibility(false);
 
@@ -587,7 +590,7 @@ export class TaskView extends ItemView {
 			if (Platform.isDesktop) {
 				const popover = new ViewTaskFilterPopover(
 					this.plugin.app,
-					this.leaf.id,
+					undefined,
 					this.plugin
 				);
 
@@ -1373,6 +1376,7 @@ export class TaskView extends ItemView {
 		this.currentFilterState = JSON.parse(
 			JSON.stringify(config.filterState)
 		);
+		console.log("applySavedFilter", this.liveFilterState);
 		this.app.saveLocalStorage(
 			"task-genius-view-filter",
 			this.liveFilterState

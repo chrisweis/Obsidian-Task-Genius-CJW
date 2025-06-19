@@ -590,6 +590,9 @@ export interface TaskProgressBarSettings {
 	enableInlineEditor: boolean; // Enable inline editing in task views
 	viewConfiguration: ViewConfig[]; // Manages order, visibility, basic info, AND filter rules
 
+	// Global Filter Settings
+	globalFilterRules: ViewFilterRule; // Global filter rules that apply to all Views by default
+
 	// Review Settings
 	reviewSettings: Record<string, ProjectReviewSetting>;
 
@@ -876,6 +879,10 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	// View Defaults (Updated Structure)
 	enableView: true,
 	enableInlineEditor: true, // Enable inline editing by default
+
+	// Global Filter Defaults
+	globalFilterRules: {}, // Empty global filter rules by default
+
 	viewConfiguration: [
 		{
 			id: "inbox",

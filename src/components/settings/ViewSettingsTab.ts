@@ -5,6 +5,7 @@ import { TaskProgressBarSettingTab } from "../../setting";
 import { SingleFolderSuggest } from "../AutoComplete";
 import { ConfirmModal } from "../ConfirmModal";
 import { ViewConfigModal } from "../ViewConfigModal";
+import { TaskFilterComponent } from "../task-filter/ViewTaskFilter";
 
 export function renderViewSettingsTab(
 	settingTab: TaskProgressBarSettingTab,
@@ -553,6 +554,72 @@ export function renderViewSettingsTab(
 		});
 
 	if (!settingTab.plugin.settings.enableView) return;
+
+	// --- Global Filter Section ---
+	new Setting(containerEl)
+		.setName(t("Global Filter Configuration"))
+		.setDesc(
+			t(
+				"Configure global filter rules that apply to all Views by default. Individual Views can override these settings."
+			)
+		)
+		.setHeading();
+
+	// Global filter container
+	const globalFilterContainer = containerEl.createDiv({
+		cls: "global-filter-container",
+	});
+
+	// Global filter component
+	let globalFilterComponent: TaskFilterComponent | null = null;
+
+	// Initialize global filter component
+	const initializeGlobalFilter = () => {
+		if (globalFilterComponent) {
+			globalFilterComponent.onunload();
+		}
+
+		globalFilterComponent = new TaskFilterComponent(
+			globalFilterContainer,
+			settingTab.app,
+			"global-filter", // Use a special leafId for global filter
+			settingTab.plugin
+		);
+
+		// Load existing global filter state
+		if (settingTab.plugin.settings.globalFilterRules.advancedFilter) {
+			globalFilterComponent.loadFilterState(
+				settingTab.plugin.settings.globalFilterRules.advancedFilter
+			);
+		}
+
+		// Listen for filter changes
+		const handleGlobalFilterChange = (filterState: any) => {
+			if (globalFilterComponent) {
+				// Update global filter rules in settings
+				settingTab.plugin.settings.globalFilterRules = {
+					...settingTab.plugin.settings.globalFilterRules,
+					advancedFilter: filterState,
+				};
+				settingTab.applySettingsUpdate();
+			}
+		};
+
+		// Register event listener for global filter changes
+		settingTab.plugin.registerEvent(
+			settingTab.app.workspace.on(
+				"task-genius:filter-changed",
+				(filterState, leafId) => {
+					if (leafId === "global-filter") {
+						handleGlobalFilterChange(filterState);
+					}
+				}
+			)
+		);
+	};
+
+	// Initialize the global filter component
+	initializeGlobalFilter();
 
 	// --- New View Management Section ---
 	new Setting(containerEl)

@@ -19,7 +19,7 @@ export class ViewTaskFilterPopover
 
 	constructor(
 		app: App,
-		private leafId?: string,
+		private leafId?: string | undefined,
 		plugin?: TaskProgressBarPlugin
 	) {
 		super();
