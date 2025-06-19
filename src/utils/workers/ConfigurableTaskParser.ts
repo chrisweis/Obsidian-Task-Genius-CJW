@@ -63,6 +63,8 @@ export class MarkdownTaskParser {
 			this.projectConfigCache = projectConfigData;
 		}
 
+		console.log("projectConfigCache", this.projectConfigCache);
+
 		const lines = input.split(/\r?\n/);
 		let i = 0;
 		let parseIteration = 0;
@@ -558,15 +560,15 @@ export class MarkdownTaskParser {
 		// Check if the hash is inside a [[...]] link by scanning backwards and forwards
 		// Look for [[ before the hash and ]] after the hash
 		for (let i = hashPos - 1; i >= 0; i--) {
-			if (content[i] === ']' && i > 0 && content[i - 1] === ']') {
+			if (content[i] === "]" && i > 0 && content[i - 1] === "]") {
 				// Found ]] before hash, so hash is not in a link
 				break;
 			}
-			if (content[i] === '[' && i > 0 && content[i - 1] === '[') {
+			if (content[i] === "[" && i > 0 && content[i - 1] === "[") {
 				// Found [[ before hash, check if there's ]] after hash
 				let afterBrackets = 0;
 				for (let j = hashPos + 1; j < content.length - 1; j++) {
-					if (content[j] === ']' && content[j + 1] === ']') {
+					if (content[j] === "]" && content[j + 1] === "]") {
 						afterBrackets = j + 2;
 						break;
 					}
@@ -577,7 +579,11 @@ export class MarkdownTaskParser {
 					const recurseResult = this.extractTag(remainingContent);
 					if (recurseResult) {
 						const [tag, beforeTag, afterTag] = recurseResult;
-						return [tag, content.substring(0, afterBrackets) + beforeTag, afterTag];
+						return [
+							tag,
+							content.substring(0, afterBrackets) + beforeTag,
+							afterTag,
+						];
 					}
 					return null;
 				}
@@ -600,24 +606,39 @@ export class MarkdownTaskParser {
 		for (let i = 0; i < afterHash.length; i++) {
 			const char = afterHash[i];
 			const charCode = char.charCodeAt(0);
-			
+
 			// Check if character is valid for tags:
 			// - ASCII letters and numbers: a-z, A-Z, 0-9
 			// - Special characters: /, -, _
 			// - Unicode characters (including Chinese): > 127
 			// - Exclude common separators and punctuation
 			if (
-				(charCode >= 48 && charCode <= 57) ||  // 0-9
-				(charCode >= 65 && charCode <= 90) ||  // A-Z
+				(charCode >= 48 && charCode <= 57) || // 0-9
+				(charCode >= 65 && charCode <= 90) || // A-Z
 				(charCode >= 97 && charCode <= 122) || // a-z
-				char === '/' || char === '-' || char === '_' ||
-				(charCode > 127 && 
-				 char !== '，' && char !== '。' && char !== '；' && 
-				 char !== '：' && char !== '！' && char !== '？' &&
-				 char !== '「' && char !== '」' && char !== '『' &&
-				 char !== '』' && char !== '（' && char !== '）' &&
-				 char !== '【' && char !== '】' && char !== '"' &&
-				 char !== '"' && char !== "'" && char !== "'" && char !== ' ')
+				char === "/" ||
+				char === "-" ||
+				char === "_" ||
+				(charCode > 127 &&
+					char !== "，" &&
+					char !== "。" &&
+					char !== "；" &&
+					char !== "：" &&
+					char !== "！" &&
+					char !== "？" &&
+					char !== "「" &&
+					char !== "」" &&
+					char !== "『" &&
+					char !== "』" &&
+					char !== "（" &&
+					char !== "）" &&
+					char !== "【" &&
+					char !== "】" &&
+					char !== '"' &&
+					char !== '"' &&
+					char !== "'" &&
+					char !== "'" &&
+					char !== " ")
 			) {
 				tagEnd = i + 1;
 			} else {
@@ -654,24 +675,38 @@ export class MarkdownTaskParser {
 		for (let i = 0; i < afterAt.length; i++) {
 			const char = afterAt[i];
 			const charCode = char.charCodeAt(0);
-			
+
 			// Check if character is valid for context:
 			// - ASCII letters and numbers: a-z, A-Z, 0-9
 			// - Special characters: -, _
 			// - Unicode characters (including Chinese): > 127
 			// - Exclude common separators and punctuation
 			if (
-				(charCode >= 48 && charCode <= 57) ||  // 0-9
-				(charCode >= 65 && charCode <= 90) ||  // A-Z
+				(charCode >= 48 && charCode <= 57) || // 0-9
+				(charCode >= 65 && charCode <= 90) || // A-Z
 				(charCode >= 97 && charCode <= 122) || // a-z
-				char === '-' || char === '_' ||
-				(charCode > 127 && 
-				 char !== '，' && char !== '。' && char !== '；' && 
-				 char !== '：' && char !== '！' && char !== '？' &&
-				 char !== '「' && char !== '」' && char !== '『' &&
-				 char !== '』' && char !== '（' && char !== '）' &&
-				 char !== '【' && char !== '】' && char !== '"' &&
-				 char !== '"' && char !== "'" && char !== "'" && char !== ' ')
+				char === "-" ||
+				char === "_" ||
+				(charCode > 127 &&
+					char !== "，" &&
+					char !== "。" &&
+					char !== "；" &&
+					char !== "：" &&
+					char !== "！" &&
+					char !== "？" &&
+					char !== "「" &&
+					char !== "」" &&
+					char !== "『" &&
+					char !== "』" &&
+					char !== "（" &&
+					char !== "）" &&
+					char !== "【" &&
+					char !== "】" &&
+					char !== '"' &&
+					char !== '"' &&
+					char !== "'" &&
+					char !== "'" &&
+					char !== " ")
 			) {
 				contextEnd = i + 1;
 			} else {

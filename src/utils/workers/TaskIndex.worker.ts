@@ -36,9 +36,14 @@ function parseTasksWithConfigurableParser(
 		const config = getConfig(settings.preferMetadataFormat);
 
 		// Add project configuration to parser config
-		if (settings.projectConfig) {
+		if (
+			settings.projectConfig &&
+			settings.projectConfig.enableEnhancedProject
+		) {
 			config.projectConfig = settings.projectConfig;
 		}
+
+		console.log("parseTasksWithConfigurableParser", config);
 
 		const parser = new MarkdownTaskParser(config);
 
@@ -47,7 +52,11 @@ function parseTasksWithConfigurableParser(
 		let projectConfigData: Record<string, any> | undefined;
 		let tgProject: import("../../types/task").TgProject | undefined;
 
-		if (settings.enhancedProjectData) {
+		// Only process enhanced project data if enhanced project is enabled
+		if (
+			settings.enhancedProjectData &&
+			settings.projectConfig?.enableEnhancedProject
+		) {
 			// Use pre-computed enhanced metadata if available (this already contains MetadataMapping transforms)
 			const precomputedMetadata =
 				settings.enhancedProjectData.fileMetadataMap[filePath];
@@ -250,7 +259,9 @@ function processFile(
 
 		if (fileExtension === SupportedFileType.CANVAS) {
 			// Use canvas parser for .canvas files
-			const canvasParser = new CanvasParser(getConfig(settings.preferMetadataFormat));
+			const canvasParser = new CanvasParser(
+				getConfig(settings.preferMetadataFormat)
+			);
 			tasks = canvasParser.parseCanvasFile(content, filePath);
 		} else if (fileExtension === SupportedFileType.MARKDOWN) {
 			// Use configurable parser for .md files
@@ -262,7 +273,9 @@ function processFile(
 			);
 		} else {
 			// Unsupported file type
-			console.warn(`Worker: Unsupported file type: ${fileExtension} for file: ${filePath}`);
+			console.warn(
+				`Worker: Unsupported file type: ${fileExtension} for file: ${filePath}`
+			);
 			tasks = [];
 		}
 
