@@ -84,7 +84,9 @@ export const getConfig = (
 		maxIndentSize: 8,
 
 		// Enhanced project configuration
-		projectConfig: plugin?.settings?.projectConfig,
+		projectConfig: plugin?.settings?.projectConfig.enableEnhancedProject
+			? plugin?.settings?.projectConfig
+			: undefined,
 	};
 
 	return config;

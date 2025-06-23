@@ -164,6 +164,7 @@ export class TaskManager extends Component {
 	 * Initialize enhanced task parsing service if enhanced project is enabled
 	 */
 	private initializeTaskParsingService(): void {
+		console.log("initializeTaskParsingService", this.plugin.settings);
 		if (this.plugin.settings.projectConfig?.enableEnhancedProject) {
 			const serviceOptions: TaskParsingServiceOptions = {
 				vault: this.vault,
@@ -677,11 +678,15 @@ export class TaskManager extends Component {
 
 			if (this.workerManager && filesToProcess.length > 0) {
 				try {
-					// Pre-compute enhanced project data if TaskParsingService is available
+					// Pre-compute enhanced project data if TaskParsingService is available AND enhanced project is enabled
 					let enhancedProjectData:
 						| import("./workers/TaskIndexWorkerMessage").EnhancedProjectData
 						| undefined;
-					if (this.taskParsingService) {
+
+					if (
+						this.taskParsingService &&
+						this.taskParsingService.isEnhancedProjectEnabled()
+					) {
 						this.log(
 							"Pre-computing enhanced project data for worker processing..."
 						);
@@ -2746,6 +2751,12 @@ export class TaskManager extends Component {
 		// Clean up worker manager if it exists
 		if (this.workerManager) {
 			this.workerManager.onunload();
+		}
+
+		// Clean up task parsing service and its workers if it exists
+		if (this.taskParsingService) {
+			this.taskParsingService.destroy();
+			this.taskParsingService = undefined;
 		}
 
 		super.onunload();
