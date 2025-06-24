@@ -124,6 +124,12 @@ describe("TaskParsingService Integration", () => {
 						searchRecursively: true,
 						enabled: true,
 					},
+					metadataMappings: [],
+					defaultProjectNaming: {
+						strategy: "filename",
+						stripExtension: true,
+						enabled: false,
+					},
 			  }
 			: undefined,
 	});
@@ -146,6 +152,9 @@ describe("TaskParsingService Integration", () => {
 				stripExtension: true,
 				enabled: false,
 			},
+			enhancedProjectEnabled: true,
+			metadataConfigEnabled: true,
+			configFileEnabled: true,
 		},
 	});
 
@@ -174,6 +183,9 @@ describe("TaskParsingService Integration", () => {
 					stripExtension: true,
 					enabled: false,
 				},
+				enhancedProjectEnabled: true,
+				metadataConfigEnabled: true,
+				configFileEnabled: true,
 			});
 
 			parsingService = new TaskParsingService(serviceOptions);
@@ -257,6 +269,11 @@ describe("TaskParsingService Integration", () => {
 			vault.addFile("Projects/project.md", "project: Research Project");
 			vault.addFile("Projects/tasks.md", "# Research Tasks");
 
+			// Set metadata for config file
+			metadataCache.setFileMetadata("Projects/project.md", {
+				project: "Research Project",
+			});
+
 			// Mock folder structure
 			const file = vault.addFile("Projects/tasks.md", "# Research Tasks");
 			const folder = vault.addFolder("Projects");
@@ -304,6 +321,9 @@ describe("TaskParsingService Integration", () => {
 					stripExtension: true,
 					enabled: true,
 				},
+				enhancedProjectEnabled: true,
+				metadataConfigEnabled: true,
+				configFileEnabled: true,
 			});
 
 			parsingService = new TaskParsingService(serviceOptions);
@@ -356,6 +376,9 @@ describe("TaskParsingService Integration", () => {
 					stripExtension: true,
 					enabled: false,
 				},
+				enhancedProjectEnabled: true,
+				metadataConfigEnabled: true,
+				configFileEnabled: true,
 			});
 
 			parsingService = new TaskParsingService(serviceOptions);
@@ -422,6 +445,9 @@ describe("TaskParsingService Integration", () => {
 					stripExtension: true,
 					enabled: false,
 				},
+				enhancedProjectEnabled: true,
+				metadataConfigEnabled: true,
+				configFileEnabled: true,
 			});
 
 			parsingService = new TaskParsingService(serviceOptions);
@@ -645,6 +671,9 @@ describe("TaskParsingService Integration", () => {
 					stripExtension: true,
 					enabled: false,
 				},
+				enhancedProjectEnabled: true,
+				metadataConfigEnabled: true,
+				configFileEnabled: true,
 			});
 
 			parsingService = new TaskParsingService(serviceOptions);
@@ -725,6 +754,9 @@ describe("TaskParsingService Integration", () => {
 					stripExtension: true,
 					enabled: false,
 				},
+				enhancedProjectEnabled: true,
+				metadataConfigEnabled: true,
+				configFileEnabled: true,
 			});
 
 			parsingService = new TaskParsingService(serviceOptions);
@@ -1032,6 +1064,9 @@ describe("TaskParsingService Integration", () => {
 					stripExtension: true,
 					enabled: true,
 				},
+				enhancedProjectEnabled: true,
+				metadataConfigEnabled: true,
+				configFileEnabled: true,
 			});
 
 			parsingService = new TaskParsingService(serviceOptions);
@@ -1046,6 +1081,10 @@ describe("TaskParsingService Integration", () => {
 			metadataCache.setFileMetadata("Personal/notes.md", {
 				project: "Personal Project",
 				deadline: "2024-06-01",
+			});
+
+			metadataCache.setFileMetadata("Research/project.md", {
+				project: "Research Project",
 			});
 
 			// Mock folder structure for Research

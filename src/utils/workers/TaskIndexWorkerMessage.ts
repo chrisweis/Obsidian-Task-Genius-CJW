@@ -199,6 +199,17 @@ export type TaskWorkerSettings = {
 			searchRecursively: boolean;
 			enabled: boolean;
 		};
+		metadataMappings: Array<{
+			sourceKey: string;
+			targetKey: string;
+			enabled: boolean;
+		}>;
+		defaultProjectNaming: {
+			strategy: "filename" | "foldername" | "metadata";
+			metadataKey?: string;
+			stripExtension?: boolean;
+			enabled: boolean;
+		};
 	};
 
 	// Pre-computed enhanced project data from TaskParsingService

@@ -519,7 +519,7 @@ export interface TaskProgressBarSettings {
 	hideProgressBarMetadata: string;
 	showProgressBarBasedOnHeading: string;
 
-	// Task Status Settings
+	// Checkbox Status Settings
 	autoCompleteParent: boolean;
 	markParentInProgressWhenPartiallyComplete: boolean;
 	taskStatuses: TaskStatusConfig;
@@ -649,7 +649,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	hideProgressBarMetadata: "hide-progress-bar",
 	showProgressBarBasedOnHeading: "",
 
-	// Task Status Defaults
+	// Checkbox Status Defaults
 	autoCompleteParent: false,
 	markParentInProgressWhenPartiallyComplete: false,
 	taskStatuses: {

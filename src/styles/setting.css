@@ -1,4 +1,4 @@
-/* Task Status Cycle management UI */
+/* Checkbox Status Cycle management UI */
 .task-states-container {
 	margin: 10px 0;
 	border: 1px solid var(--background-modifier-border);
@@ -59,7 +59,7 @@
 	cursor: pointer;
 }
 
-/* Task Status Cycle management UI */
+/* Checkbox Status Cycle management UI */
 .task-states-container {
 	margin: 10px 0;
 	border: 1px solid var(--background-modifier-border);

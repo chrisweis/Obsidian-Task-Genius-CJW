@@ -569,7 +569,7 @@ function filterPanelDisplay(
 		cls: "task-filter-section",
 	});
 
-	new Setting(statusSection).setName(t("Task Status")).setHeading();
+	new Setting(statusSection).setName(t("Checkbox Status")).setHeading();
 
 	const statuses = [
 		{ id: "Completed", label: t("Completed") },

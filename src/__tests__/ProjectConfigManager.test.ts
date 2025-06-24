@@ -93,6 +93,9 @@ describe("ProjectConfigManager", () => {
 			stripExtension: true,
 			enabled: false,
 		},
+		enhancedProjectEnabled: true,
+		metadataConfigEnabled: true,
+		configFileEnabled: true,
 	};
 
 	beforeEach(() => {

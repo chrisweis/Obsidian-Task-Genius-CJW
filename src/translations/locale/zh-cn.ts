@@ -26,7 +26,7 @@ const translations = {
 	"Count sub children level of current Task": "计算当前任务的子任务层级",
 	"Toggle this to allow this plugin to count sub tasks.":
 		"切换此选项以允许插件计算子任务。",
-	"Task Status Settings": "任务状态设置",
+	"Checkbox Status Settings": "任务状态设置",
 	"Select a predefined task status collection or customize your own":
 		"选择预定义的任务状态集合或自定义您自己的",
 	"Completed task markers": "已完成任务标记",
@@ -69,7 +69,7 @@ const translations = {
 	"Hide by metadata": "按元数据隐藏",
 	'Specify frontmatter metadata that will hide progress bars. Example: "hide-progress-bar: true"':
 		'指定将隐藏进度条的前置元数据。例如："hide-progress-bar: true"',
-	"Task Status Switcher": "任务状态切换器",
+	"Checkbox Status Switcher": "任务状态切换器",
 	"Enable/disable the ability to cycle through task states by clicking.":
 		"启用/禁用通过点击循环切换任务状态的功能。",
 	"Enable custom task marks": "启用自定义任务标记",
@@ -81,7 +81,7 @@ const translations = {
 	"Always cycle new tasks": "始终循环新任务",
 	"When enabled, newly inserted tasks will immediately cycle to the next status. When disabled, newly inserted tasks with valid marks will keep their original mark.":
 		"启用后，新插入的任务将立即循环到下一个状态。禁用时，带有有效标记的新插入任务将保持其原始标记。",
-	"Task Status Cycle and Marks": "任务状态循环和标记",
+	"Checkbox Status Cycle and Marks": "任务状态循环和标记",
 	"Define task states and their corresponding marks. The order from top to bottom defines the cycling sequence.":
 		"定义任务状态及其对应的标记。从上到下的顺序定义了循环顺序。",
 	"Completed Task Mover": "已完成任务移动功能",
@@ -169,7 +169,7 @@ const translations = {
 		"创建和管理预设过滤器，以快速访问常用的任务过滤器。",
 	"Edit Filter: ": "编辑过滤器：",
 	"Filter name": "过滤器名称",
-	"Task Status": "任务状态",
+	"Checkbox Status": "任务状态",
 	"Include or exclude tasks based on their status":
 		"根据任务状态包含或排除任务",
 	"Include Completed Tasks": "包含已完成任务",

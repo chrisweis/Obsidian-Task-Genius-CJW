@@ -58,7 +58,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		},
 		{
 			id: "task-status",
-			name: t("Task Status"),
+			name: t("Checkbox Status"),
 			icon: "checkbox-glyph",
 			category: "display",
 		},
@@ -387,7 +387,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		const progressBarSection = this.createTabSection("progress-bar");
 		this.displayProgressBarSettings(progressBarSection);
 
-		// Task Status Tab
+		// Checkbox Status Tab
 		const taskStatusSection = this.createTabSection("task-status");
 		this.displayTaskStatusSettings(taskStatusSection);
 

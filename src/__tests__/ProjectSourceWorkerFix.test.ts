@@ -1,6 +1,6 @@
 /**
  * Tests for Project Source Worker Fix
- * 
+ *
  * This test file verifies that the worker correctly rebuilds tgProject with proper source display:
  * 1. Metadata-based projects show correct "frontmatter" source
  * 2. Config file-based projects show correct "config-file" source
@@ -25,21 +25,25 @@ function simulateWorkerTgProjectRebuild(projectInfo: {
 	// This simulates the logic from TaskIndex.worker.ts
 	let actualType: "metadata" | "path" | "config" | "default";
 	let displaySource: string;
-	
+
 	// If source is one of the type values, use it directly
-	if (["metadata", "path", "config", "default"].includes(projectInfo.source)) {
-		actualType = projectInfo.source as "metadata" | "path" | "config" | "default";
+	if (
+		["metadata", "path", "config", "default"].includes(projectInfo.source)
+	) {
+		actualType = projectInfo.source as
+			| "metadata"
+			| "path"
+			| "config"
+			| "default";
 	}
 	// Otherwise, infer type from source characteristics
 	else if (projectInfo.source && projectInfo.source.includes("/")) {
 		// Path patterns contain "/"
 		actualType = "path";
-	}
-	else if (projectInfo.source && projectInfo.source.includes(".")) {
+	} else if (projectInfo.source && projectInfo.source.includes(".")) {
 		// Config files contain "."
 		actualType = "config";
-	}
-	else {
+	} else {
 		// Metadata keys are simple strings without "/" or "."
 		actualType = "metadata";
 	}
@@ -123,7 +127,8 @@ describe("Project Source Worker Fix", () => {
 				readonly: true,
 			};
 
-			const metadataResult = simulateWorkerTgProjectRebuild(metadataProjectInfo);
+			const metadataResult =
+				simulateWorkerTgProjectRebuild(metadataProjectInfo);
 			expect(metadataResult.type).toBe("metadata");
 			expect(metadataResult.source).toBe("frontmatter");
 
@@ -133,7 +138,8 @@ describe("Project Source Worker Fix", () => {
 				readonly: true,
 			};
 
-			const configResult = simulateWorkerTgProjectRebuild(configProjectInfo);
+			const configResult =
+				simulateWorkerTgProjectRebuild(configProjectInfo);
 			expect(configResult.type).toBe("config");
 			expect(configResult.source).toBe("config-file");
 
@@ -171,7 +177,8 @@ describe("Project Source Worker Fix", () => {
 				readonly: true,
 			};
 
-			const specialResult = simulateWorkerTgProjectRebuild(specialMetadataInfo);
+			const specialResult =
+				simulateWorkerTgProjectRebuild(specialMetadataInfo);
 			expect(specialResult.type).toBe("metadata");
 			expect(specialResult.source).toBe("frontmatter");
 
@@ -193,7 +200,8 @@ describe("Project Source Worker Fix", () => {
 				readonly: true,
 			};
 
-			const complexResult = simulateWorkerTgProjectRebuild(complexPathInfo);
+			const complexResult =
+				simulateWorkerTgProjectRebuild(complexPathInfo);
 			expect(complexResult.type).toBe("path");
 			expect(complexResult.source).toBe("path-mapping");
 		});
@@ -209,7 +217,14 @@ describe("Project Source Worker Fix", () => {
 				metadataParseMode: MetadataParseMode.Both,
 				parseTags: true,
 				parseComments: true,
+				parseHeadings: true,
+				maxIndentSize: 8,
+				maxParseIterations: 100000,
 				maxMetadataIterations: 10,
+				maxTagLength: 100,
+				maxEmojiValueLength: 200,
+				maxStackOperations: 4000,
+				maxStackSize: 1000,
 				emojiMapping: {
 					"🔺": "priority",
 					"⏫": "priority",
@@ -274,7 +289,7 @@ describe("Project Source Worker Fix", () => {
 		it("should correctly pass through tgProject when provided", () => {
 			const taskContent = "- [ ] Test task";
 			const filePath = "test.md";
-			
+
 			// Simulate the corrected tgProject from worker
 			const correctedTgProject = {
 				type: "metadata" as const,
@@ -283,8 +298,14 @@ describe("Project Source Worker Fix", () => {
 				readonly: true,
 			};
 
-			const tasks = parser.parse(taskContent, filePath, undefined, undefined, correctedTgProject);
-			
+			const tasks = parser.parse(
+				taskContent,
+				filePath,
+				undefined,
+				undefined,
+				correctedTgProject
+			);
+
 			expect(tasks).toHaveLength(1);
 			const task = tasks[0];
 			expect(task.tgProject).toBeDefined();

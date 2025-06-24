@@ -30,7 +30,7 @@ const translations = {
 		"Count sub children level of current Task",
 	"Toggle this to allow this plugin to count sub tasks.":
 		"Toggle this to allow this plugin to count sub tasks.",
-	"Task Status Settings": "Task Status Settings",
+	"Checkbox Status Settings": "Checkbox Status Settings",
 	"Select a predefined task status collection or customize your own":
 		"Select a predefined task status collection or customize your own",
 	"Completed task markers": "Completed task markers",
@@ -74,7 +74,7 @@ const translations = {
 	"Hide by metadata": "Hide by metadata",
 	'Specify frontmatter metadata that will hide progress bars. Example: "hide-progress-bar: true"':
 		'Specify frontmatter metadata that will hide progress bars. Example: "hide-progress-bar: true"',
-	"Task Status Switcher": "Task Status Switcher",
+	"Checkbox Status Switcher": "Checkbox Status Switcher",
 	"Enable task status switcher": "Enable task status switcher",
 	"Enable/disable the ability to cycle through task states by clicking.":
 		"Enable/disable the ability to cycle through task states by clicking.",
@@ -87,7 +87,7 @@ const translations = {
 	"Always cycle new tasks": "Always cycle new tasks",
 	"When enabled, newly inserted tasks will immediately cycle to the next status. When disabled, newly inserted tasks with valid marks will keep their original mark.":
 		"When enabled, newly inserted tasks will immediately cycle to the next status. When disabled, newly inserted tasks with valid marks will keep their original mark.",
-	"Task Status Cycle and Marks": "Task Status Cycle and Marks",
+	"Checkbox Status Cycle and Marks": "Checkbox Status Cycle and Marks",
 	"Define task states and their corresponding marks. The order from top to bottom defines the cycling sequence.":
 		"Define task states and their corresponding marks. The order from top to bottom defines the cycling sequence.",
 	"Add Status": "Add Status",
@@ -206,7 +206,7 @@ const translations = {
 		"Create and manage preset filters for quick access to commonly used task filters.",
 	"Edit Filter: ": "Edit Filter: ",
 	"Filter name": "Filter name",
-	"Task Status": "Task Status",
+	"Checkbox Status": "Checkbox Status",
 	"Include or exclude tasks based on their status":
 		"Include or exclude tasks based on their status",
 	"Include Completed Tasks": "Include Completed Tasks",
