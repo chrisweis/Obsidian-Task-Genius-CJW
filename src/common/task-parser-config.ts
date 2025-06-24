@@ -4,15 +4,15 @@ import type TaskProgressBarPlugin from "../index";
 
 export const getConfig = (
 	format: MetadataFormat,
-	plugin?: TaskProgressBarPlugin
+	plugin?: TaskProgressBarPlugin | { settings: any }
 ): TaskParserConfig => {
 	// Get configurable prefixes from plugin settings, with fallback defaults
 	const projectPrefix =
-		plugin?.settings?.projectTagPrefix[format] || "project";
+		plugin?.settings?.projectTagPrefix?.[format] || "project";
 	const contextPrefix =
-		plugin?.settings?.contextTagPrefix[format] ||
+		plugin?.settings?.contextTagPrefix?.[format] ||
 		(format === "dataview" ? "context" : "@");
-	const areaPrefix = plugin?.settings?.areaTagPrefix[format] || "area";
+	const areaPrefix = plugin?.settings?.areaTagPrefix?.[format] || "area";
 
 	const config: TaskParserConfig = {
 		// Basic parsing controls
@@ -84,7 +84,7 @@ export const getConfig = (
 		maxIndentSize: 8,
 
 		// Enhanced project configuration
-		projectConfig: plugin?.settings?.projectConfig.enableEnhancedProject
+		projectConfig: plugin?.settings?.projectConfig?.enableEnhancedProject
 			? plugin?.settings?.projectConfig
 			: undefined,
 	};

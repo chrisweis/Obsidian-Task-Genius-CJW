@@ -29,7 +29,9 @@ function parseTasksWithConfigurableParser(
 	fileMetadata?: Record<string, any>
 ): Task[] {
 	try {
-		const config = getConfig(settings.preferMetadataFormat);
+		// Create a mock plugin object with settings for getConfig
+		const mockPlugin = { settings };
+		const config = getConfig(settings.preferMetadataFormat, mockPlugin);
 
 		// Add project configuration to parser config
 		if (
@@ -68,19 +70,61 @@ function parseTasksWithConfigurableParser(
 			const projectInfo =
 				settings.enhancedProjectData.fileProjectMap[filePath];
 			if (projectInfo) {
-				tgProject = {
-					type: projectInfo.source as
+				// The projectInfo.source contains either the actual type or the specific source
+				// We need to determine the type and appropriate display source
+				let actualType: "metadata" | "path" | "config" | "default";
+				let displaySource: string;
+
+				// If source is one of the type values, use it directly
+				if (
+					["metadata", "path", "config", "default"].includes(
+						projectInfo.source
+					)
+				) {
+					actualType = projectInfo.source as
 						| "metadata"
 						| "path"
 						| "config"
-						| "default",
+						| "default";
+				}
+				// Otherwise, infer type from source characteristics
+				else if (
+					projectInfo.source &&
+					projectInfo.source.includes("/")
+				) {
+					// Path patterns contain "/"
+					actualType = "path";
+				} else if (
+					projectInfo.source &&
+					projectInfo.source.includes(".")
+				) {
+					// Config files contain "."
+					actualType = "config";
+				} else {
+					// Metadata keys are simple strings without "/" or "."
+					actualType = "metadata";
+				}
+
+				// Set appropriate display source based on type
+				switch (actualType) {
+					case "path":
+						displaySource = "path-mapping";
+						break;
+					case "metadata":
+						displaySource = "frontmatter";
+						break;
+					case "config":
+						displaySource = "config-file";
+						break;
+					case "default":
+						displaySource = "default-naming";
+						break;
+				}
+
+				tgProject = {
+					type: actualType,
 					name: projectInfo.project,
-					source:
-						projectInfo.source === "path"
-							? "path-mapping"
-							: projectInfo.source === "metadata"
-							? "frontmatter"
-							: "config-file",
+					source: displaySource,
 					readonly: projectInfo.readonly,
 				};
 			}
@@ -253,8 +297,9 @@ function processFile(
 
 		if (fileExtension === SupportedFileType.CANVAS) {
 			// Use canvas parser for .canvas files
+			const mockPlugin = { settings };
 			const canvasParser = new CanvasParser(
-				getConfig(settings.preferMetadataFormat)
+				getConfig(settings.preferMetadataFormat, mockPlugin)
 			);
 			tasks = canvasParser.parseCanvasFile(content, filePath);
 		} else if (fileExtension === SupportedFileType.MARKDOWN) {

@@ -1,4 +1,4 @@
-# Task Status
+# Checkbox Status
 
 This folder contains the code for the task statuses that are supported by the plugin.
 

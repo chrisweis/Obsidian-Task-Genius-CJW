@@ -9,6 +9,7 @@ import { Task } from "../../types/task";
 import { TaskListRendererComponent } from "./TaskList";
 import { t } from "../../translations/helper";
 import TaskProgressBarPlugin from "../../index";
+import { getInitialViewMode, saveViewMode } from "../../utils/viewModeUtils";
 import "../../styles/view.css";
 
 /**
@@ -102,6 +103,9 @@ export abstract class TwoColumnViewBase<T extends string> extends Component {
 
 		// 右栏：创建任务列表
 		this.createRightColumn(contentContainer);
+
+		// 初始化视图模式
+		this.initializeViewMode();
 
 		// 初始化任务渲染器
 		this.initializeTaskRenderer();
@@ -317,6 +321,23 @@ export abstract class TwoColumnViewBase<T extends string> extends Component {
 	}
 
 	/**
+	 * Initialize view mode from saved state or global default
+	 */
+	protected initializeViewMode() {
+		// Use a default view ID for two-column views
+		const viewId = this.config.classNamePrefix.replace("-", "");
+		this.isTreeView = getInitialViewMode(this.app, this.plugin, viewId);
+
+		// Update the toggle button icon to match the initial state
+		const viewToggleBtn = this.rightColumnEl?.querySelector(
+			".view-toggle-btn"
+		) as HTMLElement;
+		if (viewToggleBtn) {
+			setIcon(viewToggleBtn, this.isTreeView ? "git-branch" : "list");
+		}
+	}
+
+	/**
 	 * Toggle view mode (list/tree)
 	 */
 	protected toggleViewMode() {
@@ -329,6 +350,10 @@ export abstract class TwoColumnViewBase<T extends string> extends Component {
 		if (viewToggleBtn) {
 			setIcon(viewToggleBtn, this.isTreeView ? "git-branch" : "list");
 		}
+
+		// Save the new view mode state
+		const viewId = this.config.classNamePrefix.replace("-", "");
+		saveViewMode(this.app, viewId, this.isTreeView);
 
 		// 使用新模式重新渲染任务列表
 		this.renderTaskList();

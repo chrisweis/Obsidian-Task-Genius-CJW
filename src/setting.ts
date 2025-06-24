@@ -22,6 +22,7 @@ import {
 	renderTimelineSidebarSettingsTab,
 	IcsSettingsComponent,
 } from "./components/settings";
+import { renderFileFilterSettingsTab } from "./components/settings/FileFilterSettingsTab";
 
 export class TaskProgressBarSettingTab extends PluginSettingTab {
 	plugin: TaskProgressBarPlugin;
@@ -48,6 +49,12 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			icon: "layout",
 			category: "core",
 		},
+		{
+			id: "file-filter",
+			name: t("File Filter"),
+			icon: "folder-x",
+			category: "core",
+		},
 
 		// Display & Progress
 		{
@@ -58,7 +65,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		},
 		{
 			id: "task-status",
-			name: t("Task Status"),
+			name: t("Checkbox Status"),
 			icon: "checkbox-glyph",
 			category: "display",
 		},
@@ -76,6 +83,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			icon: "filter",
 			category: "management",
 		},
+
 		{
 			id: "project",
 			name: t("Projects"),
@@ -387,13 +395,17 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		const progressBarSection = this.createTabSection("progress-bar");
 		this.displayProgressBarSettings(progressBarSection);
 
-		// Task Status Tab
+		// Checkbox Status Tab
 		const taskStatusSection = this.createTabSection("task-status");
 		this.displayTaskStatusSettings(taskStatusSection);
 
 		// Task Filter Tab
 		const taskFilterSection = this.createTabSection("task-filter");
 		this.displayTaskFilterSettings(taskFilterSection);
+
+		// File Filter Tab
+		const fileFilterSection = this.createTabSection("file-filter");
+		this.displayFileFilterSettings(fileFilterSection);
 
 		// Task Handler Tab
 		const taskHandlerSection = this.createTabSection("task-handler");
@@ -464,6 +476,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 	private displayTaskFilterSettings(containerEl: HTMLElement): void {
 		renderTaskFilterSettingsTab(this, containerEl);
+	}
+
+	private displayFileFilterSettings(containerEl: HTMLElement): void {
+		renderFileFilterSettingsTab(this, containerEl);
 	}
 
 	private displayWorkflowSettings(containerEl: HTMLElement): void {

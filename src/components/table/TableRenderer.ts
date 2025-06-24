@@ -1272,8 +1272,12 @@ export class TableRenderer extends Component {
 			}
 		}
 
-		// Add tgProject indicator for project column
-		if (isProjectColumn && row?.task?.metadata?.tgProject) {
+		// Add tgProject indicator for project column - only show if no user-set project exists
+		if (
+			isProjectColumn &&
+			row?.task?.metadata?.tgProject &&
+			(!row.task.metadata.project || !row.task.metadata.project.trim())
+		) {
 			const tgProject = row.task.metadata.tgProject;
 			const indicator = cellEl.createDiv({
 				cls: "project-source-indicator table-indicator",

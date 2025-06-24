@@ -14,17 +14,22 @@ import TaskProgressBarPlugin from "../index";
 import { RRule, RRuleSet, rrulestr } from "rrule";
 import { MarkdownTaskParser } from "./workers/ConfigurableTaskParser";
 import { getConfig } from "../common/task-parser-config";
-import { getEffectiveProject, isProjectReadonly } from "./taskUtil";
+import {
+	getEffectiveProject,
+	isProjectReadonly,
+	resetTaskUtilParser,
+} from "./taskUtil";
 import { HolidayDetector } from "./ics/HolidayDetector";
 import {
 	TaskParsingService,
 	TaskParsingServiceOptions,
 } from "./TaskParsingService";
 import {
-	isSupportedFile,
+	isSupportedFileWithFilter,
 	getFileType,
 	SupportedFileType,
 } from "./fileTypeUtils";
+import { FileFilterManager } from "./FileFilterManager";
 import { CanvasParser } from "./parsing/CanvasParser";
 import { CanvasTaskUpdater } from "./parsing/CanvasTaskUpdater";
 import { FileMetadataTaskUpdater } from "./workers/FileMetadataTaskUpdater";
@@ -79,6 +84,8 @@ export class TaskManager extends Component {
 	private canvasParser: CanvasParser;
 	/** Canvas task updater for modifying tasks in .canvas files */
 	private canvasTaskUpdater: CanvasTaskUpdater;
+	/** File filter manager for filtering files during indexing */
+	private fileFilterManager?: FileFilterManager;
 
 	/**
 	 * Create a new task manager
@@ -119,6 +126,9 @@ export class TaskManager extends Component {
 
 		// Initialize enhanced task parsing service if enhanced project is enabled
 		this.initializeTaskParsingService();
+
+		// Initialize file filter manager
+		this.initializeFileFilterManager();
 
 		// Set up the indexer's parse callback to use our parser
 		this.indexer.setParseFileCallback(async (file: TFile) => {
@@ -161,10 +171,34 @@ export class TaskManager extends Component {
 	}
 
 	/**
+	 * Initialize file filter manager
+	 */
+	private initializeFileFilterManager(): void {
+		if (this.plugin.settings.fileFilter?.enabled) {
+			this.fileFilterManager = new FileFilterManager(
+				this.plugin.settings.fileFilter
+			);
+			this.indexer.setFileFilterManager(this.fileFilterManager);
+			this.log("File filter manager initialized");
+		} else {
+			this.fileFilterManager = undefined;
+			this.indexer.setFileFilterManager(undefined);
+		}
+	}
+
+	/**
 	 * Initialize enhanced task parsing service if enhanced project is enabled
 	 */
 	private initializeTaskParsingService(): void {
 		console.log("initializeTaskParsingService", this.plugin.settings);
+
+		// Clean up existing TaskParsingService instance to prevent worker leaks
+		if (this.taskParsingService) {
+			this.log("Cleaning up existing TaskParsingService instance");
+			this.taskParsingService.destroy();
+			this.taskParsingService = undefined;
+		}
+
 		if (this.plugin.settings.projectConfig?.enableEnhancedProject) {
 			const serviceOptions: TaskParsingServiceOptions = {
 				vault: this.vault,
@@ -193,6 +227,11 @@ export class TaskManager extends Component {
 						stripExtension: true,
 						enabled: false,
 					},
+					metadataConfigEnabled:
+						this.plugin.settings.projectConfig.metadataConfig
+							.enabled,
+					configFileEnabled:
+						this.plugin.settings.projectConfig.configFile.enabled,
 				},
 			};
 
@@ -206,9 +245,27 @@ export class TaskManager extends Component {
 	}
 
 	/**
+	 * Update file filter configuration when settings change
+	 */
+	public updateFileFilterConfiguration(): void {
+		this.initializeFileFilterManager();
+		this.log("File filter configuration updated");
+	}
+
+	/**
+	 * Get the file filter manager instance
+	 */
+	public getFileFilterManager(): FileFilterManager | undefined {
+		return this.fileFilterManager;
+	}
+
+	/**
 	 * Update parsing configuration when settings change
 	 */
 	public updateParsingConfiguration(): void {
+		// Reset cached parser in taskUtil to pick up new prefix settings
+		resetTaskUtilParser();
+
 		// Update the regular parser
 		this.taskParser = new MarkdownTaskParser(
 			getConfig(this.plugin.settings.preferMetadataFormat, this.plugin)
@@ -416,7 +473,7 @@ export class TaskManager extends Component {
 				if (
 					file instanceof TFile &&
 					file.extension === "md" &&
-					isSupportedFile(file)
+					isSupportedFileWithFilter(file, this.fileFilterManager)
 				) {
 					this.indexFile(file);
 				}
@@ -434,7 +491,10 @@ export class TaskManager extends Component {
 				this.log(`File modified: ${file.path}`);
 				// Process all supported files, but prioritize Canvas files
 				// since they don't trigger metadata cache events
-				if (file instanceof TFile && isSupportedFile(file)) {
+				if (
+					file instanceof TFile &&
+					isSupportedFileWithFilter(file, this.fileFilterManager)
+				) {
 					// For Canvas files, always process through vault modify event
 					// For markdown files, we'll get duplicate events but that's okay
 					// since indexFile is idempotent
@@ -456,7 +516,10 @@ export class TaskManager extends Component {
 					return;
 				}
 
-				if (file instanceof TFile && isSupportedFile(file)) {
+				if (
+					file instanceof TFile &&
+					isSupportedFileWithFilter(file, this.fileFilterManager)
+				) {
 					this.removeFileFromIndex(file);
 				}
 			})
@@ -470,7 +533,10 @@ export class TaskManager extends Component {
 					return;
 				}
 
-				if (file instanceof TFile && isSupportedFile(file)) {
+				if (
+					file instanceof TFile &&
+					isSupportedFileWithFilter(file, this.fileFilterManager)
+				) {
 					this.removeFileFromIndexByOldPath(oldPath);
 					this.indexFile(file);
 				}
@@ -486,7 +552,10 @@ export class TaskManager extends Component {
 						return;
 					}
 
-					if (file instanceof TFile && isSupportedFile(file)) {
+					if (
+						file instanceof TFile &&
+						isSupportedFileWithFilter(file, this.fileFilterManager)
+					) {
 						this.indexFile(file);
 					}
 				})
@@ -639,7 +708,9 @@ export class TaskManager extends Component {
 		try {
 			// Get all supported files (Markdown and Canvas)
 			const allFiles = this.vault.getFiles();
-			const files = allFiles.filter((file) => isSupportedFile(file));
+			const files = allFiles.filter((file) =>
+				isSupportedFileWithFilter(file, this.fileFilterManager)
+			);
 			this.log(
 				`Found ${files.length} supported files to index (${allFiles.length} total files)`
 			);

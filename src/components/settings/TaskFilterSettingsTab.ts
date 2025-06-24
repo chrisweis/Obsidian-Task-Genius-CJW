@@ -29,7 +29,7 @@ class PresetFilterModal extends Modal {
 
 		// Task status section
 		new Setting(contentEl)
-			.setName(t("Task Status"))
+			.setName(t("Checkbox Status"))
 			.setDesc(t("Include or exclude tasks based on their status"));
 
 		const statusOptions = [

@@ -10,6 +10,7 @@ import { tasksToTree } from "../../utils/treeViewUtil"; // Re-import needed util
 import { TaskTreeItemComponent } from "./treeItem"; // Re-import needed components
 import { t } from "../../translations/helper";
 import TaskProgressBarPlugin from "../../index";
+import { getInitialViewMode, saveViewMode } from "../../utils/viewModeUtils";
 
 // @ts-ignore
 import { filterTasks } from "../../utils/TaskFilterUtils";
@@ -71,6 +72,9 @@ export class ContentComponent extends Component {
 
 		// Create task list container
 		this.taskListEl = this.containerEl.createDiv({ cls: "task-list" });
+
+		// Initialize view mode from saved state or global default
+		this.initializeViewMode();
 
 		// Set up intersection observer for lazy loading
 		this.initializeVirtualList();
@@ -140,6 +144,24 @@ export class ContentComponent extends Component {
 		);
 	}
 
+	/**
+	 * Initialize view mode from saved state or global default
+	 */
+	private initializeViewMode() {
+		this.isTreeView = getInitialViewMode(
+			this.app,
+			this.plugin,
+			this.currentViewId
+		);
+		// Update the toggle button icon to match the initial state
+		const viewToggleBtn = this.headerEl?.querySelector(
+			".view-toggle-btn"
+		) as HTMLElement;
+		if (viewToggleBtn) {
+			setIcon(viewToggleBtn, this.isTreeView ? "git-branch" : "list");
+		}
+	}
+
 	private toggleViewMode() {
 		this.isTreeView = !this.isTreeView;
 		const viewToggleBtn = this.headerEl.querySelector(
@@ -148,6 +170,8 @@ export class ContentComponent extends Component {
 		if (viewToggleBtn) {
 			setIcon(viewToggleBtn, this.isTreeView ? "git-branch" : "list");
 		}
+		// Save the new view mode state
+		saveViewMode(this.app, this.currentViewId, this.isTreeView);
 		this.refreshTaskList(); // Refresh list completely on view mode change
 	}
 
@@ -173,6 +197,9 @@ export class ContentComponent extends Component {
 		// 	title = projectName || t("Project");
 		// }
 		this.titleEl.setText(title);
+
+		// Re-initialize view mode for the new view
+		this.initializeViewMode();
 
 		this.applyFilters();
 		this.refreshTaskList();

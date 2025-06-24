@@ -26,7 +26,7 @@ const translations = {
 	"Count sub children level of current Task": "计算当前任务的子任务层级",
 	"Toggle this to allow this plugin to count sub tasks.":
 		"切换此选项以允许插件计算子任务。",
-	"Task Status Settings": "任务状态设置",
+	"Checkbox Status Settings": "任务状态设置",
 	"Select a predefined task status collection or customize your own":
 		"选择预定义的任务状态集合或自定义您自己的",
 	"Completed task markers": "已完成任务标记",
@@ -69,7 +69,7 @@ const translations = {
 	"Hide by metadata": "按元数据隐藏",
 	'Specify frontmatter metadata that will hide progress bars. Example: "hide-progress-bar: true"':
 		'指定将隐藏进度条的前置元数据。例如："hide-progress-bar: true"',
-	"Task Status Switcher": "任务状态切换器",
+	"Checkbox Status Switcher": "任务状态切换器",
 	"Enable/disable the ability to cycle through task states by clicking.":
 		"启用/禁用通过点击循环切换任务状态的功能。",
 	"Enable custom task marks": "启用自定义任务标记",
@@ -81,7 +81,7 @@ const translations = {
 	"Always cycle new tasks": "始终循环新任务",
 	"When enabled, newly inserted tasks will immediately cycle to the next status. When disabled, newly inserted tasks with valid marks will keep their original mark.":
 		"启用后，新插入的任务将立即循环到下一个状态。禁用时，带有有效标记的新插入任务将保持其原始标记。",
-	"Task Status Cycle and Marks": "任务状态循环和标记",
+	"Checkbox Status Cycle and Marks": "任务状态循环和标记",
 	"Define task states and their corresponding marks. The order from top to bottom defines the cycling sequence.":
 		"定义任务状态及其对应的标记。从上到下的顺序定义了循环顺序。",
 	"Completed Task Mover": "已完成任务移动功能",
@@ -169,7 +169,7 @@ const translations = {
 		"创建和管理预设过滤器，以快速访问常用的任务过滤器。",
 	"Edit Filter: ": "编辑过滤器：",
 	"Filter name": "过滤器名称",
-	"Task Status": "任务状态",
+	"Checkbox Status": "任务状态",
 	"Include or exclude tasks based on their status":
 		"根据任务状态包含或排除任务",
 	"Include Completed Tasks": "包含已完成任务",
@@ -423,6 +423,47 @@ const translations = {
 	"Configure task status settings": "配置任务状态设置",
 	"Configure which task markers to count or exclude":
 		"配置要计算或排除的任务标记",
+	// File Filter translations
+	"File Filter": "文件过滤器",
+	"Enable File Filter": "启用文件过滤器",
+	"Toggle this to enable file and folder filtering during task indexing. This can significantly improve performance for large vaults.":
+		"切换此选项以在任务索引期间启用文件和文件夹过滤。这可以显著提高大型库的性能。",
+	"File Filter Mode": "过滤模式",
+	"Choose whether to include only specified files/folders (whitelist) or exclude them (blacklist)":
+		"选择是仅包含指定的文件/文件夹（白名单）还是排除它们（黑名单）",
+	"Whitelist (Include only)": "白名单（仅包含）",
+	"Blacklist (Exclude)": "黑名单（排除）",
+	"File Filter Rules": "过滤规则",
+	"Configure which files and folders to include or exclude from task indexing":
+		"配置在任务索引中包含或排除哪些文件和文件夹",
+	"Type:": "类型：",
+	"Path:": "路径：",
+	"Enabled:": "启用：",
+	"Delete rule": "删除规则",
+	"Add Filter Rule": "添加过滤规则",
+	"Add File Rule": "添加文件规则",
+	"Add Folder Rule": "添加文件夹规则",
+	"Add Pattern Rule": "添加模式规则",
+	"Preset Templates": "预设模板",
+	"Quick setup for common filtering scenarios": "常见过滤场景的快速设置",
+	"Exclude System Folders": "排除系统文件夹",
+	"Automatically exclude common system folders (.obsidian, .trash, .git) and temporary files":
+		"自动排除常见系统文件夹（.obsidian、.trash、.git）和临时文件",
+	"Apply System Exclusions": "应用系统排除规则",
+	"This will enable file filtering and add system folder exclusion rules":
+		"这将启用文件过滤并添加系统文件夹排除规则",
+	"System Folders Already Excluded": "系统文件夹已排除",
+	"All system folder exclusion rules are already configured and active":
+		"所有系统文件夹排除规则已配置并激活",
+	"File filtering enabled and {{count}} system exclusion rules added":
+		"文件过滤已启用，添加了 {{count}} 个系统排除规则",
+	"File filtering enabled with existing system exclusion rules":
+		"文件过滤已启用，使用现有系统排除规则",
+	"{{count}} system exclusion rules added": "已添加 {{count}} 个系统排除规则",
+	"System exclusion rules updated": "系统排除规则已更新",
+	"System folder exclusions added": "已添加系统文件夹排除规则",
+	"Active Rules": "活跃规则",
+	"Cache Size": "缓存大小",
 	"Task status cycle and marks": "任务状态循环和标记",
 	Version: "版本",
 	Documentation: "文档",

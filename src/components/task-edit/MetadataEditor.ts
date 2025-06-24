@@ -354,8 +354,12 @@ export class TaskMetadataEditor extends Component {
 				}
 			});
 
-		// Add visual indicator for tgProject
-		if (isReadonly && this.task.metadata.tgProject) {
+		// Add visual indicator for tgProject - only show if no user-set project exists
+		if (
+			isReadonly &&
+			this.task.metadata.tgProject &&
+			(!this.task.metadata.project || !this.task.metadata.project.trim())
+		) {
 			fieldContainer.addClass("project-readonly");
 			const indicator = fieldContainer.createDiv({
 				cls: "project-source-indicator",

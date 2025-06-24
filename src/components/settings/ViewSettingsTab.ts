@@ -37,6 +37,26 @@ export function renderViewSettingsTab(
 		});
 
 	new Setting(containerEl)
+		.setName(t("Default view mode"))
+		.setDesc(
+			t(
+				"Choose the default display mode for all views. This affects how tasks are displayed when you first open a view or create a new view."
+			)
+		)
+		.addDropdown((dropdown) => {
+			dropdown
+				.addOption("list", t("List View"))
+				.addOption("tree", t("Tree View"))
+				.setValue(settingTab.plugin.settings.defaultViewMode)
+				.onChange((value) => {
+					settingTab.plugin.settings.defaultViewMode = value as
+						| "list"
+						| "tree";
+					settingTab.applySettingsUpdate();
+				});
+		});
+
+	new Setting(containerEl)
 		.setName(t("Prefer metadata format of task"))
 		.setDesc(
 			t(
@@ -130,35 +150,35 @@ export function renderViewSettingsTab(
 				});
 		});
 
-	// Area tag prefix
-	new Setting(containerEl)
-		.setName(t("Area tag prefix"))
-		.setDesc(
-			isDataviewFormat
-				? t(
-						"Customize the prefix used for area tags in dataview format (e.g., 'area' for [area:: work]). Changes require reindexing."
-				  )
-				: t(
-						"Customize the prefix used for area tags (e.g., 'area' for #area/work). Changes require reindexing."
-				  )
-		)
-		.addText((text) => {
-			text.setPlaceholder("area")
-				.setValue(
-					settingTab.plugin.settings.areaTagPrefix[
-						settingTab.plugin.settings.preferMetadataFormat
-					]
-				)
-				.onChange(async (value) => {
-					settingTab.plugin.settings.areaTagPrefix[
-						settingTab.plugin.settings.preferMetadataFormat
-					] = value || "area";
-					settingTab.applySettingsUpdate();
-					// Update format examples
-					const updateFn = (containerEl as any).updateFormatExamples;
-					if (updateFn) updateFn();
-				});
-		});
+	// // Area tag prefix
+	// new Setting(containerEl)
+	// 	.setName(t("Area tag prefix"))
+	// 	.setDesc(
+	// 		isDataviewFormat
+	// 			? t(
+	// 					"Customize the prefix used for area tags in dataview format (e.g., 'area' for [area:: work]). Changes require reindexing."
+	// 			  )
+	// 			: t(
+	// 					"Customize the prefix used for area tags (e.g., 'area' for #area/work). Changes require reindexing."
+	// 			  )
+	// 	)
+	// 	.addText((text) => {
+	// 		text.setPlaceholder("area")
+	// 			.setValue(
+	// 				settingTab.plugin.settings.areaTagPrefix[
+	// 					settingTab.plugin.settings.preferMetadataFormat
+	// 				]
+	// 			)
+	// 			.onChange(async (value) => {
+	// 				settingTab.plugin.settings.areaTagPrefix[
+	// 					settingTab.plugin.settings.preferMetadataFormat
+	// 				] = value || "area";
+	// 				settingTab.applySettingsUpdate();
+	// 				// Update format examples
+	// 				const updateFn = (containerEl as any).updateFormatExamples;
+	// 				if (updateFn) updateFn();
+	// 			});
+	// 	});
 
 	// Add format examples section
 	const exampleContainer = containerEl.createDiv({

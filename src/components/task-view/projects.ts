@@ -12,6 +12,7 @@ import { TaskListRendererComponent } from "./TaskList";
 import TaskProgressBarPlugin from "../../index";
 import { sortTasks } from "../../commands/sortTaskCommands";
 import { getEffectiveProject } from "../../utils/taskUtil";
+import { getInitialViewMode, saveViewMode } from "../../utils/viewModeUtils";
 
 interface SelectedProjects {
 	projects: string[];
@@ -74,6 +75,9 @@ export class ProjectsComponent extends Component {
 
 		// Right column: create task list for selected projects
 		this.createRightColumn(contentContainer);
+
+		// Initialize view mode from saved state or global default
+		this.initializeViewMode();
 
 		// Initialize the task renderer
 		this.taskRenderer = new TaskListRendererComponent(
@@ -392,6 +396,20 @@ export class ProjectsComponent extends Component {
 		}
 	}
 
+	/**
+	 * Initialize view mode from saved state or global default
+	 */
+	private initializeViewMode() {
+		this.isTreeView = getInitialViewMode(this.app, this.plugin, "projects");
+		// Update the toggle button icon to match the initial state
+		const viewToggleBtn = this.taskContainerEl?.querySelector(
+			".view-toggle-btn"
+		) as HTMLElement;
+		if (viewToggleBtn) {
+			setIcon(viewToggleBtn, this.isTreeView ? "git-branch" : "list");
+		}
+	}
+
 	private toggleViewMode() {
 		this.isTreeView = !this.isTreeView;
 
@@ -402,6 +420,9 @@ export class ProjectsComponent extends Component {
 		if (viewToggleBtn) {
 			setIcon(viewToggleBtn, this.isTreeView ? "git-branch" : "list");
 		}
+
+		// Save the new view mode state
+		saveViewMode(this.app, "projects", this.isTreeView);
 
 		// Update tasks display using the renderer
 		this.renderTaskList();

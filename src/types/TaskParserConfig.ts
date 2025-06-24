@@ -45,6 +45,17 @@ export interface TaskParserConfig {
 			searchRecursively: boolean;
 			enabled: boolean;
 		};
+		metadataMappings: Array<{
+			sourceKey: string;
+			targetKey: string;
+			enabled: boolean;
+		}>;
+		defaultProjectNaming: {
+			strategy: "filename" | "foldername" | "metadata";
+			metadataKey?: string;
+			stripExtension?: boolean;
+			enabled: boolean;
+		};
 	};
 }
 

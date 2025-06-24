@@ -12,6 +12,7 @@ import {
 import { parseLocalDate } from "../dateUtil";
 import { TASK_REGEX } from "../../common/regex-define";
 import { TgProject } from "../../types/task";
+import { ContextDetector } from "./ContextDetector";
 
 export class MarkdownTaskParser {
 	private config: TaskParserConfig;
@@ -552,50 +553,33 @@ export class MarkdownTaskParser {
 	}
 
 	private extractTag(content: string): [string, string, string] | null {
-		const hashPos = content.indexOf("#");
+		// Use ContextDetector to find unprotected hash symbols
+		const detector = new ContextDetector(content);
+		detector.detectAllProtectedRanges();
+
+		const hashPos = detector.findNextUnprotectedHash(0);
 		if (hashPos === -1) return null;
 
-		// Check if the hash is inside a [[...]] link by scanning backwards and forwards
-		// Look for [[ before the hash and ]] after the hash
-		for (let i = hashPos - 1; i >= 0; i--) {
-			if (content[i] === "]" && i > 0 && content[i - 1] === "]") {
-				// Found ]] before hash, so hash is not in a link
-				break;
+		// Enhanced word boundary check
+		const isWordStart = this.isValidTagStart(content, hashPos);
+		if (!isWordStart) {
+			// Try to find the next unprotected hash
+			const nextHashPos = detector.findNextUnprotectedHash(hashPos + 1);
+			if (nextHashPos === -1) return null;
+
+			// Recursively check the remaining content
+			const remainingContent = content.substring(nextHashPos);
+			const recurseResult = this.extractTag(remainingContent);
+			if (recurseResult) {
+				const [tag, beforeTag, afterTag] = recurseResult;
+				return [
+					tag,
+					content.substring(0, nextHashPos) + beforeTag,
+					afterTag,
+				];
 			}
-			if (content[i] === "[" && i > 0 && content[i - 1] === "[") {
-				// Found [[ before hash, check if there's ]] after hash
-				let afterBrackets = 0;
-				for (let j = hashPos + 1; j < content.length - 1; j++) {
-					if (content[j] === "]" && content[j + 1] === "]") {
-						afterBrackets = j + 2;
-						break;
-					}
-				}
-				if (afterBrackets > 0) {
-					// Hash is inside a [[...]] link, skip it by recursing on the remaining content
-					const remainingContent = content.substring(afterBrackets);
-					const recurseResult = this.extractTag(remainingContent);
-					if (recurseResult) {
-						const [tag, beforeTag, afterTag] = recurseResult;
-						return [
-							tag,
-							content.substring(0, afterBrackets) + beforeTag,
-							afterTag,
-						];
-					}
-					return null;
-				}
-				break;
-			}
+			return null;
 		}
-
-		// Check if it's a word start
-		const isWordStart =
-			hashPos === 0 ||
-			content[hashPos - 1].match(/\s/) ||
-			!content[hashPos - 1].match(/[a-zA-Z0-9#@$%^&*]/);
-
-		if (!isWordStart) return null;
 
 		const afterHash = content.substring(hashPos + 1);
 		let tagEnd = 0;
@@ -652,6 +636,41 @@ export class MarkdownTaskParser {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Enhanced word boundary check for tag start validation
+	 */
+	private isValidTagStart(content: string, hashPos: number): boolean {
+		// Check if it's at the beginning of content
+		if (hashPos === 0) return true;
+
+		const prevChar = content[hashPos - 1];
+
+		// Valid tag starts are preceded by:
+		// 1. Whitespace
+		// 2. Start of line
+		// 3. Punctuation that typically separates words
+		// 4. Opening brackets/parentheses
+
+		// Invalid tag starts are preceded by:
+		// 1. Alphanumeric characters (part of a word)
+		// 2. Other hash symbols (multiple hashes)
+		// 3. Special symbols that indicate non-tag context
+
+		const validPrecedingChars = /[\s\(\[\{<,;:!?\-\+\*\/\\\|=]/;
+		const invalidPrecedingChars = /[a-zA-Z0-9#@$%^&*]/;
+
+		if (validPrecedingChars.test(prevChar)) {
+			return true;
+		}
+
+		if (invalidPrecedingChars.test(prevChar)) {
+			return false;
+		}
+
+		// For other characters (Unicode, etc.), use the original logic
+		return !prevChar.match(/[a-zA-Z0-9#@$%^&*]/);
 	}
 
 	private extractContext(content: string): [string, string, string] | null {
@@ -1097,7 +1116,7 @@ export class MarkdownTaskParser {
 			}
 		}
 
-		// 2. Check file metadata
+		// 2. Check file metadata - only if metadata detection is enabled
 		if (config.metadataConfig?.enabled && this.fileMetadata) {
 			const metadataKey = config.metadataConfig.metadataKey || "project";
 			const projectFromMetadata = this.fileMetadata[metadataKey];
@@ -1115,7 +1134,7 @@ export class MarkdownTaskParser {
 			}
 		}
 
-		// 3. Check project config file
+		// 3. Check project config file - only if config file detection is enabled
 		if (config.configFile?.enabled && this.projectConfigCache) {
 			const projectFromConfig = this.projectConfigCache.project;
 

@@ -20,7 +20,8 @@ import {
 	TaskFilter,
 	TaskIndexer as TaskIndexerInterface,
 } from "../../types/task";
-import { isSupportedFile } from "../fileTypeUtils";
+import { isSupportedFileWithFilter } from "../fileTypeUtils";
+import { FileFilterManager } from "../FileFilterManager";
 
 /**
  * Utility to format a date for index keys (YYYY-MM-DD)
@@ -47,6 +48,9 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 	// Callback for external parsing
 	private parseFileCallback?: (file: TFile) => Promise<Task[]>;
 
+	// File filter manager
+	private fileFilterManager?: FileFilterManager;
+
 	constructor(
 		private app: App,
 		private vault: Vault,
@@ -66,6 +70,13 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 		callback: (file: TFile) => Promise<Task[]>
 	): void {
 		this.parseFileCallback = callback;
+	}
+
+	/**
+	 * Set the file filter manager
+	 */
+	public setFileFilterManager(filterManager?: FileFilterManager): void {
+		this.fileFilterManager = filterManager;
 	}
 
 	/**
@@ -93,7 +104,10 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 		// Watch for file modifications
 		this.registerEvent(
 			this.vault.on("modify", (file) => {
-				if (file instanceof TFile && isSupportedFile(file)) {
+				if (
+					file instanceof TFile &&
+					isSupportedFileWithFilter(file, this.fileFilterManager)
+				) {
 					this.queueFileForIndexing(file);
 				}
 			})
@@ -102,7 +116,10 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 		// Watch for file deletions
 		this.registerEvent(
 			this.vault.on("delete", (file) => {
-				if (file instanceof TFile && isSupportedFile(file)) {
+				if (
+					file instanceof TFile &&
+					isSupportedFileWithFilter(file, this.fileFilterManager)
+				) {
 					this.removeFileFromIndex(file);
 				}
 			})
@@ -111,7 +128,10 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 		// Watch for new files
 		this.registerEvent(
 			this.vault.on("create", (file) => {
-				if (file instanceof TFile && isSupportedFile(file)) {
+				if (
+					file instanceof TFile &&
+					isSupportedFileWithFilter(file, this.fileFilterManager)
+				) {
 					this.queueFileForIndexing(file);
 				}
 			})

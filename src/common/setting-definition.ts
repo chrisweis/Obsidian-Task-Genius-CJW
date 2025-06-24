@@ -498,6 +498,24 @@ export interface TimelineSidebarSettings {
 	maxEventsToShow: number;
 }
 
+/** File Filter Settings */
+export interface FileFilterRule {
+	type: "file" | "folder" | "pattern";
+	path: string;
+	enabled: boolean;
+}
+
+export enum FilterMode {
+	WHITELIST = "whitelist",
+	BLACKLIST = "blacklist",
+}
+
+export interface FileFilterSettings {
+	enabled: boolean;
+	mode: FilterMode;
+	rules: FileFilterRule[];
+}
+
 /** Define the main settings structure */
 export interface TaskProgressBarSettings {
 	// General Settings (Example)
@@ -519,7 +537,7 @@ export interface TaskProgressBarSettings {
 	hideProgressBarMetadata: string;
 	showProgressBarBasedOnHeading: string;
 
-	// Task Status Settings
+	// Checkbox Status Settings
 	autoCompleteParent: boolean;
 	markParentInProgressWhenPartiallyComplete: boolean;
 	taskStatuses: TaskStatusConfig;
@@ -588,6 +606,7 @@ export interface TaskProgressBarSettings {
 	// View Settings (Updated Structure)
 	enableView: boolean;
 	enableInlineEditor: boolean; // Enable inline editing in task views
+	defaultViewMode: "list" | "tree"; // Global default view mode for all views
 	viewConfiguration: ViewConfig[]; // Manages order, visibility, basic info, AND filter rules
 
 	// Global Filter Settings
@@ -620,6 +639,9 @@ export interface TaskProgressBarSettings {
 
 	// Timeline Sidebar Settings
 	timelineSidebar: TimelineSidebarSettings;
+
+	// File Filter Settings
+	fileFilter: FileFilterSettings;
 }
 
 /** Define the default settings */
@@ -649,7 +671,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	hideProgressBarMetadata: "hide-progress-bar",
 	showProgressBarBasedOnHeading: "",
 
-	// Task Status Defaults
+	// Checkbox Status Defaults
 	autoCompleteParent: false,
 	markParentInProgressWhenPartiallyComplete: false,
 	taskStatuses: {
@@ -879,6 +901,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	// View Defaults (Updated Structure)
 	enableView: true,
 	enableInlineEditor: true, // Enable inline editing by default
+	defaultViewMode: "list", // Global default view mode for all views
 
 	// Global Filter Defaults
 	globalFilterRules: {}, // Empty global filter rules by default
@@ -1198,6 +1221,15 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		showCompletedTasks: true,
 		focusModeByDefault: false,
 		maxEventsToShow: 100,
+	},
+
+	// File Filter Defaults
+	fileFilter: {
+		enabled: false,
+		mode: FilterMode.BLACKLIST,
+		rules: [
+			// No default rules - let users explicitly choose via preset templates
+		],
 	},
 };
 

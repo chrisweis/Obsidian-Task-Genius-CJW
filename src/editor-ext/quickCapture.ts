@@ -21,6 +21,7 @@ import TaskProgressBarPlugin from "../index";
 import { saveCapture, processDateTemplates } from "../utils/fileUtils";
 import { t } from "../translations/helper";
 import "../styles/quick-capture.css";
+import { FileSuggest } from "../components/AutoComplete";
 
 /**
  * Sanitize filename by replacing unsafe characters with safe alternatives
@@ -93,79 +94,6 @@ export interface QuickCaptureOptions {
 		folder: string;
 		template: string;
 	};
-}
-/**
- * A class that provides file suggestions for the quick capture target field
- */
-export class FileSuggest extends AbstractInputSuggest<TFile> {
-	private currentTarget: string = "Quick Capture.md";
-	scope: Scope;
-	onFileSelected: (file: TFile) => void;
-
-	constructor(
-		app: App,
-		inputEl: HTMLInputElement | HTMLDivElement,
-		options: QuickCaptureOptions,
-		onFileSelected?: (file: TFile) => void
-	) {
-		super(app, inputEl);
-		this.suggestEl.addClass("quick-capture-file-suggest");
-		this.currentTarget = options.targetFile || "Quick Capture.md";
-		this.onFileSelected =
-			onFileSelected ||
-			((file: TFile) => {
-				this.setValue(file.path);
-			});
-
-		// Register Alt+X hotkey to focus target input
-		this.scope.register(["Alt"], "x", (e: KeyboardEvent) => {
-			inputEl.focus();
-			return true;
-		});
-
-		// Set initial value
-		this.setValue(this.currentTarget);
-
-		// Register callback for selection
-		this.onSelect((file, evt) => {
-			this.onFileSelected(file);
-		});
-	}
-
-	getSuggestions(query: string): TFile[] {
-		const files = this.app.vault.getMarkdownFiles();
-		const lowerCaseQuery = query.toLowerCase();
-
-		// Use fuzzy search for better matching
-		const fuzzySearcher = prepareFuzzySearch(lowerCaseQuery);
-
-		// Filter and sort results
-		return files
-			.map((file) => {
-				const result = fuzzySearcher(file.path);
-				return result ? { file, score: result.score } : null;
-			})
-			.filter(
-				(match): match is { file: TFile; score: number } =>
-					match !== null
-			)
-			.sort((a, b) => {
-				// Sort by score (higher is better)
-				return b.score - a.score;
-			})
-			.map((match) => match.file)
-			.slice(0, 10); // Limit results
-	}
-
-	renderSuggestion(file: TFile, el: HTMLElement): void {
-		el.setText(file.path);
-	}
-
-	selectSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent): void {
-		this.setValue(file.path);
-		this.onFileSelected(file);
-		this.close();
-	}
 }
 
 const handleCancel = (view: EditorView, app: App) => {

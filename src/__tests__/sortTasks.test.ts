@@ -240,7 +240,13 @@ Just regular text content`;
 		// Debug: Test parseTaskLine directly
 		const { parseTaskLine } = require("../utils/taskUtil");
 		const testLine = "- [ ] Task A 📅 2025-01-01";
-		const parsedTask = parseTaskLine("test.md", testLine, 1, "tasks");
+		const parsedTask = parseTaskLine(
+			"test.md",
+			testLine,
+			1,
+			"tasks",
+			mockPlugin
+		);
 		console.log("Parsed task:", parsedTask);
 		console.log("Due date:", parsedTask?.metadata?.dueDate);
 

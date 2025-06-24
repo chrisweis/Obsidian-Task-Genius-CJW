@@ -14,7 +14,7 @@ import {
 } from "../editor-ext/markdownEditor";
 import TaskProgressBarPlugin from "../index";
 import { saveCapture, processDateTemplates } from "../utils/fileUtils";
-import { FileSuggest } from "../editor-ext/quickCapture";
+import { FileSuggest } from "../components/AutoComplete";
 import { t } from "../translations/helper";
 import { MarkdownRendererComponent } from "./MarkdownRenderer";
 import { StatusComponent } from "./StatusComponent";

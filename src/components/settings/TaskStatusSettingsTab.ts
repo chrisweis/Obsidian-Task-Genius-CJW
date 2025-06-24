@@ -15,8 +15,8 @@ export function renderTaskStatusSettingsTab(
 	containerEl: HTMLElement
 ) {
 	new Setting(containerEl)
-		.setName(t("Task Status Settings"))
-		.setDesc(t("Configure task status settings"))
+		.setName(t("Checkbox Status Settings"))
+		.setDesc(t("Configure checkbox status settings"))
 		.setHeading();
 
 	// Check if Tasks plugin is installed and show compatibility warning
@@ -63,10 +63,10 @@ export function renderTaskStatusSettingsTab(
 	}
 
 	new Setting(containerEl)
-		.setName(t("Auto complete parent task"))
+		.setName(t("Auto complete parent checkbox"))
 		.setDesc(
 			t(
-				"Toggle this to allow this plugin to auto complete parent task when all child tasks are completed."
+				"Toggle this to allow this plugin to auto complete parent checkbox when all child tasks are completed."
 			)
 		)
 		.addToggle((toggle) =>
@@ -82,7 +82,7 @@ export function renderTaskStatusSettingsTab(
 		.setName(t("Mark parent as 'In Progress' when partially complete"))
 		.setDesc(
 			t(
-				"When some but not all child tasks are completed, mark the parent task as 'In Progress'. Only works when 'Auto complete parent' is enabled."
+				"When some but not all child tasks are completed, mark the parent checkbox as 'In Progress'. Only works when 'Auto complete parent' is enabled."
 			)
 		)
 		.addToggle((toggle) =>
@@ -98,12 +98,12 @@ export function renderTaskStatusSettingsTab(
 				})
 		);
 
-	// Task Status Settings
+	// Checkbox Status Settings
 	new Setting(containerEl)
-		.setName(t("Task Status Settings"))
+		.setName(t("Checkbox Status Settings"))
 		.setDesc(
 			t(
-				"Select a predefined task status collection or customize your own"
+				"Select a predefined checkbox status collection or customize your own"
 			)
 		)
 		.setHeading()
@@ -127,7 +127,7 @@ export function renderTaskStatusSettingsTab(
 
 				const content = modal.contentEl.createDiv();
 				content.setText(
-					`This will override your current task status settings with the ${value} theme. Do you want to continue?`
+					`This will override your current checkbox status settings with the ${value} theme. Do you want to continue?`
 				);
 
 				const buttonContainer = modal.contentEl.createDiv({
@@ -234,7 +234,7 @@ export function renderTaskStatusSettingsTab(
 						}
 					} catch (error) {
 						console.error(
-							"Failed to apply task status theme:",
+							"Failed to apply checkbox status theme:",
 							error
 						);
 					}
@@ -523,11 +523,11 @@ export function renderTaskStatusSettingsTab(
 			);
 	}
 
-	// Task Status Switcher section
-	new Setting(containerEl).setName(t("Task Status Switcher")).setHeading();
+	// Check Switcher section
+	new Setting(containerEl).setName(t("Checkbo x Switcher")).setHeading();
 
 	new Setting(containerEl)
-		.setName(t("Enable task status switcher"))
+		.setName(t("Enable checkbox status switcher"))
 		.setDesc(
 			t(
 				"Enable/disable the ability to cycle through task states by clicking."
@@ -551,7 +551,7 @@ export function renderTaskStatusSettingsTab(
 			.setName(t("Enable custom task marks"))
 			.setDesc(
 				t(
-					"Replace default checkboxes with styled text marks that follow your task status cycle when clicked."
+					"Replace default checkboxes with styled text marks that follow your checkbox status cycle when clicked."
 				)
 			)
 			.addToggle((toggle) => {
@@ -568,7 +568,7 @@ export function renderTaskStatusSettingsTab(
 			.setName(t("Enable text mark in source mode"))
 			.setDesc(
 				t(
-					"Make the text mark in source mode follow the task status cycle when clicked."
+					"Make the text mark in source mode follow the checkbox status cycle when clicked."
 				)
 			)
 			.addToggle((toggle) => {
@@ -634,7 +634,7 @@ export function renderTaskStatusSettingsTab(
 					const content = modal.contentEl.createDiv();
 					content.setText(
 						t(
-							`This will override your current task status settings with the selected theme. Do you want to continue?`
+							`This will override your current checkbox status settings with the selected theme. Do you want to continue?`
 						)
 					);
 
@@ -742,7 +742,7 @@ export function renderTaskStatusSettingsTab(
 							}
 						} catch (error) {
 							console.error(
-								"Failed to apply task status theme:",
+								"Failed to apply checkbox status theme:",
 								error
 							);
 						}
@@ -918,14 +918,14 @@ export function renderTaskStatusSettingsTab(
 	// Auto Date Manager Settings
 	new Setting(containerEl)
 		.setName(t("Auto Date Manager"))
-		.setDesc(t("Automatically manage dates based on task status changes"))
+		.setDesc(t("Automatically manage dates based on checkbox status changes"))
 		.setHeading();
 
 	new Setting(containerEl)
 		.setName(t("Enable auto date manager"))
 		.setDesc(
 			t(
-				"Toggle this to enable automatic date management when task status changes. Dates will be added/removed based on your preferred metadata format (Tasks emoji format or Dataview format)."
+				"Toggle this to enable automatic date management when checkbox status changes. Dates will be added/removed based on your preferred metadata format (Tasks emoji format or Dataview format)."
 			)
 		)
 		.addToggle((toggle) =>

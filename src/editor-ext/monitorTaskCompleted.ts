@@ -283,7 +283,8 @@ function handleMonitorTaskCompletionTransaction(
 						filePath,
 						newLineText,
 						newLine.number, // line numbers are 1-based
-						plugin.settings.preferMetadataFormat // Use plugin setting for format preference
+						plugin.settings.preferMetadataFormat, // Use plugin setting for format preference
+						plugin // Pass plugin for configurable prefix support
 					);
 					console.log(task);
 

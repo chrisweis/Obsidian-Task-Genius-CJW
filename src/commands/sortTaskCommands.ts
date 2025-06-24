@@ -69,7 +69,8 @@ export function parseTasksForSorting(
 	blockText: string,
 	lineOffset: number = 0,
 	filePath: string, // Added filePath
-	format: MetadataFormat // Added format
+	format: MetadataFormat, // Added format
+	plugin?: TaskProgressBarPlugin // Added plugin for configurable prefix support
 ): SortableTask[] {
 	const lines = blockText.split("\n");
 	const tasks: SortableTask[] = [];
@@ -86,7 +87,8 @@ export function parseTasksForSorting(
 			filePath,
 			line,
 			lineNumber + 1,
-			format
+			format,
+			plugin // Pass plugin for configurable prefix support
 		); // Pass 1-based line number
 
 		if (parsedTask) {
@@ -777,7 +779,8 @@ export function sortTasksInDocument(
 		originalBlockText,
 		startLine,
 		filePath,
-		metadataFormat // Pass determined format
+		metadataFormat, // Pass determined format
+		plugin // Pass plugin for configurable prefix support
 	);
 	if (blockTasks.length === 0) {
 		const noticeMsg = `Sort Tasks: No tasks found in the ${scopeMessage} (Lines ${
