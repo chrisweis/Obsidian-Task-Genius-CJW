@@ -388,7 +388,7 @@ export function renderProjectSettingsTab(
 				toggle
 					.setValue(
 						settingTab.plugin.settings.projectConfig?.configFile
-							?.searchRecursively || true
+							?.searchRecursively ?? false
 					)
 					.onChange(async (value) => {
 						if (

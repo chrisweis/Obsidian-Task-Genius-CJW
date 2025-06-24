@@ -312,8 +312,11 @@ export class TaskDetailsComponent extends Component {
 		const projectInput = new TextComponent(projectField);
 		projectInput.setValue(effectiveProject || "");
 
-		// Add visual indicator for tgProject
-		if (task.metadata.tgProject) {
+		// Add visual indicator for tgProject - only show if no user-set project exists
+		if (
+			task.metadata.tgProject &&
+			(!task.metadata.project || !task.metadata.project.trim())
+		) {
 			const tgProject = task.metadata.tgProject;
 			const indicator = projectField.createDiv({
 				cls: "project-source-indicator",

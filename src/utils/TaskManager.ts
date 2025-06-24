@@ -205,6 +205,11 @@ export class TaskManager extends Component {
 						stripExtension: true,
 						enabled: false,
 					},
+					metadataConfigEnabled:
+						this.plugin.settings.projectConfig.metadataConfig
+							.enabled,
+					configFileEnabled:
+						this.plugin.settings.projectConfig.configFile.enabled,
 				},
 			};
 

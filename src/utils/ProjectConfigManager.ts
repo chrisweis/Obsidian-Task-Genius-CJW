@@ -40,6 +40,8 @@ export interface ProjectConfigManagerOptions {
 	metadataMappings: MetadataMapping[];
 	defaultProjectNaming: ProjectNamingStrategy;
 	enhancedProjectEnabled?: boolean; // Optional flag to control feature availability
+	metadataConfigEnabled?: boolean; // Whether metadata-based detection is enabled
+	configFileEnabled?: boolean; // Whether config file-based detection is enabled
 }
 
 export class ProjectConfigManager {
@@ -56,6 +58,8 @@ export class ProjectConfigManager {
 	private metadataMappings: MetadataMapping[];
 	private defaultProjectNaming: ProjectNamingStrategy;
 	private enhancedProjectEnabled: boolean;
+	private metadataConfigEnabled: boolean;
+	private configFileEnabled: boolean;
 
 	// Cache for project configurations
 	private configCache = new Map<string, ProjectConfigData>();
@@ -75,6 +79,8 @@ export class ProjectConfigManager {
 			enabled: false,
 		};
 		this.enhancedProjectEnabled = options.enhancedProjectEnabled ?? true; // Default to enabled for backward compatibility
+		this.metadataConfigEnabled = options.metadataConfigEnabled ?? false;
+		this.configFileEnabled = options.configFileEnabled ?? false;
 	}
 
 	/**
@@ -200,37 +206,41 @@ export class ProjectConfigManager {
 			}
 		}
 
-		// 2. Check file metadata (frontmatter)
-		const fileMetadata = this.getFileMetadata(filePath);
-		if (fileMetadata && fileMetadata[this.metadataKey]) {
-			const projectFromMetadata = fileMetadata[this.metadataKey];
-			if (
-				typeof projectFromMetadata === "string" &&
-				projectFromMetadata.trim()
-			) {
-				return {
-					type: "metadata",
-					name: projectFromMetadata.trim(),
-					source: this.metadataKey,
-					readonly: true,
-				};
+		// 2. Check file metadata (frontmatter) - only if metadata detection is enabled
+		if (this.metadataConfigEnabled) {
+			const fileMetadata = this.getFileMetadata(filePath);
+			if (fileMetadata && fileMetadata[this.metadataKey]) {
+				const projectFromMetadata = fileMetadata[this.metadataKey];
+				if (
+					typeof projectFromMetadata === "string" &&
+					projectFromMetadata.trim()
+				) {
+					return {
+						type: "metadata",
+						name: projectFromMetadata.trim(),
+						source: this.metadataKey,
+						readonly: true,
+					};
+				}
 			}
 		}
 
-		// 3. Check project config file (lowest priority)
-		const configData = await this.getProjectConfig(filePath);
-		if (configData && configData.project) {
-			const projectFromConfig = configData.project;
-			if (
-				typeof projectFromConfig === "string" &&
-				projectFromConfig.trim()
-			) {
-				return {
-					type: "config",
-					name: projectFromConfig.trim(),
-					source: this.configFileName,
-					readonly: true,
-				};
+		// 3. Check project config file (lowest priority) - only if config file detection is enabled
+		if (this.configFileEnabled) {
+			const configData = await this.getProjectConfig(filePath);
+			if (configData && configData.project) {
+				const projectFromConfig = configData.project;
+				if (
+					typeof projectFromConfig === "string" &&
+					projectFromConfig.trim()
+				) {
+					return {
+						type: "config",
+						name: projectFromConfig.trim(),
+						source: this.configFileName,
+						readonly: true,
+					};
+				}
 			}
 		}
 
@@ -611,6 +621,12 @@ export class ProjectConfigManager {
 		}
 		if (options.enhancedProjectEnabled !== undefined) {
 			this.setEnhancedProjectEnabled(options.enhancedProjectEnabled);
+		}
+		if (options.metadataConfigEnabled !== undefined) {
+			this.metadataConfigEnabled = options.metadataConfigEnabled;
+		}
+		if (options.configFileEnabled !== undefined) {
+			this.configFileEnabled = options.configFileEnabled;
 		}
 
 		// Clear cache when options change

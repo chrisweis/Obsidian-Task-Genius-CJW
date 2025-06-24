@@ -1097,7 +1097,7 @@ export class MarkdownTaskParser {
 			}
 		}
 
-		// 2. Check file metadata
+		// 2. Check file metadata - only if metadata detection is enabled
 		if (config.metadataConfig?.enabled && this.fileMetadata) {
 			const metadataKey = config.metadataConfig.metadataKey || "project";
 			const projectFromMetadata = this.fileMetadata[metadataKey];
@@ -1115,7 +1115,7 @@ export class MarkdownTaskParser {
 			}
 		}
 
-		// 3. Check project config file
+		// 3. Check project config file - only if config file detection is enabled
 		if (config.configFile?.enabled && this.projectConfigCache) {
 			const projectFromConfig = this.projectConfigCache.project;
 
