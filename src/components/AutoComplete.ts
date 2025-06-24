@@ -184,42 +184,63 @@ export class SingleFolderSuggest extends CustomSuggest {
 		super(app, inputEl, ["/", ...paths]);
 	}
 }
+
 /**
  * PathSuggest - Provides autocomplete for file paths
  */
 export class FolderSuggest extends CustomSuggest {
 	private plugin: TaskProgressBarPlugin;
+	private outputType: "single" | "multiple";
 
 	constructor(
 		app: App,
 		inputEl: HTMLInputElement,
-		plugin: TaskProgressBarPlugin
+		plugin: TaskProgressBarPlugin,
+		outputType: "single" | "multiple" = "multiple"
 	) {
 		// Get all markdown files in the vault
 		const folders = app.vault.getAllFolders();
 		const paths = folders.map((file) => file.path);
 		super(app, inputEl, paths);
 		this.plugin = plugin;
+		this.outputType = outputType;
 	}
 
 	// Override getSuggestions to handle comma-separated paths
 	getSuggestions(query: string): string[] {
-		const parts = query.split(",");
-		const currentPathInput = parts[parts.length - 1].trim();
+		if (this.outputType === "multiple") {
+			const parts = query.split(",");
+			const currentPathInput = parts[parts.length - 1].trim();
 
-		if (!currentPathInput) {
-			return this.availableChoices.slice(0, 20);
+			if (!currentPathInput) {
+				return this.availableChoices.slice(0, 20);
+			}
+
+			const fuzzySearch = prepareFuzzySearch(currentPathInput.toLowerCase());
+			return this.availableChoices
+				.filter((path) => fuzzySearch(path.toLowerCase()))
+				.sort((a, b) => {
+					// Sort by path length (shorter paths first)
+					// This helps prioritize files in the root or with shorter paths
+					return a.length - b.length;
+				})
+				.slice(0, 20);
+		} else {
+			// Single mode - search the entire query
+			if (!query.trim()) {
+				return this.availableChoices.slice(0, 20);
+			}
+
+			const fuzzySearch = prepareFuzzySearch(query.toLowerCase());
+			return this.availableChoices
+				.filter((path) => fuzzySearch(path.toLowerCase()))
+				.sort((a, b) => {
+					// Sort by path length (shorter paths first)
+					// This helps prioritize files in the root or with shorter paths
+					return a.length - b.length;
+				})
+				.slice(0, 20);
 		}
-
-		const fuzzySearch = prepareFuzzySearch(currentPathInput.toLowerCase());
-		return this.availableChoices
-			.filter((path) => fuzzySearch(path.toLowerCase()))
-			.sort((a, b) => {
-				// Sort by path length (shorter paths first)
-				// This helps prioritize files in the root or with shorter paths
-				return a.length - b.length;
-			})
-			.slice(0, 20);
 	}
 
 	// Override to display the path with folder structure
@@ -229,14 +250,19 @@ export class FolderSuggest extends CustomSuggest {
 
 	// Override to keep previous paths and add the selected one
 	getSuggestionValue(item: string): string {
-		const currentValue = this.inputEl.value;
-		const parts = currentValue.split(",");
+		if (this.outputType === "multiple") {
+			const currentValue = this.inputEl.value;
+			const parts = currentValue.split(",");
 
-		// Replace the last part with the selected path
-		parts[parts.length - 1] = item;
+			// Replace the last part with the selected path
+			parts[parts.length - 1] = item;
 
-		// Join back with commas and add a new comma for the next path
-		return `${parts.join(",")},`;
+			// Join back with commas but don't add trailing comma
+			return parts.join(",");
+		} else {
+			// Single mode - just return the selected item
+			return item;
+		}
 	}
 }
 

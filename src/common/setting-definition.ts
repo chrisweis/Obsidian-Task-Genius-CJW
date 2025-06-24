@@ -498,6 +498,24 @@ export interface TimelineSidebarSettings {
 	maxEventsToShow: number;
 }
 
+/** File Filter Settings */
+export interface FileFilterRule {
+	type: "file" | "folder" | "pattern";
+	path: string;
+	enabled: boolean;
+}
+
+export enum FilterMode {
+	WHITELIST = "whitelist",
+	BLACKLIST = "blacklist",
+}
+
+export interface FileFilterSettings {
+	enabled: boolean;
+	mode: FilterMode;
+	rules: FileFilterRule[];
+}
+
 /** Define the main settings structure */
 export interface TaskProgressBarSettings {
 	// General Settings (Example)
@@ -621,6 +639,9 @@ export interface TaskProgressBarSettings {
 
 	// Timeline Sidebar Settings
 	timelineSidebar: TimelineSidebarSettings;
+
+	// File Filter Settings
+	fileFilter: FileFilterSettings;
 }
 
 /** Define the default settings */
@@ -1200,6 +1221,15 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		showCompletedTasks: true,
 		focusModeByDefault: false,
 		maxEventsToShow: 100,
+	},
+
+	// File Filter Defaults
+	fileFilter: {
+		enabled: false,
+		mode: FilterMode.BLACKLIST,
+		rules: [
+			// No default rules - let users explicitly choose via preset templates
+		],
 	},
 };
 

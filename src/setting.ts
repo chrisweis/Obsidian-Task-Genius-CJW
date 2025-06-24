@@ -22,6 +22,7 @@ import {
 	renderTimelineSidebarSettingsTab,
 	IcsSettingsComponent,
 } from "./components/settings";
+import { renderFileFilterSettingsTab } from "./components/settings/FileFilterSettingsTab";
 
 export class TaskProgressBarSettingTab extends PluginSettingTab {
 	plugin: TaskProgressBarPlugin;
@@ -46,6 +47,12 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			id: "view-settings",
 			name: t("Views & Index"),
 			icon: "layout",
+			category: "core",
+		},
+		{
+			id: "file-filter",
+			name: t("File Filter"),
+			icon: "folder-x",
 			category: "core",
 		},
 
@@ -76,6 +83,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			icon: "filter",
 			category: "management",
 		},
+
 		{
 			id: "project",
 			name: t("Projects"),
@@ -395,6 +403,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		const taskFilterSection = this.createTabSection("task-filter");
 		this.displayTaskFilterSettings(taskFilterSection);
 
+		// File Filter Tab
+		const fileFilterSection = this.createTabSection("file-filter");
+		this.displayFileFilterSettings(fileFilterSection);
+
 		// Task Handler Tab
 		const taskHandlerSection = this.createTabSection("task-handler");
 		this.displayTaskHandlerSettings(taskHandlerSection);
@@ -464,6 +476,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 	private displayTaskFilterSettings(containerEl: HTMLElement): void {
 		renderTaskFilterSettingsTab(this, containerEl);
+	}
+
+	private displayFileFilterSettings(containerEl: HTMLElement): void {
+		renderFileFilterSettingsTab(this, containerEl);
 	}
 
 	private displayWorkflowSettings(containerEl: HTMLElement): void {

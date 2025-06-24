@@ -25,10 +25,11 @@ import {
 	TaskParsingServiceOptions,
 } from "./TaskParsingService";
 import {
-	isSupportedFile,
+	isSupportedFileWithFilter,
 	getFileType,
 	SupportedFileType,
 } from "./fileTypeUtils";
+import { FileFilterManager } from "./FileFilterManager";
 import { CanvasParser } from "./parsing/CanvasParser";
 import { CanvasTaskUpdater } from "./parsing/CanvasTaskUpdater";
 import { FileMetadataTaskUpdater } from "./workers/FileMetadataTaskUpdater";
@@ -83,6 +84,8 @@ export class TaskManager extends Component {
 	private canvasParser: CanvasParser;
 	/** Canvas task updater for modifying tasks in .canvas files */
 	private canvasTaskUpdater: CanvasTaskUpdater;
+	/** File filter manager for filtering files during indexing */
+	private fileFilterManager?: FileFilterManager;
 
 	/**
 	 * Create a new task manager
@@ -124,6 +127,9 @@ export class TaskManager extends Component {
 		// Initialize enhanced task parsing service if enhanced project is enabled
 		this.initializeTaskParsingService();
 
+		// Initialize file filter manager
+		this.initializeFileFilterManager();
+
 		// Set up the indexer's parse callback to use our parser
 		this.indexer.setParseFileCallback(async (file: TFile) => {
 			const content = await this.vault.cachedRead(file);
@@ -161,6 +167,22 @@ export class TaskManager extends Component {
 		this.addChild(this.indexer);
 		if (this.workerManager) {
 			this.addChild(this.workerManager);
+		}
+	}
+
+	/**
+	 * Initialize file filter manager
+	 */
+	private initializeFileFilterManager(): void {
+		if (this.plugin.settings.fileFilter?.enabled) {
+			this.fileFilterManager = new FileFilterManager(
+				this.plugin.settings.fileFilter
+			);
+			this.indexer.setFileFilterManager(this.fileFilterManager);
+			this.log("File filter manager initialized");
+		} else {
+			this.fileFilterManager = undefined;
+			this.indexer.setFileFilterManager(undefined);
 		}
 	}
 
@@ -220,6 +242,21 @@ export class TaskManager extends Component {
 		} else {
 			this.taskParsingService = undefined;
 		}
+	}
+
+	/**
+	 * Update file filter configuration when settings change
+	 */
+	public updateFileFilterConfiguration(): void {
+		this.initializeFileFilterManager();
+		this.log("File filter configuration updated");
+	}
+
+	/**
+	 * Get the file filter manager instance
+	 */
+	public getFileFilterManager(): FileFilterManager | undefined {
+		return this.fileFilterManager;
 	}
 
 	/**
@@ -436,7 +473,7 @@ export class TaskManager extends Component {
 				if (
 					file instanceof TFile &&
 					file.extension === "md" &&
-					isSupportedFile(file)
+					isSupportedFileWithFilter(file, this.fileFilterManager)
 				) {
 					this.indexFile(file);
 				}
@@ -454,7 +491,10 @@ export class TaskManager extends Component {
 				this.log(`File modified: ${file.path}`);
 				// Process all supported files, but prioritize Canvas files
 				// since they don't trigger metadata cache events
-				if (file instanceof TFile && isSupportedFile(file)) {
+				if (
+					file instanceof TFile &&
+					isSupportedFileWithFilter(file, this.fileFilterManager)
+				) {
 					// For Canvas files, always process through vault modify event
 					// For markdown files, we'll get duplicate events but that's okay
 					// since indexFile is idempotent
@@ -476,7 +516,10 @@ export class TaskManager extends Component {
 					return;
 				}
 
-				if (file instanceof TFile && isSupportedFile(file)) {
+				if (
+					file instanceof TFile &&
+					isSupportedFileWithFilter(file, this.fileFilterManager)
+				) {
 					this.removeFileFromIndex(file);
 				}
 			})
@@ -490,7 +533,10 @@ export class TaskManager extends Component {
 					return;
 				}
 
-				if (file instanceof TFile && isSupportedFile(file)) {
+				if (
+					file instanceof TFile &&
+					isSupportedFileWithFilter(file, this.fileFilterManager)
+				) {
 					this.removeFileFromIndexByOldPath(oldPath);
 					this.indexFile(file);
 				}
@@ -506,7 +552,10 @@ export class TaskManager extends Component {
 						return;
 					}
 
-					if (file instanceof TFile && isSupportedFile(file)) {
+					if (
+						file instanceof TFile &&
+						isSupportedFileWithFilter(file, this.fileFilterManager)
+					) {
 						this.indexFile(file);
 					}
 				})
@@ -659,7 +708,9 @@ export class TaskManager extends Component {
 		try {
 			// Get all supported files (Markdown and Canvas)
 			const allFiles = this.vault.getFiles();
-			const files = allFiles.filter((file) => isSupportedFile(file));
+			const files = allFiles.filter((file) =>
+				isSupportedFileWithFilter(file, this.fileFilterManager)
+			);
 			this.log(
 				`Found ${files.length} supported files to index (${allFiles.length} total files)`
 			);

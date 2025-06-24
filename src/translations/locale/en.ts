@@ -498,6 +498,55 @@ const translations = {
 	"Configure task status settings": "Configure task status settings",
 	"Configure which task markers to count or exclude":
 		"Configure which task markers to count or exclude",
+	// File Filter translations
+	"File Filter": "File Filter",
+	"Enable File Filter": "Enable File Filter",
+	"Toggle this to enable file and folder filtering during task indexing. This can significantly improve performance for large vaults.":
+		"Toggle this to enable file and folder filtering during task indexing. This can significantly improve performance for large vaults.",
+	"File Filter Mode": "Filter Mode",
+	"Choose whether to include only specified files/folders (whitelist) or exclude them (blacklist)":
+		"Choose whether to include only specified files/folders (whitelist) or exclude them (blacklist)",
+	"Whitelist (Include only)": "Whitelist (Include only)",
+	"Blacklist (Exclude)": "Blacklist (Exclude)",
+	"File Filter Rules": "Filter Rules",
+	"Configure which files and folders to include or exclude from task indexing":
+		"Configure which files and folders to include or exclude from task indexing",
+	"Type:": "Type:",
+	File: "File",
+	Folder: "Folder",
+	Pattern: "Pattern",
+	"Path:": "Path:",
+	"Enabled:": "Enabled:",
+	"Delete rule": "Delete rule",
+	"Add Filter Rule": "Add Filter Rule",
+	"Add File Rule": "Add File Rule",
+	"Add Folder Rule": "Add Folder Rule",
+	"Add Pattern Rule": "Add Pattern Rule",
+	"Preset Templates": "Preset Templates",
+	"Quick setup for common filtering scenarios":
+		"Quick setup for common filtering scenarios",
+	"Exclude System Folders": "Exclude System Folders",
+	"Automatically exclude common system folders (.obsidian, .trash, .git) and temporary files":
+		"Automatically exclude common system folders (.obsidian, .trash, .git) and temporary files",
+	"Apply System Exclusions": "Apply System Exclusions",
+	"This will enable file filtering and add system folder exclusion rules":
+		"This will enable file filtering and add system folder exclusion rules",
+	"System Folders Already Excluded": "System Folders Already Excluded",
+	"All system folder exclusion rules are already configured and active":
+		"All system folder exclusion rules are already configured and active",
+	"File filtering enabled and {{count}} system exclusion rules added":
+		"File filtering enabled and {{count}} system exclusion rules added",
+	"File filtering enabled with existing system exclusion rules":
+		"File filtering enabled with existing system exclusion rules",
+	"{{count}} system exclusion rules added":
+		"{{count}} system exclusion rules added",
+	"System exclusion rules updated": "System exclusion rules updated",
+	"System folder exclusions added": "System folder exclusions added",
+	"Active Rules": "Active Rules",
+	"Cache Size": "Cache Size",
+	Status: "Status",
+	Enabled: "Enabled",
+	Disabled: "Disabled",
 	"Task status cycle and marks": "Task status cycle and marks",
 	"About Task Genius": "About Task Genius",
 	Version: "Version",
@@ -690,7 +739,7 @@ const translations = {
 	"e.g., every day, every week": "e.g., every day, every week",
 	"Task Content": "Task Content",
 	"Task Details": "Task Details",
-	File: "File",
+	"Task File": "File",
 	"Edit in File": "Edit in File",
 	"Mark Incomplete": "Mark Incomplete",
 	"Mark Complete": "Mark Complete",
@@ -777,7 +826,7 @@ const translations = {
 		"Task Genius view is a comprehensive view that allows you to manage your tasks in a more efficient way.",
 	"Enable task genius view": "Enable task genius view",
 	"Select a task to view details": "Select a task to view details",
-	Status: "Status",
+	"Task Status": "Status",
 	"Comma separated": "Comma separated",
 	Focus: "Focus",
 	"Loading more...": "Loading more...",
@@ -1653,10 +1702,10 @@ const translations = {
 		"Configure rules to modify event text using regular expressions",
 	"No text replacement rules configured":
 		"No text replacement rules configured",
-	Enabled: "Enabled",
-	Disabled: "Disabled",
-	Target: "Target",
-	Pattern: "Pattern",
+	"Rule Enabled": "Enabled",
+	"Rule Disabled": "Disabled",
+	"Rule Target": "Target",
+	"Rule Pattern": "Pattern",
 	Replacement: "Replacement",
 	"Are you sure you want to delete this text replacement rule?":
 		"Are you sure you want to delete this text replacement rule?",
