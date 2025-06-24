@@ -37,6 +37,26 @@ export function renderViewSettingsTab(
 		});
 
 	new Setting(containerEl)
+		.setName(t("Default view mode"))
+		.setDesc(
+			t(
+				"Choose the default display mode for all views. This affects how tasks are displayed when you first open a view or create a new view."
+			)
+		)
+		.addDropdown((dropdown) => {
+			dropdown
+				.addOption("list", t("List View"))
+				.addOption("tree", t("Tree View"))
+				.setValue(settingTab.plugin.settings.defaultViewMode)
+				.onChange((value) => {
+					settingTab.plugin.settings.defaultViewMode = value as
+						| "list"
+						| "tree";
+					settingTab.applySettingsUpdate();
+				});
+		});
+
+	new Setting(containerEl)
 		.setName(t("Prefer metadata format of task"))
 		.setDesc(
 			t(

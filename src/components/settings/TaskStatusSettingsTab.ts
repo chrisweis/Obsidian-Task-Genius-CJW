@@ -63,10 +63,10 @@ export function renderTaskStatusSettingsTab(
 	}
 
 	new Setting(containerEl)
-		.setName(t("Auto complete parent task"))
+		.setName(t("Auto complete parent checkbox"))
 		.setDesc(
 			t(
-				"Toggle this to allow this plugin to auto complete parent task when all child tasks are completed."
+				"Toggle this to allow this plugin to auto complete parent checkbox when all child tasks are completed."
 			)
 		)
 		.addToggle((toggle) =>
@@ -82,7 +82,7 @@ export function renderTaskStatusSettingsTab(
 		.setName(t("Mark parent as 'In Progress' when partially complete"))
 		.setDesc(
 			t(
-				"When some but not all child tasks are completed, mark the parent task as 'In Progress'. Only works when 'Auto complete parent' is enabled."
+				"When some but not all child tasks are completed, mark the parent checkbox as 'In Progress'. Only works when 'Auto complete parent' is enabled."
 			)
 		)
 		.addToggle((toggle) =>

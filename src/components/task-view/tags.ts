@@ -13,6 +13,7 @@ import { TaskTreeItemComponent } from "./treeItem";
 import { TaskListRendererComponent } from "./TaskList";
 import TaskProgressBarPlugin from "../../index";
 import { sortTasks } from "../../commands/sortTaskCommands";
+import { getInitialViewMode, saveViewMode } from "../../utils/viewModeUtils";
 
 interface SelectedTags {
 	tags: string[];
@@ -85,6 +86,9 @@ export class TagsComponent extends Component {
 
 		// Right column: create task list for selected tags
 		this.createRightColumn(contentContainer);
+
+		// Initialize view mode from saved state or global default
+		this.initializeViewMode();
 	}
 
 	private createTagsHeader() {
@@ -432,6 +436,20 @@ export class TagsComponent extends Component {
 		}
 	}
 
+	/**
+	 * Initialize view mode from saved state or global default
+	 */
+	private initializeViewMode() {
+		this.isTreeView = getInitialViewMode(this.app, this.plugin, "tags");
+		// Update the toggle button icon to match the initial state
+		const viewToggleBtn = this.taskContainerEl?.querySelector(
+			".view-toggle-btn"
+		) as HTMLElement;
+		if (viewToggleBtn) {
+			setIcon(viewToggleBtn, this.isTreeView ? "git-branch" : "list");
+		}
+	}
+
 	private toggleViewMode() {
 		this.isTreeView = !this.isTreeView;
 
@@ -442,6 +460,9 @@ export class TagsComponent extends Component {
 		if (viewToggleBtn) {
 			setIcon(viewToggleBtn, this.isTreeView ? "git-branch" : "list");
 		}
+
+		// Save the new view mode state
+		saveViewMode(this.app, "tags", this.isTreeView);
 
 		// Re-render the task list with the new mode
 		this.renderTaskList();

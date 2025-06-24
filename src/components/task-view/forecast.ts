@@ -16,6 +16,7 @@ import { TaskListRendererComponent } from "./TaskList";
 import TaskProgressBarPlugin from "../../index";
 import { ForecastSpecificConfig } from "../../common/setting-definition";
 import { sortTasks } from "../../commands/sortTaskCommands"; // 导入 sortTasks 函数
+import { getInitialViewMode, saveViewMode } from "../../utils/viewModeUtils";
 
 interface DateSection {
 	title: string;
@@ -96,6 +97,9 @@ export class ForecastComponent extends Component {
 
 		// Right column: create task sections by date
 		this.createRightColumn(contentContainer);
+
+		// Initialize view mode from saved state or global default
+		this.initializeViewMode();
 
 		// Set up window focus handler
 		this.windowFocusHandler = () => {
@@ -210,6 +214,20 @@ export class ForecastComponent extends Component {
 		// setIcon(this.settingsEl, "settings");
 	}
 
+	/**
+	 * Initialize view mode from saved state or global default
+	 */
+	private initializeViewMode() {
+		this.isTreeView = getInitialViewMode(this.app, this.plugin, "forecast");
+		// Update the toggle button icon to match the initial state
+		const viewToggleBtn = this.forecastHeaderEl?.querySelector(
+			".view-toggle-btn"
+		) as HTMLElement;
+		if (viewToggleBtn) {
+			setIcon(viewToggleBtn, this.isTreeView ? "git-branch" : "list");
+		}
+	}
+
 	private toggleViewMode() {
 		this.isTreeView = !this.isTreeView;
 
@@ -220,6 +238,9 @@ export class ForecastComponent extends Component {
 		if (viewToggleBtn) {
 			setIcon(viewToggleBtn, this.isTreeView ? "git-branch" : "list");
 		}
+
+		// Save the new view mode state
+		saveViewMode(this.app, "forecast", this.isTreeView);
 
 		// Update sections display
 		this.refreshDateSectionsUI();
