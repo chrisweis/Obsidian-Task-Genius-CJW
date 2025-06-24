@@ -2,7 +2,7 @@ import { Setting, Notice, setIcon, DropdownComponent } from "obsidian";
 import { TaskProgressBarSettingTab } from "../../setting";
 import { t } from "../../translations/helper";
 import { FilterMode, FileFilterRule } from "../../common/setting-definition";
-import { FolderSuggest } from "../AutoComplete";
+import { FolderSuggest, SimpleFileSuggest as FileSuggest } from "../AutoComplete";
 import "../../styles/file-filter-settings.css";
 
 export function renderFileFilterSettingsTab(
@@ -27,6 +27,9 @@ export function renderFileFilterSettingsTab(
 
 					// Update the task manager's filter configuration
 					settingTab.plugin.taskManager?.updateFileFilterConfiguration();
+
+					// Update statistics immediately
+					debouncedUpdateStats();
 
 					// Refresh the settings display to show/hide relevant options
 					setTimeout(() => {
@@ -54,6 +57,7 @@ export function renderFileFilterSettingsTab(
 					settingTab.plugin.settings.fileFilter.mode = value;
 					await settingTab.plugin.saveSettings();
 					settingTab.plugin.taskManager?.updateFileFilterConfiguration();
+					debouncedUpdateStats();
 				})
 		);
 
@@ -95,6 +99,9 @@ export function renderFileFilterSettingsTab(
 					rule.type = value;
 					await settingTab.plugin.saveSettings();
 					settingTab.plugin.taskManager?.updateFileFilterConfiguration();
+					debouncedUpdateStats();
+					// Re-render rules to update suggest components
+					renderRules();
 				});
 
 			// Path input
@@ -109,10 +116,12 @@ export function renderFileFilterSettingsTab(
 				placeholder:
 					rule.type === "pattern"
 						? "*.tmp, temp/*"
-						: "path/to/file/or/folder",
+						: rule.type === "folder"
+						? "path/to/folder"
+						: "path/to/file.md",
 			});
 
-			// Add folder suggest for folder type
+			// Add appropriate suggest based on rule type
 			if (rule.type === "folder") {
 				new FolderSuggest(
 					settingTab.app,
@@ -120,12 +129,25 @@ export function renderFileFilterSettingsTab(
 					settingTab.plugin,
 					"single"
 				);
+			} else if (rule.type === "file") {
+				new FileSuggest(
+					pathInput,
+					settingTab.plugin,
+					(file) => {
+						rule.path = file.path;
+						pathInput.value = file.path;
+						settingTab.plugin.saveSettings();
+						settingTab.plugin.taskManager?.updateFileFilterConfiguration();
+						debouncedUpdateStats();
+					}
+				);
 			}
 
 			pathInput.addEventListener("input", async () => {
 				rule.path = pathInput.value;
 				await settingTab.plugin.saveSettings();
 				settingTab.plugin.taskManager?.updateFileFilterConfiguration();
+				debouncedUpdateStats();
 			});
 
 			// Enabled toggle
@@ -143,6 +165,7 @@ export function renderFileFilterSettingsTab(
 				rule.enabled = enabledCheckbox.checked;
 				await settingTab.plugin.saveSettings();
 				settingTab.plugin.taskManager?.updateFileFilterConfiguration();
+				debouncedUpdateStats();
 			});
 
 			// Delete button
@@ -157,6 +180,7 @@ export function renderFileFilterSettingsTab(
 				await settingTab.plugin.saveSettings();
 				settingTab.plugin.taskManager?.updateFileFilterConfiguration();
 				renderRules();
+				debouncedUpdateStats();
 			});
 		});
 	};
@@ -179,6 +203,7 @@ export function renderFileFilterSettingsTab(
 				await settingTab.plugin.saveSettings();
 				settingTab.plugin.taskManager?.updateFileFilterConfiguration();
 				renderRules();
+				debouncedUpdateStats();
 			})
 		)
 		.addButton((button) =>
@@ -192,6 +217,7 @@ export function renderFileFilterSettingsTab(
 				await settingTab.plugin.saveSettings();
 				settingTab.plugin.taskManager?.updateFileFilterConfiguration();
 				renderRules();
+				debouncedUpdateStats();
 			})
 		)
 		.addButton((button) =>
@@ -205,6 +231,25 @@ export function renderFileFilterSettingsTab(
 				await settingTab.plugin.saveSettings();
 				settingTab.plugin.taskManager?.updateFileFilterConfiguration();
 				renderRules();
+				debouncedUpdateStats();
+			})
+		);
+
+	// Manual refresh button for statistics
+	new Setting(containerEl)
+		.setName(t("Refresh Statistics"))
+		.setDesc(t("Manually refresh filter statistics to see current data"))
+		.addButton((button) =>
+			button.setButtonText(t("Refresh")).onClick(() => {
+				button.setDisabled(true);
+				button.setButtonText(t("Refreshing..."));
+
+				// Add visual feedback
+				setTimeout(() => {
+					updateStats();
+					button.setDisabled(false);
+					button.setButtonText(t("Refresh"));
+				}, 100);
 			})
 		);
 
@@ -213,52 +258,85 @@ export function renderFileFilterSettingsTab(
 		cls: "file-filter-stats",
 	});
 
+	// Create debounced version of updateStats to avoid excessive calls
+	let updateStatsTimeout: NodeJS.Timeout | null = null;
+	const debouncedUpdateStats = () => {
+		if (updateStatsTimeout) {
+			clearTimeout(updateStatsTimeout);
+		}
+		updateStatsTimeout = setTimeout(() => {
+			updateStats();
+		}, 200);
+	};
+
 	const updateStats = () => {
-		const filterManager =
-			settingTab.plugin.taskManager?.getFileFilterManager?.();
-		if (filterManager) {
-			const stats = filterManager.getStats();
+		try {
+			const filterManager =
+				settingTab.plugin.taskManager?.getFileFilterManager?.();
+			if (filterManager) {
+				const stats = filterManager.getStats();
 
-			// Clear existing content
+				// Clear existing content
+				statsContainer.empty();
+
+				// Active Rules stat
+				const activeRulesStat = statsContainer.createDiv({
+					cls: "file-filter-stat",
+				});
+				activeRulesStat.createEl("span", {
+					cls: "stat-label",
+					text: `${t("Active Rules")}:`,
+				});
+				activeRulesStat.createEl("span", {
+					cls: "stat-value",
+					text: stats.rulesCount.toString(),
+				});
+
+				// Cache Size stat
+				const cacheSizeStat = statsContainer.createDiv({
+					cls: "file-filter-stat",
+				});
+				cacheSizeStat.createEl("span", {
+					cls: "stat-label",
+					text: `${t("Cache Size")}:`,
+				});
+				cacheSizeStat.createEl("span", {
+					cls: "stat-value",
+					text: stats.cacheSize.toString(),
+				});
+
+				// Status stat
+				const statusStat = statsContainer.createDiv({
+					cls: "file-filter-stat",
+				});
+				statusStat.createEl("span", {
+					cls: "stat-label",
+					text: `${t("Status")}:`,
+				});
+				statusStat.createEl("span", {
+					cls: "stat-value",
+					text: stats.enabled ? t("Enabled") : t("Disabled"),
+				});
+			} else {
+				// Show message when filter manager is not available
+				statsContainer.empty();
+				const noDataStat = statsContainer.createDiv({
+					cls: "file-filter-stat",
+				});
+				noDataStat.createEl("span", {
+					cls: "stat-label",
+					text: t("No filter data available"),
+				});
+			}
+		} catch (error) {
+			console.error("Error updating filter statistics:", error);
 			statsContainer.empty();
-
-			// Active Rules stat
-			const activeRulesStat = statsContainer.createDiv({
-				cls: "file-filter-stat",
+			const errorStat = statsContainer.createDiv({
+				cls: "file-filter-stat error",
 			});
-			activeRulesStat.createEl("span", {
+			errorStat.createEl("span", {
 				cls: "stat-label",
-				text: `${t("Active Rules")}:`,
-			});
-			activeRulesStat.createEl("span", {
-				cls: "stat-value",
-				text: stats.rulesCount.toString(),
-			});
-
-			// Cache Size stat
-			const cacheSizeStat = statsContainer.createDiv({
-				cls: "file-filter-stat",
-			});
-			cacheSizeStat.createEl("span", {
-				cls: "stat-label",
-				text: `${t("Cache Size")}:`,
-			});
-			cacheSizeStat.createEl("span", {
-				cls: "stat-value",
-				text: stats.cacheSize.toString(),
-			});
-
-			// Status stat
-			const statusStat = statsContainer.createDiv({
-				cls: "file-filter-stat",
-			});
-			statusStat.createEl("span", {
-				cls: "stat-label",
-				text: `${t("Status")}:`,
-			});
-			statusStat.createEl("span", {
-				cls: "stat-value",
-				text: stats.enabled ? t("Enabled") : t("Disabled"),
+				text: t("Error loading statistics"),
 			});
 		}
 	};

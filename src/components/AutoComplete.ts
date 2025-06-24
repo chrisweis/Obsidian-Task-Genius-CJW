@@ -1,5 +1,12 @@
-import { AbstractInputSuggest, App, prepareFuzzySearch, TFile } from "obsidian";
+import {
+	AbstractInputSuggest,
+	App,
+	prepareFuzzySearch,
+	Scope,
+	TFile,
+} from "obsidian";
 import TaskProgressBarPlugin from "../index";
+import { QuickCaptureOptions } from "../editor-ext/quickCapture";
 
 // Global cache for autocomplete data to avoid repeated expensive operations
 interface GlobalAutoCompleteCache {
@@ -216,7 +223,9 @@ export class FolderSuggest extends CustomSuggest {
 				return this.availableChoices.slice(0, 20);
 			}
 
-			const fuzzySearch = prepareFuzzySearch(currentPathInput.toLowerCase());
+			const fuzzySearch = prepareFuzzySearch(
+				currentPathInput.toLowerCase()
+			);
 			return this.availableChoices
 				.filter((path) => fuzzySearch(path.toLowerCase()))
 				.sort((a, b) => {
@@ -289,5 +298,130 @@ export class ImageSuggest extends CustomSuggest {
 			);
 		const paths = images.map((file) => file.path);
 		super(app, inputEl, paths);
+	}
+}
+
+/**
+ * A class that provides file suggestions for the quick capture target field
+ */
+export class FileSuggest extends AbstractInputSuggest<TFile> {
+	private currentTarget: string = "Quick Capture.md";
+	scope: Scope;
+	onFileSelected: (file: TFile) => void;
+
+	constructor(
+		app: App,
+		inputEl: HTMLInputElement | HTMLDivElement,
+		options: QuickCaptureOptions,
+		onFileSelected?: (file: TFile) => void
+	) {
+		super(app, inputEl);
+		this.suggestEl.addClass("quick-capture-file-suggest");
+		this.currentTarget = options.targetFile || "Quick Capture.md";
+		this.onFileSelected =
+			onFileSelected ||
+			((file: TFile) => {
+				this.setValue(file.path);
+			});
+
+		// Register Alt+X hotkey to focus target input
+		this.scope.register(["Alt"], "x", (e: KeyboardEvent) => {
+			inputEl.focus();
+			return true;
+		});
+
+		// Set initial value
+		this.setValue(this.currentTarget);
+
+		// Register callback for selection
+		this.onSelect((file, evt) => {
+			this.onFileSelected(file);
+		});
+	}
+
+	getSuggestions(query: string): TFile[] {
+		const files = this.app.vault.getMarkdownFiles();
+		const lowerCaseQuery = query.toLowerCase();
+
+		// Use fuzzy search for better matching
+		const fuzzySearcher = prepareFuzzySearch(lowerCaseQuery);
+
+		// Filter and sort results
+		return files
+			.map((file) => {
+				const result = fuzzySearcher(file.path);
+				return result ? { file, score: result.score } : null;
+			})
+			.filter(
+				(match): match is { file: TFile; score: number } =>
+					match !== null
+			)
+			.sort((a, b) => {
+				// Sort by score (higher is better)
+				return b.score - a.score;
+			})
+			.map((match) => match.file)
+			.slice(0, 10); // Limit results
+	}
+
+	renderSuggestion(file: TFile, el: HTMLElement): void {
+		el.setText(file.path);
+	}
+
+	selectSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent): void {
+		this.setValue(file.path);
+		this.onFileSelected(file);
+		this.close();
+	}
+}
+
+/**
+ * SimpleFileSuggest - Provides autocomplete for file paths
+ */
+export class SimpleFileSuggest extends AbstractInputSuggest<TFile> {
+	private onFileSelected: (file: TFile) => void;
+
+	constructor(
+		inputEl: HTMLInputElement,
+		plugin: TaskProgressBarPlugin,
+		onFileSelected?: (file: TFile) => void
+	) {
+		super(plugin.app, inputEl);
+		this.onFileSelected = onFileSelected || (() => {});
+	}
+
+	getSuggestions(query: string): TFile[] {
+		const files = this.app.vault.getMarkdownFiles();
+		const lowerCaseQuery = query.toLowerCase();
+
+		// Use fuzzy search for better matching
+		const fuzzySearcher = prepareFuzzySearch(lowerCaseQuery);
+
+		// Filter and sort results
+		return files
+			.map((file) => {
+				const result = fuzzySearcher(file.path);
+				return result ? { file, score: result.score } : null;
+			})
+			.filter(
+				(match): match is { file: TFile; score: number } =>
+					match !== null
+			)
+			.sort((a, b) => {
+				// Sort by score (higher is better)
+				return b.score - a.score;
+			})
+			.map((match) => match.file)
+			.slice(0, 10); // Limit results
+	}
+
+	renderSuggestion(file: TFile, el: HTMLElement): void {
+		el.setText(file.path);
+	}
+
+	selectSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent): void {
+		this.setValue(file.path);
+		this.onFileSelected?.(file);
+		this.close();
 	}
 }

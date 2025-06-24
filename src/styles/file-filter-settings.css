@@ -77,10 +77,6 @@
 	height: 28px;
 }
 
-.file-filter-rule-delete:hover {
-	background: var(--interactive-accent-hover);
-}
-
 .file-filter-add-rule {
 	margin-top: 1rem;
 }
@@ -92,6 +88,10 @@
 
 .file-filter-add-rule .setting-item-control {
 	gap: 0.5rem;
+}
+
+.file-filter-add-rule + .setting-item {
+	border-top: none;
 }
 
 .file-filter-stats {
@@ -123,6 +123,39 @@
 .stat-value {
 	font-weight: 600;
 	color: var(--interactive-accent);
+}
+
+/* Error state for statistics */
+.file-filter-stat.error {
+	background-color: var(--background-modifier-error);
+	border-left: 3px solid var(--text-error);
+}
+
+.file-filter-stat.error .stat-label {
+	color: var(--text-error);
+}
+
+/* Refresh button styling */
+.setting-item .setting-item-control button[aria-label*="refresh"] {
+	transition: transform 0.2s ease;
+}
+
+.setting-item .setting-item-control button[aria-label*="refresh"]:hover {
+	transform: rotate(90deg);
+}
+
+/* Loading state animation */
+@keyframes refresh-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.setting-item .setting-item-control button[disabled] .lucide-refresh-cw {
+	animation: refresh-spin 1s linear infinite;
 }
 
 /* Responsive design for smaller screens */
