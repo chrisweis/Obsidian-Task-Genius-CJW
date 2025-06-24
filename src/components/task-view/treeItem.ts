@@ -348,6 +348,15 @@ export class TaskTreeItemComponent extends Component {
 				);
 			}
 
+			// For cancelled tasks, show cancelled date
+			if (this.task.metadata.cancelledDate && this.task.status === "-") {
+				this.renderDateMetadata(
+					metadataEl,
+					"cancelled",
+					this.task.metadata.cancelledDate
+				);
+			}
+
 			// Created date if available
 			if (this.task.metadata.createdDate) {
 				this.renderDateMetadata(
@@ -371,13 +380,37 @@ export class TaskTreeItemComponent extends Component {
 			this.renderTagsMetadata(metadataEl);
 		}
 
+		// OnCompletion if available
+		if (this.task.metadata.onCompletion) {
+			this.renderOnCompletionMetadata(metadataEl);
+		}
+
+		// DependsOn if available
+		if (
+			this.task.metadata.dependsOn &&
+			this.task.metadata.dependsOn.length > 0
+		) {
+			this.renderDependsOnMetadata(metadataEl);
+		}
+
+		// ID if available
+		if (this.task.metadata.id) {
+			this.renderIdMetadata(metadataEl);
+		}
+
 		// Add metadata button for adding new metadata
 		this.renderAddMetadataButton(metadataEl);
 	}
 
 	private renderDateMetadata(
 		metadataEl: HTMLElement,
-		type: "due" | "scheduled" | "start" | "completed" | "created",
+		type:
+			| "due"
+			| "scheduled"
+			| "start"
+			| "completed"
+			| "cancelled"
+			| "created",
 		dateValue: number
 	) {
 		const dateEl = metadataEl.createEl("div", {
@@ -569,6 +602,74 @@ export class TaskTreeItemComponent extends Component {
 		}
 	}
 
+	private renderOnCompletionMetadata(metadataEl: HTMLElement) {
+		const onCompletionEl = metadataEl.createEl("div", {
+			cls: "task-oncompletion",
+		});
+		onCompletionEl.textContent = `🏁 ${this.task.metadata.onCompletion}`;
+
+		// Make onCompletion clickable for editing only if inline editor is enabled
+		if (this.plugin.settings.enableInlineEditor) {
+			this.registerDomEvent(onCompletionEl, "click", (e) => {
+				e.stopPropagation();
+				if (!this.isCurrentlyEditing()) {
+					const editor = this.getInlineEditor();
+					editor.showMetadataEditor(
+						onCompletionEl,
+						"onCompletion",
+						this.task.metadata.onCompletion || ""
+					);
+				}
+			});
+		}
+	}
+
+	private renderDependsOnMetadata(metadataEl: HTMLElement) {
+		const dependsOnEl = metadataEl.createEl("div", {
+			cls: "task-dependson",
+		});
+		dependsOnEl.textContent = `⛔ ${this.task.metadata.dependsOn?.join(
+			", "
+		)}`;
+
+		// Make dependsOn clickable for editing only if inline editor is enabled
+		if (this.plugin.settings.enableInlineEditor) {
+			this.registerDomEvent(dependsOnEl, "click", (e) => {
+				e.stopPropagation();
+				if (!this.isCurrentlyEditing()) {
+					const editor = this.getInlineEditor();
+					editor.showMetadataEditor(
+						dependsOnEl,
+						"dependsOn",
+						this.task.metadata.dependsOn?.join(", ") || ""
+					);
+				}
+			});
+		}
+	}
+
+	private renderIdMetadata(metadataEl: HTMLElement) {
+		const idEl = metadataEl.createEl("div", {
+			cls: "task-id",
+		});
+		idEl.textContent = `🆔 ${this.task.metadata.id}`;
+
+		// Make id clickable for editing only if inline editor is enabled
+		if (this.plugin.settings.enableInlineEditor) {
+			this.registerDomEvent(idEl, "click", (e) => {
+				e.stopPropagation();
+				if (!this.isCurrentlyEditing()) {
+					const editor = this.getInlineEditor();
+					editor.showMetadataEditor(
+						idEl,
+						"id",
+						this.task.metadata.id || ""
+					);
+				}
+			});
+		}
+	}
+
 	private renderAddMetadataButton(metadataEl: HTMLElement) {
 		// Only show add metadata button if inline editor is enabled
 		if (!this.plugin.settings.enableInlineEditor) {
@@ -608,6 +709,9 @@ export class TaskTreeItemComponent extends Component {
 			{ key: "scheduledDate", label: "Scheduled Date", icon: "clock" },
 			{ key: "priority", label: "Priority", icon: "alert-triangle" },
 			{ key: "recurrence", label: "Recurrence", icon: "repeat" },
+			{ key: "onCompletion", label: "On Completion", icon: "flag" },
+			{ key: "dependsOn", label: "Depends On", icon: "link" },
+			{ key: "id", label: "Task ID", icon: "hash" },
 		];
 
 		// Filter out fields that already have values
@@ -632,6 +736,15 @@ export class TaskTreeItemComponent extends Component {
 					return !this.task.metadata.priority;
 				case "recurrence":
 					return !this.task.metadata.recurrence;
+				case "onCompletion":
+					return !this.task.metadata.onCompletion;
+				case "dependsOn":
+					return (
+						!this.task.metadata.dependsOn ||
+						this.task.metadata.dependsOn.length === 0
+					);
+				case "id":
+					return !this.task.metadata.id;
 				default:
 					return true;
 			}

@@ -204,33 +204,31 @@ export class TaskListItemComponent extends Component {
 		// Priority indicator if available
 		if (this.task.metadata.priority) {
 			console.log("priority", this.task.metadata.priority);
-			
+
 			// Convert priority to numeric value
 			let numericPriority: number;
-			if (typeof this.task.metadata.priority === 'string') {
+			if (typeof this.task.metadata.priority === "string") {
 				switch ((this.task.metadata.priority as string).toLowerCase()) {
-					case 'low':
+					case "low":
 						numericPriority = 1;
 						break;
-					case 'medium':
+					case "medium":
 						numericPriority = 2;
 						break;
-					case 'high':
+					case "high":
 						numericPriority = 3;
 						break;
 					default:
-						numericPriority = parseInt(this.task.metadata.priority) || 1;
+						numericPriority =
+							parseInt(this.task.metadata.priority) || 1;
 						break;
 				}
 			} else {
 				numericPriority = this.task.metadata.priority;
 			}
-			
+
 			const priorityEl = createDiv({
-				cls: [
-					"task-priority",
-					`priority-${numericPriority}`,
-				],
+				cls: ["task-priority", `priority-${numericPriority}`],
 			});
 
 			// Priority icon based on level
@@ -287,6 +285,14 @@ export class TaskListItemComponent extends Component {
 				);
 			}
 
+			// For cancelled tasks, show cancelled date
+			if (this.task.metadata.cancelledDate && this.task.status === "-") {
+				this.renderDateMetadata(
+					"cancelled",
+					this.task.metadata.cancelledDate
+				);
+			}
+
 			// Created date if available
 			if (this.task.metadata.createdDate) {
 				this.renderDateMetadata(
@@ -309,12 +315,36 @@ export class TaskListItemComponent extends Component {
 			this.renderTagsMetadata();
 		}
 
+		// OnCompletion if available
+		if (this.task.metadata.onCompletion) {
+			this.renderOnCompletionMetadata();
+		}
+
+		// DependsOn if available
+		if (
+			this.task.metadata.dependsOn &&
+			this.task.metadata.dependsOn.length > 0
+		) {
+			this.renderDependsOnMetadata();
+		}
+
+		// ID if available
+		if (this.task.metadata.id) {
+			this.renderIdMetadata();
+		}
+
 		// Add metadata button for adding new metadata
 		this.renderAddMetadataButton();
 	}
 
 	private renderDateMetadata(
-		type: "due" | "scheduled" | "start" | "completed" | "created",
+		type:
+			| "due"
+			| "scheduled"
+			| "start"
+			| "completed"
+			| "cancelled"
+			| "created",
 		dateValue: number
 	) {
 		const dateEl = this.metadataEl.createEl("div", {
@@ -498,6 +528,71 @@ export class TaskListItemComponent extends Component {
 		}
 	}
 
+	private renderOnCompletionMetadata() {
+		const onCompletionEl = this.metadataEl.createEl("div", {
+			cls: "task-oncompletion",
+		});
+		onCompletionEl.textContent = `🏁 ${this.task.metadata.onCompletion}`;
+
+		// Make onCompletion clickable for editing only if inline editor is enabled
+		if (this.plugin.settings.enableInlineEditor) {
+			this.registerDomEvent(onCompletionEl, "click", (e) => {
+				e.stopPropagation();
+				if (!this.isCurrentlyEditing()) {
+					this.getInlineEditor().showMetadataEditor(
+						onCompletionEl,
+						"onCompletion",
+						this.task.metadata.onCompletion || ""
+					);
+				}
+			});
+		}
+	}
+
+	private renderDependsOnMetadata() {
+		const dependsOnEl = this.metadataEl.createEl("div", {
+			cls: "task-dependson",
+		});
+		dependsOnEl.textContent = `⛔ ${this.task.metadata.dependsOn?.join(
+			", "
+		)}`;
+
+		// Make dependsOn clickable for editing only if inline editor is enabled
+		if (this.plugin.settings.enableInlineEditor) {
+			this.registerDomEvent(dependsOnEl, "click", (e) => {
+				e.stopPropagation();
+				if (!this.isCurrentlyEditing()) {
+					this.getInlineEditor().showMetadataEditor(
+						dependsOnEl,
+						"dependsOn",
+						this.task.metadata.dependsOn?.join(", ") || ""
+					);
+				}
+			});
+		}
+	}
+
+	private renderIdMetadata() {
+		const idEl = this.metadataEl.createEl("div", {
+			cls: "task-id",
+		});
+		idEl.textContent = `🆔 ${this.task.metadata.id}`;
+
+		// Make id clickable for editing only if inline editor is enabled
+		if (this.plugin.settings.enableInlineEditor) {
+			this.registerDomEvent(idEl, "click", (e) => {
+				e.stopPropagation();
+				if (!this.isCurrentlyEditing()) {
+					this.getInlineEditor().showMetadataEditor(
+						idEl,
+						"id",
+						this.task.metadata.id || ""
+					);
+				}
+			});
+		}
+	}
+
 	private renderAddMetadataButton() {
 		// Only show add metadata button if inline editor is enabled
 		if (!this.plugin.settings.enableInlineEditor) {
@@ -535,8 +630,12 @@ export class TaskListItemComponent extends Component {
 			{ key: "dueDate", label: "Due Date", icon: "calendar" },
 			{ key: "startDate", label: "Start Date", icon: "play" },
 			{ key: "scheduledDate", label: "Scheduled Date", icon: "clock" },
+			{ key: "cancelledDate", label: "Cancelled Date", icon: "x" },
 			{ key: "priority", label: "Priority", icon: "alert-triangle" },
 			{ key: "recurrence", label: "Recurrence", icon: "repeat" },
+			{ key: "onCompletion", label: "On Completion", icon: "flag" },
+			{ key: "dependsOn", label: "Depends On", icon: "link" },
+			{ key: "id", label: "Task ID", icon: "hash" },
 		];
 
 		// Filter out fields that already have values
@@ -557,10 +656,21 @@ export class TaskListItemComponent extends Component {
 					return !this.task.metadata.startDate;
 				case "scheduledDate":
 					return !this.task.metadata.scheduledDate;
+				case "cancelledDate":
+					return !this.task.metadata.cancelledDate;
 				case "priority":
 					return !this.task.metadata.priority;
 				case "recurrence":
 					return !this.task.metadata.recurrence;
+				case "onCompletion":
+					return !this.task.metadata.onCompletion;
+				case "dependsOn":
+					return (
+						!this.task.metadata.dependsOn ||
+						this.task.metadata.dependsOn.length === 0
+					);
+				case "id":
+					return !this.task.metadata.id;
 				default:
 					return true;
 			}

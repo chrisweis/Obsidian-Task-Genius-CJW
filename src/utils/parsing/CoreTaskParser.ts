@@ -128,6 +128,9 @@ export class CoreTaskParser {
 		remainingContent = this.extractPriority(task, remainingContent);
 		remainingContent = this.extractProject(task, remainingContent);
 		remainingContent = this.extractContext(task, remainingContent);
+		remainingContent = this.extractOnCompletion(task, remainingContent);
+		remainingContent = this.extractDependsOn(task, remainingContent);
+		remainingContent = this.extractId(task, remainingContent);
 		remainingContent = this.extractTags(task, remainingContent);
 
 		task.content = remainingContent.replace(/\s{2,}/g, " ").trim();
@@ -284,6 +287,7 @@ export class CoreTaskParser {
 				| "scheduledDate"
 				| "startDate"
 				| "completedDate"
+				| "cancelledDate"
 				| "createdDate"
 		): boolean => {
 			if (task.metadata[fieldName] !== undefined) return false;
@@ -474,6 +478,83 @@ export class CoreTaskParser {
 					""
 				);
 			}
+		}
+
+		return remainingContent;
+	}
+
+	private extractOnCompletion(task: Task, content: string): string {
+		let remainingContent = content;
+		const useDataview = this.options.preferMetadataFormat === "dataview";
+		let match: RegExpMatchArray | null = null;
+
+		if (useDataview) {
+			match = remainingContent.match(/\[onCompletion::\s*([^\]]+)\]/i);
+			if (match && match[1]) {
+				task.metadata.onCompletion = match[1].trim();
+				remainingContent = remainingContent.replace(match[0], "");
+				return remainingContent;
+			}
+		}
+
+		match = remainingContent.match(/🏁\s*([^\s]+)/);
+		if (match && match[1]) {
+			task.metadata.onCompletion = match[1].trim();
+			remainingContent = remainingContent.replace(match[0], "");
+		}
+
+		return remainingContent;
+	}
+
+	private extractDependsOn(task: Task, content: string): string {
+		let remainingContent = content;
+		const useDataview = this.options.preferMetadataFormat === "dataview";
+		let match: RegExpMatchArray | null = null;
+
+		if (useDataview) {
+			match = remainingContent.match(/\[dependsOn::\s*([^\]]+)\]/i);
+			if (match && match[1]) {
+				// Split by comma and clean up
+				task.metadata.dependsOn = match[1]
+					.split(",")
+					.map((id) => id.trim())
+					.filter((id) => id.length > 0);
+				remainingContent = remainingContent.replace(match[0], "");
+				return remainingContent;
+			}
+		}
+
+		match = remainingContent.match(/⛔\s*([^\s]+)/);
+		if (match && match[1]) {
+			// For emoji format, assume single dependency or comma-separated
+			task.metadata.dependsOn = match[1]
+				.split(",")
+				.map((id) => id.trim())
+				.filter((id) => id.length > 0);
+			remainingContent = remainingContent.replace(match[0], "");
+		}
+
+		return remainingContent;
+	}
+
+	private extractId(task: Task, content: string): string {
+		let remainingContent = content;
+		const useDataview = this.options.preferMetadataFormat === "dataview";
+		let match: RegExpMatchArray | null = null;
+
+		if (useDataview) {
+			match = remainingContent.match(/\[id::\s*([^\]]+)\]/i);
+			if (match && match[1]) {
+				task.metadata.id = match[1].trim();
+				remainingContent = remainingContent.replace(match[0], "");
+				return remainingContent;
+			}
+		}
+
+		match = remainingContent.match(/🆔\s*([^\s]+)/);
+		if (match && match[1]) {
+			task.metadata.id = match[1].trim();
+			remainingContent = remainingContent.replace(match[0], "");
 		}
 
 		return remainingContent;

@@ -1788,6 +1788,7 @@ export class TaskManager extends Component {
 			updatedLine = updatedLine.replace(/🛫\s*\d{4}-\d{2}-\d{2}/g, "");
 			updatedLine = updatedLine.replace(/⏳\s*\d{4}-\d{2}-\d{2}/g, "");
 			updatedLine = updatedLine.replace(/✅\s*\d{4}-\d{2}-\d{2}/g, "");
+			updatedLine = updatedLine.replace(/❌\s*\d{4}-\d{2}-\d{2}/g, ""); // Added cancelled date emoji
 			updatedLine = updatedLine.replace(/➕\s*\d{4}-\d{2}-\d{2}/g, ""); // Added created date emoji
 			// Dataview dates (inline field format) - match key or emoji
 			updatedLine = updatedLine.replace(
@@ -1810,6 +1811,10 @@ export class TaskManager extends Component {
 				/\[(?:scheduled|⏳)::\s*\d{4}-\d{2}-\d{2}\]/gi,
 				""
 			);
+			updatedLine = updatedLine.replace(
+				/\[(?:cancelled|❌)::\s*\d{4}-\d{2}-\d{2}\]/gi,
+				""
+			);
 
 			// Emoji Priority markers
 			updatedLine = updatedLine.replace(
@@ -1826,6 +1831,22 @@ export class TaskManager extends Component {
 				/\[(?:repeat|recurrence)::\s*[^\]]+\]/gi,
 				""
 			); // Allow 'repeat' or 'recurrence'
+
+			// New fields - Emoji format
+			updatedLine = updatedLine.replace(/🏁\s*[^\s]+/g, ""); // onCompletion
+			updatedLine = updatedLine.replace(/⛔\s*[^\s]+/g, ""); // dependsOn
+			updatedLine = updatedLine.replace(/🆔\s*[^\s]+/g, ""); // id
+
+			// New fields - Dataview format
+			updatedLine = updatedLine.replace(
+				/\[(?:onCompletion|🏁)::\s*[^\]]+\]/gi,
+				""
+			);
+			updatedLine = updatedLine.replace(
+				/\[(?:dependsOn|⛔)::\s*[^\]]+\]/gi,
+				""
+			);
+			updatedLine = updatedLine.replace(/\[(?:id|🆔)::\s*[^\]]+\]/gi, "");
 
 			// Dataview Project and Context (using configurable prefixes)
 			const projectPrefix =
@@ -1867,6 +1888,9 @@ export class TaskManager extends Component {
 			);
 			const formattedCompletedDate = formatDate(
 				updatedTask.metadata.completedDate
+			);
+			const formattedCancelledDate = formatDate(
+				updatedTask.metadata.cancelledDate
 			);
 
 			// --- Add non-project/context tags first (1. Tags) ---
@@ -2071,6 +2095,46 @@ export class TaskManager extends Component {
 					useDataviewFormat
 						? `[completion:: ${formattedCompletedDate}]`
 						: `✅ ${formattedCompletedDate}`
+				);
+			}
+
+			// 10. Cancelled Date (only if cancelled)
+			if (formattedCancelledDate && updatedTask.status === "-") {
+				metadata.push(
+					useDataviewFormat
+						? `[cancelled:: ${formattedCancelledDate}]`
+						: `❌ ${formattedCancelledDate}`
+				);
+			}
+
+			// 11. OnCompletion
+			if (updatedTask.metadata.onCompletion) {
+				metadata.push(
+					useDataviewFormat
+						? `[onCompletion:: ${updatedTask.metadata.onCompletion}]`
+						: `🏁 ${updatedTask.metadata.onCompletion}`
+				);
+			}
+
+			// 12. DependsOn
+			if (
+				updatedTask.metadata.dependsOn &&
+				updatedTask.metadata.dependsOn.length > 0
+			) {
+				const dependsOnValue = updatedTask.metadata.dependsOn.join(",");
+				metadata.push(
+					useDataviewFormat
+						? `[dependsOn:: ${dependsOnValue}]`
+						: `⛔ ${dependsOnValue}`
+				);
+			}
+
+			// 13. ID
+			if (updatedTask.metadata.id) {
+				metadata.push(
+					useDataviewFormat
+						? `[id:: ${updatedTask.metadata.id}]`
+						: `🆔 ${updatedTask.metadata.id}`
 				);
 			}
 
