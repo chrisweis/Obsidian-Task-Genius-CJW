@@ -318,7 +318,8 @@ class TaskTextMark extends Component {
 					file.path,
 					taskLine,
 					actualLineIndex,
-					this.plugin.settings.preferMetadataFormat
+					this.plugin.settings.preferMetadataFormat,
+					this.plugin // Pass plugin for configurable prefix support
 				);
 				task &&
 					this.plugin.app.workspace.trigger(

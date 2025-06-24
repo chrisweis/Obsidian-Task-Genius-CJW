@@ -29,7 +29,9 @@ function parseTasksWithConfigurableParser(
 	fileMetadata?: Record<string, any>
 ): Task[] {
 	try {
-		const config = getConfig(settings.preferMetadataFormat);
+		// Create a mock plugin object with settings for getConfig
+		const mockPlugin = { settings };
+		const config = getConfig(settings.preferMetadataFormat, mockPlugin);
 
 		// Add project configuration to parser config
 		if (
@@ -253,8 +255,9 @@ function processFile(
 
 		if (fileExtension === SupportedFileType.CANVAS) {
 			// Use canvas parser for .canvas files
+			const mockPlugin = { settings };
 			const canvasParser = new CanvasParser(
-				getConfig(settings.preferMetadataFormat)
+				getConfig(settings.preferMetadataFormat, mockPlugin)
 			);
 			tasks = canvasParser.parseCanvasFile(content, filePath);
 		} else if (fileExtension === SupportedFileType.MARKDOWN) {

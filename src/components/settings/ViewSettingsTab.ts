@@ -130,35 +130,35 @@ export function renderViewSettingsTab(
 				});
 		});
 
-	// Area tag prefix
-	new Setting(containerEl)
-		.setName(t("Area tag prefix"))
-		.setDesc(
-			isDataviewFormat
-				? t(
-						"Customize the prefix used for area tags in dataview format (e.g., 'area' for [area:: work]). Changes require reindexing."
-				  )
-				: t(
-						"Customize the prefix used for area tags (e.g., 'area' for #area/work). Changes require reindexing."
-				  )
-		)
-		.addText((text) => {
-			text.setPlaceholder("area")
-				.setValue(
-					settingTab.plugin.settings.areaTagPrefix[
-						settingTab.plugin.settings.preferMetadataFormat
-					]
-				)
-				.onChange(async (value) => {
-					settingTab.plugin.settings.areaTagPrefix[
-						settingTab.plugin.settings.preferMetadataFormat
-					] = value || "area";
-					settingTab.applySettingsUpdate();
-					// Update format examples
-					const updateFn = (containerEl as any).updateFormatExamples;
-					if (updateFn) updateFn();
-				});
-		});
+	// // Area tag prefix
+	// new Setting(containerEl)
+	// 	.setName(t("Area tag prefix"))
+	// 	.setDesc(
+	// 		isDataviewFormat
+	// 			? t(
+	// 					"Customize the prefix used for area tags in dataview format (e.g., 'area' for [area:: work]). Changes require reindexing."
+	// 			  )
+	// 			: t(
+	// 					"Customize the prefix used for area tags (e.g., 'area' for #area/work). Changes require reindexing."
+	// 			  )
+	// 	)
+	// 	.addText((text) => {
+	// 		text.setPlaceholder("area")
+	// 			.setValue(
+	// 				settingTab.plugin.settings.areaTagPrefix[
+	// 					settingTab.plugin.settings.preferMetadataFormat
+	// 				]
+	// 			)
+	// 			.onChange(async (value) => {
+	// 				settingTab.plugin.settings.areaTagPrefix[
+	// 					settingTab.plugin.settings.preferMetadataFormat
+	// 				] = value || "area";
+	// 				settingTab.applySettingsUpdate();
+	// 				// Update format examples
+	// 				const updateFn = (containerEl as any).updateFormatExamples;
+	// 				if (updateFn) updateFn();
+	// 			});
+	// 	});
 
 	// Add format examples section
 	const exampleContainer = containerEl.createDiv({

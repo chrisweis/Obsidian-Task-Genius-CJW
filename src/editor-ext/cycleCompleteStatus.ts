@@ -756,7 +756,8 @@ export function handleCycleCompleteStatusTransaction(
 			editorInfo?.file?.path || "",
 			line.text,
 			line.number,
-			plugin.settings.preferMetadataFormat
+			plugin.settings.preferMetadataFormat,
+			plugin // Pass plugin for configurable prefix support
 		);
 		// if (completingTask && task) {
 		// 	app.workspace.trigger("task-genius:task-completed", task);

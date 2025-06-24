@@ -14,7 +14,11 @@ import TaskProgressBarPlugin from "../index";
 import { RRule, RRuleSet, rrulestr } from "rrule";
 import { MarkdownTaskParser } from "./workers/ConfigurableTaskParser";
 import { getConfig } from "../common/task-parser-config";
-import { getEffectiveProject, isProjectReadonly } from "./taskUtil";
+import {
+	getEffectiveProject,
+	isProjectReadonly,
+	resetTaskUtilParser,
+} from "./taskUtil";
 import { HolidayDetector } from "./ics/HolidayDetector";
 import {
 	TaskParsingService,
@@ -165,6 +169,14 @@ export class TaskManager extends Component {
 	 */
 	private initializeTaskParsingService(): void {
 		console.log("initializeTaskParsingService", this.plugin.settings);
+
+		// Clean up existing TaskParsingService instance to prevent worker leaks
+		if (this.taskParsingService) {
+			this.log("Cleaning up existing TaskParsingService instance");
+			this.taskParsingService.destroy();
+			this.taskParsingService = undefined;
+		}
+
 		if (this.plugin.settings.projectConfig?.enableEnhancedProject) {
 			const serviceOptions: TaskParsingServiceOptions = {
 				vault: this.vault,
@@ -209,6 +221,9 @@ export class TaskManager extends Component {
 	 * Update parsing configuration when settings change
 	 */
 	public updateParsingConfiguration(): void {
+		// Reset cached parser in taskUtil to pick up new prefix settings
+		resetTaskUtilParser();
+
 		// Update the regular parser
 		this.taskParser = new MarkdownTaskParser(
 			getConfig(this.plugin.settings.preferMetadataFormat, this.plugin)

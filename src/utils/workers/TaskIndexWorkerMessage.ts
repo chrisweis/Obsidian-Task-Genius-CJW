@@ -175,6 +175,11 @@ export type TaskWorkerSettings = {
 	ignoreHeading: string;
 	focusHeading: string;
 
+	// Tag prefix configurations
+	projectTagPrefix?: Record<MetadataFormat, string>;
+	contextTagPrefix?: Record<MetadataFormat, string>;
+	areaTagPrefix?: Record<MetadataFormat, string>;
+
 	// Enhanced project configuration (basic config for fallback)
 	projectConfig?: {
 		enableEnhancedProject: boolean;
@@ -213,7 +218,7 @@ export interface WorkerMessage {
 }
 
 export interface UpdateConfigMessage extends WorkerMessage {
-	type: 'updateConfig';
+	type: "updateConfig";
 	config: {
 		pathMappings: Array<{
 			pathPattern: string;
@@ -236,14 +241,14 @@ export interface UpdateConfigMessage extends WorkerMessage {
 }
 
 export interface ProjectDataMessage extends WorkerMessage {
-	type: 'computeProjectData';
+	type: "computeProjectData";
 	filePath: string;
 	fileMetadata: Record<string, any>;
 	configData: Record<string, any>;
 }
 
 export interface BatchProjectDataMessage extends WorkerMessage {
-	type: 'computeBatchProjectData';
+	type: "computeBatchProjectData";
 	files: Array<{
 		filePath: string;
 		fileMetadata: Record<string, any>;

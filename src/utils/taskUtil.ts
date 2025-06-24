@@ -23,13 +23,9 @@ import {
 	EMOJI_RECURRENCE_REGEX,
 	DV_PRIORITY_REGEX,
 	EMOJI_PRIORITY_REGEX,
-	DV_PROJECT_REGEX,
-	EMOJI_PROJECT_PREFIX,
-	DV_CONTEXT_REGEX,
 	EMOJI_CONTEXT_REGEX,
 	ANY_DATAVIEW_FIELD_REGEX,
 	EMOJI_TAG_REGEX,
-	TASK_REGEX,
 } from "../common/regex-define";
 import { MarkdownTaskParser } from "./workers/ConfigurableTaskParser";
 import { getConfig } from "../common/task-parser-config";
@@ -43,13 +39,18 @@ export type MetadataFormat = "tasks" | "dataview";
  * Cached parser instance for performance
  */
 let cachedParser: MarkdownTaskParser | null = null;
+let cachedPlugin: any = null;
+let cachedFormat: MetadataFormat | null = null;
 
 /**
- * Get or create a parser instance with the given format
+ * Get or create a parser instance with the given format and plugin
  */
-function getParser(format: MetadataFormat): MarkdownTaskParser {
-	if (!cachedParser) {
-		cachedParser = new MarkdownTaskParser(getConfig(format));
+function getParser(format: MetadataFormat, plugin?: any): MarkdownTaskParser {
+	// Check if we need to recreate the parser due to format or plugin changes
+	if (!cachedParser || cachedFormat !== format || cachedPlugin !== plugin) {
+		cachedParser = new MarkdownTaskParser(getConfig(format, plugin));
+		cachedFormat = format;
+		cachedPlugin = plugin;
 	}
 	return cachedParser;
 }
@@ -59,6 +60,8 @@ function getParser(format: MetadataFormat): MarkdownTaskParser {
  */
 export function resetTaskUtilParser(): void {
 	cachedParser = null;
+	cachedPlugin = null;
+	cachedFormat = null;
 }
 
 /**
@@ -70,9 +73,10 @@ export function parseTaskLine(
 	filePath: string,
 	line: string,
 	lineNumber: number,
-	format: MetadataFormat
+	format: MetadataFormat,
+	plugin?: any
 ): Task | null {
-	const parser = getParser(format);
+	const parser = getParser(format, plugin);
 
 	// Parse the single line as content
 	const tasks = parser.parseLegacy(line, filePath);
@@ -96,9 +100,10 @@ export function parseTaskLine(
 export function parseTasksFromContent(
 	path: string,
 	content: string,
-	format: MetadataFormat
+	format: MetadataFormat,
+	plugin?: any
 ): Task[] {
-	const parser = getParser(format);
+	const parser = getParser(format, plugin);
 	return parser.parseLegacy(content, path);
 }
 
@@ -253,14 +258,24 @@ export function extractPriority(
 export function extractProject(
 	task: Task,
 	content: string,
-	format: MetadataFormat
+	format: MetadataFormat,
+	plugin?: any
 ): string {
 	let remainingContent = content;
 	const useDataview = format === "dataview";
 	let match: RegExpMatchArray | null = null;
 
+	// Get configurable prefixes from plugin settings
+	const projectPrefix =
+		plugin?.settings?.projectTagPrefix?.[format] || "project";
+
 	if (useDataview) {
-		match = remainingContent.match(DV_PROJECT_REGEX);
+		// Create dynamic regex for dataview format
+		const dvProjectRegex = new RegExp(
+			`\\[${projectPrefix}::\\s*([^\\]]+)\\]`,
+			"i"
+		);
+		match = remainingContent.match(dvProjectRegex);
 		if (match && match[1]) {
 			task.metadata.project = match[1].trim();
 			remainingContent = remainingContent.replace(match[0], "");
@@ -268,8 +283,8 @@ export function extractProject(
 		}
 	}
 
-	// Try #project/ prefix (primary or fallback)
-	const projectTagRegex = new RegExp(EMOJI_PROJECT_PREFIX + "([\\w/-]+)");
+	// Try configurable project prefix for emoji format
+	const projectTagRegex = new RegExp(`#${projectPrefix}/([\\w/-]+)`);
 	match = remainingContent.match(projectTagRegex);
 	if (match && match[1]) {
 		task.metadata.project = match[1].trim();
@@ -282,14 +297,25 @@ export function extractProject(
 export function extractContext(
 	task: Task,
 	content: string,
-	format: MetadataFormat
+	format: MetadataFormat,
+	plugin?: any
 ): string {
 	let remainingContent = content;
 	const useDataview = format === "dataview";
 	let match: RegExpMatchArray | null = null;
 
+	// Get configurable prefixes from plugin settings
+	const contextPrefix =
+		plugin?.settings?.contextTagPrefix?.[format] ||
+		(format === "dataview" ? "context" : "@");
+
 	if (useDataview) {
-		match = remainingContent.match(DV_CONTEXT_REGEX);
+		// Create dynamic regex for dataview format
+		const dvContextRegex = new RegExp(
+			`\\[${contextPrefix}::\\s*([^\\]]+)\\]`,
+			"i"
+		);
+		match = remainingContent.match(dvContextRegex);
 		if (match && match[1]) {
 			task.metadata.context = match[1].trim();
 			remainingContent = remainingContent.replace(match[0], "");
@@ -306,7 +332,7 @@ export function extractContext(
 		wikiLinkMatches.push(wikiMatch[0]);
 	}
 
-	// Try @ prefix (primary or fallback)
+	// For emoji format, always use @ prefix (not configurable)
 	// Use .exec to find the first match only for @context
 	const contextMatch = new RegExp(EMOJI_CONTEXT_REGEX.source, "").exec(
 		remainingContent
@@ -335,7 +361,8 @@ export function extractContext(
 export function extractTags(
 	task: Task,
 	content: string,
-	format: MetadataFormat
+	format: MetadataFormat,
+	plugin?: any
 ): string {
 	let remainingContent = content;
 	const useDataview = format === "dataview";
@@ -425,7 +452,6 @@ export function extractTags(
 
 	// Temporarily replace excluded segments (links, inline code) with placeholders
 	if (exclusions.length > 0) {
-		let offset = 0; // This offset logic needs care if lengths change.
 		// Using spaces as placeholders maintains original string length and indices for subsequent operations.
 		let tempProcessedContent = processedContent.split("");
 
@@ -445,16 +471,21 @@ export function extractTags(
 	const tagMatches = processedContent.match(EMOJI_TAG_REGEX) || [];
 	task.metadata.tags = tagMatches.map((tag) => tag.trim());
 
+	// Get configurable project prefix
+	const projectPrefix =
+		plugin?.settings?.projectTagPrefix?.[format] || "project";
+	const emojiProjectPrefix = `#${projectPrefix}/`;
+
 	// If using 'tasks' (emoji) format, derive project from tags if not set
 	// Also make sure project wasn't already set by DV format before falling back
 	if (!useDataview && !task.metadata.project) {
 		const projectTag = task.metadata.tags.find(
 			(tag: string) =>
-				typeof tag === "string" && tag.startsWith(EMOJI_PROJECT_PREFIX)
+				typeof tag === "string" && tag.startsWith(emojiProjectPrefix)
 		);
 		if (projectTag) {
 			task.metadata.project = projectTag.substring(
-				EMOJI_PROJECT_PREFIX.length
+				emojiProjectPrefix.length
 			);
 		}
 	}
@@ -463,7 +494,7 @@ export function extractTags(
 	if (useDataview) {
 		task.metadata.tags = task.metadata.tags.filter(
 			(tag: string) =>
-				typeof tag === "string" && !tag.startsWith(EMOJI_PROJECT_PREFIX)
+				typeof tag === "string" && !tag.startsWith(emojiProjectPrefix)
 		);
 	}
 
