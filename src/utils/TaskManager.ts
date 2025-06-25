@@ -2098,8 +2098,8 @@ export class TaskManager extends Component {
 				);
 			}
 
-			// 10. Cancelled Date (only if cancelled)
-			if (formattedCancelledDate && updatedTask.status === "-") {
+			// 10. Cancelled Date (if present)
+			if (formattedCancelledDate) {
 				metadata.push(
 					useDataviewFormat
 						? `[cancelled:: ${formattedCancelledDate}]`
