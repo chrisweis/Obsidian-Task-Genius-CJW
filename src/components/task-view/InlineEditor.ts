@@ -236,6 +236,7 @@ export class InlineEditor extends Component {
 			| "startDate"
 			| "scheduledDate"
 			| "cancelledDate"
+			| "completedDate"
 			| "priority"
 			| "recurrence"
 			| "onCompletion"
@@ -278,6 +279,7 @@ export class InlineEditor extends Component {
 			case "startDate":
 			case "scheduledDate":
 			case "cancelledDate":
+			case "completedDate":
 				this.createDateEditor(editorContainer, fieldType, currentValue);
 				break;
 			case "priority":
@@ -504,7 +506,7 @@ export class InlineEditor extends Component {
 
 	private createDateEditor(
 		container: HTMLElement,
-		fieldType: "dueDate" | "startDate" | "scheduledDate" | "cancelledDate",
+		fieldType: "dueDate" | "startDate" | "scheduledDate" | "cancelledDate" | "completedDate",
 		currentValue?: string
 	): void {
 		const input = container.createEl("input", {
@@ -892,6 +894,7 @@ export class InlineEditor extends Component {
 			{ key: "startDate", label: "Start Date", icon: "play" },
 			{ key: "scheduledDate", label: "Scheduled Date", icon: "clock" },
 			{ key: "cancelledDate", label: "Cancelled Date", icon: "x" },
+			{ key: "completedDate", label: "Completed Date", icon: "check" },
 			{ key: "priority", label: "Priority", icon: "alert-triangle" },
 			{ key: "recurrence", label: "Recurrence", icon: "repeat" },
 			{ key: "onCompletion", label: "On Completion", icon: "flag" },
@@ -919,6 +922,8 @@ export class InlineEditor extends Component {
 					return !this.task.metadata.scheduledDate;
 				case "cancelledDate":
 					return !this.task.metadata.cancelledDate;
+				case "completedDate":
+					return !this.task.metadata.completedDate;
 				case "priority":
 					return !this.task.metadata.priority;
 				case "recurrence":
@@ -1013,6 +1018,7 @@ export class InlineEditor extends Component {
 			"startDate",
 			"scheduledDate",
 			"cancelledDate",
+			"completedDate",
 			"recurrence",
 		];
 
@@ -1237,6 +1243,7 @@ export class InlineEditor extends Component {
 			case "startDate":
 			case "scheduledDate":
 			case "cancelledDate":
+			case "completedDate":
 				const dateValue = (this.task.metadata as StandardTaskMetadata)[
 					fieldType
 				] as number;

@@ -305,6 +305,15 @@ export class TaskTreeItemComponent extends Component {
 	private renderMetadata(metadataEl: HTMLElement) {
 		metadataEl.empty();
 
+		// For cancelled tasks, show cancelled date (independent of completion status)
+		if (this.task.metadata.cancelledDate) {
+			this.renderDateMetadata(
+				metadataEl,
+				"cancelled",
+				this.task.metadata.cancelledDate
+			);
+		}
+
 		// Display dates based on task completion status
 		if (!this.task.completed) {
 			// Due date if available
@@ -345,15 +354,6 @@ export class TaskTreeItemComponent extends Component {
 					metadataEl,
 					"completed",
 					this.task.metadata.completedDate
-				);
-			}
-
-			// For cancelled tasks, show cancelled date
-			if (this.task.metadata.cancelledDate && this.task.status === "-") {
-				this.renderDateMetadata(
-					metadataEl,
-					"cancelled",
-					this.task.metadata.cancelledDate
 				);
 			}
 
@@ -484,6 +484,10 @@ export class TaskTreeItemComponent extends Component {
 							? "scheduledDate"
 							: type === "start"
 							? "startDate"
+							: type === "cancelled"
+							? "cancelledDate"
+							: type === "completed"
+							? "completedDate"
 							: null;
 
 					if (fieldType) {
@@ -707,6 +711,8 @@ export class TaskTreeItemComponent extends Component {
 			{ key: "dueDate", label: "Due Date", icon: "calendar" },
 			{ key: "startDate", label: "Start Date", icon: "play" },
 			{ key: "scheduledDate", label: "Scheduled Date", icon: "clock" },
+			{ key: "cancelledDate", label: "Cancelled Date", icon: "x" },
+			{ key: "completedDate", label: "Completed Date", icon: "check" },
 			{ key: "priority", label: "Priority", icon: "alert-triangle" },
 			{ key: "recurrence", label: "Recurrence", icon: "repeat" },
 			{ key: "onCompletion", label: "On Completion", icon: "flag" },
@@ -732,6 +738,10 @@ export class TaskTreeItemComponent extends Component {
 					return !this.task.metadata.startDate;
 				case "scheduledDate":
 					return !this.task.metadata.scheduledDate;
+				case "cancelledDate":
+					return !this.task.metadata.cancelledDate;
+				case "completedDate":
+					return !this.task.metadata.completedDate;
 				case "priority":
 					return !this.task.metadata.priority;
 				case "recurrence":

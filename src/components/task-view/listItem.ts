@@ -250,6 +250,14 @@ export class TaskListItemComponent extends Component {
 	private renderMetadata() {
 		this.metadataEl.empty();
 
+		// For cancelled tasks, show cancelled date (independent of completion status)
+		if (this.task.metadata.cancelledDate) {
+			this.renderDateMetadata(
+				"cancelled",
+				this.task.metadata.cancelledDate
+			);
+		}
+
 		// Display dates based on task completion status
 		if (!this.task.completed) {
 			// For incomplete tasks, show due, scheduled, and start dates
@@ -282,14 +290,6 @@ export class TaskListItemComponent extends Component {
 				this.renderDateMetadata(
 					"completed",
 					this.task.metadata.completedDate
-				);
-			}
-
-			// For cancelled tasks, show cancelled date
-			if (this.task.metadata.cancelledDate && this.task.status === "-") {
-				this.renderDateMetadata(
-					"cancelled",
-					this.task.metadata.cancelledDate
 				);
 			}
 
@@ -417,6 +417,10 @@ export class TaskListItemComponent extends Component {
 							? "scheduledDate"
 							: type === "start"
 							? "startDate"
+							: type === "cancelled"
+							? "cancelledDate"
+							: type === "completed"
+							? "completedDate"
 							: null;
 
 					if (fieldType) {
@@ -631,6 +635,7 @@ export class TaskListItemComponent extends Component {
 			{ key: "startDate", label: "Start Date", icon: "play" },
 			{ key: "scheduledDate", label: "Scheduled Date", icon: "clock" },
 			{ key: "cancelledDate", label: "Cancelled Date", icon: "x" },
+			{ key: "completedDate", label: "Completed Date", icon: "check" },
 			{ key: "priority", label: "Priority", icon: "alert-triangle" },
 			{ key: "recurrence", label: "Recurrence", icon: "repeat" },
 			{ key: "onCompletion", label: "On Completion", icon: "flag" },
@@ -658,6 +663,8 @@ export class TaskListItemComponent extends Component {
 					return !this.task.metadata.scheduledDate;
 				case "cancelledDate":
 					return !this.task.metadata.cancelledDate;
+				case "completedDate":
+					return !this.task.metadata.completedDate;
 				case "priority":
 					return !this.task.metadata.priority;
 				case "recurrence":
