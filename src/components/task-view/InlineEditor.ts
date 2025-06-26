@@ -638,36 +638,107 @@ export class InlineEditor extends Component {
 		container: HTMLElement,
 		currentValue?: string
 	): void {
-		const input = container.createEl("input", {
-			type: "text",
-			cls: "inline-oncompletion-input",
-			value: currentValue || this.task.metadata.onCompletion || "",
-			placeholder: "Action to execute on completion",
+		// Import OnCompletionConfigurator dynamically to avoid circular imports
+		import("../onCompletion/OnCompletionConfigurator").then(({ OnCompletionConfigurator }) => {
+			const configuratorContainer = container.createDiv({
+				cls: "inline-oncompletion-configurator",
+			});
+
+			// Prevent event bubbling on container
+			this.registerDomEvent(
+				configuratorContainer,
+				"click",
+				this.boundHandlers.stopPropagation
+			);
+			this.registerDomEvent(
+				configuratorContainer,
+				"mousedown",
+				this.boundHandlers.stopPropagation
+			);
+
+			const onCompletionConfigurator = new OnCompletionConfigurator(
+				configuratorContainer,
+				this.plugin,
+				{
+					initialValue: currentValue || this.task.metadata.onCompletion || "",
+					onChange: (value) => {
+						// Update the task metadata immediately
+						this.task.metadata.onCompletion = value || undefined;
+						// Trigger debounced save
+						this.debouncedSave?.();
+					},
+					onValidationChange: (isValid, error) => {
+						// Show validation feedback if needed
+						const existingMessage = configuratorContainer.querySelector('.oncompletion-validation-message');
+						if (existingMessage) {
+							existingMessage.remove();
+						}
+						
+						if (error) {
+							const messageEl = configuratorContainer.createDiv({
+								cls: 'oncompletion-validation-message error',
+								text: error
+							});
+						}
+					}
+				}
+			);
+			
+			this.addChild(onCompletionConfigurator);
+
+			// Set up keyboard handling for the configurator
+			this.registerDomEvent(configuratorContainer, "keydown", (e) => {
+				if (e.key === "Escape") {
+					const targetEl = configuratorContainer.closest(".inline-metadata-editor")
+						?.parentElement as HTMLElement;
+					if (targetEl) {
+						this.cancelMetadataEdit(targetEl);
+					}
+				} else if (e.key === "Enter" && !e.shiftKey) {
+					e.preventDefault();
+					const targetEl = configuratorContainer.closest(".inline-metadata-editor")
+						?.parentElement as HTMLElement;
+					if (targetEl) {
+						this.finishMetadataEdit(targetEl, "onCompletion").catch(console.error);
+					}
+				}
+			});
+
+		}).catch(error => {
+			// Fallback to simple text input if OnCompletionConfigurator fails to load
+			console.warn("Failed to load OnCompletionConfigurator, using fallback:", error);
+			
+			const input = container.createEl("input", {
+				type: "text",
+				cls: "inline-oncompletion-input",
+				value: currentValue || this.task.metadata.onCompletion || "",
+				placeholder: "Action to execute on completion",
+			});
+
+			this.activeInput = input;
+
+			// Prevent event bubbling on input element
+			this.registerDomEvent(
+				input,
+				"click",
+				this.boundHandlers.stopPropagation
+			);
+			this.registerDomEvent(
+				input,
+				"mousedown",
+				this.boundHandlers.stopPropagation
+			);
+
+			const updateOnCompletion = (value: string) => {
+				this.task.metadata.onCompletion = value || undefined;
+			};
+
+			this.setupInputEvents(input, updateOnCompletion, "onCompletion");
+
+			// Focus and select
+			input.focus();
+			input.select();
 		});
-
-		this.activeInput = input;
-
-		// Prevent event bubbling on input element
-		this.registerDomEvent(
-			input,
-			"click",
-			this.boundHandlers.stopPropagation
-		);
-		this.registerDomEvent(
-			input,
-			"mousedown",
-			this.boundHandlers.stopPropagation
-		);
-
-		const updateOnCompletion = (value: string) => {
-			this.task.metadata.onCompletion = value || undefined;
-		};
-
-		this.setupInputEvents(input, updateOnCompletion, "onCompletion");
-
-		// Focus and select
-		input.focus();
-		input.select();
 	}
 
 	private createDependsOnEditor(

@@ -501,11 +501,62 @@ export class TaskDetailsComponent extends Component {
 			this.editFormEl,
 			t("On Completion")
 		);
-		const onCompletionInput = new TextComponent(onCompletionField);
-		onCompletionInput.setValue(task.metadata.onCompletion || "");
-		onCompletionField
-			.createSpan({ cls: "field-description" })
-			.setText(t("Action to execute when task is completed"));
+		
+		// Import OnCompletionConfigurator dynamically to avoid circular imports
+		import("../onCompletion/OnCompletionConfigurator").then(({ OnCompletionConfigurator }) => {
+			const onCompletionConfigurator = new OnCompletionConfigurator(
+				onCompletionField,
+				this.plugin,
+				{
+					initialValue: task.metadata.onCompletion || "",
+					onChange: (value) => {
+						// Update the task metadata immediately
+						if (task.metadata) {
+							task.metadata.onCompletion = value || undefined;
+							// Trigger save
+							saveTask();
+						}
+					},
+					onValidationChange: (isValid, error) => {
+						// Show validation feedback
+						const existingMessage = onCompletionField.querySelector('.oncompletion-validation-message');
+						if (existingMessage) {
+							existingMessage.remove();
+						}
+						
+						if (error) {
+							const messageEl = onCompletionField.createDiv({
+								cls: 'oncompletion-validation-message error',
+								text: error
+							});
+						} else if (isValid) {
+							const messageEl = onCompletionField.createDiv({
+								cls: 'oncompletion-validation-message success',
+								text: t('Configuration is valid')
+							});
+						}
+					}
+				}
+			);
+			
+			this.addChild(onCompletionConfigurator);
+		}).catch(error => {
+			// Fallback to simple text input if OnCompletionConfigurator fails to load
+			console.warn("Failed to load OnCompletionConfigurator, using fallback:", error);
+			const onCompletionInput = new TextComponent(onCompletionField);
+			onCompletionInput.setValue(task.metadata.onCompletion || "");
+			onCompletionField
+				.createSpan({ cls: "field-description" })
+				.setText(t("Action to execute when task is completed"));
+				
+			// Register blur event for fallback input
+			this.registerDomEvent(onCompletionInput.inputEl, "blur", () => {
+				if (task.metadata) {
+					task.metadata.onCompletion = onCompletionInput.getValue() || undefined;
+					saveTask();
+				}
+			});
+		});
 
 		// Dependencies
 		const dependsOnField = this.createFormField(
@@ -673,9 +724,7 @@ export class TaskDetailsComponent extends Component {
 				metadata.cancelledDate = task.metadata.cancelledDate;
 			}
 
-			// Update on completion action
-			const onCompletionValue = onCompletionInput.getValue();
-			metadata.onCompletion = onCompletionValue || undefined;
+			// onCompletion is now handled by OnCompletionConfigurator
 
 			// Update dependencies
 			const dependsOnValue = dependsOnInput.getValue();
@@ -749,7 +798,7 @@ export class TaskDetailsComponent extends Component {
 		// registerBlurEvent(dueDateInput);
 		// registerBlurEvent(startDateInput);
 		// registerBlurEvent(scheduledDateInput);
-		registerBlurEvent(onCompletionInput.inputEl);
+		// onCompletion input is now handled by OnCompletionConfigurator or in fallback
 		registerBlurEvent(dependsOnInput.inputEl);
 		registerBlurEvent(taskIdInput.inputEl);
 		registerBlurEvent(recurrenceInput.inputEl);

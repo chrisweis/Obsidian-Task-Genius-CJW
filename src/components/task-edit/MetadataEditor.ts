@@ -496,18 +496,56 @@ export class TaskMetadataEditor extends Component {
 		const fieldLabel = fieldContainer.createDiv({ cls: "field-label" });
 		fieldLabel.setText(t("On Completion"));
 
-		const onCompletionInput = new TextComponent(fieldContainer)
-			.setPlaceholder(t("Action to execute on completion"))
-			.setValue(this.task.metadata.onCompletion || "")
-			.onChange((value) => {
-				this.notifyMetadataChange("onCompletion", value);
-			});
-
-		this.registerDomEvent(onCompletionInput.inputEl, "blur", () => {
-			this.notifyMetadataChange(
-				"onCompletion",
-				onCompletionInput.inputEl.value
+		// Import OnCompletionConfigurator dynamically to avoid circular imports
+		import("../onCompletion/OnCompletionConfigurator").then(({ OnCompletionConfigurator }) => {
+			const onCompletionConfigurator = new OnCompletionConfigurator(
+				fieldContainer,
+				this.plugin,
+				{
+					initialValue: this.task.metadata.onCompletion || "",
+					onChange: (value) => {
+						this.notifyMetadataChange("onCompletion", value);
+					},
+					onValidationChange: (isValid, error) => {
+						// Show validation feedback
+						const existingMessage = fieldContainer.querySelector('.oncompletion-validation-message');
+						if (existingMessage) {
+							existingMessage.remove();
+						}
+						
+						if (error) {
+							const messageEl = fieldContainer.createDiv({
+								cls: 'oncompletion-validation-message error',
+								text: error
+							});
+						} else if (isValid && value) {
+							const messageEl = fieldContainer.createDiv({
+								cls: 'oncompletion-validation-message success',
+								text: t('Configuration is valid')
+							});
+						}
+					}
+				}
 			);
+			
+			this.addChild(onCompletionConfigurator);
+		}).catch(error => {
+			// Fallback to simple text input if OnCompletionConfigurator fails to load
+			console.warn("Failed to load OnCompletionConfigurator, using fallback:", error);
+			
+			const onCompletionInput = new TextComponent(fieldContainer)
+				.setPlaceholder(t("Action to execute on completion"))
+				.setValue(this.task.metadata.onCompletion || "")
+				.onChange((value) => {
+					this.notifyMetadataChange("onCompletion", value);
+				});
+
+			this.registerDomEvent(onCompletionInput.inputEl, "blur", () => {
+				this.notifyMetadataChange(
+					"onCompletion",
+					onCompletionInput.inputEl.value
+				);
+			});
 		});
 	}
 

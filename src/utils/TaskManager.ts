@@ -34,6 +34,7 @@ import { CanvasParser } from "./parsing/CanvasParser";
 import { CanvasTaskUpdater } from "./parsing/CanvasTaskUpdater";
 import { FileMetadataTaskUpdater } from "./workers/FileMetadataTaskUpdater";
 import { RebuildProgressManager } from "./RebuildProgressManager";
+import { OnCompletionManager } from "./OnCompletionManager";
 
 /**
  * TaskManager options
@@ -86,6 +87,8 @@ export class TaskManager extends Component {
 	private canvasTaskUpdater: CanvasTaskUpdater;
 	/** File filter manager for filtering files during indexing */
 	private fileFilterManager?: FileFilterManager;
+	/** OnCompletion manager for handling task completion actions */
+	private onCompletionManager?: OnCompletionManager;
 
 	/**
 	 * Create a new task manager
@@ -130,6 +133,9 @@ export class TaskManager extends Component {
 		// Initialize file filter manager
 		this.initializeFileFilterManager();
 
+		// Initialize onCompletion manager
+		this.initializeOnCompletionManager();
+
 		// Set up the indexer's parse callback to use our parser
 		this.indexer.setParseFileCallback(async (file: TFile) => {
 			const content = await this.vault.cachedRead(file);
@@ -168,6 +174,9 @@ export class TaskManager extends Component {
 		if (this.workerManager) {
 			this.addChild(this.workerManager);
 		}
+		if (this.onCompletionManager) {
+			this.addChild(this.onCompletionManager);
+		}
 	}
 
 	/**
@@ -184,6 +193,21 @@ export class TaskManager extends Component {
 			this.fileFilterManager = undefined;
 			this.indexer.setFileFilterManager(undefined);
 		}
+	}
+
+	/**
+	 * Initialize onCompletion manager
+	 */
+	private initializeOnCompletionManager(): void {
+		this.onCompletionManager = new OnCompletionManager(this.app, this.plugin);
+		this.log("OnCompletion manager initialized");
+	}
+
+	/**
+	 * Get the onCompletion manager instance
+	 */
+	public getOnCompletionManager(): OnCompletionManager | undefined {
+		return this.onCompletionManager;
 	}
 
 	/**
