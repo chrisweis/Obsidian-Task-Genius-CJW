@@ -365,9 +365,9 @@ declare module "obsidian" {
 		 * @param factory - Factory function to create the view
 		 * @returns true if registration was successful, false otherwise
 		 */
-		registerBasesView?(
+		registerBasesView(
 			viewId: string,
-			factory: (container: HTMLElement) => any
+			config: BasesViewRegistration
 		): boolean;
 	}
 

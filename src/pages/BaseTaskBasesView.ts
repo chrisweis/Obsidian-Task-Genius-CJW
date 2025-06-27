@@ -161,6 +161,8 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 
 	// Protected methods for data conversion
 	protected convertEntriesToTasks(): boolean {
+		console.log("[BaseTaskBasesView] Converting entries to tasks");
+		console.log("[BaseTaskBasesView] Data:", this.data);
 		if (!this.data || this.data.length === 0) {
 			this.tasks = [];
 			return true;
@@ -196,30 +198,45 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 
 	protected entryToTask(entry: any): Task | null {
 		try {
-			// Basic task structure from entry
+			// Extract basic file information
+			const file = entry.file;
+			const frontmatter = entry.frontmatter || {};
+
+			if (!file) {
+				console.warn(
+					`[${this.type}] Entry missing file information:`,
+					entry
+				);
+				return null;
+			}
+
+			// Extract task content from multiple sources
+			const content = this.extractTaskContent(entry);
+
+			// Extract task metadata
+			const metadata = this.extractTaskMetadata(entry);
+
+			// Determine completion status
+			const completed = this.extractCompletionStatus(entry);
+
+			// Extract task status mark
+			const status = this.extractTaskStatus(entry);
+
+			console.log("[BaseTaskBasesView] Entry:", entry);
+
+			// Build task object
 			const task: Task = {
-				id: entry.file?.path || `${Date.now()}-${Math.random()}`,
-				content:
-					entry.properties?.title || entry.file?.name || "Untitled",
-				completed: entry.properties?.completed || false,
-				status: entry.properties?.status || " ",
-				filePath: entry.file?.path || "",
-				line: entry.properties?.line || 0,
-				originalMarkdown: entry.properties?.originalMarkdown || "",
+				id: this.generateTaskId(entry),
+				content: content,
+				completed: completed,
+				status: status,
+				filePath: file.path || "",
+				line: this.getEntryProperty(entry, "line", "note") || 0,
+				originalMarkdown:
+					this.getEntryProperty(entry, "originalMarkdown", "note") ||
+					content,
 				metadata: {
-					tags: entry.properties?.tags || [],
-					project: entry.properties?.project || "",
-					tgProject: entry.properties?.tgProject || "",
-					priority: entry.properties?.priority || 0,
-					dueDate: entry.properties?.dueDate || undefined,
-					scheduledDate: entry.properties?.scheduledDate || undefined,
-					startDate: entry.properties?.startDate || undefined,
-					completedDate: entry.properties?.completedDate || undefined,
-					createdDate: entry.properties?.createdDate || undefined,
-					cancelledDate: entry.properties?.cancelledDate || undefined,
-					context: entry.properties?.context || "",
-					recurrence: entry.properties?.recurrence || undefined,
-					onCompletion: entry.properties?.onCompletion || undefined,
+					...metadata,
 					children: [],
 				},
 			};
@@ -228,7 +245,8 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 		} catch (error) {
 			console.error(
 				`[${this.type}] Error converting entry to task:`,
-				error
+				error,
+				entry
 			);
 			return null;
 		}
@@ -256,6 +274,321 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 		// Force refresh by converting data again
 		this.convertEntriesToTasks();
 		this.onDataUpdated();
+	}
+
+	/**
+	 * Extract task content from entry using multiple sources
+	 */
+	private extractTaskContent(entry: any): string {
+		// Try multiple content sources in priority order
+		const contentSources = [
+			() => this.getEntryProperty(entry, "title", "note"),
+			() => this.getEntryProperty(entry, "content", "note"),
+			() => this.getEntryProperty(entry, "text", "note"),
+			() => entry.file?.basename,
+			() => entry.file?.name,
+		];
+
+		for (const getContent of contentSources) {
+			try {
+				const content = getContent();
+				if (content && typeof content === "string" && content.trim()) {
+					return content.trim();
+				}
+			} catch (error) {
+				// Continue to next source
+			}
+		}
+
+		return "Untitled Task";
+	}
+
+	/**
+	 * Extract task metadata from entry
+	 */
+	private extractTaskMetadata(entry: any): any {
+		return {
+			tags: this.extractTags(entry),
+			project: this.extractProject(entry),
+			tgProject: this.getEntryProperty(entry, "tgProject", "note") || "",
+			priority: this.extractPriority(entry),
+			dueDate:
+				this.extractDate(entry, "dueDate") ||
+				this.extractDate(entry, "due"),
+			scheduledDate:
+				this.extractDate(entry, "scheduledDate") ||
+				this.extractDate(entry, "scheduled"),
+			startDate:
+				this.extractDate(entry, "startDate") ||
+				this.extractDate(entry, "start"),
+			completedDate:
+				this.extractDate(entry, "completedDate") ||
+				this.extractDate(entry, "completed"),
+			createdDate:
+				this.extractDate(entry, "createdDate") ||
+				this.extractDate(entry, "created") ||
+				this.extractFileCreatedDate(entry),
+			cancelledDate:
+				this.extractDate(entry, "cancelledDate") ||
+				this.extractDate(entry, "cancelled"),
+			context: this.getEntryProperty(entry, "context", "note") || "",
+			recurrence:
+				this.getEntryProperty(entry, "recurrence", "note") || undefined,
+			onCompletion:
+				this.getEntryProperty(entry, "onCompletion", "note") ||
+				undefined,
+		};
+	}
+
+	/**
+	 * Extract completion status from entry
+	 */
+	private extractCompletionStatus(entry: any): boolean {
+		// Check multiple completion indicators
+		const completionSources = [
+			() => this.getEntryProperty(entry, "completed", "note"),
+			() => this.getEntryProperty(entry, "done", "note"),
+			() => entry.frontmatter?.completed,
+			() => entry.frontmatter?.done,
+		];
+
+		for (const getCompleted of completionSources) {
+			try {
+				const completed = getCompleted();
+				if (typeof completed === "boolean") {
+					return completed;
+				}
+				if (typeof completed === "string") {
+					return (
+						completed.toLowerCase() === "true" || completed === "x"
+					);
+				}
+			} catch (error) {
+				// Continue to next source
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Extract task status mark from entry
+	 */
+	private extractTaskStatus(entry: any): string {
+		const statusSources = [
+			() => this.getEntryProperty(entry, "status", "note"),
+			() => entry.frontmatter?.status,
+		];
+
+		for (const getStatus of statusSources) {
+			try {
+				const status = getStatus();
+				if (status && typeof status === "string") {
+					return status;
+				}
+			} catch (error) {
+				// Continue to next source
+			}
+		}
+
+		// Default status based on completion
+		return this.extractCompletionStatus(entry) ? "x" : " ";
+	}
+
+	/**
+	 * Extract tags from entry
+	 */
+	private extractTags(entry: any): string[] {
+		const tagSources = [
+			() => this.getEntryProperty(entry, "tags", "note"),
+			() => entry.frontmatter?.tags,
+		];
+
+		for (const getTags of tagSources) {
+			try {
+				const tags = getTags();
+				if (Array.isArray(tags)) {
+					return tags.filter((tag) => typeof tag === "string");
+				}
+				if (typeof tags === "string") {
+					return tags
+						.split(",")
+						.map((tag) => tag.trim())
+						.filter((tag) => tag);
+				}
+			} catch (error) {
+				// Continue to next source
+			}
+		}
+
+		return [];
+	}
+
+	/**
+	 * Extract project from entry
+	 */
+	private extractProject(entry: any): string {
+		const projectSources = [
+			() => this.getEntryProperty(entry, "project", "note"),
+			() => entry.frontmatter?.project,
+			() => this.extractProjectFromTags(entry),
+		];
+
+		for (const getProject of projectSources) {
+			try {
+				const project = getProject();
+				if (project && typeof project === "string") {
+					return project.trim();
+				}
+			} catch (error) {
+				// Continue to next source
+			}
+		}
+
+		return "";
+	}
+
+	/**
+	 * Extract project from tags
+	 */
+	private extractProjectFromTags(entry: any): string {
+		const tags = this.extractTags(entry);
+		const projectTag = tags.find(
+			(tag) =>
+				tag.startsWith("#project/") ||
+				tag.startsWith("project/") ||
+				tag.startsWith("#proj/") ||
+				tag.startsWith("proj/")
+		);
+
+		if (projectTag) {
+			return projectTag.replace(/^#?(project|proj)\//, "");
+		}
+
+		return "";
+	}
+
+	/**
+	 * Extract priority from entry
+	 */
+	private extractPriority(entry: any): number {
+		const prioritySources = [
+			() => this.getEntryProperty(entry, "priority", "note"),
+			() => entry.frontmatter?.priority,
+		];
+
+		for (const getPriority of prioritySources) {
+			try {
+				const priority = getPriority();
+				if (typeof priority === "number") {
+					return Math.max(0, Math.min(10, priority));
+				}
+				if (typeof priority === "string") {
+					const parsed = parseInt(priority);
+					if (!isNaN(parsed)) {
+						return Math.max(0, Math.min(10, parsed));
+					}
+				}
+			} catch (error) {
+				// Continue to next source
+			}
+		}
+
+		return 0;
+	}
+
+	/**
+	 * Extract date from entry
+	 */
+	private extractDate(entry: any, dateField: string): number | undefined {
+		const dateSources = [
+			() => this.getEntryProperty(entry, dateField, "note"),
+			() => entry.frontmatter?.[dateField],
+		];
+
+		for (const getDate of dateSources) {
+			try {
+				const date = getDate();
+				if (typeof date === "number") {
+					return date;
+				}
+				if (typeof date === "string") {
+					const parsed = Date.parse(date);
+					if (!isNaN(parsed)) {
+						return parsed;
+					}
+				}
+				if (date instanceof Date) {
+					return date.getTime();
+				}
+			} catch (error) {
+				// Continue to next source
+			}
+		}
+
+		return undefined;
+	}
+
+	/**
+	 * Extract file created date
+	 */
+	private extractFileCreatedDate(entry: any): number | undefined {
+		try {
+			const file = entry.file;
+			if (file?.stat?.ctime) {
+				return file.stat.ctime;
+			}
+		} catch (error) {
+			// Ignore error
+		}
+		return undefined;
+	}
+
+	/**
+	 * Generate unique task ID from entry
+	 */
+	private generateTaskId(entry: any): string {
+		try {
+			const file = entry.file;
+			if (file?.path) {
+				return file.path;
+			}
+		} catch (error) {
+			// Fallback to random ID
+		}
+
+		return `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+	}
+
+	/**
+	 * Generic property accessor for Bases entries
+	 */
+	private getEntryProperty(
+		entry: any,
+		propertyName: string,
+		type: "note" | "file" | "formula" = "note"
+	): any {
+		try {
+			if (typeof entry.getValue === "function") {
+				return entry.getValue({ type, name: propertyName });
+			}
+		} catch (error) {
+			// Fallback to direct access
+		}
+
+		// Fallback: try direct property access
+		try {
+			if (type === "note" && entry.frontmatter) {
+				return entry.frontmatter[propertyName];
+			}
+			if (type === "file" && entry.file) {
+				return entry.file[propertyName];
+			}
+		} catch (error) {
+			// Ignore error
+		}
+
+		return undefined;
 	}
 
 	// Abstract methods that subclasses must implement

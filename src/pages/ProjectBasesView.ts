@@ -138,7 +138,7 @@ export class ProjectBasesView extends BaseTaskBasesView {
 			);
 
 			// Update projects component with filtered tasks
-			this.projectsComponent.setTasks(projectTasks, this.tasks);
+			this.projectsComponent.setTasks(projectTasks);
 
 			console.log(
 				`[ProjectBasesView] Updated with ${projectTasks.length} project tasks`
@@ -200,8 +200,8 @@ export class ProjectBasesView extends BaseTaskBasesView {
 
 		const hierarchyToggle = hierarchyEl.createEl("input", {
 			type: "checkbox",
-			checked: true,
 		});
+		hierarchyToggle.checked = true;
 
 		// Group by project
 		const groupingEl = optionsEl.createDiv({
@@ -214,8 +214,8 @@ export class ProjectBasesView extends BaseTaskBasesView {
 
 		const groupingToggle = groupingEl.createEl("input", {
 			type: "checkbox",
-			checked: true,
 		});
+		groupingToggle.checked = true;
 
 		// Show completed projects
 		const completedEl = optionsEl.createDiv({

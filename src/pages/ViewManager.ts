@@ -11,6 +11,7 @@ import { ProjectBasesView } from "./ProjectBasesView";
 import { TagsBasesView } from "./TagsBasesView";
 import TaskProgressBarPlugin from "../index";
 import "../styles/base-view.css";
+import { requireApiVersion } from "obsidian";
 
 export class ViewManager extends Component {
 	private app: App;
@@ -295,8 +296,9 @@ export class ViewManager extends Component {
 			};
 
 			// Try to register with config first, fallback to factory only
+			// Register view is handled by plugin itself(Will help remove the need to register view in bases plugin)
 			try {
-				this.basesPlugin.registerView(viewId, viewConfig);
+				this.plugin.registerBasesView(viewId, viewConfig);
 			} catch (configError) {
 				console.warn(
 					`[ViewManager] Config registration failed, trying factory-only registration:`,
@@ -309,12 +311,13 @@ export class ViewManager extends Component {
 			console.log(
 				`[ViewManager] Successfully registered view using legacy API: ${viewId}`
 			);
-		} else {
+		} else if (requireApiVersion("1.9.0")) {
 			console.log(
 				`[ViewManager] Using new registerBasesView API for ${viewId}`
 			);
 
 			// Use new plugin-level registration method
+			// Method is used between 1.9.0 and 1.9.3
 			const success = (this.plugin as any).registerBasesView(
 				viewId,
 				factory

@@ -134,11 +134,16 @@ export class InboxBasesView extends BaseTaskBasesView {
 	private updateInboxTasks(): void {
 		if (!this.isLoaded) return;
 
-		console.log(this);
+		console.log("[InboxBasesView] Raw data:", this.data);
+		console.log("[InboxBasesView] Converted tasks:", this.tasks);
 
 		try {
 			// Filter tasks for inbox view (tasks without projects)
 			const inboxTasks = filterTasks(this.tasks, "inbox", this.plugin);
+
+			console.log(
+				`[InboxBasesView] Filtered ${inboxTasks.length} inbox tasks from ${this.tasks.length} total tasks`
+			);
 
 			// Update content component with filtered tasks
 			this.contentComponent.setTasks(inboxTasks, this.tasks);
