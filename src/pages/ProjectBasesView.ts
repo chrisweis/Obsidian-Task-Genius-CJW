@@ -3,12 +3,13 @@
  * Specialized view for project-based task management
  */
 
-import { App } from "obsidian";
+import { App, Menu } from "obsidian";
 import { BaseTaskBasesView } from "./BaseTaskBasesView";
 import { ProjectsComponent } from "../components/task-view/projects";
 import TaskProgressBarPlugin from "../index";
 import { filterTasks } from "../utils/TaskFilterUtils";
 import { t } from "../translations/helper";
+import { Task } from "../types/task";
 
 export class ProjectBasesView extends BaseTaskBasesView {
 	type = "projects-bases-view";
@@ -34,13 +35,15 @@ export class ProjectBasesView extends BaseTaskBasesView {
 			{
 				onTaskSelected: (task) => {
 					console.log("[ProjectBasesView] Task selected:", task);
+					this.handleTaskSelection(task);
 				},
 				onTaskCompleted: (task) => {
 					console.log("[ProjectBasesView] Task completed:", task);
-					this.handleTaskCompletion(task);
+					this.handleTaskCompletionLocal(task);
 				},
 				onTaskContextMenu: (event, task) => {
 					console.log("[ProjectBasesView] Task context menu:", task);
+					this.handleTaskContextMenu(event, task);
 				},
 			}
 		);
@@ -50,12 +53,29 @@ export class ProjectBasesView extends BaseTaskBasesView {
 
 	// Abstract method implementations
 	protected onConfigUpdated(): void {
+		console.log(
+			"[ProjectBasesView] onConfigUpdated called, isLoaded:",
+			this.isLoaded
+		);
+
 		if (this.isLoaded) {
+			// Convert data again in case configuration affects data processing
+			this.convertEntriesToTasks();
 			this.updateProjectTasks();
 		}
 	}
 
 	protected onDataUpdated(): void {
+		// Handle data updates - convert data and update tasks
+		console.log(
+			"[ProjectBasesView] onDataUpdated called, isLoaded:",
+			this.isLoaded
+		);
+
+		// Force convert entries to tasks to get latest data
+		this.convertEntriesToTasks();
+
+		// Then update the view
 		this.updateProjectTasks();
 	}
 
@@ -127,7 +147,23 @@ export class ProjectBasesView extends BaseTaskBasesView {
 	}
 
 	private updateProjectTasks(): void {
-		if (!this.isLoaded) return;
+		console.log(
+			"[ProjectBasesView] updateProjectTasks called, isLoaded:",
+			this.isLoaded
+		);
+
+		if (!this.isLoaded) {
+			console.log(
+				"[ProjectBasesView] View not loaded yet, skipping update"
+			);
+			return;
+		}
+
+		console.log(
+			"[ProjectBasesView] Processing",
+			this.tasks.length,
+			"total tasks"
+		);
 
 		try {
 			// Filter tasks for projects view (tasks with projects)
@@ -137,11 +173,15 @@ export class ProjectBasesView extends BaseTaskBasesView {
 				this.plugin
 			);
 
+			console.log(
+				`[ProjectBasesView] Filtered ${projectTasks.length} project tasks from ${this.tasks.length} total tasks`
+			);
+
 			// Update projects component with filtered tasks
 			this.projectsComponent.setTasks(projectTasks);
 
 			console.log(
-				`[ProjectBasesView] Updated with ${projectTasks.length} project tasks`
+				`[ProjectBasesView] Successfully updated ProjectsComponent with ${projectTasks.length} project tasks`
 			);
 		} catch (error) {
 			console.error(
@@ -152,13 +192,52 @@ export class ProjectBasesView extends BaseTaskBasesView {
 		}
 	}
 
-	private handleTaskCompletion(task: any): void {
-		console.log("[ProjectBasesView] Handling task completion:", task);
+	private async handleTaskCompletionLocal(task: Task): Promise<void> {
+		// Use base class method for task completion
+		try {
+			await super.handleTaskCompletion(task);
+			// Trigger refresh after completion
+			setTimeout(() => {
+				this.refreshTasks();
+			}, 100);
+		} catch (error) {
+			console.error(
+				"[ProjectBasesView] Error handling task completion:",
+				error
+			);
+		}
+	}
 
-		// Trigger refresh after completion
-		setTimeout(() => {
-			this.refreshTasks();
-		}, 100);
+	/**
+	 * Handle task context menu
+	 */
+	private handleTaskContextMenu(event: MouseEvent, task: Task): void {
+		const menu = new Menu();
+
+		menu.addItem((item: any) => {
+			item.setTitle(t("Complete"));
+			item.setIcon("check-square");
+			item.onClick(() => {
+				this.handleTaskCompletionLocal(task);
+			});
+		})
+			.addSeparator()
+			.addItem((item: any) => {
+				item.setTitle(t("Edit"));
+				item.setIcon("pencil");
+				item.onClick(() => {
+					this.handleTaskSelection(task); // Open details view for editing
+				});
+			})
+			.addItem((item: any) => {
+				item.setTitle(t("Edit in File"));
+				item.setIcon("file-edit");
+				item.onClick(() => {
+					this.handleTaskEdit(task);
+				});
+			});
+
+		menu.showAtMouseEvent(event);
 	}
 
 	private createNewProject(): void {

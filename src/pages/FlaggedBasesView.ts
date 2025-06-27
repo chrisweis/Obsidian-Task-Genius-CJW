@@ -3,12 +3,13 @@
  * Specialized view for flagged and high priority tasks
  */
 
-import { App } from "obsidian";
+import { App, Menu } from "obsidian";
 import { BaseTaskBasesView } from "./BaseTaskBasesView";
 import { ContentComponent } from "../components/task-view/content";
 import TaskProgressBarPlugin from "../index";
 import { filterTasks } from "../utils/TaskFilterUtils";
 import { t } from "../translations/helper";
+import { Task } from "../types/task";
 
 export class FlaggedBasesView extends BaseTaskBasesView {
 	type = "flagged-bases-view";
@@ -34,13 +35,15 @@ export class FlaggedBasesView extends BaseTaskBasesView {
 			{
 				onTaskSelected: (task) => {
 					console.log("[FlaggedBasesView] Task selected:", task);
+					this.handleTaskSelection(task);
 				},
 				onTaskCompleted: (task) => {
 					console.log("[FlaggedBasesView] Task completed:", task);
-					this.handleTaskCompletion(task);
+					this.handleTaskCompletionLocal(task);
 				},
 				onTaskContextMenu: (event, task) => {
 					console.log("[FlaggedBasesView] Task context menu:", task);
+					this.handleTaskContextMenu(event, task);
 				},
 			}
 		);
@@ -50,12 +53,29 @@ export class FlaggedBasesView extends BaseTaskBasesView {
 
 	// Abstract method implementations
 	protected onConfigUpdated(): void {
+		console.log(
+			"[FlaggedBasesView] onConfigUpdated called, isLoaded:",
+			this.isLoaded
+		);
+
 		if (this.isLoaded) {
+			// Convert data again in case configuration affects data processing
+			this.convertEntriesToTasks();
 			this.updateFlaggedTasks();
 		}
 	}
 
 	protected onDataUpdated(): void {
+		// Handle data updates - convert data and update tasks
+		console.log(
+			"[FlaggedBasesView] onDataUpdated called, isLoaded:",
+			this.isLoaded
+		);
+
+		// Force convert entries to tasks to get latest data
+		this.convertEntriesToTasks();
+
+		// Then update the view
 		this.updateFlaggedTasks();
 	}
 
@@ -127,7 +147,23 @@ export class FlaggedBasesView extends BaseTaskBasesView {
 	}
 
 	private updateFlaggedTasks(): void {
-		if (!this.isLoaded) return;
+		console.log(
+			"[FlaggedBasesView] updateFlaggedTasks called, isLoaded:",
+			this.isLoaded
+		);
+
+		if (!this.isLoaded) {
+			console.log(
+				"[FlaggedBasesView] View not loaded yet, skipping update"
+			);
+			return;
+		}
+
+		console.log(
+			"[FlaggedBasesView] Processing",
+			this.tasks.length,
+			"total tasks"
+		);
 
 		try {
 			// Filter tasks for flagged view (high priority and flagged tasks)
@@ -135,6 +171,10 @@ export class FlaggedBasesView extends BaseTaskBasesView {
 				this.tasks,
 				"flagged",
 				this.plugin
+			);
+
+			console.log(
+				`[FlaggedBasesView] Filtered ${flaggedTasks.length} flagged tasks from ${this.tasks.length} total tasks`
 			);
 
 			// Sort by priority (highest first)
@@ -149,7 +189,7 @@ export class FlaggedBasesView extends BaseTaskBasesView {
 			this.contentComponent.setViewMode("flagged");
 
 			console.log(
-				`[FlaggedBasesView] Updated with ${flaggedTasks.length} flagged tasks`
+				`[FlaggedBasesView] Successfully updated ContentComponent with ${flaggedTasks.length} flagged tasks`
 			);
 		} catch (error) {
 			console.error(
@@ -160,13 +200,52 @@ export class FlaggedBasesView extends BaseTaskBasesView {
 		}
 	}
 
-	private handleTaskCompletion(task: any): void {
-		console.log("[FlaggedBasesView] Handling task completion:", task);
+	private async handleTaskCompletionLocal(task: Task): Promise<void> {
+		// Use base class method for task completion
+		try {
+			await super.handleTaskCompletion(task);
+			// Trigger refresh after completion
+			setTimeout(() => {
+				this.refreshTasks();
+			}, 100);
+		} catch (error) {
+			console.error(
+				"[FlaggedBasesView] Error handling task completion:",
+				error
+			);
+		}
+	}
 
-		// Trigger refresh after completion
-		setTimeout(() => {
-			this.refreshTasks();
-		}, 100);
+	/**
+	 * Handle task context menu
+	 */
+	private handleTaskContextMenu(event: MouseEvent, task: Task): void {
+		const menu = new Menu();
+
+		menu.addItem((item: any) => {
+			item.setTitle(t("Complete"));
+			item.setIcon("check-square");
+			item.onClick(() => {
+				this.handleTaskCompletionLocal(task);
+			});
+		})
+			.addSeparator()
+			.addItem((item: any) => {
+				item.setTitle(t("Edit"));
+				item.setIcon("pencil");
+				item.onClick(() => {
+					this.handleTaskSelection(task); // Open details view for editing
+				});
+			})
+			.addItem((item: any) => {
+				item.setTitle(t("Edit in File"));
+				item.setIcon("file-edit");
+				item.onClick(() => {
+					this.handleTaskEdit(task);
+				});
+			});
+
+		menu.showAtMouseEvent(event);
 	}
 
 	private openPrioritySelector(): void {

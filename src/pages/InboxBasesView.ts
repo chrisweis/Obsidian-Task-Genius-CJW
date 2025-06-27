@@ -3,12 +3,13 @@
  * Specialized view for inbox tasks (tasks without projects)
  */
 
-import { App } from "obsidian";
+import { App, Menu } from "obsidian";
 import { BaseTaskBasesView } from "./BaseTaskBasesView";
 import { ContentComponent } from "../components/task-view/content";
 import TaskProgressBarPlugin from "../index";
 import { filterTasks } from "../utils/TaskFilterUtils";
 import { t } from "../translations/helper";
+import { Task } from "../types/task";
 
 export class InboxBasesView extends BaseTaskBasesView {
 	type = "inbox-bases-view";
@@ -33,17 +34,19 @@ export class InboxBasesView extends BaseTaskBasesView {
 			this.plugin,
 			{
 				onTaskSelected: (task) => {
-					// Handle task selection if needed
+					// Handle task selection using base class method
 					console.log("[InboxBasesView] Task selected:", task);
+					this.handleTaskSelection(task);
 				},
 				onTaskCompleted: (task) => {
-					// Handle task completion
+					// Handle task completion using base class method
 					console.log("[InboxBasesView] Task completed:", task);
-					this.handleTaskCompletion(task);
+					this.handleTaskCompletionLocal(task);
 				},
 				onTaskContextMenu: (event, task) => {
 					// Handle context menu
 					console.log("[InboxBasesView] Task context menu:", task);
+					this.handleTaskContextMenu(event, task);
 				},
 			}
 		);
@@ -54,13 +57,29 @@ export class InboxBasesView extends BaseTaskBasesView {
 	// Abstract method implementations
 	protected onConfigUpdated(): void {
 		// Handle configuration updates
+		console.log(
+			"[InboxBasesView] onConfigUpdated called, isLoaded:",
+			this.isLoaded
+		);
+
 		if (this.isLoaded) {
+			// Convert data again in case configuration affects data processing
+			this.convertEntriesToTasks();
 			this.updateInboxTasks();
 		}
 	}
 
 	protected onDataUpdated(): void {
-		// Handle data updates
+		// Handle data updates - convert data and update tasks
+		console.log(
+			"[InboxBasesView] onDataUpdated called, isLoaded:",
+			this.isLoaded
+		);
+
+		// Force convert entries to tasks to get latest data
+		this.convertEntriesToTasks();
+
+		// Then update the view
 		this.updateInboxTasks();
 	}
 
@@ -132,7 +151,17 @@ export class InboxBasesView extends BaseTaskBasesView {
 	}
 
 	private updateInboxTasks(): void {
-		if (!this.isLoaded) return;
+		console.log(
+			"[InboxBasesView] updateInboxTasks called, isLoaded:",
+			this.isLoaded
+		);
+
+		if (!this.isLoaded) {
+			console.log(
+				"[InboxBasesView] View not loaded yet, skipping update"
+			);
+			return;
+		}
 
 		console.log("[InboxBasesView] Raw data:", this.data);
 		console.log("[InboxBasesView] Converted tasks:", this.tasks);
@@ -150,7 +179,7 @@ export class InboxBasesView extends BaseTaskBasesView {
 			this.contentComponent.setViewMode("inbox");
 
 			console.log(
-				`[InboxBasesView] Updated with ${inboxTasks.length} inbox tasks`
+				`[InboxBasesView] Successfully updated ContentComponent with ${inboxTasks.length} inbox tasks`
 			);
 		} catch (error) {
 			console.error(
@@ -161,15 +190,52 @@ export class InboxBasesView extends BaseTaskBasesView {
 		}
 	}
 
-	private handleTaskCompletion(task: any): void {
-		// Handle task completion
-		// This would typically update the task in the backend
-		console.log("[InboxBasesView] Handling task completion:", task);
+	private async handleTaskCompletionLocal(task: Task): Promise<void> {
+		// Use base class method for task completion
+		try {
+			await super.handleTaskCompletion(task);
+			// Trigger refresh after completion
+			setTimeout(() => {
+				this.refreshTasks();
+			}, 100);
+		} catch (error) {
+			console.error(
+				"[InboxBasesView] Error handling task completion:",
+				error
+			);
+		}
+	}
 
-		// Trigger refresh after completion
-		setTimeout(() => {
-			this.refreshTasks();
-		}, 100);
+	/**
+	 * Handle task context menu
+	 */
+	private handleTaskContextMenu(event: MouseEvent, task: Task): void {
+		const menu = new Menu();
+
+		menu.addItem((item: any) => {
+			item.setTitle(t("Complete"));
+			item.setIcon("check-square");
+			item.onClick(() => {
+				this.handleTaskCompletionLocal(task);
+			});
+		})
+			.addSeparator()
+			.addItem((item: any) => {
+				item.setTitle(t("Edit"));
+				item.setIcon("pencil");
+				item.onClick(() => {
+					this.handleTaskSelection(task); // Open details view for editing
+				});
+			})
+			.addItem((item: any) => {
+				item.setTitle(t("Edit in File"));
+				item.setIcon("file-edit");
+				item.onClick(() => {
+					this.handleTaskEdit(task);
+				});
+			});
+
+		menu.showAtMouseEvent(event);
 	}
 
 	private openQuickCapture(): void {
