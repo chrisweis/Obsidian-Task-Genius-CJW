@@ -20,6 +20,7 @@ import { StatusComponent } from "../StatusComponent";
 import { ContextSuggest, ProjectSuggest, TagSuggest } from "../AutoComplete";
 import { FileTask } from "../../types/file-task";
 import { getEffectiveProject, isProjectReadonly } from "../../utils/taskUtil";
+import { OnCompletionConfigurator } from "../onCompletion/OnCompletionConfigurator";
 
 function getStatus(task: Task, settings: TaskProgressBarSettings) {
 	const status = Object.keys(settings.taskStatuses).find((key) => {
@@ -502,98 +503,6 @@ export class TaskDetailsComponent extends Component {
 			t("On Completion")
 		);
 		
-		// Import OnCompletionConfigurator dynamically to avoid circular imports
-		import("../onCompletion/OnCompletionConfigurator").then(({ OnCompletionConfigurator }) => {
-			const onCompletionConfigurator = new OnCompletionConfigurator(
-				onCompletionField,
-				this.plugin,
-				{
-					initialValue: task.metadata.onCompletion || "",
-					onChange: (value) => {
-						// Update the task metadata immediately
-						if (task.metadata) {
-							task.metadata.onCompletion = value || undefined;
-							// Trigger save
-							saveTask();
-						}
-					},
-					onValidationChange: (isValid, error) => {
-						// Show validation feedback
-						const existingMessage = onCompletionField.querySelector('.oncompletion-validation-message');
-						if (existingMessage) {
-							existingMessage.remove();
-						}
-						
-						if (error) {
-							const messageEl = onCompletionField.createDiv({
-								cls: 'oncompletion-validation-message error',
-								text: error
-							});
-						} else if (isValid) {
-							const messageEl = onCompletionField.createDiv({
-								cls: 'oncompletion-validation-message success',
-								text: t('Configuration is valid')
-							});
-						}
-					}
-				}
-			);
-			
-			this.addChild(onCompletionConfigurator);
-		}).catch(error => {
-			// Fallback to simple text input if OnCompletionConfigurator fails to load
-			console.warn("Failed to load OnCompletionConfigurator, using fallback:", error);
-			const onCompletionInput = new TextComponent(onCompletionField);
-			onCompletionInput.setValue(task.metadata.onCompletion || "");
-			onCompletionField
-				.createSpan({ cls: "field-description" })
-				.setText(t("Action to execute when task is completed"));
-				
-			// Register blur event for fallback input
-			this.registerDomEvent(onCompletionInput.inputEl, "blur", () => {
-				if (task.metadata) {
-					task.metadata.onCompletion = onCompletionInput.getValue() || undefined;
-					saveTask();
-				}
-			});
-		});
-
-		// Dependencies
-		const dependsOnField = this.createFormField(
-			this.editFormEl,
-			t("Depends On")
-		);
-		const dependsOnInput = new TextComponent(dependsOnField);
-		dependsOnInput.setValue(
-			Array.isArray(task.metadata.dependsOn)
-				? task.metadata.dependsOn.join(", ")
-				: task.metadata.dependsOn || ""
-		);
-		dependsOnField
-			.createSpan({ cls: "field-description" })
-			.setText(
-				t("Comma-separated list of task IDs this task depends on")
-			);
-
-		// Task ID
-		const taskIdField = this.createFormField(this.editFormEl, t("Task ID"));
-		const taskIdInput = new TextComponent(taskIdField);
-		taskIdInput.setValue(task.metadata.id || "");
-		taskIdField
-			.createSpan({ cls: "field-description" })
-			.setText(t("Unique identifier for this task"));
-
-		// Recurrence pattern
-		const recurrenceField = this.createFormField(
-			this.editFormEl,
-			t("Recurrence")
-		);
-		const recurrenceInput = new TextComponent(recurrenceField);
-		recurrenceInput.setValue(task.metadata.recurrence || "");
-		recurrenceField
-			.createSpan({ cls: "field-description" })
-			.setText(t("e.g. every day, every 2 weeks"));
-
 		// Create a debounced save function
 		const saveTask = debounce(async () => {
 			// Create updated task object
@@ -771,6 +680,80 @@ export class TaskDetailsComponent extends Component {
 				}
 			}
 		}, 800); // 800ms debounce time
+
+		// Use OnCompletionConfigurator directly
+		const onCompletionConfigurator = new OnCompletionConfigurator(
+			onCompletionField,
+			this.plugin,
+			{
+				initialValue: task.metadata.onCompletion || "",
+				onChange: (value) => {
+					// Update the task metadata immediately
+					if (task.metadata) {
+						task.metadata.onCompletion = value || undefined;
+						// Trigger save
+						saveTask();
+					}
+				},
+				onValidationChange: (isValid, error) => {
+					// Show validation feedback
+					const existingMessage = onCompletionField.querySelector('.oncompletion-validation-message');
+					if (existingMessage) {
+						existingMessage.remove();
+					}
+					
+					if (error) {
+						const messageEl = onCompletionField.createDiv({
+							cls: 'oncompletion-validation-message error',
+							text: error
+						});
+					} else if (isValid) {
+						const messageEl = onCompletionField.createDiv({
+							cls: 'oncompletion-validation-message success',
+							text: t('Configuration is valid')
+						});
+					}
+				}
+			}
+		);
+		
+		this.addChild(onCompletionConfigurator);
+
+		// Dependencies
+		const dependsOnField = this.createFormField(
+			this.editFormEl,
+			t("Depends On")
+		);
+		const dependsOnInput = new TextComponent(dependsOnField);
+		dependsOnInput.setValue(
+			Array.isArray(task.metadata.dependsOn)
+				? task.metadata.dependsOn.join(", ")
+				: task.metadata.dependsOn || ""
+		);
+		dependsOnField
+			.createSpan({ cls: "field-description" })
+			.setText(
+				t("Comma-separated list of task IDs this task depends on")
+			);
+
+		// Task ID
+		const taskIdField = this.createFormField(this.editFormEl, t("Task ID"));
+		const taskIdInput = new TextComponent(taskIdField);
+		taskIdInput.setValue(task.metadata.id || "");
+		taskIdField
+			.createSpan({ cls: "field-description" })
+			.setText(t("Unique identifier for this task"));
+
+		// Recurrence pattern
+		const recurrenceField = this.createFormField(
+			this.editFormEl,
+			t("Recurrence")
+		);
+		const recurrenceInput = new TextComponent(recurrenceField);
+		recurrenceInput.setValue(task.metadata.recurrence || "");
+		recurrenceField
+			.createSpan({ cls: "field-description" })
+			.setText(t("e.g. every day, every 2 weeks"));
 
 		// Register blur events for all input elements
 		const registerBlurEvent = (

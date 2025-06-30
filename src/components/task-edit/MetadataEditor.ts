@@ -18,6 +18,7 @@ import { ProjectSuggest, TagSuggest, ContextSuggest } from "../AutoComplete";
 import { StatusComponent } from "../StatusComponent";
 import { format } from "date-fns";
 import { getEffectiveProject, isProjectReadonly } from "../../utils/taskUtil";
+import { OnCompletionConfigurator } from "../onCompletion/OnCompletionConfigurator";
 
 export interface MetadataChangeEvent {
 	field: string;
@@ -496,8 +497,7 @@ export class TaskMetadataEditor extends Component {
 		const fieldLabel = fieldContainer.createDiv({ cls: "field-label" });
 		fieldLabel.setText(t("On Completion"));
 
-		// Import OnCompletionConfigurator dynamically to avoid circular imports
-		import("../onCompletion/OnCompletionConfigurator").then(({ OnCompletionConfigurator }) => {
+		try {
 			const onCompletionConfigurator = new OnCompletionConfigurator(
 				fieldContainer,
 				this.plugin,
@@ -508,31 +508,36 @@ export class TaskMetadataEditor extends Component {
 					},
 					onValidationChange: (isValid, error) => {
 						// Show validation feedback
-						const existingMessage = fieldContainer.querySelector('.oncompletion-validation-message');
+						const existingMessage = fieldContainer.querySelector(
+							".oncompletion-validation-message"
+						);
 						if (existingMessage) {
 							existingMessage.remove();
 						}
-						
+
 						if (error) {
 							const messageEl = fieldContainer.createDiv({
-								cls: 'oncompletion-validation-message error',
-								text: error
+								cls: "oncompletion-validation-message error",
+								text: error,
 							});
-						} else if (isValid && value) {
+						} else if (isValid && this.task.metadata.onCompletion) {
 							const messageEl = fieldContainer.createDiv({
-								cls: 'oncompletion-validation-message success',
-								text: t('Configuration is valid')
+								cls: "oncompletion-validation-message success",
+								text: t("Configuration is valid"),
 							});
 						}
-					}
+					},
 				}
 			);
-			
+
 			this.addChild(onCompletionConfigurator);
-		}).catch(error => {
+		} catch (error) {
 			// Fallback to simple text input if OnCompletionConfigurator fails to load
-			console.warn("Failed to load OnCompletionConfigurator, using fallback:", error);
-			
+			console.warn(
+				"Failed to load OnCompletionConfigurator, using fallback:",
+				error
+			);
+
 			const onCompletionInput = new TextComponent(fieldContainer)
 				.setPlaceholder(t("Action to execute on completion"))
 				.setValue(this.task.metadata.onCompletion || "")
@@ -546,7 +551,7 @@ export class TaskMetadataEditor extends Component {
 					onCompletionInput.inputEl.value
 				);
 			});
-		});
+		}
 	}
 
 	/**

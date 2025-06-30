@@ -10,6 +10,7 @@ import {
 import "../../styles/inline-editor.css";
 import { getEffectiveProject, isProjectReadonly } from "../../utils/taskUtil";
 import { t } from "../../translations/helper";
+import { OnCompletionConfigurator } from "../onCompletion/OnCompletionConfigurator";
 
 export interface InlineEditorOptions {
 	onTaskUpdate: (task: Task, updatedTask: Task) => Promise<void>;
@@ -506,7 +507,12 @@ export class InlineEditor extends Component {
 
 	private createDateEditor(
 		container: HTMLElement,
-		fieldType: "dueDate" | "startDate" | "scheduledDate" | "cancelledDate" | "completedDate",
+		fieldType:
+			| "dueDate"
+			| "startDate"
+			| "scheduledDate"
+			| "cancelledDate"
+			| "completedDate",
 		currentValue?: string
 	): void {
 		const input = container.createEl("input", {
@@ -638,8 +644,7 @@ export class InlineEditor extends Component {
 		container: HTMLElement,
 		currentValue?: string
 	): void {
-		// Import OnCompletionConfigurator dynamically to avoid circular imports
-		import("../onCompletion/OnCompletionConfigurator").then(({ OnCompletionConfigurator }) => {
+		try {
 			const configuratorContainer = container.createDiv({
 				cls: "inline-oncompletion-configurator",
 			});
@@ -660,7 +665,8 @@ export class InlineEditor extends Component {
 				configuratorContainer,
 				this.plugin,
 				{
-					initialValue: currentValue || this.task.metadata.onCompletion || "",
+					initialValue:
+						currentValue || this.task.metadata.onCompletion || "",
 					onChange: (value) => {
 						// Update the task metadata immediately
 						this.task.metadata.onCompletion = value || undefined;
@@ -669,45 +675,54 @@ export class InlineEditor extends Component {
 					},
 					onValidationChange: (isValid, error) => {
 						// Show validation feedback if needed
-						const existingMessage = configuratorContainer.querySelector('.oncompletion-validation-message');
+						const existingMessage =
+							configuratorContainer.querySelector(
+								".oncompletion-validation-message"
+							);
 						if (existingMessage) {
 							existingMessage.remove();
 						}
-						
+
 						if (error) {
 							const messageEl = configuratorContainer.createDiv({
-								cls: 'oncompletion-validation-message error',
-								text: error
+								cls: "oncompletion-validation-message error",
+								text: error,
 							});
 						}
-					}
+					},
 				}
 			);
-			
+
 			this.addChild(onCompletionConfigurator);
 
 			// Set up keyboard handling for the configurator
 			this.registerDomEvent(configuratorContainer, "keydown", (e) => {
 				if (e.key === "Escape") {
-					const targetEl = configuratorContainer.closest(".inline-metadata-editor")
-						?.parentElement as HTMLElement;
+					const targetEl = configuratorContainer.closest(
+						".inline-metadata-editor"
+					)?.parentElement as HTMLElement;
 					if (targetEl) {
 						this.cancelMetadataEdit(targetEl);
 					}
 				} else if (e.key === "Enter" && !e.shiftKey) {
 					e.preventDefault();
-					const targetEl = configuratorContainer.closest(".inline-metadata-editor")
-						?.parentElement as HTMLElement;
+					const targetEl = configuratorContainer.closest(
+						".inline-metadata-editor"
+					)?.parentElement as HTMLElement;
 					if (targetEl) {
-						this.finishMetadataEdit(targetEl, "onCompletion").catch(console.error);
+						this.finishMetadataEdit(targetEl, "onCompletion").catch(
+							console.error
+						);
 					}
 				}
 			});
-
-		}).catch(error => {
+		} catch (error) {
 			// Fallback to simple text input if OnCompletionConfigurator fails to load
-			console.warn("Failed to load OnCompletionConfigurator, using fallback:", error);
-			
+			console.warn(
+				"Failed to load OnCompletionConfigurator, using fallback:",
+				error
+			);
+
 			const input = container.createEl("input", {
 				type: "text",
 				cls: "inline-oncompletion-input",
@@ -738,7 +753,7 @@ export class InlineEditor extends Component {
 			// Focus and select
 			input.focus();
 			input.select();
-		});
+		}
 	}
 
 	private createDependsOnEditor(
