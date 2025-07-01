@@ -669,7 +669,6 @@ export class TaskDetailsComponent extends Component {
 					// Update the current task reference but don't redraw the UI
 					this.currentTask = updatedTask;
 					console.log("updatedTask", updatedTask);
-					this.showTaskDetails(updatedTask);
 				} catch (error) {
 					console.error("Failed to update task:", error);
 					// TODO: Show error message to user
@@ -684,19 +683,10 @@ export class TaskDetailsComponent extends Component {
 			{
 				initialValue: task.metadata.onCompletion || "",
 				onChange: (value) => {
-					if (!task.metadata)
-						task.metadata = {
-							tags: [],
-							children: [],
-						};
-
-					console.log(value, "value", task.metadata);
-					// Update the task metadata immediately
-					if (task.metadata) {
-						task.metadata.onCompletion = value || undefined;
-						// Trigger save
-						saveTask();
-					}
+					console.log(value, "onCompletion value changed");
+					// Trigger save - the saveTask function will get the latest value
+					// from onCompletionConfigurator.getValue() to avoid data races
+					saveTask();
 				},
 				onValidationChange: (isValid, error) => {
 					// Show validation feedback

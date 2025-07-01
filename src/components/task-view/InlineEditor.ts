@@ -81,6 +81,11 @@ export class InlineEditor extends Component {
 		this.isEditing = false;
 		this.isSaving = false;
 
+		// Create debounced save function
+		this.debouncedSave = debounce(async () => {
+			await this.saveTask();
+		}, 800);
+
 		// Store original task state for potential restoration - deep clone to avoid reference issues
 		this.originalTask = {
 			...this.task,
@@ -1400,6 +1405,9 @@ export class InlineEditor extends Component {
 
 		this.activeInput = null;
 		this.contentInput = null;
+
+		// Clean up debounced save function
+		this.debouncedSave = null;
 	}
 
 	public isCurrentlyEditing(): boolean {
