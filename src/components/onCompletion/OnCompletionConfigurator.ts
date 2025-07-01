@@ -3,6 +3,7 @@ import {
 	DropdownComponent,
 	TextComponent,
 	ToggleComponent,
+	TFile,
 } from "obsidian";
 import {
 	OnCompletionConfig,
@@ -15,7 +16,6 @@ import {
 	TaskIdSuggest,
 	FileLocationSuggest,
 	ActionTypeSuggest,
-	safeInitializeSuggest,
 } from "./OnCompletionSuggesters";
 import "../../styles/onCompletion.css";
 
@@ -173,16 +173,19 @@ export class OnCompletionConfigurator extends Component {
 		});
 
 		// Add task ID suggester with safe initialization
-		safeInitializeSuggest(
-			() =>
-				new TaskIdSuggest(
-					this.plugin.app,
-					this.taskIdsInput.inputEl,
-					this.plugin
-				),
-			3,
-			50,
-			"TaskIdSuggest (Complete Configuration)"
+		new TaskIdSuggest(
+			this.plugin.app,
+			this.taskIdsInput!.inputEl,
+			this.plugin,
+			(taskId: string) => {
+				if (
+					this.currentConfig &&
+					this.currentConfig.type === OnCompletionActionType.COMPLETE
+				) {
+					(this.currentConfig as any).taskIds = taskId;
+					this.updateValue();
+				}
+			}
 		);
 
 		taskIdsContainer.createDiv({
@@ -221,15 +224,18 @@ export class OnCompletionConfigurator extends Component {
 		});
 
 		// Add file location suggester with safe initialization
-		safeInitializeSuggest(
-			() =>
-				new FileLocationSuggest(
-					this.plugin.app,
-					this.targetFileInput.inputEl
-				),
-			3,
-			50,
-			"FileLocationSuggest (Move Configuration)"
+		new FileLocationSuggest(
+			this.plugin.app,
+			this.targetFileInput!.inputEl,
+			(file: TFile) => {
+				if (
+					this.currentConfig &&
+					this.currentConfig.type === OnCompletionActionType.MOVE
+				) {
+					(this.currentConfig as any).targetFile = file.path;
+					this.updateValue();
+				}
+			}
 		);
 
 		// Target section input (optional)
@@ -285,15 +291,19 @@ export class OnCompletionConfigurator extends Component {
 		});
 
 		// Add file location suggester with safe initialization
-		safeInitializeSuggest(
-			() =>
-				new FileLocationSuggest(
-					this.plugin.app,
-					this.archiveFileInput.inputEl
-				),
-			3,
-			50,
-			"FileLocationSuggest (Archive Configuration)"
+		new FileLocationSuggest(
+			this.plugin.app,
+			this.archiveFileInput!.inputEl,
+			(file: TFile) => {
+				if (
+					this.currentConfig &&
+					this.currentConfig.type === OnCompletionActionType.ARCHIVE
+				) {
+					(this.currentConfig as any).archiveFile = file.path;
+
+					this.updateValue();
+				}
+			}
 		);
 
 		// Archive section input (optional)
@@ -340,20 +350,24 @@ export class OnCompletionConfigurator extends Component {
 				this.currentConfig.type === OnCompletionActionType.DUPLICATE
 			) {
 				(this.currentConfig as any).targetFile = value || undefined;
+				console.log(this.currentConfig, "currentConfig", value);
 				this.updateValue();
 			}
 		});
 
 		// Add file location suggester with safe initialization
-		safeInitializeSuggest(
-			() =>
-				new FileLocationSuggest(
-					this.plugin.app,
-					this.targetFileInput.inputEl
-				),
-			3,
-			50,
-			"FileLocationSuggest (Duplicate Configuration)"
+		new FileLocationSuggest(
+			this.plugin.app,
+			this.targetFileInput!.inputEl,
+			(file: TFile) => {
+				if (
+					this.currentConfig &&
+					this.currentConfig.type === OnCompletionActionType.DUPLICATE
+				) {
+					(this.currentConfig as any).targetFile = file.path;
+					this.updateValue();
+				}
+			}
 		);
 
 		// Target section input (optional)

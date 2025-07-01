@@ -9,53 +9,6 @@ import {
 import TaskProgressBarPlugin from "../../index";
 
 /**
- * Safely initializes a suggest component with proper inputEl validation
- * @param createSuggest Function that creates the suggest instance
- * @param maxRetries Maximum number of retry attempts
- * @param retryDelay Delay between retries in milliseconds
- * @param debugName Optional name for debugging purposes
- */
-export function safeInitializeSuggest<T extends AbstractInputSuggest<any>>(
-	createSuggest: () => T,
-	maxRetries: number = 3,
-	retryDelay: number = 50,
-	debugName?: string
-): void {
-	let attempts = 0;
-	const name = debugName || "Unknown Suggest";
-
-	const tryInitialize = () => {
-		attempts++;
-		try {
-			const suggest = createSuggest();
-			// Check if inputEl is available
-			if (suggest.inputEl) {
-				// Successfully initialized
-				console.debug(
-					`${name}: Successfully initialized on attempt ${attempts}`
-				);
-				return;
-			} else if (attempts < maxRetries) {
-				// Retry after delay
-				console.debug(
-					`${name}: inputEl not ready, retrying (attempt ${attempts}/${maxRetries})`
-				);
-				setTimeout(tryInitialize, retryDelay);
-			} else {
-				console.warn(
-					`${name}: Failed to initialize after ${maxRetries} attempts: inputEl not available`
-				);
-			}
-		} catch (error) {
-			console.error(`${name}: Error initializing suggest:`, error);
-		}
-	};
-
-	// Try immediate initialization first
-	tryInitialize();
-}
-
-/**
  * Suggester for task IDs
  *
  * Note: This class includes null-safety checks for inputEl to prevent
@@ -63,12 +16,16 @@ export function safeInitializeSuggest<T extends AbstractInputSuggest<any>>(
  * TextComponent.inputEl is not yet initialized during component creation.
  */
 export class TaskIdSuggest extends AbstractInputSuggest<string> {
+	protected inputEl: HTMLInputElement;
+
 	constructor(
-		private app: App,
+		app: App,
 		inputEl: HTMLInputElement,
-		private plugin: TaskProgressBarPlugin
+		private plugin: TaskProgressBarPlugin,
+		private onChoose: (taskId: string) => void
 	) {
 		super(app, inputEl);
+		this.inputEl = inputEl;
 	}
 
 	getSuggestions(query: string): string[] {
@@ -125,6 +82,7 @@ export class TaskIdSuggest extends AbstractInputSuggest<string> {
 		}
 
 		this.inputEl.trigger("input");
+		this.onChoose(taskId);
 		this.close();
 	}
 }
@@ -137,8 +95,16 @@ export class TaskIdSuggest extends AbstractInputSuggest<string> {
  * TextComponent.inputEl is not yet initialized during component creation.
  */
 export class FileLocationSuggest extends AbstractInputSuggest<TFile> {
-	constructor(private app: App, inputEl: HTMLInputElement) {
+	protected inputEl: HTMLInputElement;
+
+	constructor(
+		app: App,
+		inputEl: HTMLInputElement,
+		private onChoose: (file: TFile) => void
+	) {
 		super(app, inputEl);
+		this.inputEl = inputEl;
+		this.onChoose = onChoose;
 	}
 
 	getSuggestions(query: string): TFile[] {
@@ -165,6 +131,7 @@ export class FileLocationSuggest extends AbstractInputSuggest<TFile> {
 		}
 		this.inputEl.value = file.path;
 		this.inputEl.trigger("input");
+		this.onChoose(file);
 		this.close();
 	}
 }
@@ -173,6 +140,8 @@ export class FileLocationSuggest extends AbstractInputSuggest<TFile> {
  * Suggester for action types (used in simple text input scenarios)
  */
 export class ActionTypeSuggest extends AbstractInputSuggest<string> {
+	protected inputEl: HTMLInputElement;
+
 	private readonly actionTypes = [
 		"delete",
 		"keep",
@@ -182,8 +151,9 @@ export class ActionTypeSuggest extends AbstractInputSuggest<string> {
 		"duplicate",
 	];
 
-	constructor(private app: App, inputEl: HTMLInputElement) {
+	constructor(app: App, inputEl: HTMLInputElement) {
 		super(app, inputEl);
+		this.inputEl = inputEl;
 	}
 
 	getSuggestions(query: string): string[] {

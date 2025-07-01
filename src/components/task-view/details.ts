@@ -502,7 +502,7 @@ export class TaskDetailsComponent extends Component {
 			this.editFormEl,
 			t("On Completion")
 		);
-		
+
 		// Create a debounced save function
 		const saveTask = debounce(async () => {
 			// Create updated task object
@@ -644,6 +644,9 @@ export class TaskDetailsComponent extends Component {
 						.filter((id) => id)
 				: undefined;
 
+			const onCompletionValue = onCompletionConfigurator.getValue();
+			metadata.onCompletion = onCompletionValue || undefined;
+
 			// Update task ID
 			const taskIdValue = taskIdInput.getValue();
 			metadata.id = taskIdValue || undefined;
@@ -657,13 +660,6 @@ export class TaskDetailsComponent extends Component {
 
 			// Check if any task data has changed before updating
 			const hasChanges = this.hasTaskChanges(task, updatedTask);
-
-			console.log(
-				"dueDate",
-				task.metadata.dueDate,
-				metadata.dueDate,
-				hasChanges
-			);
 
 			// Call the update callback only if there are changes
 			if (this.onTaskUpdate && hasChanges) {
@@ -688,6 +684,13 @@ export class TaskDetailsComponent extends Component {
 			{
 				initialValue: task.metadata.onCompletion || "",
 				onChange: (value) => {
+					if (!task.metadata)
+						task.metadata = {
+							tags: [],
+							children: [],
+						};
+
+					console.log(value, "value", task.metadata);
 					// Update the task metadata immediately
 					if (task.metadata) {
 						task.metadata.onCompletion = value || undefined;
@@ -697,26 +700,28 @@ export class TaskDetailsComponent extends Component {
 				},
 				onValidationChange: (isValid, error) => {
 					// Show validation feedback
-					const existingMessage = onCompletionField.querySelector('.oncompletion-validation-message');
+					const existingMessage = onCompletionField.querySelector(
+						".oncompletion-validation-message"
+					);
 					if (existingMessage) {
 						existingMessage.remove();
 					}
-					
+
 					if (error) {
 						const messageEl = onCompletionField.createDiv({
-							cls: 'oncompletion-validation-message error',
-							text: error
+							cls: "oncompletion-validation-message error",
+							text: error,
 						});
 					} else if (isValid) {
 						const messageEl = onCompletionField.createDiv({
-							cls: 'oncompletion-validation-message success',
-							text: t('Configuration is valid')
+							cls: "oncompletion-validation-message success",
+							text: t("Configuration is valid"),
 						});
 					}
-				}
+				},
 			}
 		);
-		
+
 		this.addChild(onCompletionConfigurator);
 
 		// Dependencies
