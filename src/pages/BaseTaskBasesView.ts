@@ -295,8 +295,14 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 			}
 
 			// If the updated task is the currently selected one, refresh details view
+			// Only refresh if not currently editing to prevent UI disruption
 			if (this.currentSelectedTaskId === updatedTask.id) {
-				this.detailsComponent.showTaskDetails(updatedTask);
+				if (this.detailsComponent.isCurrentlyEditing()) {
+					// Update the current task reference without re-rendering UI
+					this.currentTask = updatedTask;
+				} else {
+					this.detailsComponent.showTaskDetails(updatedTask);
+				}
 			}
 
 			// Trigger view update

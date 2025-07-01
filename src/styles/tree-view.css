@@ -150,7 +150,6 @@
 }
 
 .tree-task-item .task-oncompletion:hover {
-	background-color: var(--background-modifier-border-hover);
 	color: var(--text-normal);
 }
 

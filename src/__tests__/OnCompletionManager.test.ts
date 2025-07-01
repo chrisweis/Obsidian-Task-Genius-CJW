@@ -328,12 +328,12 @@ describe("OnCompletionManager", () => {
 			expect(manager["validateConfig"](config)).toBe(true);
 		});
 
-		it("should invalidate complete configuration without task IDs", () => {
+		it("should validate complete configuration with empty task IDs (partial config)", () => {
 			const config: OnCompletionConfig = {
 				type: OnCompletionActionType.COMPLETE,
 				taskIds: [],
 			};
-			expect(manager["validateConfig"](config)).toBe(false);
+			expect(manager["validateConfig"](config)).toBe(true);
 		});
 
 		it("should validate move configuration with target file", () => {
@@ -344,12 +344,12 @@ describe("OnCompletionManager", () => {
 			expect(manager["validateConfig"](config)).toBe(true);
 		});
 
-		it("should invalidate move configuration without target file", () => {
+		it("should validate move configuration with empty target file (partial config)", () => {
 			const config: OnCompletionConfig = {
 				type: OnCompletionActionType.MOVE,
 				targetFile: "",
 			};
-			expect(manager["validateConfig"](config)).toBe(false);
+			expect(manager["validateConfig"](config)).toBe(true);
 		});
 
 		it("should validate archive configuration", () => {

@@ -312,7 +312,6 @@
 }
 
 /* New field input styles */
-.inline-oncompletion-input,
 .inline-dependson-input,
 .inline-id-input {
 	width: 100%;
@@ -328,14 +327,12 @@
 	transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.inline-oncompletion-input:focus,
 .inline-dependson-input:focus,
 .inline-id-input:focus {
 	border-color: var(--interactive-accent);
 	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
 }
 
-.inline-oncompletion-input::placeholder,
 .inline-dependson-input::placeholder,
 .inline-id-input::placeholder {
 	color: var(--text-faint);

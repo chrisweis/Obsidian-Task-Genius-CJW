@@ -10,7 +10,6 @@ import {
 import "../../styles/inline-editor.css";
 import { getEffectiveProject, isProjectReadonly } from "../../utils/taskUtil";
 import { t } from "../../translations/helper";
-import { OnCompletionConfigurator } from "../onCompletion/OnCompletionConfigurator";
 
 export interface InlineEditorOptions {
 	onTaskUpdate: (task: Task, updatedTask: Task) => Promise<void>;
@@ -649,116 +648,102 @@ export class InlineEditor extends Component {
 		container: HTMLElement,
 		currentValue?: string
 	): void {
-		try {
-			const configuratorContainer = container.createDiv({
-				cls: "inline-oncompletion-configurator",
-			});
+		const buttonContainer = container.createDiv({
+			cls: "inline-oncompletion-button-container",
+		});
 
-			// Prevent event bubbling on container
-			this.registerDomEvent(
-				configuratorContainer,
-				"click",
-				this.boundHandlers.stopPropagation
-			);
-			this.registerDomEvent(
-				configuratorContainer,
-				"mousedown",
-				this.boundHandlers.stopPropagation
-			);
+		// Prevent event bubbling on container
+		this.registerDomEvent(
+			buttonContainer,
+			"click",
+			this.boundHandlers.stopPropagation
+		);
+		this.registerDomEvent(
+			buttonContainer,
+			"mousedown",
+			this.boundHandlers.stopPropagation
+		);
 
-			const onCompletionConfigurator = new OnCompletionConfigurator(
-				configuratorContainer,
-				this.plugin,
-				{
-					initialValue:
-						currentValue || this.task.metadata.onCompletion || "",
-					onChange: (value) => {
-						// Update the task metadata immediately
-						this.task.metadata.onCompletion = value || undefined;
-						// Trigger debounced save
-						this.debouncedSave?.();
-					},
-					onValidationChange: (isValid, error) => {
-						// Show validation feedback if needed
-						const existingMessage =
-							configuratorContainer.querySelector(
-								".oncompletion-validation-message"
-							);
-						if (existingMessage) {
-							existingMessage.remove();
-						}
+		// Create a simple button to show current value and open modal
+		const configButton = buttonContainer.createEl("button", {
+			cls: "inline-oncompletion-config-button",
+			text:
+				currentValue ||
+				this.task.metadata.onCompletion ||
+				t("Configure..."),
+		});
 
-						if (error) {
-							const messageEl = configuratorContainer.createDiv({
-								cls: "oncompletion-validation-message error",
-								text: error,
-							});
-						}
-					},
+		// Add click handler to open modal
+		this.registerDomEvent(configButton, "click", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			this.openOnCompletionModal(container, currentValue);
+		});
+
+		// Set up keyboard handling
+		this.registerDomEvent(buttonContainer, "keydown", (e) => {
+			if (e.key === "Escape") {
+				const targetEl = buttonContainer.closest(
+					".inline-metadata-editor"
+				)?.parentElement as HTMLElement;
+				if (targetEl) {
+					this.cancelMetadataEdit(targetEl);
 				}
-			);
+			} else if (e.key === "Enter" && !e.shiftKey) {
+				e.preventDefault();
+				this.openOnCompletionModal(container, currentValue);
+			}
+		});
 
-			this.addChild(onCompletionConfigurator);
+		// Focus the button
+		configButton.focus();
+	}
 
-			// Set up keyboard handling for the configurator
-			this.registerDomEvent(configuratorContainer, "keydown", (e) => {
-				if (e.key === "Escape") {
-					const targetEl = configuratorContainer.closest(
-						".inline-metadata-editor"
-					)?.parentElement as HTMLElement;
-					if (targetEl) {
-						this.cancelMetadataEdit(targetEl);
-					}
-				} else if (e.key === "Enter" && !e.shiftKey) {
-					e.preventDefault();
-					const targetEl = configuratorContainer.closest(
-						".inline-metadata-editor"
-					)?.parentElement as HTMLElement;
-					if (targetEl) {
-						this.finishMetadataEdit(targetEl, "onCompletion").catch(
-							console.error
-						);
-					}
-				}
-			});
-		} catch (error) {
-			// Fallback to simple text input if OnCompletionConfigurator fails to load
-			console.warn(
-				"Failed to load OnCompletionConfigurator, using fallback:",
-				error
-			);
+	private async openOnCompletionModal(
+		container: HTMLElement,
+		currentValue?: string
+	): Promise<void> {
+		const { OnCompletionModal } = await import(
+			"../onCompletion/OnCompletionModal"
+		);
 
-			const input = container.createEl("input", {
-				type: "text",
-				cls: "inline-oncompletion-input",
-				value: currentValue || this.task.metadata.onCompletion || "",
-				placeholder: "Action to execute on completion",
-			});
-
-			this.activeInput = input;
-
-			// Prevent event bubbling on input element
-			this.registerDomEvent(
-				input,
-				"click",
-				this.boundHandlers.stopPropagation
-			);
-			this.registerDomEvent(
-				input,
-				"mousedown",
-				this.boundHandlers.stopPropagation
-			);
-
-			const updateOnCompletion = (value: string) => {
+		const modal = new OnCompletionModal(this.app, this.plugin, {
+			initialValue: currentValue || this.task.metadata.onCompletion || "",
+			onSave: (value) => {
+				// Update the task metadata
 				this.task.metadata.onCompletion = value || undefined;
-			};
 
-			this.setupInputEvents(input, updateOnCompletion, "onCompletion");
+				// Update the button text
+				const button = container.querySelector(
+					".inline-oncompletion-config-button"
+				) as HTMLElement;
+				if (button) {
+					button.textContent = value || t("Configure...");
+				}
 
-			// Focus and select
-			input.focus();
-			input.select();
-		}
+				// Trigger debounced save
+				this.debouncedSave?.();
+
+				// Finish the metadata edit
+				const targetEl = container.closest(".inline-metadata-editor")
+					?.parentElement as HTMLElement;
+				if (targetEl) {
+					this.finishMetadataEdit(targetEl, "onCompletion").catch(
+						console.error
+					);
+				}
+			},
+			onCancel: () => {
+				// Finish the metadata edit without saving
+				const targetEl = container.closest(".inline-metadata-editor")
+					?.parentElement as HTMLElement;
+				if (targetEl) {
+					this.cancelMetadataEdit(targetEl);
+				}
+			},
+		});
+
+		modal.open();
 	}
 
 	private createDependsOnEditor(

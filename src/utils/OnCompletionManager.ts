@@ -151,21 +151,21 @@ export class OnCompletionManager extends Component {
 			default:
 				// Check for parameterized formats
 				if (value.startsWith("complete:")) {
-					const taskIds = value
-						.substring(9)
+					const taskIdsStr = value.substring(9);
+					const taskIds = taskIdsStr
 						.split(",")
 						.map((id) => id.trim())
 						.filter((id) => id);
 					return {
 						type: OnCompletionActionType.COMPLETE,
-						taskIds,
+						taskIds: taskIds.length > 0 ? taskIds : [], // Allow empty taskIds array
 					};
 				}
 				if (value.startsWith("move:")) {
 					const targetFile = value.substring(5).trim();
 					return {
 						type: OnCompletionActionType.MOVE,
-						targetFile,
+						targetFile: targetFile || "", // Allow empty targetFile
 					};
 				}
 				if (value.startsWith("archive:")) {
@@ -196,15 +196,11 @@ export class OnCompletionManager extends Component {
 			case OnCompletionActionType.KEEP:
 				return true;
 			case OnCompletionActionType.COMPLETE:
-				return (
-					Array.isArray((config as any).taskIds) &&
-					(config as any).taskIds.length > 0
-				);
+				// Allow partial config - taskIds can be empty array
+				return Array.isArray((config as any).taskIds);
 			case OnCompletionActionType.MOVE:
-				return (
-					typeof (config as any).targetFile === "string" &&
-					(config as any).targetFile.trim().length > 0
-				);
+				// Allow partial config - targetFile can be empty string
+				return typeof (config as any).targetFile === "string";
 			case OnCompletionActionType.ARCHIVE:
 			case OnCompletionActionType.DUPLICATE:
 				return true; // These can work with default values

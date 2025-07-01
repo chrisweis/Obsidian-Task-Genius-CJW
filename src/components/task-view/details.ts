@@ -684,9 +684,19 @@ export class TaskDetailsComponent extends Component {
 				initialValue: task.metadata.onCompletion || "",
 				onChange: (value) => {
 					console.log(value, "onCompletion value changed");
-					// Trigger save - the saveTask function will get the latest value
-					// from onCompletionConfigurator.getValue() to avoid data races
-					saveTask();
+					// Use smarter save logic: allow basic configurations to save immediately
+					// and allow partial configurations for complex types
+					const config = onCompletionConfigurator.getConfig();
+					const shouldSave = this.shouldTriggerOnCompletionSave(
+						config,
+						value
+					);
+
+					if (shouldSave) {
+						// Trigger save - the saveTask function will get the latest value
+						// from onCompletionConfigurator.getValue() to avoid data races
+						saveTask();
+					}
 				},
 				onValidationChange: (isValid, error) => {
 					// Show validation feedback
@@ -975,6 +985,42 @@ export class TaskDetailsComponent extends Component {
 
 	public isCurrentlyEditing(): boolean {
 		return this.isEditing;
+	}
+
+	private shouldTriggerOnCompletionSave(config: any, value: string): boolean {
+		// Don't save if value is empty
+		if (!value || !value.trim()) {
+			return false;
+		}
+
+		// Don't save if no config (invalid state)
+		if (!config) {
+			return false;
+		}
+
+		// For basic action types, allow immediate save
+		if (
+			config.type === "delete" ||
+			config.type === "keep" ||
+			config.type === "archive" ||
+			config.type === "duplicate"
+		) {
+			return true;
+		}
+
+		// For complex types, allow save if we have partial but meaningful config
+		if (config.type === "complete") {
+			// Allow save for "complete:" even without taskIds
+			return value.startsWith("complete:");
+		}
+
+		if (config.type === "move") {
+			// Allow save for "move:" even without targetFile
+			return value.startsWith("move:");
+		}
+
+		// Default: allow save if value is not empty
+		return true;
 	}
 
 	onunload() {

@@ -1260,7 +1260,12 @@ export class TaskView extends ItemView {
 			this.switchView(this.currentViewId);
 
 			if (this.currentSelectedTaskId === updatedTask.id) {
-				this.detailsComponent.showTaskDetails(updatedTask);
+				if (this.detailsComponent.isCurrentlyEditing()) {
+					// Update the current task reference without re-rendering UI
+					this.detailsComponent.currentTask = updatedTask;
+				} else {
+					this.detailsComponent.showTaskDetails(updatedTask);
+				}
 			}
 
 			return updatedTask;
