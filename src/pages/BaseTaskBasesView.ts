@@ -55,7 +55,7 @@ interface BaseView {
 
 interface BasesView extends BaseView {
 	type: string;
-	app: any;
+	app: App;
 	containerEl: HTMLElement;
 	settings: BasesViewSettings;
 	data: BasesViewData[];
@@ -262,7 +262,7 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 	 * Handle task editing in file
 	 */
 	protected async handleTaskEdit(task: Task): Promise<void> {
-		const file = this.app.vault.getAbstractFileByPath(task.filePath);
+		const file = this.app.vault.getFileByPath(task.filePath);
 		if (!file || !(file instanceof TFile)) return;
 
 		// Open the file

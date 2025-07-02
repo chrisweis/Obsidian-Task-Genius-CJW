@@ -1,3 +1,5 @@
+import { App } from "obsidian";
+
 /**
  * Sort direction enum
  */
@@ -127,7 +129,7 @@ interface BasesEntry {
 	/** Context object with app instance and filter */
 	ctx: {
 		_local: any;
-		app: any;
+		app: App;
 		filter: any;
 		formulas: any;
 		localUsed: boolean;
@@ -218,7 +220,7 @@ interface BaseView {
  */
 interface BasesView extends BaseView {
 	type: string;
-	app: any;
+	app: App;
 	containerEl: HTMLElement;
 	settings: BasesViewSettings;
 	data: BasesViewData[];
@@ -279,14 +281,14 @@ interface BasesPlugin {
 	name: string;
 	description: string;
 	defaultOn: boolean;
-	app: any;
+	app: App;
 	handlers: Record<string, BasesViewFactory>;
 	functions: Record<string, BasesFunction>;
 	registrations: Record<string, BasesViewRegistration>;
 
 	// Methods
-	init(app: any, plugin: any): void;
-	onEnable(app: any, plugin: any): void;
+	init(app: App, plugin: any): void;
+	onEnable(app: App, plugin: any): void;
 	registerView(viewId: string, factory: BasesViewFactory): void;
 	registerView(viewId: string, config: BasesViewRegistration): void;
 	deregisterView(viewId: string): void;

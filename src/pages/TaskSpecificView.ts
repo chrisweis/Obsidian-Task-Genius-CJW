@@ -1114,8 +1114,8 @@ export class TaskSpecificView extends ItemView {
 	}
 
 	private async editTask(task: Task) {
-		const file = this.app.vault.getAbstractFileByPath(task.filePath);
-		if (!(file instanceof TFile)) return;
+		const file = this.app.vault.getFileByPath(task.filePath);
+		if (!file) return;
 
 		// Prefer activating existing leaf if file is open
 		const existingLeaf = this.app.workspace

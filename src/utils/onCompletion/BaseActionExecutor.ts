@@ -1,8 +1,10 @@
-import { 
-	OnCompletionConfig, 
-	OnCompletionExecutionContext, 
-	OnCompletionExecutionResult 
-} from '../../types/onCompletion';
+import {
+	OnCompletionConfig,
+	OnCompletionExecutionContext,
+	OnCompletionExecutionResult,
+} from "../../types/onCompletion";
+import { Task, CanvasTaskMetadata } from "../../types/task";
+import { CanvasTaskUpdater } from "../parsing/CanvasTaskUpdater";
 
 /**
  * Abstract base class for all onCompletion action executors
@@ -14,7 +16,40 @@ export abstract class BaseActionExecutor {
 	 * @param config Configuration for the specific action
 	 * @returns Promise resolving to execution result
 	 */
-	public abstract execute(
+	public async execute(
+		context: OnCompletionExecutionContext,
+		config: OnCompletionConfig
+	): Promise<OnCompletionExecutionResult> {
+		if (!this.validateConfig(config)) {
+			return this.createErrorResult("Invalid configuration");
+		}
+		
+		// Route to appropriate execution method based on task type
+		if (this.isCanvasTask(context.task)) {
+			return this.executeForCanvas(context, config);
+		} else {
+			return this.executeForMarkdown(context, config);
+		}
+	}
+
+	/**
+	 * Execute the action for Canvas tasks
+	 * @param context Execution context
+	 * @param config Configuration for the action
+	 * @returns Promise resolving to execution result
+	 */
+	protected abstract executeForCanvas(
+		context: OnCompletionExecutionContext,
+		config: OnCompletionConfig
+	): Promise<OnCompletionExecutionResult>;
+
+	/**
+	 * Execute the action for Markdown tasks
+	 * @param context Execution context
+	 * @param config Configuration for the action
+	 * @returns Promise resolving to execution result
+	 */
+	protected abstract executeForMarkdown(
 		context: OnCompletionExecutionContext,
 		config: OnCompletionConfig
 	): Promise<OnCompletionExecutionResult>;
@@ -38,10 +73,12 @@ export abstract class BaseActionExecutor {
 	 * @param message Optional success message
 	 * @returns Success result
 	 */
-	protected createSuccessResult(message?: string): OnCompletionExecutionResult {
+	protected createSuccessResult(
+		message?: string
+	): OnCompletionExecutionResult {
 		return {
 			success: true,
-			message
+			message,
 		};
 	}
 
@@ -53,7 +90,27 @@ export abstract class BaseActionExecutor {
 	protected createErrorResult(error: string): OnCompletionExecutionResult {
 		return {
 			success: false,
-			error
+			error,
 		};
 	}
-} 
+
+	/**
+	 * Check if a task is a Canvas task
+	 * @param task Task to check
+	 * @returns true if task is a Canvas task
+	 */
+	protected isCanvasTask(task: Task): task is Task<CanvasTaskMetadata> {
+		return CanvasTaskUpdater.isCanvasTask(task);
+	}
+
+	/**
+	 * Get Canvas task updater instance from context
+	 * @param context Execution context
+	 * @returns CanvasTaskUpdater instance
+	 */
+	protected getCanvasTaskUpdater(
+		context: OnCompletionExecutionContext
+	): CanvasTaskUpdater {
+		return context.plugin.taskManager.getCanvasTaskUpdater();
+	}
+}

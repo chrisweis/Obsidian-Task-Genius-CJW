@@ -199,8 +199,13 @@ export class TaskManager extends Component {
 	 * Initialize onCompletion manager
 	 */
 	private initializeOnCompletionManager(): void {
-		this.onCompletionManager = new OnCompletionManager(this.app, this.plugin);
+		this.onCompletionManager = new OnCompletionManager(
+			this.app,
+			this.plugin
+		);
 		this.log("OnCompletion manager initialized");
+
+		this.addChild(this.onCompletionManager);
 	}
 
 	/**
@@ -1639,13 +1644,6 @@ export class TaskManager extends Component {
 			throw new Error(`Task with ID ${updatedTask.id} not found`);
 		}
 
-		console.log(
-			"originalTask",
-			originalTask,
-			updatedTask.metadata.dueDate,
-			originalTask.metadata.dueDate
-		);
-
 		// Check if this is a Canvas task and handle it with Canvas updater
 		if (CanvasTaskUpdater.isCanvasTask(originalTask)) {
 			console.log("originalTask is a Canvas task");
@@ -1758,7 +1756,6 @@ export class TaskManager extends Component {
 			const content = await this.vault.read(file);
 			const lines = content.split("\n");
 			const taskLine = lines[updatedTask.line];
-			console.log("taskLine", taskLine);
 			if (!taskLine) {
 				throw new Error(
 					`Task line ${updatedTask.line} not found in file ${updatedTask.filePath}`
@@ -2180,13 +2177,6 @@ export class TaskManager extends Component {
 						updatedTask
 					);
 			}
-
-			console.log(
-				"updatedLine",
-				updatedLine,
-				taskLine,
-				updatedTask.content
-			);
 
 			// Update the line in the file content
 			if (updatedLine !== taskLine) {
@@ -2919,5 +2909,12 @@ export class TaskManager extends Component {
 		}
 
 		super.onunload();
+	}
+
+	/**
+	 * Get the canvas task updater
+	 */
+	public getCanvasTaskUpdater(): CanvasTaskUpdater {
+		return this.canvasTaskUpdater;
 	}
 }

@@ -929,10 +929,10 @@ export class TaskDetailsComponent extends Component {
 	private async editTask(task: Task | FileTask) {
 		if (typeof task === "object" && "isFileTask" in task) {
 			const fileTask = task as FileTask;
-			const file = this.app.vault.getAbstractFileByPath(
+			const file = this.app.vault.getFileByPath(
 				fileTask.sourceEntry.file.path
 			);
-			if (!(file instanceof TFile)) return;
+			if (!file) return;
 			const leaf = this.app.workspace.getLeaf(true);
 			await leaf.openFile(file);
 			const editor = this.app.workspace.activeEditor?.editor;
@@ -944,8 +944,8 @@ export class TaskDetailsComponent extends Component {
 		}
 
 		// Get the file from the vault
-		const file = this.app.vault.getAbstractFileByPath(task.filePath);
-		if (!(file instanceof TFile)) return;
+		const file = this.app.vault.getFileByPath(task.filePath);
+		if (!file) return;
 
 		// Open the file
 		const leaf = this.app.workspace.getLeaf(false);

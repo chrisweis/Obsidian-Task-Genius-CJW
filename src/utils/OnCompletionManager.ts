@@ -65,6 +65,7 @@ export class OnCompletionManager extends Component {
 	}
 
 	private async handleTaskCompleted(task: Task) {
+		console.log("handleTaskCompleted", task);
 		// 检查是否存在 onCompletion 属性，但允许空值进入解析逻辑
 		if (!task.metadata.hasOwnProperty("onCompletion")) {
 			return;
@@ -72,8 +73,10 @@ export class OnCompletionManager extends Component {
 
 		try {
 			const parseResult = this.parseOnCompletion(
-				task.metadata.onCompletion
+				task.metadata.onCompletion || ""
 			);
+
+			console.log("parseResult", parseResult);
 
 			if (!parseResult.isValid || !parseResult.config) {
 				console.warn(
@@ -101,7 +104,7 @@ export class OnCompletionManager extends Component {
 			};
 		}
 
-		const trimmedValue = onCompletionValue.trim().toLowerCase();
+		const trimmedValue = onCompletionValue.trim();
 
 		try {
 			// Try to parse as JSON first (structured format)
