@@ -28,8 +28,21 @@ export class MoveActionExecutor extends BaseActionExecutor {
 			// Check if target is a Canvas file
 			if (moveConfig.targetFile.endsWith(".canvas")) {
 				// Canvas to Canvas move
+				// Create a cleaned version of the task without onCompletion metadata
+				const cleanedTask = {
+					...task,
+					originalMarkdown: this.removeOnCompletionMetadata(
+						task.originalMarkdown ||
+							`- [${task.completed ? "x" : " "}] ${task.content}`
+					),
+					metadata: {
+						...task.metadata,
+						onCompletion: undefined, // Remove onCompletion from metadata
+					},
+				};
+
 				const result = await canvasUpdater.moveCanvasTask(
-					task,
+					cleanedTask,
 					moveConfig.targetFile,
 					undefined, // targetNodeId - could be enhanced later
 					moveConfig.targetSection
@@ -40,7 +53,7 @@ export class MoveActionExecutor extends BaseActionExecutor {
 						? ` (section: ${moveConfig.targetSection})`
 						: "";
 					return this.createSuccessResult(
-						`Task moved to Canvas file ${moveConfig.targetFile}${sectionText}`
+						`Task moved to Canvas file ${moveConfig.targetFile}${sectionText} successfully`
 					);
 				} else {
 					return this.createErrorResult(
@@ -107,7 +120,10 @@ export class MoveActionExecutor extends BaseActionExecutor {
 				);
 			}
 
-			const taskLine = sourceLines[task.line];
+			let taskLine = sourceLines[task.line];
+
+			// Clean onCompletion metadata from the task line before moving
+			taskLine = this.removeOnCompletionMetadata(taskLine);
 
 			// Remove the task from source file
 			sourceLines.splice(task.line, 1);
@@ -145,7 +161,7 @@ export class MoveActionExecutor extends BaseActionExecutor {
 				? ` (section: ${moveConfig.targetSection})`
 				: "";
 			return this.createSuccessResult(
-				`Task moved to ${moveConfig.targetFile}${sectionText}`
+				`Task moved to ${moveConfig.targetFile}${sectionText} successfully`
 			);
 		} catch (error) {
 			return this.createErrorResult(
@@ -165,9 +181,12 @@ export class MoveActionExecutor extends BaseActionExecutor {
 
 		try {
 			// Get task content as markdown
-			const taskContent =
+			let taskContent =
 				task.originalMarkdown ||
 				`- [${task.completed ? "x" : " "}] ${task.content}`;
+
+			// Clean onCompletion metadata from the task content before moving
+			taskContent = this.removeOnCompletionMetadata(taskContent);
 
 			// Add to Markdown target FIRST (before deleting from source)
 			let targetFile = app.vault.getFileByPath(moveConfig.targetFile);
@@ -230,13 +249,64 @@ export class MoveActionExecutor extends BaseActionExecutor {
 				? ` (section: ${moveConfig.targetSection})`
 				: "";
 			return this.createSuccessResult(
-				`Task moved from Canvas to ${moveConfig.targetFile}${sectionText}`
+				`Task moved from Canvas to ${moveConfig.targetFile}${sectionText} successfully`
 			);
 		} catch (error) {
 			return this.createErrorResult(
 				`Failed to move Canvas task to Markdown: ${error.message}`
 			);
 		}
+	}
+
+	/**
+	 * Remove onCompletion metadata from task content
+	 * Supports both emoji format (🏁) and dataview format ([onCompletion::])
+	 */
+	private removeOnCompletionMetadata(content: string): string {
+		let cleaned = content;
+
+		// Remove emoji format onCompletion (🏁 value)
+		// Handle simple formats first
+		cleaned = cleaned.replace(/🏁\s+[^\s{]+/g, "");
+
+		// Handle JSON format in emoji notation (🏁 {"type": "move", ...})
+		// Find and remove complete JSON objects after 🏁
+		let match;
+		while ((match = cleaned.match(/🏁\s*\{/)) !== null) {
+			const startIndex = match.index!;
+			const jsonStart = cleaned.indexOf("{", startIndex);
+			let braceCount = 0;
+			let jsonEnd = jsonStart;
+
+			for (let i = jsonStart; i < cleaned.length; i++) {
+				if (cleaned[i] === "{") braceCount++;
+				if (cleaned[i] === "}") braceCount--;
+				if (braceCount === 0) {
+					jsonEnd = i;
+					break;
+				}
+			}
+
+			if (braceCount === 0) {
+				// Remove the entire 🏁 + JSON object
+				cleaned =
+					cleaned.substring(0, startIndex) +
+					cleaned.substring(jsonEnd + 1);
+			} else {
+				// Malformed JSON, just remove the 🏁 part
+				cleaned =
+					cleaned.substring(0, startIndex) +
+					cleaned.substring(startIndex + match[0].length);
+			}
+		}
+
+		// Remove dataview format onCompletion ([onCompletion:: value])
+		cleaned = cleaned.replace(/\[onCompletion::\s*[^\]]*\]/gi, "");
+
+		// Clean up extra spaces
+		cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+		return cleaned;
 	}
 
 	protected validateConfig(config: OnCompletionConfig): boolean {
