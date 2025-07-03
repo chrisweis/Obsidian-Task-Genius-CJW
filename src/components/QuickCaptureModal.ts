@@ -20,6 +20,11 @@ import { MarkdownRendererComponent } from "./MarkdownRenderer";
 import { StatusComponent } from "./StatusComponent";
 import { Task } from "../types/task";
 import { ContextSuggest, ProjectSuggest } from "./AutoComplete";
+import {
+	TimeParsingService,
+	DEFAULT_TIME_PARSING_CONFIG,
+	ParsedTimeResult,
+} from "../utils/TimeParsingService";
 
 interface TaskMetadata {
 	startDate?: Date;
@@ -30,6 +35,12 @@ interface TaskMetadata {
 	context?: string;
 	recurrence?: string;
 	status?: string;
+	// Track which fields were manually set by user
+	manuallySet?: {
+		startDate?: boolean;
+		dueDate?: boolean;
+		scheduledDate?: boolean;
+	};
 }
 
 /**
@@ -81,6 +92,12 @@ export class QuickCaptureModal extends Modal {
 	markdownRenderer: MarkdownRendererComponent | null = null;
 
 	preferMetadataFormat: "dataview" | "tasks" = "tasks";
+	timeParsingService: TimeParsingService;
+
+	// References to date input elements for updating from parsed dates
+	startDateInput?: HTMLInputElement;
+	dueDateInput?: HTMLInputElement;
+	scheduledDateInput?: HTMLInputElement;
 
 	constructor(
 		app: App,
@@ -109,6 +126,11 @@ export class QuickCaptureModal extends Modal {
 		}
 
 		this.preferMetadataFormat = this.plugin.settings.preferMetadataFormat;
+
+		// Initialize time parsing service
+		this.timeParsingService = new TimeParsingService(
+			DEFAULT_TIME_PARSING_CONFIG
+		);
 
 		if (metadata) {
 			this.taskMetadata = metadata;
@@ -271,12 +293,19 @@ export class QuickCaptureModal extends Modal {
 				.onChange((value) => {
 					if (value) {
 						this.taskMetadata.startDate = this.parseDate(value);
+						this.markAsManuallySet("startDate");
 					} else {
 						this.taskMetadata.startDate = undefined;
+						// Reset manual flag when cleared
+						if (this.taskMetadata.manuallySet) {
+							this.taskMetadata.manuallySet.startDate = false;
+						}
 					}
 					this.updatePreview();
 				});
 			text.inputEl.type = "date";
+			// Store reference for updating from parsed dates
+			this.startDateInput = text.inputEl;
 		});
 
 		// Due Date
@@ -290,12 +319,19 @@ export class QuickCaptureModal extends Modal {
 				.onChange((value) => {
 					if (value) {
 						this.taskMetadata.dueDate = this.parseDate(value);
+						this.markAsManuallySet("dueDate");
 					} else {
 						this.taskMetadata.dueDate = undefined;
+						// Reset manual flag when cleared
+						if (this.taskMetadata.manuallySet) {
+							this.taskMetadata.manuallySet.dueDate = false;
+						}
 					}
 					this.updatePreview();
 				});
 			text.inputEl.type = "date";
+			// Store reference for updating from parsed dates
+			this.dueDateInput = text.inputEl;
 		});
 
 		// Scheduled Date
@@ -312,12 +348,20 @@ export class QuickCaptureModal extends Modal {
 						if (value) {
 							this.taskMetadata.scheduledDate =
 								this.parseDate(value);
+							this.markAsManuallySet("scheduledDate");
 						} else {
 							this.taskMetadata.scheduledDate = undefined;
+							// Reset manual flag when cleared
+							if (this.taskMetadata.manuallySet) {
+								this.taskMetadata.manuallySet.scheduledDate =
+									false;
+							}
 						}
 						this.updatePreview();
 					});
 				text.inputEl.type = "date";
+				// Store reference for updating from parsed dates
+				this.scheduledDateInput = text.inputEl;
 			});
 
 		// Priority
@@ -453,6 +497,56 @@ export class QuickCaptureModal extends Modal {
 						// Handle changes if needed
 						this.capturedContent = this.markdownEditor?.value || "";
 
+						// Parse time expressions in real-time
+						if (this.capturedContent) {
+							const timeParseResult =
+								this.timeParsingService.parseTimeExpressions(
+									this.capturedContent
+								);
+
+							// Update task metadata with parsed dates (only if not manually set)
+							if (
+								timeParseResult.startDate &&
+								!this.isManuallySet("startDate")
+							) {
+								this.taskMetadata.startDate =
+									timeParseResult.startDate;
+								// Update UI input field
+								if (this.startDateInput) {
+									this.startDateInput.value = this.formatDate(
+										timeParseResult.startDate
+									);
+								}
+							}
+							if (
+								timeParseResult.dueDate &&
+								!this.isManuallySet("dueDate")
+							) {
+								this.taskMetadata.dueDate =
+									timeParseResult.dueDate;
+								// Update UI input field
+								if (this.dueDateInput) {
+									this.dueDateInput.value = this.formatDate(
+										timeParseResult.dueDate
+									);
+								}
+							}
+							if (
+								timeParseResult.scheduledDate &&
+								!this.isManuallySet("scheduledDate")
+							) {
+								this.taskMetadata.scheduledDate =
+									timeParseResult.scheduledDate;
+								// Update UI input field
+								if (this.scheduledDateInput) {
+									this.scheduledDateInput.value =
+										this.formatDate(
+											timeParseResult.scheduledDate
+										);
+								}
+							}
+						}
+
 						if (this.updatePreview) {
 							this.updatePreview();
 						}
@@ -528,8 +622,26 @@ export class QuickCaptureModal extends Modal {
 	}
 
 	processContentWithMetadata(content: string): string {
+		// Parse time expressions from the content first
+		const timeParseResult =
+			this.timeParsingService.parseTimeExpressions(content);
+
+		// Update task metadata with parsed dates
+		if (timeParseResult.startDate && !this.taskMetadata.startDate) {
+			this.taskMetadata.startDate = timeParseResult.startDate;
+		}
+		if (timeParseResult.dueDate && !this.taskMetadata.dueDate) {
+			this.taskMetadata.dueDate = timeParseResult.dueDate;
+		}
+		if (timeParseResult.scheduledDate && !this.taskMetadata.scheduledDate) {
+			this.taskMetadata.scheduledDate = timeParseResult.scheduledDate;
+		}
+
+		// Use cleaned content (with time expressions removed)
+		const cleanedContent = timeParseResult.cleanedText;
+
 		// Split content into lines
-		const lines = content.split("\n");
+		const lines = cleanedContent.split("\n");
 		const processedLines: string[] = [];
 		const indentationRegex = /^(\s+)/;
 
@@ -740,6 +852,26 @@ export class QuickCaptureModal extends Modal {
 	parseDate(dateString: string): Date {
 		const [year, month, day] = dateString.split("-").map(Number);
 		return new Date(year, month - 1, day); // month is 0-indexed in JavaScript Date
+	}
+
+	/**
+	 * Check if a metadata field was manually set by the user
+	 * @param field - The field name to check
+	 * @returns True if the field was manually set
+	 */
+	isManuallySet(field: "startDate" | "dueDate" | "scheduledDate"): boolean {
+		return this.taskMetadata.manuallySet?.[field] || false;
+	}
+
+	/**
+	 * Mark a metadata field as manually set
+	 * @param field - The field name to mark
+	 */
+	markAsManuallySet(field: "startDate" | "dueDate" | "scheduledDate"): void {
+		if (!this.taskMetadata.manuallySet) {
+			this.taskMetadata.manuallySet = {};
+		}
+		this.taskMetadata.manuallySet[field] = true;
 	}
 
 	onClose() {
