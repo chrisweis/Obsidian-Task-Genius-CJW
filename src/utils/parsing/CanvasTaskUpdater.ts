@@ -201,12 +201,52 @@ export class CanvasTaskUpdater {
 		}
 
 		// Fallback to content matching (legacy behavior)
-		const lineContent = line
-			.replace(/^\s*[-*+]\s*\[[^\]]*\]\s*/, "")
-			.trim();
-		const taskContent = task.content.trim();
+		// Extract just the core task content, removing metadata
+		const lineContent = this.extractCoreTaskContent(line);
+		const taskContent = this.extractCoreTaskContent(task.content);
 
 		return lineContent === taskContent;
+	}
+
+	/**
+	 * Extract the core task content, removing common metadata patterns
+	 * This helps match tasks even when metadata has been added or changed
+	 */
+	private extractCoreTaskContent(content: string): string {
+		let cleaned = content;
+
+		// Remove checkbox if present
+		cleaned = cleaned.replace(/^\s*[-*+]\s*\[[^\]]*\]\s*/, "");
+
+		// Remove common metadata patterns
+		// Remove emoji dates
+		cleaned = cleaned.replace(/📅\s*\d{4}-\d{2}-\d{2}/g, "");
+		cleaned = cleaned.replace(/🛫\s*\d{4}-\d{2}-\d{2}/g, "");
+		cleaned = cleaned.replace(/⏳\s*\d{4}-\d{2}-\d{2}/g, "");
+		cleaned = cleaned.replace(/✅\s*\d{4}-\d{2}-\d{2}/g, "");
+		cleaned = cleaned.replace(/➕\s*\d{4}-\d{2}-\d{2}/g, "");
+
+		// Remove emoji priority markers
+		cleaned = cleaned.replace(/\s+(🔼|🔽|⏫|⏬|🔺)/g, "");
+
+		// Remove emoji onCompletion and other metadata
+		cleaned = cleaned.replace(/🏁\s*[^\s]+/g, ""); // Simple onCompletion
+		cleaned = cleaned.replace(/🏁\s*\{[^}]*\}/g, ""); // JSON onCompletion
+		cleaned = cleaned.replace(/🔁\s*[^\s]+/g, ""); // Recurrence
+		cleaned = cleaned.replace(/🆔\s*[^\s]+/g, ""); // ID
+		cleaned = cleaned.replace(/⛔\s*[^\s]+/g, ""); // Depends on
+
+		// Remove dataview format metadata
+		cleaned = cleaned.replace(/\[[^:]+::\s*[^\]]+\]/g, "");
+
+		// Remove hashtags and context tags at the end
+		cleaned = cleaned.replace(/#[^\s#]+/g, "");
+		cleaned = cleaned.replace(/@[^\s@]+/g, "");
+
+		// Clean up extra spaces and trim
+		cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+		return cleaned;
 	}
 
 	/**

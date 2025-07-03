@@ -28,10 +28,14 @@ export class ArchiveActionExecutor extends BaseActionExecutor {
 		console.log("executeForCanvas", context, config, task);
 
 		try {
-			// Get task content as markdown
-			const taskContent =
+			// Get task content as markdown and clean it
+			let taskContent =
 				task.originalMarkdown ||
 				`- [${task.completed ? "x" : " "}] ${task.content}`;
+
+			// Clean onCompletion metadata and ensure task is marked as completed
+			taskContent = this.removeOnCompletionMetadata(taskContent);
+			taskContent = this.ensureTaskIsCompleted(taskContent);
 
 			// Archive to Markdown file FIRST (before deleting from source)
 			const archiveFile =
@@ -43,7 +47,8 @@ export class ArchiveActionExecutor extends BaseActionExecutor {
 				app,
 				taskContent,
 				archiveFile,
-				archiveSection
+				archiveSection,
+				context
 			);
 
 			if (!archiveResult.success) {
@@ -142,12 +147,20 @@ export class ArchiveActionExecutor extends BaseActionExecutor {
 				);
 			}
 
-			const taskLine = sourceLines[task.line];
+			let taskLine = sourceLines[task.line];
+
+			// Clean onCompletion metadata and ensure task is marked as completed
+			taskLine = this.removeOnCompletionMetadata(taskLine);
+			taskLine = this.ensureTaskIsCompleted(taskLine);
 
 			// Add timestamp and source info to the task line
 			const timestamp = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
 			const sourceInfo = `(from ${task.filePath})`;
-			const archivedTaskLine = `${taskLine} - Completed ${timestamp} ${sourceInfo}`;
+			const completionMarker = this.getCompletionMarker(
+				context,
+				timestamp
+			);
+			const archivedTaskLine = `${taskLine} ${completionMarker} ${sourceInfo}`;
 
 			// Remove the task from source file
 			sourceLines.splice(task.line, 1);
@@ -198,7 +211,8 @@ export class ArchiveActionExecutor extends BaseActionExecutor {
 		app: App,
 		taskContent: string,
 		archiveFilePath: string,
-		archiveSection: string
+		archiveSection: string,
+		context: OnCompletionExecutionContext
 	): Promise<{ success: boolean; error?: string }> {
 		try {
 			// Get or create the archive file
@@ -233,9 +247,13 @@ export class ArchiveActionExecutor extends BaseActionExecutor {
 			const archiveContent = await app.vault.read(archiveFile as TFile);
 			const archiveLines = archiveContent.split("\n");
 
-			// Add timestamp and source info to the task line
+			// Add timestamp using preferMetadataFormat
 			const timestamp = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
-			const archivedTaskLine = `${taskContent} - Completed ${timestamp}`;
+			const completionMarker = this.getCompletionMarker(
+				context,
+				timestamp
+			);
+			const archivedTaskLine = `${taskContent} ${completionMarker}`;
 
 			// Add the task to archive file
 			const sectionIndex = archiveLines.findIndex(
@@ -285,5 +303,81 @@ export class ArchiveActionExecutor extends BaseActionExecutor {
 		const archiveSection =
 			archiveConfig.archiveSection || this.DEFAULT_ARCHIVE_SECTION;
 		return `Archive task to ${archiveFile} (section: ${archiveSection})`;
+	}
+
+	/**
+	 * Remove onCompletion metadata from task content
+	 * Supports both emoji format (🏁) and dataview format ([onCompletion::])
+	 */
+	private removeOnCompletionMetadata(content: string): string {
+		let cleaned = content;
+
+		// Remove emoji format onCompletion (🏁 value)
+		// Handle simple formats first
+		cleaned = cleaned.replace(/🏁\s+[^\s{]+/g, "");
+
+		// Handle JSON format in emoji notation (🏁 {"type": "move", ...})
+		// Find and remove complete JSON objects after 🏁
+		let match;
+		while ((match = cleaned.match(/🏁\s*\{/)) !== null) {
+			const startIndex = match.index!;
+			const jsonStart = cleaned.indexOf("{", startIndex);
+			let braceCount = 0;
+			let jsonEnd = jsonStart;
+
+			for (let i = jsonStart; i < cleaned.length; i++) {
+				if (cleaned[i] === "{") braceCount++;
+				if (cleaned[i] === "}") braceCount--;
+				if (braceCount === 0) {
+					jsonEnd = i;
+					break;
+				}
+			}
+
+			if (braceCount === 0) {
+				// Remove the entire 🏁 + JSON object
+				cleaned =
+					cleaned.substring(0, startIndex) +
+					cleaned.substring(jsonEnd + 1);
+			} else {
+				// Malformed JSON, just remove the 🏁 part
+				cleaned =
+					cleaned.substring(0, startIndex) +
+					cleaned.substring(startIndex + match[0].length);
+			}
+		}
+
+		// Remove dataview format onCompletion ([onCompletion:: value])
+		cleaned = cleaned.replace(/\[onCompletion::\s*[^\]]*\]/gi, "");
+
+		// Clean up extra spaces
+		cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+		return cleaned;
+	}
+
+	/**
+	 * Ensure task is marked as completed (change [ ] to [x])
+	 */
+	private ensureTaskIsCompleted(content: string): string {
+		// Replace any checkbox format with completed checkbox
+		return content.replace(/^(\s*[-*+]\s*)\[[^\]]*\](\s*)/, "$1[x]$2");
+	}
+
+	/**
+	 * Get completion marker based on preferMetadataFormat setting
+	 */
+	private getCompletionMarker(
+		context: OnCompletionExecutionContext,
+		timestamp: string
+	): string {
+		const useDataviewFormat =
+			context.plugin.settings.preferMetadataFormat === "dataview";
+
+		if (useDataviewFormat) {
+			return `[completion:: ${timestamp}]`;
+		} else {
+			return `✅ ${timestamp}`;
+		}
 	}
 }

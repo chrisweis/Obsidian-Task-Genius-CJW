@@ -165,6 +165,30 @@ describe("OnCompletionManager", () => {
 				});
 			});
 
+			it("should parse move action with file containing spaces", () => {
+				const result = manager.parseOnCompletion(
+					"move:my archive file.md"
+				);
+
+				expect(result.isValid).toBe(true);
+				expect(result.config).toEqual({
+					type: OnCompletionActionType.MOVE,
+					targetFile: "my archive file.md",
+				});
+			});
+
+			it("should parse move action with heading", () => {
+				const result = manager.parseOnCompletion(
+					"move:archive.md#completed-tasks"
+				);
+
+				expect(result.isValid).toBe(true);
+				expect(result.config).toEqual({
+					type: OnCompletionActionType.MOVE,
+					targetFile: "archive.md#completed-tasks",
+				});
+			});
+
 			it("should handle case-insensitive parsing", () => {
 				const result1 = manager.parseOnCompletion("DELETE");
 				const result2 = manager.parseOnCompletion("Keep");

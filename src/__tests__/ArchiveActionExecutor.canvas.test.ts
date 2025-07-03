@@ -36,6 +36,7 @@ const mockPlugin = {
 // Mock vault
 const mockVault = {
 	getAbstractFileByPath: jest.fn(),
+	getFileByPath: jest.fn(),
 	read: jest.fn(),
 	modify: jest.fn(),
 	create: jest.fn(),
@@ -56,6 +57,17 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 		// Reset mocks
 		jest.clearAllMocks();
+
+		// Reset all vault method mocks to default behavior
+		mockVault.getAbstractFileByPath.mockReset();
+		mockVault.getFileByPath.mockReset();
+		mockVault.read.mockReset();
+		mockVault.modify.mockReset();
+		mockVault.create.mockReset();
+		mockVault.createFolder.mockReset();
+
+		// Reset Canvas task updater mocks
+		mockCanvasTaskUpdater.deleteCanvasTask.mockReset();
 	});
 
 	describe("Canvas Task Archiving", () => {
@@ -93,6 +105,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock archive file exists
 			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
+			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
 			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
 			mockVault.read.mockResolvedValue(
 				"# Archive\n\n## Completed Tasks\n\n"
@@ -156,6 +169,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock custom archive file exists
 			const mockArchiveFile = { path: "Project Archive.md" };
+			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
 			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
 			mockVault.read.mockResolvedValue(
 				"# Project Archive\n\n## High Priority Tasks\n\n"
@@ -213,14 +227,16 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 				success: true,
 			});
 
-			// Mock archive file does not exist
+			// Mock archive file does not exist initially, then exists after creation
+			const mockCreatedFile = { path: "New Archive/Tasks.md" };
+			mockVault.getFileByPath
+				.mockReturnValueOnce(null) // Archive file doesn't exist initially
+				.mockReturnValueOnce(mockCreatedFile); // File exists after creation
 			mockVault.getAbstractFileByPath
-				.mockReturnValueOnce(null) // Archive file doesn't exist
 				.mockReturnValueOnce(null) // Directory doesn't exist
-				.mockReturnValueOnce({ path: "New Archive/Tasks.md" }); // File after creation
+				.mockReturnValueOnce(mockCreatedFile); // File after creation
 
 			// Mock file creation
-			const mockCreatedFile = { path: "New Archive/Tasks.md" };
 			mockVault.create.mockResolvedValue(mockCreatedFile);
 			mockVault.createFolder.mockResolvedValue(undefined);
 			mockVault.read.mockResolvedValue(
@@ -267,8 +283,10 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 				app: mockApp,
 			};
 
-			// Mock archive file creation failure
+			// Mock archive file creation failure - file doesn't exist and creation fails
+			mockVault.getFileByPath.mockReturnValue(null);
 			mockVault.getAbstractFileByPath.mockReturnValue(null);
+			mockVault.createFolder.mockRejectedValue(new Error("Invalid path"));
 			mockVault.create.mockRejectedValue(new Error("Invalid path"));
 
 			const result = await executor.execute(mockContext, archiveConfig);
@@ -310,6 +328,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock successful archive but Canvas deletion failure
 			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
+			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
 			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
 			mockVault.read.mockResolvedValue(
 				"# Archive\n\n## Completed Tasks\n\n"
@@ -359,19 +378,15 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 				app: mockApp,
 			};
 
-			// Mock successful Canvas deletion
-			mockCanvasTaskUpdater.deleteCanvasTask.mockResolvedValue({
-				success: true,
-			});
-
 			// Mock archive file creation failure
+			mockVault.getFileByPath.mockReturnValue(null);
 			mockVault.getAbstractFileByPath.mockReturnValue(null);
 			mockVault.create.mockRejectedValue(new Error("Invalid path"));
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toContain("Failed to archive Canvas task");
+			expect(result.error).toContain("Failed to create archive file");
 		});
 
 		it("should create new section if section does not exist", async () => {
@@ -409,6 +424,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock archive file exists but without the target section
 			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
+			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
 			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
 			mockVault.read.mockResolvedValue(
 				"# Archive\n\n## Other Section\n\nSome content\n"
@@ -496,6 +512,237 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			expect(description).toBe(
 				"Archive task to Custom Archive.md (section: Done Tasks)"
 			);
+		});
+	});
+
+	describe("OnCompletion Metadata Cleanup", () => {
+		it("should remove onCompletion metadata when archiving Canvas task", async () => {
+			const canvasTaskWithOnCompletion: Task<CanvasTaskMetadata> = {
+				id: "canvas-task-oncompletion",
+				content: "Task with onCompletion",
+				filePath: "source.canvas",
+				line: 0,
+				completed: true,
+				status: "x",
+				originalMarkdown:
+					"- [x] Task with onCompletion 🏁 archive:done.md",
+				metadata: {
+					sourceType: "canvas",
+					canvasNodeId: "node-oncompletion",
+					tags: [],
+					children: [],
+					onCompletion: "archive:done.md",
+				},
+			};
+
+			const archiveConfig: OnCompletionArchiveConfig = {
+				type: OnCompletionActionType.ARCHIVE,
+			};
+
+			mockContext = {
+				task: canvasTaskWithOnCompletion,
+				plugin: mockPlugin,
+				app: mockApp,
+			};
+
+			// Mock successful Canvas deletion
+			mockCanvasTaskUpdater.deleteCanvasTask.mockResolvedValue({
+				success: true,
+			});
+
+			// Mock archive file exists
+			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
+			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
+			mockVault.read.mockResolvedValue(
+				"# Archive\n\n## Completed Tasks\n\n"
+			);
+			mockVault.modify.mockResolvedValue(undefined);
+
+			const result = await executor.execute(mockContext, archiveConfig);
+
+			expect(result.success).toBe(true);
+
+			// Verify the archived task content has onCompletion metadata removed
+			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifiedContent = modifyCall[1];
+			expect(modifiedContent).toContain(
+				"- [x] Task with onCompletion - Completed"
+			);
+			expect(modifiedContent).not.toContain("🏁");
+			expect(modifiedContent).not.toContain("archive:done.md");
+		});
+
+		it("should remove onCompletion metadata in JSON format when archiving", async () => {
+			const canvasTaskWithJsonOnCompletion: Task<CanvasTaskMetadata> = {
+				id: "canvas-task-json-oncompletion",
+				content: "Task with JSON onCompletion",
+				filePath: "source.canvas",
+				line: 0,
+				completed: true,
+				status: "x",
+				originalMarkdown:
+					'- [x] Task with JSON onCompletion 🏁 {"type": "archive", "archiveFile": "custom.md"}',
+				metadata: {
+					sourceType: "canvas",
+					canvasNodeId: "node-json-oncompletion",
+					tags: [],
+					children: [],
+					onCompletion:
+						'{"type": "archive", "archiveFile": "custom.md"}',
+				},
+			};
+
+			const archiveConfig: OnCompletionArchiveConfig = {
+				type: OnCompletionActionType.ARCHIVE,
+			};
+
+			mockContext = {
+				task: canvasTaskWithJsonOnCompletion,
+				plugin: mockPlugin,
+				app: mockApp,
+			};
+
+			// Mock successful Canvas deletion
+			mockCanvasTaskUpdater.deleteCanvasTask.mockResolvedValue({
+				success: true,
+			});
+
+			// Mock archive file exists
+			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
+			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
+			mockVault.read.mockResolvedValue(
+				"# Archive\n\n## Completed Tasks\n\n"
+			);
+			mockVault.modify.mockResolvedValue(undefined);
+
+			const result = await executor.execute(mockContext, archiveConfig);
+
+			expect(result.success).toBe(true);
+
+			// Verify the archived task content has JSON onCompletion metadata removed
+			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifiedContent = modifyCall[1];
+			expect(modifiedContent).toContain(
+				"- [x] Task with JSON onCompletion - Completed"
+			);
+			expect(modifiedContent).not.toContain("🏁");
+			expect(modifiedContent).not.toContain('{"type": "archive"');
+		});
+
+		it("should ensure task is marked as completed when archiving", async () => {
+			const incompleteCanvasTask: Task<CanvasTaskMetadata> = {
+				id: "canvas-task-incomplete",
+				content: "Incomplete task to archive",
+				filePath: "source.canvas",
+				line: 0,
+				completed: false, // Task is not completed
+				status: " ",
+				originalMarkdown: "- [ ] Incomplete task to archive 🏁 archive",
+				metadata: {
+					sourceType: "canvas",
+					canvasNodeId: "node-incomplete",
+					tags: [],
+					children: [],
+					onCompletion: "archive",
+				},
+			};
+
+			const archiveConfig: OnCompletionArchiveConfig = {
+				type: OnCompletionActionType.ARCHIVE,
+			};
+
+			mockContext = {
+				task: incompleteCanvasTask,
+				plugin: mockPlugin,
+				app: mockApp,
+			};
+
+			// Mock successful Canvas deletion
+			mockCanvasTaskUpdater.deleteCanvasTask.mockResolvedValue({
+				success: true,
+			});
+
+			// Mock archive file exists
+			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
+			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
+			mockVault.read.mockResolvedValue(
+				"# Archive\n\n## Completed Tasks\n\n"
+			);
+			mockVault.modify.mockResolvedValue(undefined);
+
+			const result = await executor.execute(mockContext, archiveConfig);
+
+			expect(result.success).toBe(true);
+
+			// Verify the archived task is marked as completed
+			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifiedContent = modifyCall[1];
+			expect(modifiedContent).toContain(
+				"- [x] Incomplete task to archive - Completed"
+			);
+			expect(modifiedContent).not.toContain("- [ ]"); // Should not contain incomplete checkbox
+			expect(modifiedContent).not.toContain("🏁");
+		});
+
+		it("should remove dataview format onCompletion when archiving", async () => {
+			const canvasTaskWithDataviewOnCompletion: Task<CanvasTaskMetadata> =
+				{
+					id: "canvas-task-dataview-oncompletion",
+					content: "Task with dataview onCompletion",
+					filePath: "source.canvas",
+					line: 0,
+					completed: true,
+					status: "x",
+					originalMarkdown:
+						"- [x] Task with dataview onCompletion [onCompletion:: archive:done.md]",
+					metadata: {
+						sourceType: "canvas",
+						canvasNodeId: "node-dataview-oncompletion",
+						tags: [],
+						children: [],
+						onCompletion: "archive:done.md",
+					},
+				};
+
+			const archiveConfig: OnCompletionArchiveConfig = {
+				type: OnCompletionActionType.ARCHIVE,
+			};
+
+			mockContext = {
+				task: canvasTaskWithDataviewOnCompletion,
+				plugin: mockPlugin,
+				app: mockApp,
+			};
+
+			// Mock successful Canvas deletion
+			mockCanvasTaskUpdater.deleteCanvasTask.mockResolvedValue({
+				success: true,
+			});
+
+			// Mock archive file exists
+			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
+			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
+			mockVault.read.mockResolvedValue(
+				"# Archive\n\n## Completed Tasks\n\n"
+			);
+			mockVault.modify.mockResolvedValue(undefined);
+
+			const result = await executor.execute(mockContext, archiveConfig);
+
+			expect(result.success).toBe(true);
+
+			// Verify the archived task content has dataview onCompletion metadata removed
+			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifiedContent = modifyCall[1];
+			expect(modifiedContent).toContain(
+				"- [x] Task with dataview onCompletion - Completed"
+			);
+			expect(modifiedContent).not.toContain("[onCompletion::");
+			expect(modifiedContent).not.toContain("archive:done.md");
 		});
 	});
 });

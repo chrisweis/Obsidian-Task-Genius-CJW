@@ -520,7 +520,24 @@ export class MarkdownTaskParser {
 				Object.keys(this.config.emojiMapping).some((e) =>
 					valuePart.substring(i).startsWith(e)
 				) ||
-				["[", "#"].includes(char)
+				char === "["
+			) {
+				valueEnd = i;
+				break;
+			}
+
+			// Check for file extensions followed by space or end of content
+			const fileExtensionEnd = this.findFileExtensionEnd(valuePart, i);
+			if (fileExtensionEnd > i) {
+				valueEnd = fileExtensionEnd;
+				break;
+			}
+
+			// Check for space followed by # (tag) - this handles cases without file extensions
+			if (
+				char === " " &&
+				i + 1 < valuePart.length &&
+				valuePart[i + 1] === "#"
 			) {
 				valueEnd = i;
 				break;
@@ -552,6 +569,35 @@ export class MarkdownTaskParser {
 		const afterRemaining = content.substring(newPos);
 
 		return [earliestEmoji.key, metadataValue, beforeEmoji, afterRemaining];
+	}
+
+	/**
+	 * Find the end position of a file extension pattern (e.g., .md, .canvas)
+	 * followed by optional heading (#heading) and then space or end of content
+	 */
+	private findFileExtensionEnd(content: string, startPos: number): number {
+		const supportedExtensions = [".md", ".canvas", ".txt", ".pdf"];
+
+		for (const ext of supportedExtensions) {
+			if (content.substring(startPos).startsWith(ext)) {
+				let pos = startPos + ext.length;
+
+				// Check for optional heading (#heading)
+				if (pos < content.length && content[pos] === "#") {
+					// Find the end of the heading (next space or end of content)
+					while (pos < content.length && content[pos] !== " ") {
+						pos++;
+					}
+				}
+
+				// Check if we're at end of content or followed by space
+				if (pos >= content.length || content[pos] === " ") {
+					return pos;
+				}
+			}
+		}
+
+		return startPos; // No file extension pattern found
 	}
 
 	private getDefaultEmojiValue(emoji: string): string {

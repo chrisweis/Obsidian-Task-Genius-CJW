@@ -37,6 +37,7 @@ const mockPlugin = {
 // Mock vault
 const mockVault = {
 	getAbstractFileByPath: jest.fn(),
+	getFileByPath: jest.fn(),
 	read: jest.fn(),
 	modify: jest.fn(),
 	create: jest.fn(),
@@ -56,6 +57,17 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 		// Reset mocks
 		jest.clearAllMocks();
+
+		// Reset all vault method mocks to default behavior
+		mockVault.getAbstractFileByPath.mockReset();
+		mockVault.getFileByPath.mockReset();
+		mockVault.read.mockReset();
+		mockVault.modify.mockReset();
+		mockVault.create.mockReset();
+
+		// Reset Canvas task updater mocks
+		mockCanvasTaskUpdater.moveCanvasTask.mockReset();
+		mockCanvasTaskUpdater.deleteCanvasTask.mockReset();
 	});
 
 	describe("Canvas to Canvas Movement", () => {
@@ -186,6 +198,7 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 			// Mock target file exists
 			const mockTargetFile = { path: "target.md" };
+			mockVault.getFileByPath.mockReturnValue(mockTargetFile);
 			mockVault.getAbstractFileByPath.mockReturnValue(mockTargetFile);
 			mockVault.read.mockResolvedValue(
 				"# Target File\n\n## Completed Tasks\n\n"
@@ -238,9 +251,12 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 				success: true,
 			});
 
-			// Mock target file does not exist, then gets created
-			mockVault.getAbstractFileByPath.mockReturnValue(null);
+			// Mock target file does not exist initially, then gets created
 			const mockCreatedFile = { path: "new-target.md" };
+			mockVault.getFileByPath
+				.mockReturnValueOnce(null) // File doesn't exist initially
+				.mockReturnValueOnce(mockCreatedFile); // File exists after creation
+			mockVault.getAbstractFileByPath.mockReturnValue(null);
 			mockVault.create.mockResolvedValue(mockCreatedFile);
 			mockVault.read.mockResolvedValue("");
 			mockVault.modify.mockResolvedValue(undefined);
@@ -281,6 +297,7 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 			};
 
 			// Mock target file does not exist and creation fails
+			mockVault.getFileByPath.mockReturnValue(null);
 			mockVault.getAbstractFileByPath.mockReturnValue(null);
 			mockVault.create.mockRejectedValue(new Error("Invalid path"));
 
@@ -326,6 +343,7 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 			// Mock successful target file operations but Canvas deletion failure
 			const mockTargetFile = { path: "target.md" };
+			mockVault.getFileByPath.mockReturnValue(mockTargetFile);
 			mockVault.getAbstractFileByPath.mockReturnValue(mockTargetFile);
 			mockVault.read.mockResolvedValue("# Target File\n\n");
 			mockVault.modify.mockResolvedValue(undefined);
@@ -373,12 +391,8 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 				app: mockApp,
 			};
 
-			// Mock successful Canvas deletion
-			mockCanvasTaskUpdater.deleteCanvasTask.mockResolvedValue({
-				success: true,
-			});
-
 			// Mock target file does not exist and creation fails
+			mockVault.getFileByPath.mockReturnValue(null);
 			mockVault.getAbstractFileByPath.mockReturnValue(null);
 			mockVault.create.mockRejectedValue(new Error("Invalid path"));
 
