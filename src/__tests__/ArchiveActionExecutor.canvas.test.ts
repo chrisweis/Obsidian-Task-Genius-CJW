@@ -127,7 +127,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			const modifyCall = mockVault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain(
-				"- [x] Test Canvas task #project/test - Completed"
+				"- [x] Test Canvas task #project/test ✅ 2025-07-04"
 			);
 			expect(modifiedContent).toMatch(/\d{4}-\d{2}-\d{2}/); // Date pattern
 		});
@@ -189,7 +189,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain("## High Priority Tasks");
 			expect(modifiedContent).toContain(
-				"- [x] Important Canvas task ⏫ - Completed"
+				"- [x] Important Canvas task ⏫ ✅ 2025-07-04"
 			);
 		});
 
@@ -440,7 +440,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain("## New Section");
 			expect(modifiedContent).toContain(
-				"- [x] Test Canvas task - Completed"
+				"- [x] Test Canvas task ✅ 2025-07-04"
 			);
 		});
 	});
@@ -567,7 +567,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			const modifyCall = mockVault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain(
-				"- [x] Task with onCompletion - Completed"
+				"- [x] Task with onCompletion ✅ 2025-07-04"
 			);
 			expect(modifiedContent).not.toContain("🏁");
 			expect(modifiedContent).not.toContain("archive:done.md");
@@ -625,7 +625,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			const modifyCall = mockVault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain(
-				"- [x] Task with JSON onCompletion - Completed"
+				"- [x] Task with JSON onCompletion ✅ 2025-07-04"
 			);
 			expect(modifiedContent).not.toContain("🏁");
 			expect(modifiedContent).not.toContain('{"type": "archive"');
@@ -681,7 +681,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			const modifyCall = mockVault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain(
-				"- [x] Incomplete task to archive - Completed"
+				"- [x] Incomplete task to archive ✅ 2025-07-04"
 			);
 			expect(modifiedContent).not.toContain("- [ ]"); // Should not contain incomplete checkbox
 			expect(modifiedContent).not.toContain("🏁");
@@ -739,7 +739,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			const modifyCall = mockVault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain(
-				"- [x] Task with dataview onCompletion - Completed"
+				"- [x] Task with dataview onCompletion ✅ 2025-07-04"
 			);
 			expect(modifiedContent).not.toContain("[onCompletion::");
 			expect(modifiedContent).not.toContain("archive:done.md");

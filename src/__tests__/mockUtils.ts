@@ -295,6 +295,16 @@ const createMockApp = (): App => {
 		})),
 	} as any;
 
+	// Add vault mock with all necessary methods for ActionExecutor tests
+	app.vault = {
+		getFileByPath: jest.fn(),
+		getAbstractFileByPath: jest.fn(),
+		read: jest.fn(),
+		modify: jest.fn(),
+		create: jest.fn(),
+		createFolder: jest.fn(),
+	} as any;
+
 	return app;
 };
 

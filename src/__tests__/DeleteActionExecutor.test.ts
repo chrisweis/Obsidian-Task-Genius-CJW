@@ -1,95 +1,96 @@
 /**
  * DeleteActionExecutor Tests
- * 
+ *
  * Tests for delete action executor functionality including:
  * - Task deletion from file system
  * - Configuration validation
  * - Error handling
  */
 
-import { DeleteActionExecutor } from '../utils/onCompletion/DeleteActionExecutor';
-import { 
+import { DeleteActionExecutor } from "../utils/onCompletion/DeleteActionExecutor";
+import {
 	OnCompletionActionType,
 	OnCompletionExecutionContext,
-	OnCompletionDeleteConfig
-} from '../types/onCompletion';
-import { Task } from '../types/task';
-import { createMockPlugin, createMockApp } from './mockUtils';
+	OnCompletionDeleteConfig,
+} from "../types/onCompletion";
+import { Task } from "../types/task";
+import { createMockPlugin, createMockApp } from "./mockUtils";
 
 // Mock Obsidian vault operations
 const mockVault = {
 	read: jest.fn(),
 	modify: jest.fn(),
-	getAbstractFileByPath: jest.fn()
+	getAbstractFileByPath: jest.fn(),
+	getFileByPath: jest.fn(),
 };
 
 const mockApp = {
 	...createMockApp(),
-	vault: mockVault
+	vault: mockVault,
 };
 
-describe('DeleteActionExecutor', () => {
+describe("DeleteActionExecutor", () => {
 	let executor: DeleteActionExecutor;
 	let mockTask: Task;
 	let mockContext: OnCompletionExecutionContext;
 
 	beforeEach(() => {
 		executor = new DeleteActionExecutor();
-		
+
 		mockTask = {
-			id: 'test-task-id',
-			content: 'Test task to delete',
+			id: "test-task-id",
+			content: "Test task to delete",
 			completed: true,
-			status: 'x',
+			status: "x",
 			metadata: {
-				onCompletion: 'delete'
+				onCompletion: "delete",
 			},
 			lineNumber: 5,
-			filePath: 'test.md'
+			filePath: "test.md",
 		};
 
 		mockContext = {
 			task: mockTask,
 			plugin: createMockPlugin(),
-			app: mockApp as any
+			app: mockApp as any,
 		};
 
 		// Reset mocks
 		jest.clearAllMocks();
 	});
 
-	describe('Configuration Validation', () => {
-		it('should validate correct delete configuration', () => {
+	describe("Configuration Validation", () => {
+		it("should validate correct delete configuration", () => {
 			const config: OnCompletionDeleteConfig = {
-				type: OnCompletionActionType.DELETE
+				type: OnCompletionActionType.DELETE,
 			};
 
-			expect(executor['validateConfig'](config)).toBe(true);
+			expect(executor["validateConfig"](config)).toBe(true);
 		});
 
-		it('should reject configuration with wrong type', () => {
+		it("should reject configuration with wrong type", () => {
 			const config = {
-				type: OnCompletionActionType.KEEP
+				type: OnCompletionActionType.KEEP,
 			} as any;
 
-			expect(executor['validateConfig'](config)).toBe(false);
+			expect(executor["validateConfig"](config)).toBe(false);
 		});
 
-		it('should reject configuration without type', () => {
+		it("should reject configuration without type", () => {
 			const config = {} as any;
 
-			expect(executor['validateConfig'](config)).toBe(false);
+			expect(executor["validateConfig"](config)).toBe(false);
 		});
 	});
 
-	describe('Task Deletion', () => {
+	describe("Task Deletion", () => {
 		let config: OnCompletionDeleteConfig;
 
 		beforeEach(() => {
 			config = { type: OnCompletionActionType.DELETE };
 		});
 
-		it('should delete task from file successfully', async () => {
+		it("should delete task from file successfully", async () => {
 			const fileContent = `# Test File
 
 - [ ] Keep this task
@@ -101,80 +102,107 @@ describe('DeleteActionExecutor', () => {
 - [ ] Keep this task
 - [ ] Keep this task too`;
 
-			mockVault.getAbstractFileByPath.mockReturnValue({ path: 'test.md' });
+			// Add originalMarkdown to the task for proper matching
+			mockTask.originalMarkdown = "- [x] Test task to delete";
+
+			mockVault.getFileByPath.mockReturnValue({
+				path: "test.md",
+			});
 			mockVault.read.mockResolvedValue(fileContent);
 			mockVault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(true);
-			expect(result.message).toBe('Task deleted successfully');
+			expect(result.message).toBe("Task deleted successfully");
 			expect(mockVault.modify).toHaveBeenCalledWith(
-				{ path: 'test.md' },
+				{ path: "test.md" },
 				expectedContent
 			);
 		});
 
-		it('should handle task not found in file', async () => {
+		it("should handle task not found in file", async () => {
 			const fileContent = `# Test File
 
 - [ ] Some other task
 - [ ] Another task`;
 
-			mockVault.getAbstractFileByPath.mockReturnValue({ path: 'test.md' });
+			// Set originalMarkdown that won't be found in the file
+			mockTask.originalMarkdown = "- [x] Test task to delete";
+
+			mockVault.getFileByPath.mockReturnValue({
+				path: "test.md",
+			});
 			mockVault.read.mockResolvedValue(fileContent);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toBe('Task not found in file');
+			expect(result.error).toBe("Task not found in file");
 			expect(mockVault.modify).not.toHaveBeenCalled();
 		});
 
-		it('should handle file not found', async () => {
-			mockVault.getAbstractFileByPath.mockReturnValue(null);
+		it("should handle file not found", async () => {
+			mockVault.getFileByPath.mockReturnValue(null);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toBe('File not found: test.md');
+			expect(result.error).toBe("File not found: test.md");
 			expect(mockVault.read).not.toHaveBeenCalled();
 			expect(mockVault.modify).not.toHaveBeenCalled();
 		});
 
-		it('should handle file read error', async () => {
-			mockVault.getAbstractFileByPath.mockReturnValue({ path: 'test.md' });
-			mockVault.read.mockRejectedValue(new Error('Read permission denied'));
+		it("should handle file read error", async () => {
+			mockVault.getFileByPath.mockReturnValue({
+				path: "test.md",
+			});
+			mockVault.read.mockRejectedValue(
+				new Error("Read permission denied")
+			);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toBe('Failed to delete task: Read permission denied');
+			expect(result.error).toBe(
+				"Failed to delete task: Read permission denied"
+			);
 			expect(mockVault.modify).not.toHaveBeenCalled();
 		});
 
-		it('should handle file write error', async () => {
+		it("should handle file write error", async () => {
 			const fileContent = `- [x] Test task to delete`;
 
-			mockVault.getAbstractFileByPath.mockReturnValue({ path: 'test.md' });
+			mockTask.originalMarkdown = "- [x] Test task to delete";
+
+			mockVault.getFileByPath.mockReturnValue({
+				path: "test.md",
+			});
 			mockVault.read.mockResolvedValue(fileContent);
-			mockVault.modify.mockRejectedValue(new Error('Write permission denied'));
+			mockVault.modify.mockRejectedValue(
+				new Error("Write permission denied")
+			);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toBe('Failed to delete task: Write permission denied');
+			expect(result.error).toBe(
+				"Failed to delete task: Write permission denied"
+			);
 		});
 
-		it('should handle complex task content with special characters', async () => {
+		it("should handle complex task content with special characters", async () => {
 			const taskWithSpecialChars = {
 				...mockTask,
-				content: 'Task with [special] (characters) & symbols #tag @context'
+				content:
+					"Task with [special] (characters) & symbols #tag @context",
+				originalMarkdown:
+					"- [x] Task with [special] (characters) & symbols #tag @context",
 			};
 
 			const contextWithSpecialTask = {
 				...mockContext,
-				task: taskWithSpecialChars
+				task: taskWithSpecialChars,
 			};
 
 			const fileContent = `# Test File
@@ -186,21 +214,26 @@ describe('DeleteActionExecutor', () => {
 
 - [ ] Normal task`;
 
-			mockVault.getAbstractFileByPath.mockReturnValue({ path: 'test.md' });
+			mockVault.getFileByPath.mockReturnValue({
+				path: "test.md",
+			});
 			mockVault.read.mockResolvedValue(fileContent);
 			mockVault.modify.mockResolvedValue(undefined);
 
-			const result = await executor.execute(contextWithSpecialTask, config);
+			const result = await executor.execute(
+				contextWithSpecialTask,
+				config
+			);
 
 			expect(result.success).toBe(true);
-			expect(result.message).toBe('Task deleted successfully');
+			expect(result.message).toBe("Task deleted successfully");
 			expect(mockVault.modify).toHaveBeenCalledWith(
-				{ path: 'test.md' },
+				{ path: "test.md" },
 				expectedContent
 			);
 		});
 
-		it('should handle nested task deletion', async () => {
+		it("should handle nested task deletion", async () => {
 			const fileContent = `# Test File
 
 - [ ] Parent task
@@ -214,21 +247,25 @@ describe('DeleteActionExecutor', () => {
   - [ ] Sibling task
 - [ ] Another parent task`;
 
-			mockVault.getAbstractFileByPath.mockReturnValue({ path: 'test.md' });
+			mockTask.originalMarkdown = "  - [x] Test task to delete";
+
+			mockVault.getFileByPath.mockReturnValue({
+				path: "test.md",
+			});
 			mockVault.read.mockResolvedValue(fileContent);
 			mockVault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(true);
-			expect(result.message).toBe('Task deleted successfully');
+			expect(result.message).toBe("Task deleted successfully");
 			expect(mockVault.modify).toHaveBeenCalledWith(
-				{ path: 'test.md' },
+				{ path: "test.md" },
 				expectedContent
 			);
 		});
 
-		it('should preserve empty lines and formatting', async () => {
+		it("should preserve empty lines and formatting", async () => {
 			const fileContent = `# Test File
 
 Some text here.
@@ -251,7 +288,11 @@ Some text here.
 
 More text here.`;
 
-			mockVault.getAbstractFileByPath.mockReturnValue({ path: 'test.md' });
+			mockTask.originalMarkdown = "- [x] Test task to delete";
+
+			mockVault.getFileByPath.mockReturnValue({
+				path: "test.md",
+			});
 			mockVault.read.mockResolvedValue(fileContent);
 			mockVault.modify.mockResolvedValue(undefined);
 
@@ -259,62 +300,70 @@ More text here.`;
 
 			expect(result.success).toBe(true);
 			expect(mockVault.modify).toHaveBeenCalledWith(
-				{ path: 'test.md' },
+				{ path: "test.md" },
 				expectedContent
 			);
 		});
 	});
 
-	describe('Invalid Configuration Handling', () => {
-		it('should return error for invalid configuration', async () => {
+	describe("Invalid Configuration Handling", () => {
+		it("should return error for invalid configuration", async () => {
 			const invalidConfig = {
-				type: OnCompletionActionType.KEEP
+				type: OnCompletionActionType.KEEP,
 			} as any;
 
 			const result = await executor.execute(mockContext, invalidConfig);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toBe('Invalid delete configuration');
-			expect(mockVault.getAbstractFileByPath).not.toHaveBeenCalled();
+			expect(result.error).toBe("Invalid configuration");
+			expect(mockVault.getFileByPath).not.toHaveBeenCalled();
 		});
 	});
 
-	describe('Description Generation', () => {
-		it('should return correct description', () => {
+	describe("Description Generation", () => {
+		it("should return correct description", () => {
 			const config: OnCompletionDeleteConfig = {
-				type: OnCompletionActionType.DELETE
+				type: OnCompletionActionType.DELETE,
 			};
 
 			const description = executor.getDescription(config);
 
-			expect(description).toBe('Delete the completed task from the file');
+			expect(description).toBe("Delete the completed task from the file");
 		});
 	});
 
-	describe('Edge Cases', () => {
-		it('should handle empty file', async () => {
+	describe("Edge Cases", () => {
+		it("should handle empty file", async () => {
 			const config: OnCompletionDeleteConfig = {
-				type: OnCompletionActionType.DELETE
+				type: OnCompletionActionType.DELETE,
 			};
 
-			mockVault.getAbstractFileByPath.mockReturnValue({ path: 'test.md' });
-			mockVault.read.mockResolvedValue('');
+			mockTask.originalMarkdown = "- [x] Test task to delete";
+
+			mockVault.getFileByPath.mockReturnValue({
+				path: "test.md",
+			});
+			mockVault.read.mockResolvedValue("");
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toBe('Task not found in file');
+			expect(result.error).toBe("Task not found in file");
 		});
 
-		it('should handle file with only the target task', async () => {
+		it("should handle file with only the target task", async () => {
 			const config: OnCompletionDeleteConfig = {
-				type: OnCompletionActionType.DELETE
+				type: OnCompletionActionType.DELETE,
 			};
 
-			const fileContent = '- [x] Test task to delete';
-			const expectedContent = '';
+			const fileContent = "- [x] Test task to delete";
+			const expectedContent = "";
 
-			mockVault.getAbstractFileByPath.mockReturnValue({ path: 'test.md' });
+			mockTask.originalMarkdown = "- [x] Test task to delete";
+
+			mockVault.getFileByPath.mockReturnValue({
+				path: "test.md",
+			});
 			mockVault.read.mockResolvedValue(fileContent);
 			mockVault.modify.mockResolvedValue(undefined);
 
@@ -322,14 +371,14 @@ More text here.`;
 
 			expect(result.success).toBe(true);
 			expect(mockVault.modify).toHaveBeenCalledWith(
-				{ path: 'test.md' },
+				{ path: "test.md" },
 				expectedContent
 			);
 		});
 
-		it('should handle multiple identical tasks (delete first occurrence)', async () => {
+		it("should handle multiple identical tasks (delete first occurrence)", async () => {
 			const config: OnCompletionDeleteConfig = {
-				type: OnCompletionActionType.DELETE
+				type: OnCompletionActionType.DELETE,
 			};
 
 			const fileContent = `- [x] Test task to delete
@@ -339,7 +388,11 @@ More text here.`;
 			const expectedContent = `- [ ] Other task
 - [x] Test task to delete`;
 
-			mockVault.getAbstractFileByPath.mockReturnValue({ path: 'test.md' });
+			mockTask.originalMarkdown = "- [x] Test task to delete";
+
+			mockVault.getFileByPath.mockReturnValue({
+				path: "test.md",
+			});
 			mockVault.read.mockResolvedValue(fileContent);
 			mockVault.modify.mockResolvedValue(undefined);
 
@@ -347,9 +400,9 @@ More text here.`;
 
 			expect(result.success).toBe(true);
 			expect(mockVault.modify).toHaveBeenCalledWith(
-				{ path: 'test.md' },
+				{ path: "test.md" },
 				expectedContent
 			);
 		});
 	});
-}); 
+});

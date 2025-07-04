@@ -138,8 +138,20 @@ export class MoveActionExecutor extends BaseActionExecutor {
 				);
 
 				if (sectionIndex !== -1) {
-					// Insert after the section header
-					targetLines.splice(sectionIndex + 1, 0, taskLine);
+					// Find the end of this section (next section or end of file)
+					let insertIndex = targetLines.length;
+					for (
+						let i = sectionIndex + 1;
+						i < targetLines.length;
+						i++
+					) {
+						if (targetLines[i].trim().startsWith("#")) {
+							insertIndex = i;
+							break;
+						}
+					}
+					// Insert before the next section or at the end
+					targetLines.splice(insertIndex, 0, taskLine);
 				} else {
 					// Section not found, create it and add the task
 					targetLines.push(

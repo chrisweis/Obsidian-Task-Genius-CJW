@@ -61,7 +61,8 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 				line: 3,
 				completed: true,
 				status: "x",
-				originalMarkdown: "- [x] Task with onCompletion 🏁 archive:done.md",
+				originalMarkdown:
+					"- [x] Task with onCompletion 🏁 archive:done.md",
 				metadata: {
 					tags: [],
 					children: [],
@@ -86,7 +87,8 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 				.mockReturnValueOnce({ path: "Archive/Completed Tasks.md" }); // Archive file
 
 			// Mock file contents
-			const sourceContent = "# Tasks\n\n- [ ] Other task\n- [x] Task with onCompletion 🏁 archive:done.md\n- [ ] Another task";
+			const sourceContent =
+				"# Tasks\n\n- [ ] Other task\n- [x] Task with onCompletion 🏁 archive:done.md\n- [ ] Another task";
 			const archiveContent = "# Archive\n\n## Completed Tasks\n\n";
 
 			mockVault.read
@@ -98,17 +100,23 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 			const result = await executor.execute(mockContext, archiveConfig);
 
 			expect(result.success).toBe(true);
-			expect(result.message).toContain("Task archived to Archive/Completed Tasks.md");
+			expect(result.message).toContain(
+				"Task archived to Archive/Completed Tasks.md"
+			);
 
 			// Verify source file was updated (task removed)
 			const sourceModifyCall = mockVault.modify.mock.calls[0];
 			const updatedSourceContent = sourceModifyCall[1];
-			expect(updatedSourceContent).toBe("# Tasks\n\n- [ ] Other task\n- [ ] Another task");
+			expect(updatedSourceContent).toBe(
+				"# Tasks\n\n- [ ] Other task\n- [ ] Another task"
+			);
 
 			// Verify archive file was updated (task added without onCompletion metadata)
 			const archiveModifyCall = mockVault.modify.mock.calls[1];
 			const updatedArchiveContent = archiveModifyCall[1];
-			expect(updatedArchiveContent).toContain("- [x] Task with onCompletion - Completed");
+			expect(updatedArchiveContent).toContain(
+				"- [x] Task with onCompletion ✅ 2025-07-04 (from source.md)"
+			);
 			expect(updatedArchiveContent).not.toContain("🏁");
 			expect(updatedArchiveContent).not.toContain("archive:done.md");
 			expect(updatedArchiveContent).toMatch(/\d{4}-\d{2}-\d{2}/); // Date pattern
@@ -147,7 +155,8 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 				.mockReturnValueOnce({ path: "Archive/Completed Tasks.md" }); // Archive file
 
 			// Mock file contents
-			const sourceContent = "# Tasks\n- [ ] Incomplete task to archive 🏁 archive\n- [ ] Other task";
+			const sourceContent =
+				"# Tasks\n- [ ] Incomplete task to archive 🏁 archive\n- [ ] Other task";
 			const archiveContent = "# Archive\n\n## Completed Tasks\n\n";
 
 			mockVault.read
@@ -163,7 +172,9 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 			// Verify archive file contains completed task without onCompletion metadata
 			const archiveModifyCall = mockVault.modify.mock.calls[1];
 			const updatedArchiveContent = archiveModifyCall[1];
-			expect(updatedArchiveContent).toContain("- [x] Incomplete task to archive - Completed");
+			expect(updatedArchiveContent).toContain(
+				"- [x] Incomplete task to archive ✅ 2025-07-04 (from source.md)"
+			);
 			expect(updatedArchiveContent).not.toContain("- [ ]"); // Should not contain incomplete checkbox
 			expect(updatedArchiveContent).not.toContain("🏁");
 		});
@@ -176,7 +187,8 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 				line: 0,
 				completed: true,
 				status: "x",
-				originalMarkdown: "- [x] Task with dataview onCompletion [onCompletion:: archive:done.md]",
+				originalMarkdown:
+					"- [x] Task with dataview onCompletion [onCompletion:: archive:done.md]",
 				metadata: {
 					tags: [],
 					children: [],
@@ -201,7 +213,8 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 				.mockReturnValueOnce({ path: "Archive/Completed Tasks.md" }); // Archive file
 
 			// Mock file contents
-			const sourceContent = "- [x] Task with dataview onCompletion [onCompletion:: archive:done.md]";
+			const sourceContent =
+				"- [x] Task with dataview onCompletion [onCompletion:: archive:done.md]";
 			const archiveContent = "# Archive\n\n## Completed Tasks\n\n";
 
 			mockVault.read
@@ -217,7 +230,9 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 			// Verify archive file contains task without dataview onCompletion metadata
 			const archiveModifyCall = mockVault.modify.mock.calls[1];
 			const updatedArchiveContent = archiveModifyCall[1];
-			expect(updatedArchiveContent).toContain("- [x] Task with dataview onCompletion - Completed");
+			expect(updatedArchiveContent).toContain(
+				"- [x] Task with dataview onCompletion ✅ 2025-07-04 (from source.md)"
+			);
 			expect(updatedArchiveContent).not.toContain("[onCompletion::");
 			expect(updatedArchiveContent).not.toContain("archive:done.md");
 		});
@@ -230,11 +245,13 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 				line: 0,
 				completed: true,
 				status: "x",
-				originalMarkdown: '- [x] Task with JSON onCompletion 🏁 {"type": "archive", "archiveFile": "custom.md"}',
+				originalMarkdown:
+					'- [x] Task with JSON onCompletion 🏁 {"type": "archive", "archiveFile": "custom.md"}',
 				metadata: {
 					tags: [],
 					children: [],
-					onCompletion: '{"type": "archive", "archiveFile": "custom.md"}',
+					onCompletion:
+						'{"type": "archive", "archiveFile": "custom.md"}',
 				},
 			};
 
@@ -255,7 +272,8 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 				.mockReturnValueOnce({ path: "Archive/Completed Tasks.md" }); // Archive file
 
 			// Mock file contents
-			const sourceContent = '- [x] Task with JSON onCompletion 🏁 {"type": "archive", "archiveFile": "custom.md"}';
+			const sourceContent =
+				'- [x] Task with JSON onCompletion 🏁 {"type": "archive", "archiveFile": "custom.md"}';
 			const archiveContent = "# Archive\n\n## Completed Tasks\n\n";
 
 			mockVault.read
@@ -271,7 +289,9 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 			// Verify archive file contains task without JSON onCompletion metadata
 			const archiveModifyCall = mockVault.modify.mock.calls[1];
 			const updatedArchiveContent = archiveModifyCall[1];
-			expect(updatedArchiveContent).toContain("- [x] Task with JSON onCompletion - Completed");
+			expect(updatedArchiveContent).toContain(
+				"- [x] Task with JSON onCompletion ✅ 2025-07-04 (from source.md)"
+			);
 			expect(updatedArchiveContent).not.toContain("🏁");
 			expect(updatedArchiveContent).not.toContain('{"type": "archive"');
 		});
@@ -312,4 +332,4 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 			expect(result.error).toContain("Source file not found: missing.md");
 		});
 	});
-}); 
+});
