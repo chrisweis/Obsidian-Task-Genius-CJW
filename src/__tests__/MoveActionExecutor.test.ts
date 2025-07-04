@@ -263,7 +263,6 @@ describe("MoveActionExecutor", () => {
 ## Completed Tasks
 - [x] Previous completed task
 - [x] Task to move
-
 ## Other Section
 - [ ] Some other task`;
 
@@ -282,14 +281,16 @@ describe("MoveActionExecutor", () => {
 
 			expect(result.success).toBe(true);
 
-			// Verify source file was updated (task removed)
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			// Verify source file was updated (task removed) - first call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				1,
 				{ path: "current.md" },
 				expectedSourceContent
 			);
 
-			// Verify target file was updated (task added)
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			// Verify target file was updated (task added) - second call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				2,
 				{ path: "archive.md" },
 				expectedTargetContent
 			);
@@ -344,14 +345,16 @@ describe("MoveActionExecutor", () => {
 
 			expect(result.success).toBe(true);
 
-			// Verify source file was updated (task removed)
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			// Verify source file was updated (task removed) - first call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				1,
 				{ path: "current.md" },
 				expectedSourceContent
 			);
 
-			// Verify target file was updated (task added)
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			// Verify target file was updated (task added) - second call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				2,
 				{ path: "archive.md" },
 				expectedTargetContent
 			);
@@ -444,14 +447,16 @@ describe("MoveActionExecutor", () => {
 
 			expect(result.success).toBe(true);
 
-			// Verify source file was updated (task removed)
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			// Verify source file was updated (task removed) - first call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				1,
 				{ path: "current.md" },
 				expectedSourceContent
 			);
 
-			// Verify target file was updated (task added)
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			// Verify target file was updated (task added) - second call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				2,
 				{ path: "archive/completed.md" },
 				expectedTargetContent
 			);
@@ -551,14 +556,16 @@ describe("MoveActionExecutor", () => {
 
 			expect(result.success).toBe(true);
 
-			// Verify source file was updated (task removed)
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			// Verify source file was updated (task removed) - first call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				1,
 				{ path: "current.md" },
 				expectedSourceContent
 			);
 
-			// Verify target file was updated (task added)
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			// Verify target file was updated (task added) - second call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				2,
 				{ path: "archive.md" },
 				expectedTargetContent
 			);
