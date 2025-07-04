@@ -1,6 +1,7 @@
 import {
 	TimeParsingService,
 	DEFAULT_TIME_PARSING_CONFIG,
+	LineParseResult,
 } from "../utils/TimeParsingService";
 
 describe("TimeParsingService", () => {
@@ -121,7 +122,7 @@ describe("TimeParsingService", () => {
 		});
 
 		test('should parse "下周"', () => {
-			const result = service.parseTimeExpressions("下周开始新项目");
+			const result = service.parseTimeExpressions("下周完成项目");
 
 			expect(result.parsedExpressions).toHaveLength(1);
 			expect(result.parsedExpressions[0].text).toBe("下周");
@@ -355,6 +356,95 @@ describe("TimeParsingService", () => {
 
 			expect(result.parsedExpressions).toHaveLength(1);
 			expect(result.parsedExpressions[0].type).toBe("scheduled");
+		});
+	});
+
+	describe("Per-Line Processing", () => {
+		test("should parse single line correctly", () => {
+			const result = service.parseTimeExpressionsForLine("task tomorrow");
+
+			expect(result.originalLine).toBe("task tomorrow");
+			expect(result.cleanedLine).toBe("task");
+			expect(result.dueDate).toBeDefined();
+			expect(result.parsedExpressions).toHaveLength(1);
+		});
+
+		test("should parse multiple lines independently", () => {
+			const lines = [
+				"task 1 tomorrow",
+				"task 2 next week",
+				"task 3 no date",
+			];
+			const results = service.parseTimeExpressionsPerLine(lines);
+
+			expect(results).toHaveLength(3);
+
+			// First line
+			expect(results[0].originalLine).toBe("task 1 tomorrow");
+			expect(results[0].cleanedLine).toBe("task 1");
+			expect(results[0].dueDate).toBeDefined();
+
+			// Second line
+			expect(results[1].originalLine).toBe("task 2 next week");
+			expect(results[1].cleanedLine).toBe("task 2");
+			expect(results[1].dueDate).toBeDefined();
+
+			// Third line
+			expect(results[2].originalLine).toBe("task 3 no date");
+			expect(results[2].cleanedLine).toBe("task 3 no date");
+			expect(results[2].dueDate).toBeUndefined();
+		});
+
+		test("should handle different date types per line", () => {
+			const lines = [
+				"start project tomorrow",
+				"meeting scheduled for next week",
+				"deadline by Friday",
+			];
+			const results = service.parseTimeExpressionsPerLine(lines);
+
+			expect(results).toHaveLength(3);
+			expect(results[0].startDate).toBeDefined();
+			expect(results[1].scheduledDate).toBeDefined();
+			expect(results[2].dueDate).toBeDefined();
+		});
+
+		test("should preserve line structure in multiline content", () => {
+			const content = "task 1 tomorrow\ntask 2 next week\ntask 3";
+			const lines = content.split("\n");
+			const results = service.parseTimeExpressionsPerLine(lines);
+
+			expect(results).toHaveLength(3);
+
+			// Verify each line is processed independently
+			const cleanedLines = results.map((r) => r.cleanedLine);
+			const reconstructed = cleanedLines.join("\n");
+
+			expect(reconstructed).toBe("task 1\ntask 2\ntask 3");
+		});
+
+		test("should handle empty lines", () => {
+			const lines = ["task tomorrow", "", "another task"];
+			const results = service.parseTimeExpressionsPerLine(lines);
+
+			expect(results).toHaveLength(3);
+			expect(results[0].dueDate).toBeDefined();
+			expect(results[1].dueDate).toBeUndefined();
+			expect(results[1].cleanedLine).toBe("");
+			expect(results[2].dueDate).toBeUndefined();
+		});
+
+		test("should handle Chinese time expressions per line", () => {
+			const lines = ["任务1 明天", "任务2 下周", "任务3"];
+			const results = service.parseTimeExpressionsPerLine(lines);
+
+			expect(results).toHaveLength(3);
+			expect(results[0].cleanedLine).toBe("任务1");
+			expect(results[0].dueDate).toBeDefined();
+			expect(results[1].cleanedLine).toBe("任务2");
+			expect(results[1].dueDate).toBeDefined();
+			expect(results[2].cleanedLine).toBe("任务3");
+			expect(results[2].dueDate).toBeUndefined();
 		});
 	});
 });

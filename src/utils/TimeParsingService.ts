@@ -16,6 +16,21 @@ export interface ParsedTimeResult {
 	}>;
 }
 
+export interface LineParseResult {
+	originalLine: string;
+	cleanedLine: string;
+	startDate?: Date;
+	dueDate?: Date;
+	scheduledDate?: Date;
+	parsedExpressions: Array<{
+		text: string;
+		date: Date;
+		type: "start" | "due" | "scheduled";
+		index: number;
+		length: number;
+	}>;
+}
+
 export interface TimeParsingConfig {
 	enabled: boolean;
 	supportedLanguages: string[];
@@ -25,6 +40,8 @@ export interface TimeParsingConfig {
 		scheduled: string[];
 	};
 	removeOriginalText: boolean;
+	perLineProcessing: boolean; // Enable per-line processing instead of global processing
+	realTimeReplacement: boolean; // Enable real-time replacement in editor
 }
 
 export class TimeParsingService {
@@ -34,6 +51,32 @@ export class TimeParsingService {
 
 	constructor(config: TimeParsingConfig) {
 		this.config = config;
+	}
+
+	/**
+	 * Parse time expressions from a single line and return line-specific result
+	 * @param line - Input line containing potential time expressions
+	 * @returns LineParseResult with extracted dates and cleaned line
+	 */
+	parseTimeExpressionsForLine(line: string): LineParseResult {
+		const result = this.parseTimeExpressions(line);
+		return {
+			originalLine: line,
+			cleanedLine: result.cleanedText,
+			startDate: result.startDate,
+			dueDate: result.dueDate,
+			scheduledDate: result.scheduledDate,
+			parsedExpressions: result.parsedExpressions,
+		};
+	}
+
+	/**
+	 * Parse time expressions from multiple lines and return line-specific results
+	 * @param lines - Array of lines containing potential time expressions
+	 * @returns Array of LineParseResult with extracted dates and cleaned lines
+	 */
+	parseTimeExpressionsPerLine(lines: string[]): LineParseResult[] {
+		return lines.map((line) => this.parseTimeExpressionsForLine(line));
 	}
 
 	/**
@@ -111,7 +154,7 @@ export class TimeParsingService {
 						chronoModule.zh &&
 						typeof chronoModule.zh.parse === "function"
 					) {
-						const zhResult = chronoModule.zh.hant.parse(text);
+						const zhResult = chronoModule.zh.parse(text);
 						if (zhResult && zhResult.length > 0) {
 							parseResults = zhResult;
 						}
@@ -330,15 +373,59 @@ export class TimeParsingService {
 				cleanedBefore = beforeExpression.trimEnd() + " ";
 			}
 
-			// Remove leading/trailing punctuation and whitespace around time expressions
-			cleanedBefore = cleanedBefore.replace(/[,;]\s*$/, "");
-			cleanedAfter = cleanedAfter.replace(/^[,;]\s*/, "");
+			// Handle punctuation and spacing around time expressions
+			// Case 1: "word, tomorrow, word" -> "word, word"
+			// Case 2: "word tomorrow, word" -> "word word"
+			// Case 3: "word, tomorrow word" -> "word word"
+
+			// Check for punctuation before the expression
+			const beforeHasPunctuation = cleanedBefore.match(/[,;]\s*$/);
+			// Check for punctuation after the expression
+			const afterHasPunctuation = cleanedAfter.match(/^[,;]\s*/);
+
+			if (beforeHasPunctuation && afterHasPunctuation) {
+				// Both sides have punctuation: "word, tomorrow, word" -> "word, word"
+				cleanedBefore = cleanedBefore.replace(/[,;]\s*$/, "");
+				const punctuation = cleanedAfter.match(/^[,;]/)?.[0] || "";
+				cleanedAfter = cleanedAfter.replace(/^[,;]\s*/, "");
+				if (cleanedAfter.trim()) {
+					cleanedBefore += punctuation + " ";
+				}
+			} else if (beforeHasPunctuation && !afterHasPunctuation) {
+				// Only before has punctuation: "word, tomorrow word" -> "word word"
+				cleanedBefore = cleanedBefore.replace(/[,;]\s*$/, "");
+				if (cleanedAfter.trim() && !cleanedBefore.endsWith(" ")) {
+					cleanedBefore += " ";
+				}
+			} else if (!beforeHasPunctuation && afterHasPunctuation) {
+				// Only after has punctuation: "word tomorrow, word" -> "word word"
+				cleanedAfter = cleanedAfter.replace(/^[,;]\s*/, "");
+				if (
+					cleanedBefore &&
+					cleanedAfter.trim() &&
+					!cleanedBefore.endsWith(" ")
+				) {
+					cleanedBefore += " ";
+				}
+			} else {
+				// No punctuation around: "word tomorrow word" -> "word word"
+				if (
+					cleanedBefore &&
+					cleanedAfter.trim() &&
+					!cleanedBefore.endsWith(" ")
+				) {
+					cleanedBefore += " ";
+				}
+			}
 
 			cleanedText = cleanedBefore + cleanedAfter;
 		}
 
-		// Clean up multiple consecutive spaces
-		cleanedText = cleanedText.replace(/\s+/g, " ").trim();
+		// Clean up multiple consecutive spaces and tabs, but preserve newlines
+		cleanedText = cleanedText.replace(/[ \t]+/g, " ");
+
+		// Only trim whitespace at the very beginning and end, preserving internal newlines
+		cleanedText = cleanedText.replace(/^[ \t]+|[ \t]+$/g, "");
 
 		return cleanedText;
 	}
@@ -476,6 +563,7 @@ export class TimeParsingService {
 					results.push({
 						text: matchText,
 						index: matchIndex,
+						length: matchText.length,
 						start: {
 							date: () => date,
 						},
@@ -688,4 +776,6 @@ export const DEFAULT_TIME_PARSING_CONFIG: TimeParsingConfig = {
 		],
 	},
 	removeOriginalText: true,
+	perLineProcessing: true, // Enable per-line processing by default for better multiline support
+	realTimeReplacement: false, // Disable real-time replacement by default to avoid interfering with user input
 };

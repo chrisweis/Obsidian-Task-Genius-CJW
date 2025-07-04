@@ -24,6 +24,7 @@ import {
 	TimeParsingService,
 	DEFAULT_TIME_PARSING_CONFIG,
 	ParsedTimeResult,
+	LineParseResult,
 } from "../utils/TimeParsingService";
 
 interface TaskMetadata {
@@ -603,75 +604,70 @@ export class QuickCaptureModal extends Modal {
 	}
 
 	processContentWithMetadata(content: string): string {
-		// Parse time expressions from the content first
-		const timeParseResult =
-			this.timeParsingService.parseTimeExpressions(content);
-
-		// Update task metadata with parsed dates
-		if (timeParseResult.startDate && !this.taskMetadata.startDate) {
-			this.taskMetadata.startDate = timeParseResult.startDate;
-		}
-		if (timeParseResult.dueDate && !this.taskMetadata.dueDate) {
-			this.taskMetadata.dueDate = timeParseResult.dueDate;
-		}
-		if (timeParseResult.scheduledDate && !this.taskMetadata.scheduledDate) {
-			this.taskMetadata.scheduledDate = timeParseResult.scheduledDate;
-		}
-
-		// Use cleaned content (with time expressions removed)
-		const cleanedContent = timeParseResult.cleanedText;
-
-		// Split content into lines
-		const lines = cleanedContent.split("\n");
+		// Step 1: Split content into lines FIRST to preserve line structure
+		const lines = content.split("\n");
 		const processedLines: string[] = [];
 		const indentationRegex = /^(\s+)/;
 
+		// Step 2: Process each line individually
 		for (const line of lines) {
 			if (!line.trim()) {
 				processedLines.push(line);
 				continue;
 			}
 
-			// Check for indentation to identify sub-tasks
+			// Step 3: Parse time expressions for THIS line only
+			const lineParseResult =
+				this.timeParsingService.parseTimeExpressionsForLine(line);
+
+			// Step 4: Use cleaned line content (with time expressions removed from this line)
+			const cleanedLine = lineParseResult.cleanedLine;
+
+			// Step 5: Check for indentation to identify sub-tasks
 			const indentMatch = line.match(indentationRegex);
 			const isSubTask = indentMatch && indentMatch[1].length > 0;
 
-			// Check if line is already a task or a list item
-			const isTaskOrList = line
+			// Step 6: Check if line is already a task or a list item
+			const isTaskOrList = cleanedLine
 				.trim()
 				.match(/^(-|\d+\.|\*|\+)(\s+\[[^\]]+\])?/);
 
 			if (isSubTask) {
-				// Don't add metadata to sub-tasks
-				processedLines.push(line);
+				// Don't add metadata to sub-tasks, but still clean time expressions
+				// Preserve the original indentation from the original line
+				const originalIndent = indentMatch[1];
+				const cleanedContent = cleanedLine.trim();
+				processedLines.push(originalIndent + cleanedContent);
 			} else if (isTaskOrList) {
-				// If it's a task, add metadata
-				if (line.trim().match(/^(-|\d+\.|\*|\+)\s+\[[^\]]+\]/)) {
-					processedLines.push(this.addMetadataToTask(line));
+				// If it's a task, add line-specific metadata
+				if (cleanedLine.trim().match(/^(-|\d+\.|\*|\+)\s+\[[^\]]+\]/)) {
+					processedLines.push(
+						this.addLineMetadataToTask(cleanedLine, lineParseResult)
+					);
 				} else {
-					// If it's a list item but not a task, convert to task and add metadata
-					const listPrefix = line
+					// If it's a list item but not a task, convert to task and add line-specific metadata
+					const listPrefix = cleanedLine
 						.trim()
 						.match(/^(-|\d+\.|\*|\+)/)?.[0];
-					const restOfLine = line
+					const restOfLine = cleanedLine
 						.trim()
 						.substring(listPrefix?.length || 0)
 						.trim();
 
 					// Use the specified status or default to empty checkbox
 					const statusMark = this.taskMetadata.status || " ";
+					const taskLine = `${listPrefix} [${statusMark}] ${restOfLine}`;
 					processedLines.push(
-						this.addMetadataToTask(
-							`${listPrefix} [${statusMark}] ${restOfLine}`
-						)
+						this.addLineMetadataToTask(taskLine, lineParseResult)
 					);
 				}
 			} else {
-				// Not a list item or task, convert to task and add metadata
+				// Not a list item or task, convert to task and add line-specific metadata
 				// Use the specified status or default to empty checkbox
 				const statusMark = this.taskMetadata.status || " ";
+				const taskLine = `- [${statusMark}] ${cleanedLine}`;
 				processedLines.push(
-					this.addMetadataToTask(`- [${statusMark}] ${line}`)
+					this.addLineMetadataToTask(taskLine, lineParseResult)
 				);
 			}
 		}
@@ -684,6 +680,167 @@ export class QuickCaptureModal extends Modal {
 		if (!metadata) return taskLine;
 
 		return `${taskLine} ${metadata}`.trim();
+	}
+
+	/**
+	 * Add line-specific metadata to a task line
+	 * @param taskLine - The task line to add metadata to
+	 * @param lineParseResult - Parse result for this specific line
+	 * @returns Task line with line-specific metadata
+	 */
+	addLineMetadataToTask(
+		taskLine: string,
+		lineParseResult: LineParseResult
+	): string {
+		const metadata = this.generateLineMetadata(lineParseResult);
+		if (!metadata) return taskLine;
+
+		return `${taskLine} ${metadata}`.trim();
+	}
+
+	/**
+	 * Generate metadata string for a specific line using line-specific dates
+	 * @param lineParseResult - Parse result for this specific line
+	 * @returns Metadata string for this line
+	 */
+	generateLineMetadata(lineParseResult: LineParseResult): string {
+		const metadata: string[] = [];
+		const useDataviewFormat = this.preferMetadataFormat === "dataview";
+
+		// Use line-specific dates first, fall back to global metadata
+		const startDate =
+			lineParseResult.startDate || this.taskMetadata.startDate;
+		const dueDate = lineParseResult.dueDate || this.taskMetadata.dueDate;
+		const scheduledDate =
+			lineParseResult.scheduledDate || this.taskMetadata.scheduledDate;
+
+		// Format dates to strings in YYYY-MM-DD format
+		if (startDate) {
+			const formattedStartDate = this.formatDate(startDate);
+			metadata.push(
+				useDataviewFormat
+					? `[start:: ${formattedStartDate}]`
+					: `🛫 ${formattedStartDate}`
+			);
+		}
+
+		if (dueDate) {
+			const formattedDueDate = this.formatDate(dueDate);
+			metadata.push(
+				useDataviewFormat
+					? `[due:: ${formattedDueDate}]`
+					: `📅 ${formattedDueDate}`
+			);
+		}
+
+		if (scheduledDate) {
+			const formattedScheduledDate = this.formatDate(scheduledDate);
+			metadata.push(
+				useDataviewFormat
+					? `[scheduled:: ${formattedScheduledDate}]`
+					: `⏳ ${formattedScheduledDate}`
+			);
+		}
+
+		// Add priority if set (use global metadata)
+		if (this.taskMetadata.priority) {
+			if (useDataviewFormat) {
+				// 使用 dataview 格式
+				let priorityValue: string | number;
+				switch (this.taskMetadata.priority) {
+					case 5:
+						priorityValue = "highest";
+						break;
+					case 4:
+						priorityValue = "high";
+						break;
+					case 3:
+						priorityValue = "medium";
+						break;
+					case 2:
+						priorityValue = "low";
+						break;
+					case 1:
+						priorityValue = "lowest";
+						break;
+					default:
+						priorityValue = this.taskMetadata.priority;
+				}
+				metadata.push(`[priority:: ${priorityValue}]`);
+			} else {
+				// 使用 emoji 格式
+				let priorityMarker = "";
+				switch (this.taskMetadata.priority) {
+					case 5:
+						priorityMarker = "🔺";
+						break; // Highest
+					case 4:
+						priorityMarker = "⏫";
+						break; // High
+					case 3:
+						priorityMarker = "🔼";
+						break; // Medium
+					case 2:
+						priorityMarker = "🔽";
+						break; // Low
+					case 1:
+						priorityMarker = "⏬";
+						break; // Lowest
+				}
+				if (priorityMarker) {
+					metadata.push(priorityMarker);
+				}
+			}
+		}
+
+		// Add project if set (use global metadata)
+		if (this.taskMetadata.project) {
+			if (useDataviewFormat) {
+				const projectPrefix =
+					this.plugin.settings.projectTagPrefix?.[
+						this.plugin.settings.preferMetadataFormat
+					] || "project";
+				metadata.push(
+					`[${projectPrefix}:: ${this.taskMetadata.project}]`
+				);
+			} else {
+				const projectPrefix =
+					this.plugin.settings.projectTagPrefix?.[
+						this.plugin.settings.preferMetadataFormat
+					] || "project";
+				metadata.push(`#${projectPrefix}/${this.taskMetadata.project}`);
+			}
+		}
+
+		// Add context if set (use global metadata)
+		if (this.taskMetadata.context) {
+			if (useDataviewFormat) {
+				const contextPrefix =
+					this.plugin.settings.contextTagPrefix?.[
+						this.plugin.settings.preferMetadataFormat
+					] || "context";
+				metadata.push(
+					`[${contextPrefix}:: ${this.taskMetadata.context}]`
+				);
+			} else {
+				const contextPrefix =
+					this.plugin.settings.contextTagPrefix?.[
+						this.plugin.settings.preferMetadataFormat
+					] || "@";
+				metadata.push(`${contextPrefix}${this.taskMetadata.context}`);
+			}
+		}
+
+		// Add recurrence if set (use global metadata)
+		if (this.taskMetadata.recurrence) {
+			metadata.push(
+				useDataviewFormat
+					? `[repeat:: ${this.taskMetadata.recurrence}]`
+					: `🔁 ${this.taskMetadata.recurrence}`
+			);
+		}
+
+		return metadata.join(" ");
 	}
 
 	generateMetadataString(): string {
@@ -861,41 +1018,51 @@ export class QuickCaptureModal extends Modal {
 	private performRealTimeParsing(): void {
 		if (!this.capturedContent) return;
 
-		const timeParseResult = this.timeParsingService.parseTimeExpressions(
-			this.capturedContent
-		);
+		// Parse each line separately to get per-line results
+		const lines = this.capturedContent.split("\n");
+		const lineParseResults =
+			this.timeParsingService.parseTimeExpressionsPerLine(lines);
 
-		// Update parsed time expressions display
-		// this.updateParsedTimeDisplay(timeParseResult);
+		// Aggregate dates from all lines to update global metadata (only if not manually set)
+		let aggregatedStartDate: Date | undefined;
+		let aggregatedDueDate: Date | undefined;
+		let aggregatedScheduledDate: Date | undefined;
 
-		// Update task metadata with parsed dates (only if not manually set)
-		if (timeParseResult.startDate && !this.isManuallySet("startDate")) {
-			this.taskMetadata.startDate = timeParseResult.startDate;
+		// Find the first occurrence of each date type across all lines
+		for (const lineResult of lineParseResults) {
+			if (lineResult.startDate && !aggregatedStartDate) {
+				aggregatedStartDate = lineResult.startDate;
+			}
+			if (lineResult.dueDate && !aggregatedDueDate) {
+				aggregatedDueDate = lineResult.dueDate;
+			}
+			if (lineResult.scheduledDate && !aggregatedScheduledDate) {
+				aggregatedScheduledDate = lineResult.scheduledDate;
+			}
+		}
+
+		// Update task metadata with aggregated dates (only if not manually set)
+		if (aggregatedStartDate && !this.isManuallySet("startDate")) {
+			this.taskMetadata.startDate = aggregatedStartDate;
 			// Update UI input field
 			if (this.startDateInput) {
-				this.startDateInput.value = this.formatDate(
-					timeParseResult.startDate
-				);
+				this.startDateInput.value =
+					this.formatDate(aggregatedStartDate);
 			}
 		}
-		if (timeParseResult.dueDate && !this.isManuallySet("dueDate")) {
-			this.taskMetadata.dueDate = timeParseResult.dueDate;
+		if (aggregatedDueDate && !this.isManuallySet("dueDate")) {
+			this.taskMetadata.dueDate = aggregatedDueDate;
 			// Update UI input field
 			if (this.dueDateInput) {
-				this.dueDateInput.value = this.formatDate(
-					timeParseResult.dueDate
-				);
+				this.dueDateInput.value = this.formatDate(aggregatedDueDate);
 			}
 		}
-		if (
-			timeParseResult.scheduledDate &&
-			!this.isManuallySet("scheduledDate")
-		) {
-			this.taskMetadata.scheduledDate = timeParseResult.scheduledDate;
+		if (aggregatedScheduledDate && !this.isManuallySet("scheduledDate")) {
+			this.taskMetadata.scheduledDate = aggregatedScheduledDate;
 			// Update UI input field
 			if (this.scheduledDateInput) {
 				this.scheduledDateInput.value = this.formatDate(
-					timeParseResult.scheduledDate
+					aggregatedScheduledDate
 				);
 			}
 		}

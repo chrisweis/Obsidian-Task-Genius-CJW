@@ -189,6 +189,153 @@ describe("QuickCaptureModal Time Parsing Integration", () => {
 		});
 	});
 
+	describe("Multiline Processing Integration", () => {
+		test("should preserve line structure in multiline content", () => {
+			const content = "Task 1 tomorrow\nTask 2 next week\nTask 3 no date";
+			const result = modal.processContentWithMetadata(content);
+
+			// Should split into separate lines
+			const lines = result.split("\n");
+			expect(lines).toHaveLength(3);
+
+			// Each line should be a task
+			lines.forEach((line) => {
+				expect(line).toMatch(/^- \[ \]/);
+			});
+		});
+
+		test("should handle different dates per line", () => {
+			const content = "Task 1 tomorrow\nTask 2 next week\nTask 3";
+			const result = modal.processContentWithMetadata(content);
+
+			const lines = result.split("\n");
+			expect(lines).toHaveLength(3);
+
+			// First line should have a date
+			expect(lines[0]).toContain("📅");
+			expect(lines[0]).not.toContain("tomorrow");
+
+			// Second line should have a different date
+			expect(lines[1]).toContain("📅");
+			expect(lines[1]).not.toContain("next week");
+
+			// Third line should have no date
+			expect(lines[2]).not.toContain("📅");
+			expect(lines[2]).toContain("Task 3");
+		});
+
+		test("should handle mixed Chinese and English time expressions", () => {
+			const content = "任务1 明天\nTask 2 tomorrow\n任务3";
+			const result = modal.processContentWithMetadata(content);
+
+			const lines = result.split("\n");
+			expect(lines).toHaveLength(3);
+
+			// First line (Chinese)
+			expect(lines[0]).toContain("📅");
+			expect(lines[0]).not.toContain("明天");
+			expect(lines[0]).toContain("任务1");
+
+			// Second line (English)
+			expect(lines[1]).toContain("📅");
+			expect(lines[1]).not.toContain("tomorrow");
+			expect(lines[1]).toContain("Task 2");
+
+			// Third line (no date)
+			expect(lines[2]).not.toContain("📅");
+			expect(lines[2]).toContain("任务3");
+		});
+
+		test("should handle existing task format with different dates", () => {
+			const content =
+				"- [ ] Task 1 tomorrow\n- [x] Task 2 next week\n- Task 3";
+			const result = modal.processContentWithMetadata(content);
+
+			const lines = result.split("\n");
+			expect(lines).toHaveLength(3);
+
+			// First line should preserve checkbox and add date
+			expect(lines[0]).toMatch(/^- \[ \]/);
+			expect(lines[0]).toContain("📅");
+			expect(lines[0]).not.toContain("tomorrow");
+
+			// Second line should preserve completed status and add date
+			expect(lines[1]).toMatch(/^- \[x\]/);
+			expect(lines[1]).toContain("📅");
+			expect(lines[1]).not.toContain("next week");
+
+			// Third line should be converted to task format
+			expect(lines[2]).toMatch(/^- \[ \]/);
+			expect(lines[2]).not.toContain("📅");
+		});
+
+		test("should handle indented subtasks correctly", () => {
+			const content =
+				"Main task tomorrow\n  Subtask 1 next week\n  Subtask 2";
+			const result = modal.processContentWithMetadata(content);
+
+			const lines = result.split("\n");
+			expect(lines).toHaveLength(3);
+
+			// Main task should have date
+			expect(lines[0]).toContain("📅");
+			expect(lines[0]).not.toContain("tomorrow");
+
+			// Subtasks should preserve indentation but still clean time expressions
+			expect(lines[1]).toMatch(/^\s+/); // Should start with whitespace
+			expect(lines[1]).not.toContain("next week");
+
+			expect(lines[2]).toMatch(/^\s+/); // Should start with whitespace
+			expect(lines[2]).toContain("Subtask 2");
+		});
+
+		test("should handle empty lines in multiline content", () => {
+			const content = "Task 1 tomorrow\n\nTask 2 next week\n\n";
+			const result = modal.processContentWithMetadata(content);
+
+			const lines = result.split("\n");
+			expect(lines).toHaveLength(5);
+
+			// First line should be a task with date
+			expect(lines[0]).toMatch(/^- \[ \]/);
+			expect(lines[0]).toContain("📅");
+
+			// Second line should be empty
+			expect(lines[1]).toBe("");
+
+			// Third line should be a task with date
+			expect(lines[2]).toMatch(/^- \[ \]/);
+			expect(lines[2]).toContain("📅");
+
+			// Fourth and fifth lines should be empty
+			expect(lines[3]).toBe("");
+			expect(lines[4]).toBe("");
+		});
+
+		test("should handle global metadata combined with line-specific dates", () => {
+			// Set global metadata
+			modal.taskMetadata.priority = 3;
+			modal.taskMetadata.project = "TestProject";
+
+			const content = "Task 1 tomorrow\nTask 2 next week";
+			const result = modal.processContentWithMetadata(content);
+
+			const lines = result.split("\n");
+			expect(lines).toHaveLength(2);
+
+			// Both lines should have global metadata (priority, project) plus line-specific dates
+			lines.forEach((line) => {
+				expect(line).toContain("🔼"); // Priority medium
+				expect(line).toContain("#project/TestProject");
+				expect(line).toContain("📅"); // Line-specific date
+			});
+
+			// Clean up
+			modal.taskMetadata.priority = undefined;
+			modal.taskMetadata.project = undefined;
+		});
+	});
+
 	describe("Manual Override Functionality", () => {
 		test("should track manually set dates", () => {
 			modal.markAsManuallySet("dueDate");
