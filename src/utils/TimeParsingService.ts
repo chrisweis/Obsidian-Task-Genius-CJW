@@ -29,6 +29,8 @@ export interface TimeParsingConfig {
 
 export class TimeParsingService {
 	private config: TimeParsingConfig;
+	private parseCache: Map<string, ParsedTimeResult> = new Map();
+	private maxCacheSize: number = 100;
 
 	constructor(config: TimeParsingConfig) {
 		this.config = config;
@@ -48,6 +50,12 @@ export class TimeParsingService {
 			};
 		}
 
+		// Check cache first
+		const cacheKey = this.generateCacheKey(text);
+		if (this.parseCache.has(cacheKey)) {
+			return this.parseCache.get(cacheKey)!;
+		}
+
 		const result: ParsedTimeResult = {
 			originalText: text,
 			cleanedText: text,
@@ -55,52 +63,172 @@ export class TimeParsingService {
 		};
 
 		try {
+			// Validate input
+			if (typeof text !== "string") {
+				console.warn(
+					"TimeParsingService: Invalid input type, expected string"
+				);
+				return result;
+			}
+
+			if (text.trim().length === 0) {
+				return result;
+			}
+
 			// Parse all date expressions using chrono-node
 			// For better Chinese support, we can use specific locale parsers
 			const chronoModule = chrono;
-			let parseResults = chronoModule.parse(text);
+			let parseResults;
+			try {
+				parseResults = chronoModule.parse(text);
+			} catch (chronoError) {
+				console.warn(
+					"TimeParsingService: Chrono parsing failed:",
+					chronoError
+				);
+				parseResults = [];
+			}
 
 			// If no results found with default parser and text contains Chinese characters,
-			// try with Chinese-specific parsing patterns
+			// try with different locale parsers as fallback
 			if (parseResults.length === 0 && /[\u4e00-\u9fff]/.test(text)) {
-				// Try parsing with common Chinese date patterns
-				parseResults = this.parseChineseTimeExpressions(text);
+				try {
+					// Try Chinese traditional (zh.hant) first if available
+					if (
+						chronoModule.zh &&
+						chronoModule.zh.hant &&
+						typeof chronoModule.zh.hant.parse === "function"
+					) {
+						const zhHantResult = chronoModule.zh.parse(text);
+						if (zhHantResult && zhHantResult.length > 0) {
+							parseResults = zhHantResult;
+						}
+					}
+
+					// If still no results, try simplified Chinese (zh) if available
+					if (
+						parseResults.length === 0 &&
+						chronoModule.zh &&
+						typeof chronoModule.zh.parse === "function"
+					) {
+						const zhResult = chronoModule.zh.hant.parse(text);
+						if (zhResult && zhResult.length > 0) {
+							parseResults = zhResult;
+						}
+					}
+
+					// If still no results, fallback to custom Chinese parsing
+					if (parseResults.length === 0) {
+						parseResults = this.parseChineseTimeExpressions(text);
+					}
+				} catch (chineseParsingError) {
+					console.warn(
+						"TimeParsingService: Chinese parsing failed:",
+						chineseParsingError
+					);
+					// Fallback to custom Chinese parsing
+					try {
+						parseResults = this.parseChineseTimeExpressions(text);
+					} catch (customParsingError) {
+						console.warn(
+							"TimeParsingService: Custom Chinese parsing failed:",
+							customParsingError
+						);
+						parseResults = [];
+					}
+				}
 			}
 
 			for (const parseResult of parseResults) {
-				const expressionText = parseResult.text;
-				const date = parseResult.start.date();
-				const index = parseResult.index;
-				const length = expressionText.length;
+				try {
+					// Validate parse result structure
+					if (
+						!parseResult ||
+						!parseResult.text ||
+						!parseResult.start
+					) {
+						console.warn(
+							"TimeParsingService: Invalid parse result structure:",
+							parseResult
+						);
+						continue;
+					}
 
-				// Determine the type of date based on keywords in the surrounding context
-				const type = this.determineTimeType(
-					text,
-					expressionText,
-					index
-				);
+					const expressionText = parseResult.text;
+					let date;
+					try {
+						date = parseResult.start.date();
+					} catch (dateError) {
+						console.warn(
+							"TimeParsingService: Failed to extract date from parse result:",
+							dateError
+						);
+						continue;
+					}
 
-				const expression = {
-					text: expressionText,
-					date: date,
-					type: type,
-					index: index,
-					length: length,
-				};
+					// Validate the extracted date
+					if (!date || isNaN(date.getTime())) {
+						console.warn(
+							"TimeParsingService: Invalid date extracted:",
+							date
+						);
+						continue;
+					}
 
-				result.parsedExpressions.push(expression);
+					const index = parseResult.index ?? 0;
+					const length = expressionText.length;
 
-				// Set the appropriate date field based on type
-				switch (type) {
-					case "start":
-						if (!result.startDate) result.startDate = date;
-						break;
-					case "due":
-						if (!result.dueDate) result.dueDate = date;
-						break;
-					case "scheduled":
-						if (!result.scheduledDate) result.scheduledDate = date;
-						break;
+					// Determine the type of date based on keywords in the surrounding context
+					let type: "start" | "due" | "scheduled";
+					try {
+						type = this.determineTimeType(
+							text,
+							expressionText,
+							index
+						);
+					} catch (typeError) {
+						console.warn(
+							"TimeParsingService: Failed to determine time type:",
+							typeError
+						);
+						type = "due"; // Default fallback
+					}
+
+					const expression = {
+						text: expressionText,
+						date: date,
+						type: type,
+						index: index,
+						length: length,
+					};
+
+					result.parsedExpressions.push(expression);
+
+					// Set the appropriate date field based on type
+					switch (type) {
+						case "start":
+							if (!result.startDate) result.startDate = date;
+							break;
+						case "due":
+							if (!result.dueDate) result.dueDate = date;
+							break;
+						case "scheduled":
+							if (!result.scheduledDate)
+								result.scheduledDate = date;
+							break;
+						default:
+							console.warn(
+								"TimeParsingService: Unknown date type:",
+								type
+							);
+							break;
+					}
+				} catch (expressionError) {
+					console.warn(
+						"TimeParsingService: Error processing expression:",
+						expressionError
+					);
+					continue;
 				}
 			}
 
@@ -112,9 +240,48 @@ export class TimeParsingService {
 		} catch (error) {
 			console.warn("Time parsing error:", error);
 			// Return original text if parsing fails
+		} finally {
+			// Cache the result for future use
+			this.cacheResult(cacheKey, result);
 		}
 
 		return result;
+	}
+
+	/**
+	 * Generate a cache key for the given text and current configuration
+	 */
+	private generateCacheKey(text: string): string {
+		// Include configuration hash to invalidate cache when config changes
+		const configHash = JSON.stringify({
+			enabled: this.config.enabled,
+			removeOriginalText: this.config.removeOriginalText,
+			supportedLanguages: this.config.supportedLanguages,
+			dateKeywords: this.config.dateKeywords,
+		});
+		return `${text}|${configHash}`;
+	}
+
+	/**
+	 * Cache the parsing result with LRU eviction
+	 */
+	private cacheResult(key: string, result: ParsedTimeResult): void {
+		// Implement LRU cache eviction
+		if (this.parseCache.size >= this.maxCacheSize) {
+			// Remove the oldest entry (first entry in Map)
+			const firstKey = this.parseCache.keys().next().value;
+			if (firstKey) {
+				this.parseCache.delete(firstKey);
+			}
+		}
+		this.parseCache.set(key, result);
+	}
+
+	/**
+	 * Clear the parsing cache
+	 */
+	clearCache(): void {
+		this.parseCache.clear();
 	}
 
 	/**
@@ -252,33 +419,63 @@ export class TimeParsingService {
 	 */
 	private parseChineseTimeExpressions(text: string): any[] {
 		const results: any[] = [];
+		const usedIndices = new Set<number>(); // Track used positions to avoid conflicts
 
-		// Common Chinese date patterns
+		// Common Chinese date patterns - ordered from most specific to most general
 		const chinesePatterns = [
+			// 下周一, 下周二, ... 下周日 (支持星期和礼拜两种表达) - MUST come before general patterns
+			/(?:下|上|这)(?:周|礼拜|星期)(?:一|二|三|四|五|六|日|天)/g,
+			// 数字+天后, 数字+周后, 数字+月后
+			/(\d+)[天周月]后/g,
+			// 数字+天内, 数字+周内, 数字+月内
+			/(\d+)[天周月]内/g,
+			// 星期一, 星期二, ... 星期日
+			/星期(?:一|二|三|四|五|六|日|天)/g,
+			// 周一, 周二, ... 周日
+			/周(?:一|二|三|四|五|六|日|天)/g,
+			// 礼拜一, 礼拜二, ... 礼拜日
+			/礼拜(?:一|二|三|四|五|六|日|天)/g,
 			// 明天, 后天, 昨天, 前天
 			/明天|后天|昨天|前天/g,
-			// 下周, 上周, 这周
+			// 下周, 上周, 这周 (general week patterns - MUST come after specific weekday patterns)
 			/下周|上周|这周/g,
 			// 下个月, 上个月, 这个月
 			/下个?月|上个?月|这个?月/g,
 			// 明年, 去年, 今年
 			/明年|去年|今年/g,
-			// 数字+天后, 数字+周后, 数字+月后
-			/(\d+)[天周月]后/g,
-			// 数字+天内, 数字+周内, 数字+月内
-			/(\d+)[天周月]内/g,
 		];
 
 		for (const pattern of chinesePatterns) {
 			let match;
 			while ((match = pattern.exec(text)) !== null) {
 				const matchText = match[0];
+				const matchIndex = match.index;
+				const matchEnd = matchIndex + matchText.length;
+
+				// Check if this position is already used by a more specific pattern
+				let isOverlapping = false;
+				for (let i = matchIndex; i < matchEnd; i++) {
+					if (usedIndices.has(i)) {
+						isOverlapping = true;
+						break;
+					}
+				}
+
+				if (isOverlapping) {
+					continue; // Skip this match as it overlaps with a more specific one
+				}
+
 				const date = this.parseChineseDate(matchText);
 
 				if (date) {
+					// Mark this range as used
+					for (let i = matchIndex; i < matchEnd; i++) {
+						usedIndices.add(i);
+					}
+
 					results.push({
 						text: matchText,
-						index: match.index,
+						index: matchIndex,
 						start: {
 							date: () => date,
 						},
@@ -302,6 +499,67 @@ export class TimeParsingService {
 			now.getMonth(),
 			now.getDate()
 		);
+
+		// Helper function to get weekday number (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+		const getWeekdayNumber = (dayStr: string): number => {
+			const dayMap: { [key: string]: number } = {
+				日: 0,
+				天: 0,
+				一: 1,
+				二: 2,
+				三: 3,
+				四: 4,
+				五: 5,
+				六: 6,
+			};
+			return dayMap[dayStr] ?? -1;
+		};
+
+		// Helper function to get date for specific weekday
+		const getDateForWeekday = (
+			targetWeekday: number,
+			weekOffset: number = 0
+		): Date => {
+			const currentWeekday = today.getDay();
+			let daysToAdd = targetWeekday - currentWeekday;
+
+			// Add week offset
+			daysToAdd += weekOffset * 7;
+
+			// If we're looking for the same weekday in current week and it's already passed,
+			// move to next week (except for "这周" which should stay in current week)
+			if (weekOffset === 0 && daysToAdd <= 0) {
+				daysToAdd += 7;
+			}
+
+			return new Date(today.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+		};
+
+		// Handle weekday expressions
+		const weekdayMatch = expression.match(
+			/(?:(下|上|这)?(?:周|礼拜|星期)?)([一二三四五六日天])/
+		);
+		if (weekdayMatch) {
+			const [, weekPrefix, dayStr] = weekdayMatch;
+			const targetWeekday = getWeekdayNumber(dayStr);
+
+			if (targetWeekday !== -1) {
+				let weekOffset = 0;
+
+				if (weekPrefix === "下") {
+					weekOffset = 1; // Next week
+				} else if (weekPrefix === "上") {
+					weekOffset = -1; // Last week
+				} else if (weekPrefix === "这") {
+					weekOffset = 0; // This week
+				} else {
+					// No prefix (like "星期一", "周一", "礼拜一"), assume next occurrence
+					weekOffset = 0;
+				}
+
+				return getDateForWeekday(targetWeekday, weekOffset);
+			}
+		}
 
 		switch (expression) {
 			case "明天":

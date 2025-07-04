@@ -99,6 +99,12 @@ export class QuickCaptureModal extends Modal {
 	dueDateInput?: HTMLInputElement;
 	scheduledDateInput?: HTMLInputElement;
 
+	// Reference to parsed time expressions display
+	parsedTimeDisplayEl?: HTMLElement;
+
+	// Debounce timer for real-time parsing
+	private parseDebounceTimer?: number;
+
 	constructor(
 		app: App,
 		plugin: TaskProgressBarPlugin,
@@ -129,7 +135,7 @@ export class QuickCaptureModal extends Modal {
 
 		// Initialize time parsing service
 		this.timeParsingService = new TimeParsingService(
-			DEFAULT_TIME_PARSING_CONFIG
+			this.plugin.settings.timeParsing || DEFAULT_TIME_PARSING_CONFIG
 		);
 
 		if (metadata) {
@@ -265,6 +271,20 @@ export class QuickCaptureModal extends Modal {
 			text: t("Task Properties"),
 			cls: "quick-capture-section-title",
 		});
+
+		// // Parsed time expressions display
+		// const parsedTimeContainer = configPanel.createDiv({
+		// 	cls: "quick-capture-parsed-time",
+		// });
+
+		// const parsedTimeTitle = parsedTimeContainer.createDiv({
+		// 	text: t("Parsed Time Expressions"),
+		// 	cls: "quick-capture-section-subtitle",
+		// });
+
+		// this.parsedTimeDisplayEl = parsedTimeContainer.createDiv({
+		// 	cls: "quick-capture-parsed-time-display",
+		// });
 
 		const statusComponent = new StatusComponent(
 			this.plugin,
@@ -497,56 +517,17 @@ export class QuickCaptureModal extends Modal {
 						// Handle changes if needed
 						this.capturedContent = this.markdownEditor?.value || "";
 
-						// Parse time expressions in real-time
-						if (this.capturedContent) {
-							const timeParseResult =
-								this.timeParsingService.parseTimeExpressions(
-									this.capturedContent
-								);
-
-							// Update task metadata with parsed dates (only if not manually set)
-							if (
-								timeParseResult.startDate &&
-								!this.isManuallySet("startDate")
-							) {
-								this.taskMetadata.startDate =
-									timeParseResult.startDate;
-								// Update UI input field
-								if (this.startDateInput) {
-									this.startDateInput.value = this.formatDate(
-										timeParseResult.startDate
-									);
-								}
-							}
-							if (
-								timeParseResult.dueDate &&
-								!this.isManuallySet("dueDate")
-							) {
-								this.taskMetadata.dueDate =
-									timeParseResult.dueDate;
-								// Update UI input field
-								if (this.dueDateInput) {
-									this.dueDateInput.value = this.formatDate(
-										timeParseResult.dueDate
-									);
-								}
-							}
-							if (
-								timeParseResult.scheduledDate &&
-								!this.isManuallySet("scheduledDate")
-							) {
-								this.taskMetadata.scheduledDate =
-									timeParseResult.scheduledDate;
-								// Update UI input field
-								if (this.scheduledDateInput) {
-									this.scheduledDateInput.value =
-										this.formatDate(
-											timeParseResult.scheduledDate
-										);
-								}
-							}
+						// Clear previous debounce timer
+						if (this.parseDebounceTimer) {
+							clearTimeout(this.parseDebounceTimer);
 						}
 
+						// Debounce time parsing to avoid excessive parsing on rapid typing
+						this.parseDebounceTimer = window.setTimeout(() => {
+							this.performRealTimeParsing();
+						}, 300); // 300ms debounce
+
+						// Update preview immediately for better responsiveness
 						if (this.updatePreview) {
 							this.updatePreview();
 						}
@@ -874,8 +855,104 @@ export class QuickCaptureModal extends Modal {
 		this.taskMetadata.manuallySet[field] = true;
 	}
 
+	/**
+	 * Perform real-time parsing with debouncing
+	 */
+	private performRealTimeParsing(): void {
+		if (!this.capturedContent) return;
+
+		const timeParseResult = this.timeParsingService.parseTimeExpressions(
+			this.capturedContent
+		);
+
+		// Update parsed time expressions display
+		// this.updateParsedTimeDisplay(timeParseResult);
+
+		// Update task metadata with parsed dates (only if not manually set)
+		if (timeParseResult.startDate && !this.isManuallySet("startDate")) {
+			this.taskMetadata.startDate = timeParseResult.startDate;
+			// Update UI input field
+			if (this.startDateInput) {
+				this.startDateInput.value = this.formatDate(
+					timeParseResult.startDate
+				);
+			}
+		}
+		if (timeParseResult.dueDate && !this.isManuallySet("dueDate")) {
+			this.taskMetadata.dueDate = timeParseResult.dueDate;
+			// Update UI input field
+			if (this.dueDateInput) {
+				this.dueDateInput.value = this.formatDate(
+					timeParseResult.dueDate
+				);
+			}
+		}
+		if (
+			timeParseResult.scheduledDate &&
+			!this.isManuallySet("scheduledDate")
+		) {
+			this.taskMetadata.scheduledDate = timeParseResult.scheduledDate;
+			// Update UI input field
+			if (this.scheduledDateInput) {
+				this.scheduledDateInput.value = this.formatDate(
+					timeParseResult.scheduledDate
+				);
+			}
+		}
+	}
+
+	/**
+	 * Update the parsed time expressions display
+	 * @param parseResult - The result from time parsing
+	 */
+	// updateParsedTimeDisplay(parseResult: ParsedTimeResult): void {
+	// 	if (!this.parsedTimeDisplayEl) return;
+
+	// 	this.parsedTimeDisplayEl.empty();
+
+	// 	if (parseResult.parsedExpressions.length === 0) {
+	// 		this.parsedTimeDisplayEl.createDiv({
+	// 			text: t("No time expressions found"),
+	// 			cls: "quick-capture-no-expressions",
+	// 		});
+	// 		return;
+	// 	}
+
+	// 	parseResult.parsedExpressions.forEach((expression, index) => {
+	// 		const expressionEl = this.parsedTimeDisplayEl!.createDiv({
+	// 			cls: "quick-capture-expression-item",
+	// 		});
+
+	// 		const textEl = expressionEl.createSpan({
+	// 			text: `"${expression.text}"`,
+	// 			cls: "quick-capture-expression-text",
+	// 		});
+
+	// 		const arrowEl = expressionEl.createSpan({
+	// 			text: " → ",
+	// 			cls: "quick-capture-expression-arrow",
+	// 		});
+
+	// 		const dateEl = expressionEl.createSpan({
+	// 			text: this.formatDate(expression.date),
+	// 			cls: "quick-capture-expression-date",
+	// 		});
+
+	// 		const typeEl = expressionEl.createSpan({
+	// 			text: ` (${expression.type})`,
+	// 			cls: `quick-capture-expression-type quick-capture-type-${expression.type}`,
+	// 		});
+	// 	});
+	// }
+
 	onClose() {
 		const { contentEl } = this;
+
+		// Clear debounce timer
+		if (this.parseDebounceTimer) {
+			clearTimeout(this.parseDebounceTimer);
+			this.parseDebounceTimer = undefined;
+		}
 
 		// Clean up the markdown editor
 		if (this.markdownEditor) {
