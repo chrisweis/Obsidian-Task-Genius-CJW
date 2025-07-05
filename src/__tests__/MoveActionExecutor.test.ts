@@ -172,6 +172,16 @@ describe("MoveActionExecutor", () => {
 		});
 
 		it("should create target file if it does not exist", async () => {
+			const taskWithCorrectLine = {
+				...mockTask,
+				line: 2, // Correct line for 3-line sourceContent
+			};
+
+			const contextWithCorrectLine = {
+				...mockContext,
+				task: taskWithCorrectLine,
+			};
+
 			const sourceContent = `# Current Tasks
 
 - [x] Task to move`;
@@ -190,7 +200,10 @@ describe("MoveActionExecutor", () => {
 			});
 			mockVault.modify.mockResolvedValue(undefined);
 
-			const result = await executor.execute(mockContext, config);
+			const result = await executor.execute(
+				contextWithCorrectLine,
+				config
+			);
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe(
@@ -217,6 +230,16 @@ describe("MoveActionExecutor", () => {
 				targetSection: "Completed Tasks",
 			};
 
+			const taskWithCorrectLine = {
+				...mockTask,
+				line: 0, // Correct line for 1-line sourceContent
+			};
+
+			const contextWithCorrectLine = {
+				...mockContext,
+				task: taskWithCorrectLine,
+			};
+
 			const sourceContent = `- [x] Task to move`;
 
 			const targetContent = `# Archive
@@ -230,6 +253,8 @@ describe("MoveActionExecutor", () => {
 ## Other Section
 - [ ] Some other task`;
 
+			const expectedSourceContent = ``; // Source file should be empty after task removal
+
 			const expectedTargetContent = `# Archive
 
 ## In Progress Tasks
@@ -238,7 +263,6 @@ describe("MoveActionExecutor", () => {
 ## Completed Tasks
 - [x] Previous completed task
 - [x] Task to move
-
 ## Other Section
 - [ ] Some other task`;
 
@@ -251,12 +275,22 @@ describe("MoveActionExecutor", () => {
 			mockVault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(
-				mockContext,
+				contextWithCorrectLine,
 				configWithSection
 			);
 
 			expect(result.success).toBe(true);
-			expect(mockVault.modify).toHaveBeenCalledWith(
+
+			// Verify source file was updated (task removed) - first call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				1,
+				{ path: "current.md" },
+				expectedSourceContent
+			);
+
+			// Verify target file was updated (task added) - second call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				2,
 				{ path: "archive.md" },
 				expectedTargetContent
 			);
@@ -269,12 +303,24 @@ describe("MoveActionExecutor", () => {
 				targetSection: "New Section",
 			};
 
+			const taskWithCorrectLine = {
+				...mockTask,
+				line: 0, // Correct line for 1-line sourceContent
+			};
+
+			const contextWithCorrectLine = {
+				...mockContext,
+				task: taskWithCorrectLine,
+			};
+
 			const sourceContent = `- [x] Task to move`;
 
 			const targetContent = `# Archive
 
 ## Existing Section
 - [x] Existing task`;
+
+			const expectedSourceContent = ``; // Source file should be empty after task removal
 
 			const expectedTargetContent = `# Archive
 
@@ -293,12 +339,22 @@ describe("MoveActionExecutor", () => {
 			mockVault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(
-				mockContext,
+				contextWithCorrectLine,
 				configWithSection
 			);
 
 			expect(result.success).toBe(true);
-			expect(mockVault.modify).toHaveBeenCalledWith(
+
+			// Verify source file was updated (task removed) - first call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				1,
+				{ path: "current.md" },
+				expectedSourceContent
+			);
+
+			// Verify target file was updated (task added) - second call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				2,
 				{ path: "archive.md" },
 				expectedTargetContent
 			);
@@ -318,7 +374,7 @@ describe("MoveActionExecutor", () => {
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toBe("Task not found in source file");
+			expect(result.error).toBe("Task line not found in source file");
 		});
 
 		it("should handle source file not found", async () => {
@@ -331,6 +387,16 @@ describe("MoveActionExecutor", () => {
 		});
 
 		it("should handle target file creation error", async () => {
+			const taskWithCorrectLine = {
+				...mockTask,
+				line: 0, // Correct line for 1-line sourceContent
+			};
+
+			const contextWithCorrectLine = {
+				...mockContext,
+				task: taskWithCorrectLine,
+			};
+
 			const sourceContent = `- [x] Task to move`;
 
 			mockVault.getFileByPath
@@ -339,16 +405,22 @@ describe("MoveActionExecutor", () => {
 			mockVault.read.mockResolvedValueOnce(sourceContent);
 			mockVault.create.mockRejectedValue(new Error("Permission denied"));
 
-			const result = await executor.execute(mockContext, config);
+			const result = await executor.execute(
+				contextWithCorrectLine,
+				config
+			);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toBe("Failed to move task: Permission denied");
+			expect(result.error).toBe(
+				"Failed to create target file: archive/completed.md"
+			);
 		});
 
 		it("should preserve task metadata and formatting", async () => {
 			const taskWithMetadata = {
 				...mockTask,
 				content: "Task with metadata #tag @context 📅 2024-01-01",
+				line: 0, // Correct line for 1-line sourceContent
 			};
 
 			const contextWithMetadata = {
@@ -358,6 +430,7 @@ describe("MoveActionExecutor", () => {
 
 			const sourceContent = `- [x] Task with metadata #tag @context 📅 2024-01-01`;
 			const targetContent = `# Archive`;
+			const expectedSourceContent = ``; // Source file should be empty after task removal
 			const expectedTargetContent = `# Archive
 
 - [x] Task with metadata #tag @context 📅 2024-01-01`;
@@ -373,7 +446,17 @@ describe("MoveActionExecutor", () => {
 			const result = await executor.execute(contextWithMetadata, config);
 
 			expect(result.success).toBe(true);
-			expect(mockVault.modify).toHaveBeenCalledWith(
+
+			// Verify source file was updated (task removed) - first call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				1,
+				{ path: "current.md" },
+				expectedSourceContent
+			);
+
+			// Verify target file was updated (task added) - second call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				2,
 				{ path: "archive/completed.md" },
 				expectedTargetContent
 			);
@@ -389,7 +472,7 @@ describe("MoveActionExecutor", () => {
 			const result = await executor.execute(mockContext, invalidConfig);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toBe("Invalid move configuration");
+			expect(result.error).toBe("Invalid configuration");
 		});
 	});
 
@@ -435,11 +518,27 @@ describe("MoveActionExecutor", () => {
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(false);
-			expect(result.error).toBe("Task not found in source file");
+			expect(result.error).toBe("Task line not found in source file");
 		});
 
 		it("should handle empty target file", async () => {
+			const config: OnCompletionMoveConfig = {
+				type: OnCompletionActionType.MOVE,
+				targetFile: "archive.md",
+			};
+
+			const taskWithCorrectLine = {
+				...mockTask,
+				line: 0, // Correct line for 1-line sourceContent
+			};
+
+			const contextWithCorrectLine = {
+				...mockContext,
+				task: taskWithCorrectLine,
+			};
+
 			const sourceContent = `- [x] Task to move`;
+			const expectedSourceContent = ``; // Source file should be empty after task removal
 			const expectedTargetContent = `- [x] Task to move`;
 
 			mockVault.getFileByPath
@@ -450,16 +549,34 @@ describe("MoveActionExecutor", () => {
 				.mockResolvedValueOnce(""); // Empty target file
 			mockVault.modify.mockResolvedValue(undefined);
 
-			const result = await executor.execute(mockContext, config);
+			const result = await executor.execute(
+				contextWithCorrectLine,
+				config
+			);
 
 			expect(result.success).toBe(true);
-			expect(mockVault.modify).toHaveBeenCalledWith(
+
+			// Verify source file was updated (task removed) - first call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				1,
+				{ path: "current.md" },
+				expectedSourceContent
+			);
+
+			// Verify target file was updated (task added) - second call
+			expect(mockVault.modify).toHaveBeenNthCalledWith(
+				2,
 				{ path: "archive.md" },
 				expectedTargetContent
 			);
 		});
 
 		it("should handle nested task structure", async () => {
+			const config: OnCompletionMoveConfig = {
+				type: OnCompletionActionType.MOVE,
+				targetFile: "archive.md",
+			};
+
 			const sourceContent = `# Project
 
 - [ ] Parent task

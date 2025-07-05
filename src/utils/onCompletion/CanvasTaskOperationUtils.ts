@@ -3,9 +3,9 @@
  * Provides common functionality for Canvas task manipulation across different executors
  */
 
-import { TFile, App } from 'obsidian';
-import { Task, CanvasTaskMetadata } from '../../types/task';
-import { CanvasData, CanvasTextData } from '../../types/canvas';
+import { TFile, App } from "obsidian";
+import { Task, CanvasTaskMetadata } from "../../types/task";
+import { CanvasData, CanvasTextData } from "../../types/canvas";
 
 export interface CanvasOperationResult {
 	success: boolean;
@@ -56,14 +56,19 @@ export class CanvasTaskOperationUtils {
 					const nodeWithSection = canvasData.nodes.find(
 						(node): node is CanvasTextData =>
 							node.type === "text" &&
-							node.text.toLowerCase().includes(targetSection.toLowerCase())
+							node.text
+								.toLowerCase()
+								.includes(targetSection.toLowerCase())
 					);
 
 					if (nodeWithSection) {
 						targetNode = nodeWithSection;
 					} else {
 						// Create new node with section
-						targetNode = this.createNewTextNode(canvasData, targetSection);
+						targetNode = this.createNewTextNode(
+							canvasData,
+							targetSection
+						);
 						canvasData.nodes.push(targetNode);
 					}
 				} else {
@@ -75,7 +80,7 @@ export class CanvasTaskOperationUtils {
 
 			return { canvasData, textNode: targetNode };
 		} catch (error) {
-			console.error('Error finding/creating target text node:', error);
+			console.error("Error finding/creating target text node:", error);
 			return null;
 		}
 	}
@@ -89,17 +94,32 @@ export class CanvasTaskOperationUtils {
 		targetSection?: string
 	): CanvasOperationResult {
 		try {
-			const lines = textNode.text.split('\n');
+			const lines = textNode.text.split("\n");
 
 			if (targetSection) {
 				// Find the target section and insert after it
-				const sectionIndex = this.findSectionIndex(lines, targetSection);
+				const sectionIndex = this.findSectionIndex(
+					lines,
+					targetSection
+				);
 				if (sectionIndex >= 0) {
-					lines.splice(sectionIndex + 1, 0, taskContent);
+					// Find the appropriate insertion point after the section header
+					let insertIndex = sectionIndex + 1;
+
+					// Skip any empty lines after the section header
+					while (
+						insertIndex < lines.length &&
+						lines[insertIndex].trim() === ""
+					) {
+						insertIndex++;
+					}
+
+					// Insert the task content
+					lines.splice(insertIndex, 0, taskContent);
 				} else {
 					// Section not found, create it and add the task
 					if (textNode.text.trim()) {
-						lines.push('', `## ${targetSection}`, taskContent);
+						lines.push("", `## ${targetSection}`, taskContent);
 					} else {
 						lines.splice(0, 1, `## ${targetSection}`, taskContent);
 					}
@@ -114,13 +134,13 @@ export class CanvasTaskOperationUtils {
 			}
 
 			// Update the text node content
-			textNode.text = lines.join('\n');
+			textNode.text = lines.join("\n");
 
 			return { success: true };
 		} catch (error) {
 			return {
 				success: false,
-				error: `Error inserting task into section: ${error.message}`
+				error: `Error inserting task into section: ${error.message}`,
 			};
 		}
 	}
@@ -128,12 +148,15 @@ export class CanvasTaskOperationUtils {
 	/**
 	 * Format a task for Canvas storage
 	 */
-	public formatTaskForCanvas(task: Task, preserveMetadata: boolean = true): string {
+	public formatTaskForCanvas(
+		task: Task,
+		preserveMetadata: boolean = true
+	): string {
 		if (task.originalMarkdown && preserveMetadata) {
 			return task.originalMarkdown;
 		}
 
-		const status = task.completed ? 'x' : ' ';
+		const status = task.completed ? "x" : " ";
 		let formatted = `- [${status}] ${task.content}`;
 
 		if (preserveMetadata && task.metadata) {
@@ -141,13 +164,19 @@ export class CanvasTaskOperationUtils {
 			const metadata: string[] = [];
 
 			if (task.metadata.dueDate) {
-				const dueDate = new Date(task.metadata.dueDate).toISOString().split('T')[0];
+				const dueDate = new Date(task.metadata.dueDate)
+					.toISOString()
+					.split("T")[0];
 				metadata.push(`📅 ${dueDate}`);
 			}
 
 			if (task.metadata.priority && task.metadata.priority > 0) {
-				const priorityEmoji = this.getPriorityEmoji(task.metadata.priority);
-				metadata.push(priorityEmoji);
+				const priorityEmoji = this.getPriorityEmoji(
+					task.metadata.priority
+				);
+				if (priorityEmoji) {
+					metadata.push(priorityEmoji);
+				}
 			}
 
 			if (task.metadata.project) {
@@ -159,7 +188,7 @@ export class CanvasTaskOperationUtils {
 			}
 
 			if (metadata.length > 0) {
-				formatted += ` ${metadata.join(' ')}`;
+				formatted += ` ${metadata.join(" ")}`;
 			}
 		}
 
@@ -169,9 +198,14 @@ export class CanvasTaskOperationUtils {
 	/**
 	 * Create a new text node for Canvas
 	 */
-	private createNewTextNode(canvasData: CanvasData, initialContent?: string): CanvasTextData {
+	private createNewTextNode(
+		canvasData: CanvasData,
+		initialContent?: string
+	): CanvasTextData {
 		// Generate a unique ID for the new node
-		const nodeId = `task-node-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+		const nodeId = `task-node-${Date.now()}-${Math.random()
+			.toString(36)
+			.substring(2, 11)}`;
 
 		// Find a good position for the new node (avoid overlaps)
 		const existingNodes = canvasData.nodes;
@@ -180,20 +214,22 @@ export class CanvasTaskOperationUtils {
 
 		if (existingNodes.length > 0) {
 			// Position new node to the right of existing nodes
-			const maxX = Math.max(...existingNodes.map(node => node.x + node.width));
+			const maxX = Math.max(
+				...existingNodes.map((node) => node.x + node.width)
+			);
 			x = maxX + 50;
 		}
 
-		const text = initialContent ? `## ${initialContent}\n\n` : '';
+		const text = initialContent ? `## ${initialContent}\n\n` : "";
 
 		return {
-			type: 'text',
+			type: "text",
 			id: nodeId,
 			x,
 			y,
 			width: 250,
 			height: 60,
-			text
+			text,
 		};
 	}
 
@@ -204,7 +240,10 @@ export class CanvasTaskOperationUtils {
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i].trim();
 			// Check for markdown headings
-			if (line.startsWith('#') && line.toLowerCase().includes(sectionName.toLowerCase())) {
+			if (
+				line.startsWith("#") &&
+				line.toLowerCase().includes(sectionName.toLowerCase())
+			) {
 				return i;
 			}
 		}
@@ -216,25 +255,34 @@ export class CanvasTaskOperationUtils {
 	 */
 	private getPriorityEmoji(priority: number): string {
 		switch (priority) {
-			case 1: return '🔽'; // Low
-			case 2: return ''; // Normal (no emoji)
-			case 3: return '🔼'; // Medium
-			case 4: return '⏫'; // High
-			case 5: return '🔺'; // Highest
-			default: return '';
+			case 1:
+				return "🔽"; // Low
+			case 2:
+				return ""; // Normal (no emoji)
+			case 3:
+				return "🔼"; // Medium
+			case 4:
+				return "⏫"; // High
+			case 5:
+				return "🔺"; // Highest
+			default:
+				return "";
 		}
 	}
 
 	/**
 	 * Save Canvas data to file
 	 */
-	public async saveCanvasData(filePath: string, canvasData: CanvasData): Promise<CanvasOperationResult> {
+	public async saveCanvasData(
+		filePath: string,
+		canvasData: CanvasData
+	): Promise<CanvasOperationResult> {
 		try {
 			const file = this.app.vault.getFileByPath(filePath);
 			if (!file) {
 				return {
 					success: false,
-					error: `Canvas file not found: ${filePath}`
+					error: `Canvas file not found: ${filePath}`,
 				};
 			}
 
@@ -243,12 +291,12 @@ export class CanvasTaskOperationUtils {
 
 			return {
 				success: true,
-				updatedContent
+				updatedContent,
 			};
 		} catch (error) {
 			return {
 				success: false,
-				error: `Error saving Canvas data: ${error.message}`
+				error: `Error saving Canvas data: ${error.message}`,
 			};
 		}
 	}

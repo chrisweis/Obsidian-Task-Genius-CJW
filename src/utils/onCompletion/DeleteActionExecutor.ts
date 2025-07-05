@@ -53,7 +53,7 @@ export class DeleteActionExecutor extends BaseActionExecutor {
 		try {
 			// Get the file containing the task
 			const file = app.vault.getFileByPath(task.filePath);
-			if (!(file instanceof TFile)) {
+			if (!file) {
 				return this.createErrorResult(
 					`File not found: ${task.filePath}`
 				);
@@ -63,20 +63,48 @@ export class DeleteActionExecutor extends BaseActionExecutor {
 			const content = await app.vault.read(file);
 			const lines = content.split("\n");
 
-			// Find and remove the task line
-			if (task.line !== undefined && task.line < lines.length) {
+			// Find the task line to delete
+			let taskLineIndex = -1;
+
+			// First try to find by originalMarkdown if available
+			if (task.originalMarkdown) {
+				taskLineIndex = lines.findIndex(
+					(line) => line.trim() === task.originalMarkdown?.trim()
+				);
+			}
+
+			// If not found by originalMarkdown, try by line number
+			if (
+				taskLineIndex === -1 &&
+				task.line !== undefined &&
+				task.line < lines.length
+			) {
+				taskLineIndex = task.line;
+			}
+
+			// If still not found, try by lineNumber property (for backward compatibility)
+			if (
+				taskLineIndex === -1 &&
+				(task as any).lineNumber !== undefined &&
+				(task as any).lineNumber < lines.length
+			) {
+				taskLineIndex = (task as any).lineNumber;
+			}
+
+			if (taskLineIndex !== -1) {
 				// Remove the line containing the task
-				lines.splice(task.line, 1);
+				lines.splice(taskLineIndex, 1);
+
+				// Clean up consecutive empty lines that might result from deletion
+				this.cleanupConsecutiveEmptyLines(lines);
 
 				// Write the updated content back to the file
 				const updatedContent = lines.join("\n");
 				await app.vault.modify(file, updatedContent);
 
-				return this.createSuccessResult(
-					`Task deleted from ${task.filePath}`
-				);
+				return this.createSuccessResult("Task deleted successfully");
 			} else {
-				return this.createErrorResult("Task line not found in file");
+				return this.createErrorResult("Task not found in file");
 			}
 		} catch (error) {
 			return this.createErrorResult(
@@ -91,5 +119,17 @@ export class DeleteActionExecutor extends BaseActionExecutor {
 
 	public getDescription(config: OnCompletionConfig): string {
 		return "Delete the completed task from the file";
+	}
+
+	/**
+	 * Clean up consecutive empty lines, keeping at most one empty line between content
+	 */
+	private cleanupConsecutiveEmptyLines(lines: string[]): void {
+		for (let i = lines.length - 1; i >= 1; i--) {
+			// If current line and previous line are both empty, remove current line
+			if (lines[i].trim() === "" && lines[i - 1].trim() === "") {
+				lines.splice(i, 1);
+			}
+		}
 	}
 }
