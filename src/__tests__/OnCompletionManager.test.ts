@@ -407,9 +407,12 @@ describe("OnCompletionManager", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "delete",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown: "- [x] Test task 🏁 delete",
 			};
 		});
 
@@ -443,7 +446,9 @@ describe("OnCompletionManager", () => {
 		});
 
 		it("should handle executor not found", async () => {
-			const config = { type: "unknown" as OnCompletionActionType };
+			const config = {
+				type: "unknown" as OnCompletionActionType,
+			} as OnCompletionConfig;
 
 			const result = await manager.executeOnCompletion(mockTask, config);
 
@@ -485,9 +490,12 @@ describe("OnCompletionManager", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "delete",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown: "- [x] Test task 🏁 delete",
 			};
 
 			// Mock the executeOnCompletion method
@@ -517,7 +525,11 @@ describe("OnCompletionManager", () => {
 		it("should handle task completion with invalid onCompletion config", async () => {
 			const taskWithInvalidConfig = {
 				...mockTask,
-				metadata: { onCompletion: "invalid-action" },
+				metadata: {
+					onCompletion: "invalid-action",
+					tags: [],
+					children: [],
+				},
 			};
 
 			const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
@@ -541,7 +553,7 @@ describe("OnCompletionManager", () => {
 			// 恢复原始 console.error
 			const originalError = console.error;
 			console.error = jest.fn();
-			const consoleSpy = console.error as jest.Mock;
+			const consoleSpy = console.error;
 
 			await manager["handleTaskCompleted"](mockTask);
 
@@ -564,9 +576,13 @@ describe("OnCompletionManager", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "complete:related-task-1,related-task-2",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown:
+					"- [x] Integration test task 🏁 complete:related-task-1,related-task-2",
 			};
 
 			const mockExecutor = manager["executors"].get(
@@ -604,9 +620,13 @@ describe("OnCompletionManager", () => {
 				metadata: {
 					onCompletion:
 						'{"type": "move", "targetFile": "archive.md", "targetSection": "Completed"}',
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown:
+					"- [x] JSON test task 🏁 move:archive.md#Completed",
 			};
 
 			const mockExecutor = manager["executors"].get(

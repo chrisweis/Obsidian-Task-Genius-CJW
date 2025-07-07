@@ -32,7 +32,7 @@ const mockTaskManager = {
 const mockPlugin = {
 	...createMockPlugin(),
 	taskManager: mockTaskManager,
-};
+} as any;
 
 // Mock vault
 const mockVault = {
@@ -46,7 +46,7 @@ const mockVault = {
 const mockApp = {
 	...createMockApp(),
 	vault: mockVault,
-};
+} as any;
 
 describe("MoveActionExecutor - Canvas Tasks", () => {
 	let executor: MoveActionExecutor;

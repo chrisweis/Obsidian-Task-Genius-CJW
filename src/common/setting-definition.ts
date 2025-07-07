@@ -1311,6 +1311,8 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			],
 		},
 		removeOriginalText: true,
+		perLineProcessing: true,
+		realTimeReplacement: true,
 	},
 };
 

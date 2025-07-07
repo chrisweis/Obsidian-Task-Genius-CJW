@@ -41,9 +41,12 @@ describe("CompleteActionExecutor", () => {
 			status: "x",
 			metadata: {
 				onCompletion: "complete:related-1,related-2",
+				tags: [],
+				children: [],
 			},
-			lineNumber: 1,
 			filePath: "test.md",
+			line: 1,
+			originalMarkdown: "- [x] Main task",
 		};
 
 		mockContext = {
@@ -109,9 +112,13 @@ describe("CompleteActionExecutor", () => {
 				content: "Related task 1",
 				completed: false,
 				status: " ",
-				metadata: {},
-				lineNumber: 2,
+				metadata: {
+					tags: [],
+					children: [],
+				},
+				line: 2,
 				filePath: "test.md",
+				originalMarkdown: "- [ ] Related task 1",
 			};
 
 			const relatedTask2: Task = {
@@ -119,9 +126,13 @@ describe("CompleteActionExecutor", () => {
 				content: "Related task 2",
 				completed: false,
 				status: " ",
-				metadata: {},
-				lineNumber: 3,
+				metadata: {
+					tags: [],
+					children: [],
+				},
+				line: 3,
 				filePath: "test.md",
+				originalMarkdown: "- [ ] Related task 2",
 			};
 
 			mockTaskManager.getTaskById
@@ -164,9 +175,13 @@ describe("CompleteActionExecutor", () => {
 				content: "Related task 1",
 				completed: true, // Already completed
 				status: "x",
-				metadata: {},
-				lineNumber: 2,
+				metadata: {
+					tags: [],
+					children: [],
+				},
+				line: 2,
 				filePath: "test.md",
+				originalMarkdown: "- [x] Related task 1",
 			};
 
 			const relatedTask2: Task = {
@@ -174,9 +189,13 @@ describe("CompleteActionExecutor", () => {
 				content: "Related task 2",
 				completed: false,
 				status: " ",
-				metadata: {},
-				lineNumber: 3,
+				metadata: {
+					tags: [],
+					children: [],
+				},
+				line: 3,
 				filePath: "test.md",
+				originalMarkdown: "- [ ] Related task 2",
 			};
 
 			mockTaskManager.getTaskById
@@ -233,9 +252,13 @@ describe("CompleteActionExecutor", () => {
 				content: "Related task 1",
 				completed: false,
 				status: " ",
-				metadata: {},
-				lineNumber: 2,
+				metadata: {
+					tags: [],
+					children: [],
+				},
+				line: 2,
 				filePath: "test.md",
+				originalMarkdown: "- [ ] Related task 1",
 			};
 
 			const relatedTask2: Task = {
@@ -243,9 +266,13 @@ describe("CompleteActionExecutor", () => {
 				content: "Related task 2",
 				completed: false,
 				status: " ",
-				metadata: {},
-				lineNumber: 3,
+				metadata: {
+					tags: [],
+					children: [],
+				},
+				line: 3,
 				filePath: "test.md",
+				originalMarkdown: "- [ ] Related task 2",
 			};
 
 			mockTaskManager.getTaskById
@@ -304,9 +331,12 @@ describe("CompleteActionExecutor", () => {
 					priority: 3,
 					project: "test-project",
 					tags: ["important"],
+					children: [],
 				},
-				lineNumber: 2,
+				line: 2,
 				filePath: "test.md",
+				originalMarkdown:
+					"- [ ] Related task with metadata 🔼 #important #project/test-project",
 			};
 
 			const singleTaskConfig: OnCompletionCompleteConfig = {
@@ -415,9 +445,13 @@ describe("CompleteActionExecutor", () => {
 				content: "Single related task",
 				completed: false,
 				status: " ",
-				metadata: {},
-				lineNumber: 2,
+				metadata: {
+					tags: [],
+					children: [],
+				},
+				line: 2,
 				filePath: "test.md",
+				originalMarkdown: "- [ ] Single related task",
 			};
 
 			mockTaskManager.getTaskById.mockReturnValueOnce(relatedTask);

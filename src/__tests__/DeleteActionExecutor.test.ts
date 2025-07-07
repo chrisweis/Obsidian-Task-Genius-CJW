@@ -33,6 +33,8 @@ describe("DeleteActionExecutor", () => {
 	let executor: DeleteActionExecutor;
 	let mockTask: Task;
 	let mockContext: OnCompletionExecutionContext;
+	let mockPlugin: any;
+	let mockApp: any;
 
 	beforeEach(() => {
 		executor = new DeleteActionExecutor();
@@ -42,17 +44,24 @@ describe("DeleteActionExecutor", () => {
 			content: "Test task to delete",
 			completed: true,
 			status: "x",
+			originalMarkdown: "- [x] Test task to delete",
 			metadata: {
+				tags: [],
+				children: [],
 				onCompletion: "delete",
 			},
-			lineNumber: 5,
+			line: 5,
 			filePath: "test.md",
 		};
 
+		// Create fresh mock instances for each test
+		mockPlugin = createMockPlugin();
+		mockApp = createMockApp();
+
 		mockContext = {
 			task: mockTask,
-			plugin: createMockPlugin(),
-			app: mockApp as any,
+			plugin: mockPlugin,
+			app: mockApp,
 		};
 
 		// Reset mocks
@@ -105,17 +114,17 @@ describe("DeleteActionExecutor", () => {
 			// Add originalMarkdown to the task for proper matching
 			mockTask.originalMarkdown = "- [x] Test task to delete";
 
-			mockVault.getFileByPath.mockReturnValue({
+			mockApp.vault.getFileByPath.mockReturnValue({
 				path: "test.md",
 			});
-			mockVault.read.mockResolvedValue(fileContent);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.read.mockResolvedValue(fileContent);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe("Task deleted successfully");
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			expect(mockApp.vault.modify).toHaveBeenCalledWith(
 				{ path: "test.md" },
 				expectedContent
 			);
@@ -130,34 +139,34 @@ describe("DeleteActionExecutor", () => {
 			// Set originalMarkdown that won't be found in the file
 			mockTask.originalMarkdown = "- [x] Test task to delete";
 
-			mockVault.getFileByPath.mockReturnValue({
+			mockApp.vault.getFileByPath.mockReturnValue({
 				path: "test.md",
 			});
-			mockVault.read.mockResolvedValue(fileContent);
+			mockApp.vault.read.mockResolvedValue(fileContent);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(false);
 			expect(result.error).toBe("Task not found in file");
-			expect(mockVault.modify).not.toHaveBeenCalled();
+			expect(mockApp.vault.modify).not.toHaveBeenCalled();
 		});
 
 		it("should handle file not found", async () => {
-			mockVault.getFileByPath.mockReturnValue(null);
+			mockApp.vault.getFileByPath.mockReturnValue(null);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(false);
 			expect(result.error).toBe("File not found: test.md");
-			expect(mockVault.read).not.toHaveBeenCalled();
-			expect(mockVault.modify).not.toHaveBeenCalled();
+			expect(mockApp.vault.read).not.toHaveBeenCalled();
+			expect(mockApp.vault.modify).not.toHaveBeenCalled();
 		});
 
 		it("should handle file read error", async () => {
-			mockVault.getFileByPath.mockReturnValue({
+			mockApp.vault.getFileByPath.mockReturnValue({
 				path: "test.md",
 			});
-			mockVault.read.mockRejectedValue(
+			mockApp.vault.read.mockRejectedValue(
 				new Error("Read permission denied")
 			);
 
@@ -167,7 +176,7 @@ describe("DeleteActionExecutor", () => {
 			expect(result.error).toBe(
 				"Failed to delete task: Read permission denied"
 			);
-			expect(mockVault.modify).not.toHaveBeenCalled();
+			expect(mockApp.vault.modify).not.toHaveBeenCalled();
 		});
 
 		it("should handle file write error", async () => {
@@ -175,11 +184,11 @@ describe("DeleteActionExecutor", () => {
 
 			mockTask.originalMarkdown = "- [x] Test task to delete";
 
-			mockVault.getFileByPath.mockReturnValue({
+			mockApp.vault.getFileByPath.mockReturnValue({
 				path: "test.md",
 			});
-			mockVault.read.mockResolvedValue(fileContent);
-			mockVault.modify.mockRejectedValue(
+			mockApp.vault.read.mockResolvedValue(fileContent);
+			mockApp.vault.modify.mockRejectedValue(
 				new Error("Write permission denied")
 			);
 
@@ -214,11 +223,11 @@ describe("DeleteActionExecutor", () => {
 
 - [ ] Normal task`;
 
-			mockVault.getFileByPath.mockReturnValue({
+			mockApp.vault.getFileByPath.mockReturnValue({
 				path: "test.md",
 			});
-			mockVault.read.mockResolvedValue(fileContent);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.read.mockResolvedValue(fileContent);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(
 				contextWithSpecialTask,
@@ -227,7 +236,7 @@ describe("DeleteActionExecutor", () => {
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe("Task deleted successfully");
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			expect(mockApp.vault.modify).toHaveBeenCalledWith(
 				{ path: "test.md" },
 				expectedContent
 			);
@@ -249,17 +258,17 @@ describe("DeleteActionExecutor", () => {
 
 			mockTask.originalMarkdown = "  - [x] Test task to delete";
 
-			mockVault.getFileByPath.mockReturnValue({
+			mockApp.vault.getFileByPath.mockReturnValue({
 				path: "test.md",
 			});
-			mockVault.read.mockResolvedValue(fileContent);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.read.mockResolvedValue(fileContent);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe("Task deleted successfully");
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			expect(mockApp.vault.modify).toHaveBeenCalledWith(
 				{ path: "test.md" },
 				expectedContent
 			);
@@ -290,16 +299,16 @@ More text here.`;
 
 			mockTask.originalMarkdown = "- [x] Test task to delete";
 
-			mockVault.getFileByPath.mockReturnValue({
+			mockApp.vault.getFileByPath.mockReturnValue({
 				path: "test.md",
 			});
-			mockVault.read.mockResolvedValue(fileContent);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.read.mockResolvedValue(fileContent);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(true);
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			expect(mockApp.vault.modify).toHaveBeenCalledWith(
 				{ path: "test.md" },
 				expectedContent
 			);
@@ -316,7 +325,7 @@ More text here.`;
 
 			expect(result.success).toBe(false);
 			expect(result.error).toBe("Invalid configuration");
-			expect(mockVault.getFileByPath).not.toHaveBeenCalled();
+			expect(mockApp.vault.getFileByPath).not.toHaveBeenCalled();
 		});
 	});
 
@@ -340,10 +349,10 @@ More text here.`;
 
 			mockTask.originalMarkdown = "- [x] Test task to delete";
 
-			mockVault.getFileByPath.mockReturnValue({
+			mockApp.vault.getFileByPath.mockReturnValue({
 				path: "test.md",
 			});
-			mockVault.read.mockResolvedValue("");
+			mockApp.vault.read.mockResolvedValue("");
 
 			const result = await executor.execute(mockContext, config);
 
@@ -361,16 +370,16 @@ More text here.`;
 
 			mockTask.originalMarkdown = "- [x] Test task to delete";
 
-			mockVault.getFileByPath.mockReturnValue({
+			mockApp.vault.getFileByPath.mockReturnValue({
 				path: "test.md",
 			});
-			mockVault.read.mockResolvedValue(fileContent);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.read.mockResolvedValue(fileContent);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(true);
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			expect(mockApp.vault.modify).toHaveBeenCalledWith(
 				{ path: "test.md" },
 				expectedContent
 			);
@@ -390,16 +399,16 @@ More text here.`;
 
 			mockTask.originalMarkdown = "- [x] Test task to delete";
 
-			mockVault.getFileByPath.mockReturnValue({
+			mockApp.vault.getFileByPath.mockReturnValue({
 				path: "test.md",
 			});
-			mockVault.read.mockResolvedValue(fileContent);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.read.mockResolvedValue(fileContent);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, config);
 
 			expect(result.success).toBe(true);
-			expect(mockVault.modify).toHaveBeenCalledWith(
+			expect(mockApp.vault.modify).toHaveBeenCalledWith(
 				{ path: "test.md" },
 				expectedContent
 			);

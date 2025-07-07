@@ -109,9 +109,13 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "delete",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown:
+					"- [x] Task to delete on completion 🏁 delete",
 			};
 
 			// Simulate task completion event
@@ -139,9 +143,13 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "complete:subtask-1,subtask-2,subtask-3",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "project.md",
+				originalMarkdown:
+					"- [x] Main task that completes others 🏁 complete:subtask-1,subtask-2,subtask-3",
 			};
 
 			await manager["handleTaskCompleted"](task);
@@ -171,9 +179,13 @@ describe("OnCompletion Integration Tests", () => {
 				metadata: {
 					onCompletion:
 						'{"type": "move", "targetFile": "archive/completed.md", "targetSection": "Done"}',
+					tags: [],
+					children: [],
 				},
-				lineNumber: 5,
+				line: 5,
 				filePath: "current.md",
+				originalMarkdown:
+					"- [x] Task to move to archive 🏁 move:archive/completed.md#Done",
 			};
 
 			await manager["handleTaskCompleted"](task);
@@ -203,9 +215,13 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "archive:old-tasks.md",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 3,
+				line: 3,
 				filePath: "active.md",
+				originalMarkdown:
+					"- [x] Task to archive 🏁 archive:old-tasks.md",
 			};
 
 			await manager["handleTaskCompleted"](task);
@@ -234,9 +250,13 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "duplicate:templates/recurring.md",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 2,
+				line: 2,
 				filePath: "weekly.md",
+				originalMarkdown:
+					"- [x] Template task to duplicate 🏁 duplicate:templates/recurring.md",
 			};
 
 			await manager["handleTaskCompleted"](task);
@@ -265,9 +285,12 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "keep",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "important.md",
+				originalMarkdown: "- [x] Task to keep in place 🏁 keep",
 			};
 
 			await manager["handleTaskCompleted"](task);
@@ -293,9 +316,13 @@ describe("OnCompletion Integration Tests", () => {
 				content: "Normal task without onCompletion",
 				completed: true,
 				status: "x",
-				metadata: {},
-				lineNumber: 1,
+				metadata: {
+					tags: [],
+					children: [],
+				},
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown: "- [x] Normal task without onCompletion",
 			};
 
 			await manager["handleTaskCompleted"](task);
@@ -314,15 +341,19 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "invalid-action-type",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown:
+					"- [x] Task with invalid onCompletion 🏁 invalid-action-type",
 			};
 
 			// 恢复原始 console.warn
 			const originalWarn = console.warn;
 			console.warn = jest.fn();
-			const consoleSpy = console.warn as jest.Mock;
+			const consoleSpy = console.warn;
 
 			await manager["handleTaskCompleted"](task);
 
@@ -343,9 +374,13 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "delete",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown:
+					"- [x] Task that will fail to delete 🏁 delete",
 			};
 
 			// Mock executeOnCompletion to throw an error
@@ -357,7 +392,7 @@ describe("OnCompletion Integration Tests", () => {
 			// 恢复原始 console.error
 			const originalError = console.error;
 			console.error = jest.fn();
-			const consoleSpy = console.error as jest.Mock;
+			const consoleSpy = console.error;
 
 			await manager["handleTaskCompleted"](task);
 
@@ -381,9 +416,12 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "delete",
+					tags: [],
+					children: [],
 				},
-				lineNumber: i + 1,
+				line: i + 1,
 				filePath: "test.md",
+				originalMarkdown: `- [x] Task ${i} 🏁 delete`,
 			}));
 
 			// Process all tasks simultaneously
@@ -404,27 +442,43 @@ describe("OnCompletion Integration Tests", () => {
 					content: "Delete task",
 					completed: true,
 					status: "x",
-					metadata: { onCompletion: "delete" },
-					lineNumber: 1,
+					metadata: {
+						onCompletion: "delete",
+						tags: [],
+						children: [],
+					},
+					line: 1,
 					filePath: "test.md",
+					originalMarkdown: "- [x] Delete task 🏁 delete",
 				},
 				{
 					id: "move-task",
 					content: "Move task",
 					completed: true,
 					status: "x",
-					metadata: { onCompletion: "move:archive.md" },
-					lineNumber: 2,
+					metadata: {
+						onCompletion: "move:archive.md",
+						tags: [],
+						children: [],
+					},
+					line: 2,
 					filePath: "test.md",
+					originalMarkdown: "- [x] Move task 🏁 move:archive.md",
 				},
 				{
 					id: "complete-task",
 					content: "Complete task",
 					completed: true,
 					status: "x",
-					metadata: { onCompletion: "complete:related-1,related-2" },
-					lineNumber: 3,
+					metadata: {
+						onCompletion: "complete:related-1,related-2",
+						tags: [],
+						children: [],
+					},
+					line: 3,
 					filePath: "test.md",
+					originalMarkdown:
+						"- [x] Complete task 🏁 complete:related-1,related-2",
 				},
 			];
 
@@ -452,15 +506,19 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: '{"type": "move", "targetFile": "archive.md"', // Missing closing brace
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown:
+					"- [x] Task with malformed JSON 🏁 move:archive.md",
 			};
 
 			// 恢复原始 console.warn
 			const originalWarn = console.warn;
 			console.warn = jest.fn();
-			const consoleSpy = console.warn as jest.Mock;
+			const consoleSpy = console.warn;
 
 			await manager["handleTaskCompleted"](task);
 
@@ -485,9 +543,13 @@ describe("OnCompletion Integration Tests", () => {
 				metadata: {
 					onCompletion:
 						'{"type": "complete", "taskIds": ["design-task", "dev-task", "test-task"]}',
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "project.md",
+				originalMarkdown:
+					"- [x] Complete project milestone 🏁 complete:design-task,dev-task,test-task",
 			};
 
 			await manager["handleTaskCompleted"](projectTask);
@@ -514,9 +576,13 @@ describe("OnCompletion Integration Tests", () => {
 				metadata: {
 					onCompletion:
 						'{"type": "duplicate", "targetFile": "next-week.md", "preserveMetadata": true}',
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "this-week.md",
+				originalMarkdown:
+					"- [x] Weekly team review 🏁 duplicate:next-week.md",
 			};
 
 			await manager["handleTaskCompleted"](recurringTask);
@@ -543,9 +609,13 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "delete",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 5,
+				line: 5,
 				filePath: "daily-notes.md",
+				originalMarkdown:
+					"- [x] Temporary reminder - delete when done 🏁 delete",
 			};
 
 			await manager["handleTaskCompleted"](tempTask);
@@ -569,9 +639,13 @@ describe("OnCompletion Integration Tests", () => {
 				metadata: {
 					onCompletion:
 						'{"type": "move", "targetFile": "archive/2024-milestones.md", "targetSection": "Q1 Achievements"}',
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "current-milestones.md",
+				originalMarkdown:
+					"- [x] Important project milestone 🏁 move:archive/2024-milestones.md#Q1 Achievements",
 			};
 
 			await manager["handleTaskCompleted"](importantTask);
@@ -599,15 +673,18 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: "",
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown: "- [x] Task with empty onCompletion 🏁 ",
 			};
 
 			// 恢复原始 console.warn
 			const originalWarn = console.warn;
 			console.warn = jest.fn();
-			const consoleSpy = console.warn as jest.Mock;
+			const consoleSpy = console.warn;
 
 			await manager["handleTaskCompleted"](task);
 
@@ -628,15 +705,18 @@ describe("OnCompletion Integration Tests", () => {
 				status: "x",
 				metadata: {
 					onCompletion: null as any,
+					tags: [],
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown: "- [x] Task with null onCompletion 🏁 ",
 			};
 
 			// 恢复原始 console.warn
 			const originalWarn = console.warn;
 			console.warn = jest.fn();
-			const consoleSpy = console.warn as jest.Mock;
+			const consoleSpy = console.warn;
 
 			await manager["handleTaskCompleted"](task);
 
@@ -661,10 +741,12 @@ describe("OnCompletion Integration Tests", () => {
 					project: "test-project",
 					tags: ["important", "urgent"],
 					dueDate: Date.now(),
-					customField: "custom value",
+					children: [],
 				},
-				lineNumber: 1,
+				line: 1,
 				filePath: "test.md",
+				originalMarkdown:
+					"- [x] Task with complex metadata 🔼 #important #urgent #project/test-project 🏁 delete ",
 			};
 
 			await manager["handleTaskCompleted"](task);

@@ -21,23 +21,12 @@ const mockCanvasTaskUpdater = {
 	deleteCanvasTask: jest.fn(),
 };
 
-// Mock TaskManager
-const mockTaskManager = {
-	getCanvasTaskUpdater: jest.fn(() => mockCanvasTaskUpdater),
-};
-
-// Mock plugin
-const mockPlugin = {
-	...createMockPlugin(),
-	taskManager: mockTaskManager,
-};
-
-const mockApp = createMockApp();
-
 describe("DeleteActionExecutor - Canvas Tasks", () => {
 	let executor: DeleteActionExecutor;
 	let mockContext: OnCompletionExecutionContext;
 	let mockConfig: OnCompletionDeleteConfig;
+	let mockPlugin: any;
+	let mockApp: any;
 
 	beforeEach(() => {
 		executor = new DeleteActionExecutor();
@@ -45,6 +34,15 @@ describe("DeleteActionExecutor - Canvas Tasks", () => {
 		mockConfig = {
 			type: OnCompletionActionType.DELETE,
 		};
+
+		// Create fresh mock instances for each test
+		mockPlugin = createMockPlugin();
+		mockApp = createMockApp();
+
+		// Setup the Canvas task updater mock
+		mockPlugin.taskManager.getCanvasTaskUpdater.mockReturnValue(
+			mockCanvasTaskUpdater
+		);
 
 		// Reset mocks
 		jest.clearAllMocks();
@@ -215,15 +213,11 @@ describe("DeleteActionExecutor - Canvas Tasks", () => {
 			};
 
 			// Mock vault for Markdown task
-			const mockVault = {
-				getAbstractFileByPath: jest.fn().mockReturnValue({
-					path: "test.md",
-				}),
-				read: jest.fn().mockResolvedValue("- [x] Test Markdown task"),
-				modify: jest.fn().mockResolvedValue(undefined),
-			};
-
-			mockApp.vault = mockVault;
+			mockApp.vault.getAbstractFileByPath.mockReturnValue({
+				path: "test.md",
+			});
+			mockApp.vault.read.mockResolvedValue("- [x] Test Markdown task");
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			await executor.execute(mockContext, mockConfig);
 			expect(

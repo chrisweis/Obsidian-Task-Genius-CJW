@@ -22,52 +22,50 @@ const mockCanvasTaskUpdater = {
 	deleteCanvasTask: jest.fn(),
 };
 
-// Mock TaskManager
-const mockTaskManager = {
-	getCanvasTaskUpdater: jest.fn(() => mockCanvasTaskUpdater),
-};
-
-// Mock plugin
-const mockPlugin = {
-	...createMockPlugin(),
-	taskManager: mockTaskManager,
-};
-
-// Mock vault
-const mockVault = {
-	getAbstractFileByPath: jest.fn(),
-	getFileByPath: jest.fn(),
-	read: jest.fn(),
-	modify: jest.fn(),
-	create: jest.fn(),
-	createFolder: jest.fn(),
-};
-
-const mockApp = {
-	...createMockApp(),
-	vault: mockVault,
-};
-
 describe("ArchiveActionExecutor - Canvas Tasks", () => {
 	let executor: ArchiveActionExecutor;
 	let mockContext: OnCompletionExecutionContext;
+	let mockPlugin: any;
+	let mockApp: any;
 
 	beforeEach(() => {
 		executor = new ArchiveActionExecutor();
+
+		// Create fresh mock instances for each test
+		mockPlugin = createMockPlugin();
+		mockApp = createMockApp();
+
+		// Setup the Canvas task updater mock
+		mockPlugin.taskManager.getCanvasTaskUpdater.mockReturnValue(
+			mockCanvasTaskUpdater
+		);
 
 		// Reset mocks
 		jest.clearAllMocks();
 
 		// Reset all vault method mocks to default behavior
-		mockVault.getAbstractFileByPath.mockReset();
-		mockVault.getFileByPath.mockReset();
-		mockVault.read.mockReset();
-		mockVault.modify.mockReset();
-		mockVault.create.mockReset();
-		mockVault.createFolder.mockReset();
+		mockApp.vault.getAbstractFileByPath.mockReset();
+		mockApp.vault.getFileByPath.mockReset();
+		mockApp.vault.read.mockReset();
+		mockApp.vault.modify.mockReset();
+		mockApp.vault.create.mockReset();
+		mockApp.vault.createFolder.mockReset();
 
 		// Reset Canvas task updater mocks
 		mockCanvasTaskUpdater.deleteCanvasTask.mockReset();
+
+		// Mock the current date to ensure consistent test results
+		jest.spyOn(Date.prototype, "toISOString").mockReturnValue(
+			"2025-07-07T00:00:00.000Z"
+		);
+		jest.spyOn(Date.prototype, "getFullYear").mockReturnValue(2025);
+		jest.spyOn(Date.prototype, "getMonth").mockReturnValue(6); // July (0-indexed)
+		jest.spyOn(Date.prototype, "getDate").mockReturnValue(7);
+	});
+
+	afterEach(() => {
+		// Restore date mocks
+		jest.restoreAllMocks();
 	});
 
 	describe("Canvas Task Archiving", () => {
@@ -105,12 +103,14 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock archive file exists
 			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
-			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.read.mockResolvedValue(
+			mockApp.vault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockApp.vault.getAbstractFileByPath.mockReturnValue(
+				mockArchiveFile
+			);
+			mockApp.vault.read.mockResolvedValue(
 				"# Archive\n\n## Completed Tasks\n\n"
 			);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
@@ -118,16 +118,16 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			expect(result.message).toContain(
 				"Task archived from Canvas to Archive/Completed Tasks.md"
 			);
-			expect(mockVault.modify).toHaveBeenCalled(); // Archive happens first
+			expect(mockApp.vault.modify).toHaveBeenCalled(); // Archive happens first
 			expect(mockCanvasTaskUpdater.deleteCanvasTask).toHaveBeenCalledWith(
 				canvasTask
 			); // Delete happens after
 
 			// Verify the archived task content includes timestamp
-			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifyCall = mockApp.vault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain(
-				"- [x] Test Canvas task #project/test ✅ 2025-07-04"
+				"- [x] Test Canvas task #project/test ✅ 2025-07-07"
 			);
 			expect(modifiedContent).toMatch(/\d{4}-\d{2}-\d{2}/); // Date pattern
 		});
@@ -169,12 +169,14 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock custom archive file exists
 			const mockArchiveFile = { path: "Project Archive.md" };
-			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.read.mockResolvedValue(
+			mockApp.vault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockApp.vault.getAbstractFileByPath.mockReturnValue(
+				mockArchiveFile
+			);
+			mockApp.vault.read.mockResolvedValue(
 				"# Project Archive\n\n## High Priority Tasks\n\n"
 			);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
@@ -182,14 +184,14 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			expect(result.message).toContain(
 				"Task archived from Canvas to Project Archive.md"
 			);
-			expect(mockVault.modify).toHaveBeenCalled();
+			expect(mockApp.vault.modify).toHaveBeenCalled();
 
 			// Verify the task was added to the correct section
-			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifyCall = mockApp.vault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain("## High Priority Tasks");
 			expect(modifiedContent).toContain(
-				"- [x] Important Canvas task ⏫ ✅ 2025-07-04"
+				"- [x] Important Canvas task ⏫ ✅ 2025-07-07"
 			);
 		});
 
@@ -229,30 +231,32 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock archive file does not exist initially, then exists after creation
 			const mockCreatedFile = { path: "New Archive/Tasks.md" };
-			mockVault.getFileByPath
+			mockApp.vault.getFileByPath
 				.mockReturnValueOnce(null) // Archive file doesn't exist initially
 				.mockReturnValueOnce(mockCreatedFile); // File exists after creation
-			mockVault.getAbstractFileByPath
+			mockApp.vault.getAbstractFileByPath
 				.mockReturnValueOnce(null) // Directory doesn't exist
 				.mockReturnValueOnce(mockCreatedFile); // File after creation
 
 			// Mock file creation
-			mockVault.create.mockResolvedValue(mockCreatedFile);
-			mockVault.createFolder.mockResolvedValue(undefined);
-			mockVault.read.mockResolvedValue(
+			mockApp.vault.create.mockResolvedValue(mockCreatedFile);
+			mockApp.vault.createFolder.mockResolvedValue(undefined);
+			mockApp.vault.read.mockResolvedValue(
 				"# Archive\n\n## Completed Tasks\n\n"
 			);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
 			expect(result.success).toBe(true);
-			expect(mockVault.createFolder).toHaveBeenCalledWith("New Archive");
-			expect(mockVault.create).toHaveBeenCalledWith(
+			expect(mockApp.vault.createFolder).toHaveBeenCalledWith(
+				"New Archive"
+			);
+			expect(mockApp.vault.create).toHaveBeenCalledWith(
 				"New Archive/Tasks.md",
 				"# Archive\n\n## Completed Tasks\n\n"
 			);
-			expect(mockVault.modify).toHaveBeenCalled();
+			expect(mockApp.vault.modify).toHaveBeenCalled();
 		});
 
 		it("should preserve task when archive operation fails", async () => {
@@ -284,10 +288,12 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			};
 
 			// Mock archive file creation failure - file doesn't exist and creation fails
-			mockVault.getFileByPath.mockReturnValue(null);
-			mockVault.getAbstractFileByPath.mockReturnValue(null);
-			mockVault.createFolder.mockRejectedValue(new Error("Invalid path"));
-			mockVault.create.mockRejectedValue(new Error("Invalid path"));
+			mockApp.vault.getFileByPath.mockReturnValue(null);
+			mockApp.vault.getAbstractFileByPath.mockReturnValue(null);
+			mockApp.vault.createFolder.mockRejectedValue(
+				new Error("Invalid path")
+			);
+			mockApp.vault.create.mockRejectedValue(new Error("Invalid path"));
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
@@ -328,12 +334,14 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock successful archive but Canvas deletion failure
 			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
-			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.read.mockResolvedValue(
+			mockApp.vault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockApp.vault.getAbstractFileByPath.mockReturnValue(
+				mockArchiveFile
+			);
+			mockApp.vault.read.mockResolvedValue(
 				"# Archive\n\n## Completed Tasks\n\n"
 			);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			mockCanvasTaskUpdater.deleteCanvasTask.mockResolvedValue({
 				success: false,
@@ -347,7 +355,7 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 				"Task archived successfully to Archive/Completed Tasks.md, but failed to remove from Canvas: Canvas node not found"
 			);
 			// Verify that archive operation was attempted first
-			expect(mockVault.modify).toHaveBeenCalled();
+			expect(mockApp.vault.modify).toHaveBeenCalled();
 		});
 
 		it("should handle archive file creation failure", async () => {
@@ -379,9 +387,9 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 			};
 
 			// Mock archive file creation failure
-			mockVault.getFileByPath.mockReturnValue(null);
-			mockVault.getAbstractFileByPath.mockReturnValue(null);
-			mockVault.create.mockRejectedValue(new Error("Invalid path"));
+			mockApp.vault.getFileByPath.mockReturnValue(null);
+			mockApp.vault.getAbstractFileByPath.mockReturnValue(null);
+			mockApp.vault.create.mockRejectedValue(new Error("Invalid path"));
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
@@ -424,23 +432,25 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock archive file exists but without the target section
 			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
-			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.read.mockResolvedValue(
+			mockApp.vault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockApp.vault.getAbstractFileByPath.mockReturnValue(
+				mockArchiveFile
+			);
+			mockApp.vault.read.mockResolvedValue(
 				"# Archive\n\n## Other Section\n\nSome content\n"
 			);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
 			expect(result.success).toBe(true);
 
 			// Verify the new section was created
-			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifyCall = mockApp.vault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain("## New Section");
 			expect(modifiedContent).toContain(
-				"- [x] Test Canvas task ✅ 2025-07-04"
+				"- [x] Test Canvas task ✅ 2025-07-07"
 			);
 		});
 	});
@@ -552,22 +562,24 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock archive file exists
 			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
-			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.read.mockResolvedValue(
+			mockApp.vault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockApp.vault.getAbstractFileByPath.mockReturnValue(
+				mockArchiveFile
+			);
+			mockApp.vault.read.mockResolvedValue(
 				"# Archive\n\n## Completed Tasks\n\n"
 			);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
 			expect(result.success).toBe(true);
 
 			// Verify the archived task content has onCompletion metadata removed
-			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifyCall = mockApp.vault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain(
-				"- [x] Task with onCompletion ✅ 2025-07-04"
+				"- [x] Task with onCompletion ✅ 2025-07-07"
 			);
 			expect(modifiedContent).not.toContain("🏁");
 			expect(modifiedContent).not.toContain("archive:done.md");
@@ -610,22 +622,24 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock archive file exists
 			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
-			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.read.mockResolvedValue(
+			mockApp.vault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockApp.vault.getAbstractFileByPath.mockReturnValue(
+				mockArchiveFile
+			);
+			mockApp.vault.read.mockResolvedValue(
 				"# Archive\n\n## Completed Tasks\n\n"
 			);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
 			expect(result.success).toBe(true);
 
 			// Verify the archived task content has JSON onCompletion metadata removed
-			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifyCall = mockApp.vault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain(
-				"- [x] Task with JSON onCompletion ✅ 2025-07-04"
+				"- [x] Task with JSON onCompletion ✅ 2025-07-07"
 			);
 			expect(modifiedContent).not.toContain("🏁");
 			expect(modifiedContent).not.toContain('{"type": "archive"');
@@ -666,22 +680,24 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock archive file exists
 			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
-			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.read.mockResolvedValue(
+			mockApp.vault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockApp.vault.getAbstractFileByPath.mockReturnValue(
+				mockArchiveFile
+			);
+			mockApp.vault.read.mockResolvedValue(
 				"# Archive\n\n## Completed Tasks\n\n"
 			);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
 			expect(result.success).toBe(true);
 
 			// Verify the archived task is marked as completed
-			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifyCall = mockApp.vault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain(
-				"- [x] Incomplete task to archive ✅ 2025-07-04"
+				"- [x] Incomplete task to archive ✅ 2025-07-07"
 			);
 			expect(modifiedContent).not.toContain("- [ ]"); // Should not contain incomplete checkbox
 			expect(modifiedContent).not.toContain("🏁");
@@ -724,22 +740,24 @@ describe("ArchiveActionExecutor - Canvas Tasks", () => {
 
 			// Mock archive file exists
 			const mockArchiveFile = { path: "Archive/Completed Tasks.md" };
-			mockVault.getFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.getAbstractFileByPath.mockReturnValue(mockArchiveFile);
-			mockVault.read.mockResolvedValue(
+			mockApp.vault.getFileByPath.mockReturnValue(mockArchiveFile);
+			mockApp.vault.getAbstractFileByPath.mockReturnValue(
+				mockArchiveFile
+			);
+			mockApp.vault.read.mockResolvedValue(
 				"# Archive\n\n## Completed Tasks\n\n"
 			);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, archiveConfig);
 
 			expect(result.success).toBe(true);
 
 			// Verify the archived task content has dataview onCompletion metadata removed
-			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifyCall = mockApp.vault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain(
-				"- [x] Task with dataview onCompletion ✅ 2025-07-04"
+				"- [x] Task with dataview onCompletion ✅ 2025-07-07"
 			);
 			expect(modifiedContent).not.toContain("[onCompletion::");
 			expect(modifiedContent).not.toContain("archive:done.md");

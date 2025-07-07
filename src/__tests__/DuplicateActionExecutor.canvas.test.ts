@@ -22,37 +22,23 @@ const mockCanvasTaskUpdater = {
 	duplicateCanvasTask: jest.fn(),
 };
 
-// Mock TaskManager
-const mockTaskManager = {
-	getCanvasTaskUpdater: jest.fn(() => mockCanvasTaskUpdater),
-};
-
-// Mock plugin
-const mockPlugin = {
-	...createMockPlugin(),
-	taskManager: mockTaskManager,
-};
-
-// Mock vault
-const mockVault = {
-	getAbstractFileByPath: jest.fn(),
-	getFileByPath: jest.fn(),
-	read: jest.fn(),
-	modify: jest.fn(),
-	create: jest.fn(),
-};
-
-const mockApp = {
-	...createMockApp(),
-	vault: mockVault,
-};
-
 describe("DuplicateActionExecutor - Canvas Tasks", () => {
 	let executor: DuplicateActionExecutor;
 	let mockContext: OnCompletionExecutionContext;
+	let mockPlugin: any;
+	let mockApp: any;
 
 	beforeEach(() => {
 		executor = new DuplicateActionExecutor();
+
+		// Create fresh mock instances for each test
+		mockPlugin = createMockPlugin();
+		mockApp = createMockApp();
+
+		// Setup the Canvas task updater mock
+		mockPlugin.taskManager.getCanvasTaskUpdater.mockReturnValue(
+			mockCanvasTaskUpdater
+		);
 
 		// Reset mocks
 		jest.clearAllMocks();
@@ -235,11 +221,11 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 
 			// Mock target file exists
 			const mockTargetFile = { path: "templates.md" };
-			mockVault.getFileByPath.mockReturnValue(mockTargetFile);
-			mockVault.read.mockResolvedValue(
+			mockApp.vault.getFileByPath.mockReturnValue(mockTargetFile);
+			mockApp.vault.read.mockResolvedValue(
 				"# Templates\n\n## Task Templates\n\n"
 			);
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, duplicateConfig);
 
@@ -248,10 +234,10 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 				"Task duplicated from Canvas to templates.md"
 			);
 			expect(result.message).toContain("section: Task Templates");
-			expect(mockVault.modify).toHaveBeenCalled();
+			expect(mockApp.vault.modify).toHaveBeenCalled();
 
 			// Verify the task content was modified (completion date removed, status reset)
-			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifyCall = mockApp.vault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain("- [ ] Test Canvas task"); // Status reset to incomplete
 			expect(modifiedContent).toContain("(duplicated"); // Duplicate timestamp added
@@ -291,16 +277,16 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 
 			// Mock target file exists
 			const mockTargetFile = { path: "templates.md" };
-			mockVault.getFileByPath.mockReturnValue(mockTargetFile);
-			mockVault.read.mockResolvedValue("# Templates\n\n");
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.getFileByPath.mockReturnValue(mockTargetFile);
+			mockApp.vault.read.mockResolvedValue("# Templates\n\n");
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, duplicateConfig);
 
 			expect(result.success).toBe(true);
 
 			// Verify metadata was preserved
-			const modifyCall = mockVault.modify.mock.calls[0];
+			const modifyCall = mockApp.vault.modify.mock.calls[0];
 			const modifiedContent = modifyCall[1];
 			expect(modifiedContent).toContain("- [ ] Test Canvas task"); // Status reset
 			expect(modifiedContent).toContain("#project/test"); // Project tag preserved
@@ -337,20 +323,20 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 			};
 
 			// Mock target file does not exist, then gets created
-			mockVault.getFileByPath.mockReturnValue(null);
+			mockApp.vault.getFileByPath.mockReturnValue(null);
 			const mockCreatedFile = { path: "new-templates.md" };
-			mockVault.create.mockResolvedValue(mockCreatedFile);
-			mockVault.read.mockResolvedValue("");
-			mockVault.modify.mockResolvedValue(undefined);
+			mockApp.vault.create.mockResolvedValue(mockCreatedFile);
+			mockApp.vault.read.mockResolvedValue("");
+			mockApp.vault.modify.mockResolvedValue(undefined);
 
 			const result = await executor.execute(mockContext, duplicateConfig);
 
 			expect(result.success).toBe(true);
-			expect(mockVault.create).toHaveBeenCalledWith(
+			expect(mockApp.vault.create).toHaveBeenCalledWith(
 				"new-templates.md",
 				""
 			);
-			expect(mockVault.modify).toHaveBeenCalled();
+			expect(mockApp.vault.modify).toHaveBeenCalled();
 		});
 
 		it("should handle target file creation failure", async () => {
@@ -382,8 +368,8 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 			};
 
 			// Mock target file does not exist and creation fails
-			mockVault.getFileByPath.mockReturnValue(null);
-			mockVault.create.mockRejectedValue(new Error("Invalid path"));
+			mockApp.vault.getFileByPath.mockReturnValue(null);
+			mockApp.vault.create.mockRejectedValue(new Error("Invalid path"));
 
 			const result = await executor.execute(mockContext, duplicateConfig);
 

@@ -174,7 +174,9 @@ describe("Canvas Task Matching Integration Tests", () => {
 			// the core content "Task content only" is the same after metadata removal
 			const canvasLine = "- [x] Task content only #new-tag";
 
-			const lineMatchesTask = (canvasUpdater as any).lineMatchesTask.bind(canvasUpdater);
+			const lineMatchesTask = (canvasUpdater as any).lineMatchesTask.bind(
+				canvasUpdater
+			);
 			const result = lineMatchesTask(canvasLine, task);
 
 			// This should now pass with the improved extractCoreTaskContent method
@@ -236,7 +238,7 @@ describe("Canvas Task Matching Integration Tests", () => {
 		});
 
 		it("should handle tasks without originalMarkdown", () => {
-			const task: Task<CanvasTaskMetadata> = {
+			const task: any = {
 				id: "test-task-7",
 				content: "Task without originalMarkdown",
 				filePath: "test.canvas",
@@ -282,9 +284,12 @@ describe("Canvas Task Matching Integration Tests", () => {
 			};
 
 			// Canvas line has different metadata but same core content
-			const canvasLine = "- [x] Important task #urgent 🏁 archive 📅 2024-12-25";
+			const canvasLine =
+				"- [x] Important task #urgent 🏁 archive 📅 2024-12-25";
 
-			const lineMatchesTask = (canvasUpdater as any).lineMatchesTask.bind(canvasUpdater);
+			const lineMatchesTask = (canvasUpdater as any).lineMatchesTask.bind(
+				canvasUpdater
+			);
 			const result = lineMatchesTask(canvasLine, task);
 
 			// Should match because core content "Important task" is the same
