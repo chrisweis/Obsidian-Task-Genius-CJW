@@ -284,7 +284,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 	): string {
 		// Reset the task to incomplete state
 		let duplicateLine = originalLine.replace(
-			/^(\s*- \[)[xX\-](\])/,
+			/^(\s*[-*+]\s*\[)[xX\-](\])/,
 			"$1 $2"
 		);
 
