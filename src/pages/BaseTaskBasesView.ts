@@ -73,7 +73,6 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 	settings: BasesViewSettings;
 	data: BasesViewData[] = [];
 	properties: BasesProperty[] = [];
-	currentTask: Task | null = null;
 
 	// Task-specific properties
 	protected plugin: TaskProgressBarPlugin;
