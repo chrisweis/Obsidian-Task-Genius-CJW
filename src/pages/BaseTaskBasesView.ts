@@ -79,6 +79,7 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 	protected plugin: TaskProgressBarPlugin;
 	protected tasks: Task[] = [];
 	protected viewMode: ViewMode;
+	protected currentTask: Task | null = null;
 
 	// Details panel properties
 	protected detailsComponent: TaskDetailsComponent;

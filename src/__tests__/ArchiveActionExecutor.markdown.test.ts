@@ -17,6 +17,10 @@ import { Task } from "../types/task";
 import { createMockPlugin, createMockApp } from "./mockUtils";
 import TaskProgressBarPlugin from "../index";
 
+// Mock Date to return consistent date for tests
+const mockDate = new Date("2025-07-04T12:00:00.000Z");
+const originalDate = Date;
+
 // Mock vault
 const mockVault = {
 	getAbstractFileByPath: jest.fn(),
@@ -44,6 +48,12 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 		mockPlugin = createMockPlugin();
 		mockApp = createMockApp();
 
+		// Mock Date globally
+		global.Date = jest.fn(() => mockDate) as any;
+		global.Date.now = jest.fn(() => mockDate.getTime());
+		global.Date.parse = originalDate.parse;
+		global.Date.UTC = originalDate.UTC;
+
 		// Reset mocks
 		jest.clearAllMocks();
 
@@ -67,6 +77,11 @@ describe("ArchiveActionExecutor - Markdown Tasks", () => {
 	afterEach(() => {
 		// Restore date mocks
 		jest.restoreAllMocks();
+	});
+
+	afterEach(() => {
+		// Restore original Date
+		global.Date = originalDate;
 	});
 
 	describe("Markdown Task Archiving", () => {

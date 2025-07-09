@@ -15,6 +15,7 @@ import {
 } from "../editor-ext/autoCompleteParent"; // Adjust the import path as necessary
 import { TaskProgressBarSettings } from "../common/setting-definition";
 import { EditorView } from "@codemirror/view";
+import { Task } from "../types/task";
 
 const mockAnnotationType = {
 	of: jest.fn().mockImplementation((value: string) => ({
@@ -655,6 +656,27 @@ export function createMockCanvasTaskUpdater() {
 		duplicateCanvasTask: jest.fn(),
 		addTaskToCanvasNode: jest.fn(),
 		isCanvasTask: jest.fn(),
+	};
+}
+
+/**
+ * Create a mock Task object with all required fields
+ */
+export function createMockTask(overrides: Partial<Task> = {}): Task {
+	return {
+		id: "test-task-id",
+		content: "Test task content",
+		completed: false,
+		status: " ",
+		metadata: {
+			tags: [],
+			children: [],
+			...overrides.metadata,
+		},
+		filePath: "test.md",
+		line: 1,
+		originalMarkdown: "- [ ] Test task content",
+		...overrides,
 	};
 }
 

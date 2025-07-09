@@ -32,6 +32,13 @@ export class CompleteActionExecutor extends BaseActionExecutor {
 			return this.createErrorResult("Invalid complete configuration");
 		}
 
+		return this.executeCommon(context, config);
+	}
+
+	private async executeCommon(
+		context: OnCompletionExecutionContext,
+		config: OnCompletionConfig
+	): Promise<OnCompletionExecutionResult> {
 		const completeConfig = config as OnCompletionCompleteConfig;
 		const { plugin } = context;
 

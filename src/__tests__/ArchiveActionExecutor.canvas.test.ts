@@ -17,6 +17,10 @@ import {
 import { Task, CanvasTaskMetadata } from "../types/task";
 import { createMockPlugin, createMockApp } from "./mockUtils";
 
+// Mock Date to return consistent date for tests
+const mockDate = new Date("2025-07-04T12:00:00.000Z");
+const originalDate = Date;
+
 // Mock Canvas task updater
 const mockCanvasTaskUpdater = {
 	deleteCanvasTask: jest.fn(),
