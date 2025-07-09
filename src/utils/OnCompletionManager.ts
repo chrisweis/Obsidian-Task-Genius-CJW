@@ -144,7 +144,9 @@ export class OnCompletionManager extends Component {
 	}
 
 	private parseSimpleFormat(value: string): OnCompletionConfig | null {
-		switch (value) {
+		const lowerValue = value.toLowerCase();
+
+		switch (lowerValue) {
 			case "delete":
 				return { type: OnCompletionActionType.DELETE };
 			case "keep":
@@ -152,8 +154,8 @@ export class OnCompletionManager extends Component {
 			case "archive":
 				return { type: OnCompletionActionType.ARCHIVE };
 			default:
-				// Check for parameterized formats
-				if (value.startsWith("complete:")) {
+				// Check for parameterized formats (case-insensitive)
+				if (lowerValue.startsWith("complete:")) {
 					const taskIdsStr = value.substring(9);
 					const taskIds = taskIdsStr
 						.split(",")
@@ -164,21 +166,21 @@ export class OnCompletionManager extends Component {
 						taskIds: taskIds.length > 0 ? taskIds : [], // Allow empty taskIds array
 					};
 				}
-				if (value.startsWith("move:")) {
+				if (lowerValue.startsWith("move:")) {
 					const targetFile = value.substring(5).trim();
 					return {
 						type: OnCompletionActionType.MOVE,
 						targetFile: targetFile || "", // Allow empty targetFile
 					};
 				}
-				if (value.startsWith("archive:")) {
+				if (lowerValue.startsWith("archive:")) {
 					const archiveFile = value.substring(8).trim();
 					return {
 						type: OnCompletionActionType.ARCHIVE,
 						archiveFile,
 					};
 				}
-				if (value.startsWith("duplicate:")) {
+				if (lowerValue.startsWith("duplicate:")) {
 					const targetFile = value.substring(10).trim();
 					return {
 						type: OnCompletionActionType.DUPLICATE,

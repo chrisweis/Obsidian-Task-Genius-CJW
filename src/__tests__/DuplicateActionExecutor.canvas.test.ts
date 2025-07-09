@@ -69,8 +69,8 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock successful duplication
@@ -119,8 +119,8 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock successful duplication
@@ -170,8 +170,8 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock duplication failure
@@ -215,8 +215,8 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock target file exists
@@ -271,8 +271,8 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock target file exists
@@ -318,8 +318,8 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock target file does not exist, then gets created
@@ -363,8 +363,8 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock target file does not exist and creation fails
@@ -413,8 +413,8 @@ describe("DuplicateActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			const result = await executor.execute(mockContext, invalidConfig);

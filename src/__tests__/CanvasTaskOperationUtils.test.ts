@@ -30,7 +30,6 @@ describe("CanvasTaskOperationUtils", () => {
 
 	beforeEach(() => {
 		utils = new CanvasTaskOperationUtils(mockApp as any);
-
 		// Reset mocks
 		jest.clearAllMocks();
 	});

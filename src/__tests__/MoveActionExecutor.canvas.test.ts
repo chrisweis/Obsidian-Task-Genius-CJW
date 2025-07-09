@@ -96,8 +96,8 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock successful move
@@ -144,8 +144,8 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock move failure
@@ -187,8 +187,8 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock successful Canvas deletion
@@ -242,8 +242,8 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock successful Canvas deletion
@@ -292,8 +292,8 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock target file does not exist and creation fails
@@ -337,8 +337,8 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock successful target file operations but Canvas deletion failure
@@ -387,8 +387,8 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			// Mock target file does not exist and creation fails
@@ -440,8 +440,8 @@ describe("MoveActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
-				app: mockApp,
+				plugin: mockPlugin as any,
+				app: mockApp as any,
 			};
 
 			const result = await executor.execute(mockContext, invalidConfig);

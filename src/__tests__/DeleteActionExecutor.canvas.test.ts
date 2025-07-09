@@ -68,7 +68,7 @@ describe("DeleteActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
+				plugin: mockPlugin as any,
 				app: mockApp,
 			};
 
@@ -105,7 +105,7 @@ describe("DeleteActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
+				plugin: mockPlugin as any,
 				app: mockApp,
 			};
 
@@ -140,7 +140,7 @@ describe("DeleteActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
+				plugin: mockPlugin as any,
 				app: mockApp,
 			};
 
@@ -191,7 +191,7 @@ describe("DeleteActionExecutor - Canvas Tasks", () => {
 			// Test Canvas task routing
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
+				plugin: mockPlugin as any,
 				app: mockApp,
 			};
 
@@ -208,7 +208,7 @@ describe("DeleteActionExecutor - Canvas Tasks", () => {
 			// Test Markdown task routing (should not call Canvas updater)
 			mockContext = {
 				task: markdownTask,
-				plugin: mockPlugin,
+				plugin: mockPlugin as any,
 				app: mockApp,
 			};
 
@@ -250,7 +250,7 @@ describe("DeleteActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
+				plugin: mockPlugin as any,
 				app: mockApp,
 			};
 
@@ -283,7 +283,7 @@ describe("DeleteActionExecutor - Canvas Tasks", () => {
 
 			mockContext = {
 				task: canvasTask,
-				plugin: mockPlugin,
+				plugin: mockPlugin as any,
 				app: mockApp,
 			};
 

@@ -44,12 +44,12 @@ describe("DeleteActionExecutor", () => {
 			content: "Test task to delete",
 			completed: true,
 			status: "x",
-			originalMarkdown: "- [x] Test task to delete",
 			metadata: {
 				tags: [],
 				children: [],
 				onCompletion: "delete",
 			},
+			originalMarkdown: "- [x] Test task to delete 🏁 delete",
 			line: 5,
 			filePath: "test.md",
 		};

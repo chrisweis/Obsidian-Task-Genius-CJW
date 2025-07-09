@@ -74,6 +74,8 @@ export interface StandardTaskMetadata {
 
 	/** Task Genius enhanced project information */
 	tgProject?: TgProject;
+
+	[key: string]: any;
 }
 
 export interface StandardFileTaskMetadata extends StandardTaskMetadata {
@@ -107,6 +109,7 @@ export interface CanvasTaskMetadata extends StandardTaskMetadata {
 
 	/** Source type to distinguish canvas tasks */
 	sourceType?: "canvas" | "markdown";
+
 }
 
 /** Task Genius Project interface */

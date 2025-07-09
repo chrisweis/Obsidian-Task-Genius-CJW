@@ -626,7 +626,7 @@ describe("OnCompletionManager", () => {
 				line: 1,
 				filePath: "test.md",
 				originalMarkdown:
-					"- [x] JSON test task 🏁 move:archive.md#Completed",
+					'- [x] JSON test task 🏁 {"type": "move", "targetFile": "archive.md", "targetSection": "Completed"}',
 			};
 
 			const mockExecutor = manager["executors"].get(
