@@ -154,6 +154,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+	background-color: var(--background-secondary-alt);
 	/* padding-right: 0; */
 	-webkit-overflow-scrolling: touch;
 	overscroll-behavior: contain; /* Keep contain for mobile drag compatibility */
