@@ -24,6 +24,14 @@ import { MarkdownRendererComponent } from "../MarkdownRenderer";
 
 export const TIMELINE_SIDEBAR_VIEW_TYPE = "tg-timeline-sidebar-view";
 
+// Date type priority for deduplication (higher number = higher priority)
+const DATE_TYPE_PRIORITY = {
+	due: 4,
+	scheduled: 3,
+	start: 2,
+	completed: 1,
+} as const;
+
 interface TimelineEvent {
 	id: string;
 	content: string;
@@ -282,9 +290,80 @@ export class TimelineSidebarView extends ItemView {
 		this.events.sort((a, b) => b.time.getTime() - a.time.getTime());
 	}
 
+	/**
+	 * Deduplicates dates by priority when multiple date types fall on the same day
+	 * @param dates Array of date objects with type information
+	 * @returns Deduplicated array with highest priority date per day
+	 */
+	private deduplicateDatesByPriority(
+		dates: Array<{ date: Date; type: string }>
+	): Array<{ date: Date; type: string }> {
+		if (dates.length <= 1) {
+			return dates;
+		}
+
+		// Group dates by day (YYYY-MM-DD format)
+		const dateGroups = new Map<
+			string,
+			Array<{ date: Date; type: string }>
+		>();
+
+		dates.forEach((dateItem) => {
+			const dateKey = moment(dateItem.date).format("YYYY-MM-DD");
+			if (!dateGroups.has(dateKey)) {
+				dateGroups.set(dateKey, []);
+			}
+			dateGroups.get(dateKey)!.push(dateItem);
+		});
+
+		// For each day, keep only the highest priority date type
+		const deduplicatedDates: Array<{ date: Date; type: string }> = [];
+
+		dateGroups.forEach((dayDates) => {
+			if (dayDates.length === 1) {
+				// Only one date for this day, keep it
+				deduplicatedDates.push(dayDates[0]);
+			} else {
+				// Multiple dates for same day, find highest priority
+				const highestPriorityDate = dayDates.reduce(
+					(highest, current) => {
+						const currentPriority =
+							DATE_TYPE_PRIORITY[
+								current.type as keyof typeof DATE_TYPE_PRIORITY
+							] || 0;
+						const highestPriority =
+							DATE_TYPE_PRIORITY[
+								highest.type as keyof typeof DATE_TYPE_PRIORITY
+							] || 0;
+
+						return currentPriority > highestPriority
+							? current
+							: highest;
+					}
+				);
+
+				deduplicatedDates.push(highestPriorityDate);
+			}
+		});
+
+		return deduplicatedDates;
+	}
+
 	private extractDatesFromTask(
 		task: Task
 	): Array<{ date: Date; type: string }> {
+		// Task-level deduplication: ensure each task appears only once in timeline
+		
+		// For completed tasks: prioritize due date, fallback to completed date
+		if (task.completed) {
+			if (task.metadata.dueDate) {
+				return [{ date: new Date(task.metadata.dueDate), type: "due" }];
+			} else if (task.metadata.completedDate) {
+				return [{ date: new Date(task.metadata.completedDate), type: "completed" }];
+			}
+		}
+		
+		// For non-completed tasks: select single highest priority date
 		const dates: Array<{ date: Date; type: string }> = [];
 
 		if (task.metadata.dueDate) {
@@ -302,14 +381,27 @@ export class TimelineSidebarView extends ItemView {
 				type: "start",
 			});
 		}
+		
+		// For non-completed tasks, select the highest priority date
+		if (dates.length > 0) {
+			const highestPriorityDate = dates.reduce((highest, current) => {
+				const currentPriority = DATE_TYPE_PRIORITY[current.type as keyof typeof DATE_TYPE_PRIORITY] || 0;
+				const highestPriority = DATE_TYPE_PRIORITY[highest.type as keyof typeof DATE_TYPE_PRIORITY] || 0;
+				return currentPriority > highestPriority ? current : highest;
+			});
+			return [highestPriorityDate];
+		}
+		
+		// Fallback: if no planning dates exist, use deduplication for edge cases
+		const allDates: Array<{ date: Date; type: string }> = [];
 		if (task.metadata.completedDate) {
-			dates.push({
+			allDates.push({
 				date: new Date(task.metadata.completedDate),
 				type: "completed",
 			});
 		}
-
-		return dates;
+		
+		return this.deduplicateDatesByPriority(allDates);
 	}
 
 	private renderTimeline(): void {
