@@ -280,6 +280,11 @@ export function renderTaskStatusSettingsTab(
 					settingTab.plugin.settings.taskStatuses.completed =
 						value || DEFAULT_SETTINGS.taskStatuses.completed;
 					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
 				})
 		);
 
@@ -319,6 +324,11 @@ export function renderTaskStatusSettingsTab(
 					settingTab.plugin.settings.taskStatuses.planned =
 						value || DEFAULT_SETTINGS.taskStatuses.planned;
 					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
 				})
 		);
 
@@ -358,6 +368,11 @@ export function renderTaskStatusSettingsTab(
 					settingTab.plugin.settings.taskStatuses.inProgress =
 						value || DEFAULT_SETTINGS.taskStatuses.inProgress;
 					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
 				})
 		);
 
@@ -398,6 +413,11 @@ export function renderTaskStatusSettingsTab(
 					settingTab.plugin.settings.taskStatuses.abandoned =
 						value || DEFAULT_SETTINGS.taskStatuses.abandoned;
 					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
 				})
 		);
 
@@ -438,6 +458,11 @@ export function renderTaskStatusSettingsTab(
 					settingTab.plugin.settings.taskStatuses.notStarted =
 						value || DEFAULT_SETTINGS.taskStatuses.notStarted;
 					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
 				})
 		);
 
@@ -918,7 +943,9 @@ export function renderTaskStatusSettingsTab(
 	// Auto Date Manager Settings
 	new Setting(containerEl)
 		.setName(t("Auto Date Manager"))
-		.setDesc(t("Automatically manage dates based on checkbox status changes"))
+		.setDesc(
+			t("Automatically manage dates based on checkbox status changes")
+		)
 		.setHeading();
 
 	new Setting(containerEl)
@@ -1003,18 +1030,22 @@ export function renderTaskStatusSettingsTab(
 	}
 
 	// Use Task Genius icons
-	new Setting(containerEl)
-		.setName(t("Other settings"))
-		.setHeading();
+	new Setting(containerEl).setName(t("Other settings")).setHeading();
 
 	new Setting(containerEl)
 		.setName(t("Use Task Genius icons"))
 		.setDesc(t("Use Task Genius icons for task statuses"))
 		.addToggle((toggle) =>
-			toggle.setValue(settingTab.plugin.settings.enableTaskGeniusIcons)
-			.onChange(async (value) => {
-				settingTab.plugin.settings.enableTaskGeniusIcons = value;
-				settingTab.applySettingsUpdate();
-			})
+			toggle
+				.setValue(settingTab.plugin.settings.enableTaskGeniusIcons)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.enableTaskGeniusIcons = value;
+					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
+				})
 		);
 }

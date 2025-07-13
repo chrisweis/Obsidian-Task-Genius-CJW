@@ -85,6 +85,7 @@ import {
 import { getStatusIcon, getTaskGeniusIcon } from "./icon";
 import { RewardManager } from "./utils/RewardManager";
 import { HabitManager } from "./utils/HabitManager";
+import { TaskGeniusIconManager } from "./utils/TaskGeniusIconManager";
 import { monitorTaskCompletedExtension } from "./editor-ext/monitorTaskCompleted";
 import { sortTasksInDocument } from "./commands/sortTaskCommands";
 import { taskGutterExtension } from "./editor-ext/TaskGutterHandler";
@@ -193,6 +194,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 	// Setting tab
 	settingTab: TaskProgressBarSettingTab;
+
+	// Task Genius Icon manager instance
+	taskGeniusIconManager: TaskGeniusIconManager;
 
 	async onload() {
 		await this.loadSettings();
@@ -323,6 +327,10 @@ export default class TaskProgressBarPlugin extends Plugin {
 		);
 
 		this.app.workspace.onLayoutReady(() => {
+			// Initialize Task Genius Icon Manager
+			this.taskGeniusIconManager = new TaskGeniusIconManager(this);
+			this.addChild(this.taskGeniusIconManager);
+
 			if (this.settings.autoCompleteParent) {
 				this.registerEditorExtension([
 					autoCompleteParentExtension(this.app, this),
@@ -1021,6 +1029,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 		if (this.taskManager) {
 			this.taskManager.onunload();
 		}
+
+		// Task Genius Icon Manager cleanup is handled automatically by Component system
 	}
 
 	async loadSettings() {
