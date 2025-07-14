@@ -3,6 +3,8 @@
  * Verifies that our timeout implementation works correctly
  */
 
+export {}; // Make this file a module to fix TS1208 error
+
 describe("Timeout Implementation Verification", () => {
 	test("Promise.race timeout mechanism works", async () => {
 		const timeoutMs = 1000; // 1 second
@@ -60,37 +62,56 @@ describe("Timeout Implementation Verification", () => {
 	test("Error categorization logic works", () => {
 		const categorizeError = (errorMessage?: string): string => {
 			if (!errorMessage) return "unknown";
-			
+
 			const message = errorMessage.toLowerCase();
-			
-			if (message.includes("timeout") || message.includes("request timeout")) {
+
+			if (
+				message.includes("timeout") ||
+				message.includes("request timeout")
+			) {
 				return "timeout";
 			}
-			if (message.includes("connection") || message.includes("network") || message.includes("err_connection")) {
+			if (
+				message.includes("connection") ||
+				message.includes("network") ||
+				message.includes("err_connection")
+			) {
 				return "network";
 			}
 			if (message.includes("404") || message.includes("not found")) {
 				return "not-found";
 			}
-			if (message.includes("403") || message.includes("unauthorized") || message.includes("401")) {
+			if (
+				message.includes("403") ||
+				message.includes("unauthorized") ||
+				message.includes("401")
+			) {
 				return "auth";
 			}
-			if (message.includes("500") || message.includes("502") || message.includes("503")) {
+			if (
+				message.includes("500") ||
+				message.includes("502") ||
+				message.includes("503")
+			) {
 				return "server";
 			}
 			if (message.includes("parse") || message.includes("invalid")) {
 				return "parse";
 			}
-			
+
 			return "unknown";
 		};
 
 		// Test different error types
-		expect(categorizeError("Request timeout after 30 seconds")).toBe("timeout");
+		expect(categorizeError("Request timeout after 30 seconds")).toBe(
+			"timeout"
+		);
 		expect(categorizeError("net::ERR_CONNECTION_CLOSED")).toBe("network");
 		expect(categorizeError("HTTP 404: Not Found")).toBe("not-found");
 		expect(categorizeError("HTTP 403: Unauthorized")).toBe("auth");
-		expect(categorizeError("HTTP 500: Internal Server Error")).toBe("server");
+		expect(categorizeError("HTTP 500: Internal Server Error")).toBe(
+			"server"
+		);
 		expect(categorizeError("Invalid ICS format")).toBe("parse");
 		expect(categorizeError("Some other error")).toBe("unknown");
 		expect(categorizeError()).toBe("unknown");
