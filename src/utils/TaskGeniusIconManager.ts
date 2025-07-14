@@ -122,12 +122,31 @@ export class TaskGeniusIconManager extends Component {
 
 		for (const config of statusConfigs) {
 			const svgIcon = getStatusIcon(config.status);
+			const fillColor = this.extractFillColor(svgIcon);
 			const encodedSvg = this.encodeSvgForCSS(svgIcon);
 
 			for (const char of config.chars) {
-				css += this.generateCSSRuleForChar(char, encodedSvg);
+				css += this.generateCSSRuleForChar(char, encodedSvg, fillColor);
 			}
 		}
+
+		css =
+			`
+input[type=checkbox]:checked {
+	background-color: unset;
+	border: none;
+} 
+input[type=checkbox] {
+	border: none;
+}
+			
+@media (hover: hover) {
+    input[type=checkbox]:checked:hover {
+        background-color: unset;
+        border: none;
+    }
+} 
+` + css;
 
 		return css;
 	}
@@ -170,7 +189,7 @@ export class TaskGeniusIconManager extends Component {
 		)) {
 			const status = statusMap[statusKey];
 			if (status) {
-				const chars = charString.split("|").map((char) => char.trim());
+				const chars = charString.split("|");
 				result.push({ status, chars });
 			}
 		}
@@ -179,19 +198,69 @@ export class TaskGeniusIconManager extends Component {
 	}
 
 	/**
+	 * Extract fill color from SVG, prioritizing path elements
+	 */
+	private extractFillColor(svgString: string): string {
+		try {
+			// First, look for fill attribute in path elements
+			const pathFillMatch = svgString.match(/<path[^>]*fill="([^"]+)"/);
+			if (
+				pathFillMatch &&
+				pathFillMatch[1] &&
+				pathFillMatch[1] !== "none" &&
+				pathFillMatch[1] !== "currentColor"
+			) {
+				return pathFillMatch[1];
+			}
+
+			// Then, look for stroke attribute in path elements
+			const pathStrokeMatch = svgString.match(
+				/<path[^>]*stroke="([^"]+)"/
+			);
+			if (
+				pathStrokeMatch &&
+				pathStrokeMatch[1] &&
+				pathStrokeMatch[1] !== "none" &&
+				pathStrokeMatch[1] !== "currentColor"
+			) {
+				return pathStrokeMatch[1];
+			}
+
+			// Fallback: look for any fill attribute in the SVG
+			const fillMatch = svgString.match(/fill="([^"]+)"/);
+			if (
+				fillMatch &&
+				fillMatch[1] &&
+				fillMatch[1] !== "none" &&
+				fillMatch[1] !== "currentColor"
+			) {
+				return fillMatch[1];
+			}
+
+			// Default fallback color
+			return "var(--text-accent)";
+		} catch (error) {
+			console.error("Task Genius: Failed to extract fill color:", error);
+			return "var(--text-accent)";
+		}
+	}
+
+	/**
 	 * Encode SVG for use in CSS data URI
 	 */
 	private encodeSvgForCSS(svgString: string): string {
 		try {
-			// Remove width and height attributes to make it scalable
-			const cleanSvg = svgString
-				.replace(/width="[^"]*"/g, "")
-				.replace(/height="[^"]*"/g, "")
-				.replace(/\s+/g, " ")
-				.trim();
+			// Clean up SVG but keep width and height attributes
+			const cleanSvg = svgString.replace(/\s+/g, " ").trim();
 
-			// URL encode for data URI
-			const encoded = encodeURIComponent(cleanSvg);
+			// Encode special characters for Data URI as per your specification
+			const encoded = cleanSvg
+				.replace(/"/g, "'") // 双引号 → 单引号
+				.replace(/</g, "%3C") // < → %3C
+				.replace(/>/g, "%3E") // > → %3E
+				.replace(/#/g, "%23") // # → %23
+				.replace(/ /g, "%20"); // 空格 → %20
+
 			return `data:image/svg+xml,${encoded}`;
 		} catch (error) {
 			console.error("Task Genius: Failed to encode SVG:", error);
@@ -202,18 +271,58 @@ export class TaskGeniusIconManager extends Component {
 	/**
 	 * Generate CSS rule for a specific character
 	 */
-	private generateCSSRuleForChar(char: string, encodedSvg: string): string {
+	private generateCSSRuleForChar(
+		char: string,
+		encodedSvg: string,
+		fillColor: string
+	): string {
 		// Escape special characters for CSS selector
 		const escapedChar = this.escapeCSSSelector(char);
+		const isSpace = char === " ";
 
-		return `
+		if (!isSpace) {
+			return `
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox]:checked,
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox]:checked,
+.${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox]:checked {
+	--checkbox-color: ${fillColor};
+	--checkbox-color-hover: ${fillColor};
+}
 .${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox]:checked:after,
 .${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox]:checked:after,
 .${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox]:checked:after {
-    --webkit-mask-image: url("${encodedSvg}");
-    --webkit-mask-size: 20%;
+	-webkit-mask-image: url("${encodedSvg}");
+	-webkit-mask-size: 100%;
+	background-color: ${fillColor};
 }
-`;
+			`;
+		} else {
+			return `
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox],
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox],
+.${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox] {
+	--checkbox-color: ${fillColor};
+	--checkbox-color-hover: ${fillColor};
+
+} 
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox]:after,
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox]:after,
+.${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox]:after {
+    content: "";
+    top: -1px;
+    inset-inline-start: -1px;
+    position: absolute;
+    width: var(--checkbox-size);
+    height: var(--checkbox-size);
+    display: block;
+	-webkit-mask-position: 52% 52%;
+    -webkit-mask-repeat: no-repeat;
+	-webkit-mask-image: url("${encodedSvg}");
+	-webkit-mask-size: 100%;
+		background-color: ${fillColor};
+}
+			`;
+		}
 	}
 
 	/**
