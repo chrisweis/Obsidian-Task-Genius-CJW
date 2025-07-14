@@ -219,11 +219,14 @@ export class TaskView extends ItemView {
 		this.currentViewId = initialViewId;
 		this.sidebarComponent.setViewMode(this.currentViewId);
 
-		// 5. 异步加载最新数据（包含 ICS 同步）
-		await this.loadTasks(true, true); // 跳过视图更新，避免双重渲染
+		// 5. 快速加载缓存数据以立即显示 UI
+		await this.loadTasksFast(true); // 跳过视图更新，避免双重渲染
 
-		// 6. 使用加载的数据显示视图
+		// 6. 使用快速加载的数据显示视图
 		this.switchView(this.currentViewId);
+
+		// 7. 后台同步最新数据（非阻塞）
+		this.loadTasksWithSyncInBackground();
 
 		console.log("currentFilterState", this.currentFilterState);
 		// 7. 在组件初始化完成后应用筛选器状态
@@ -1157,6 +1160,48 @@ export class TaskView extends ItemView {
 		if (!skipViewUpdate) {
 			await this.triggerViewUpdate();
 		}
+	}
+
+	/**
+	 * Load tasks fast using cached data - for UI initialization
+	 */
+	private async loadTasksFast(skipViewUpdate: boolean = false) {
+		const taskManager = this.plugin.taskManager;
+		if (!taskManager) return;
+
+		// Use fast method to get cached data immediately
+		this.tasks = taskManager.getAllTasksFast();
+		console.log(`TaskView loaded ${this.tasks.length} tasks (fast)`);
+
+		if (!skipViewUpdate) {
+			await this.triggerViewUpdate();
+		}
+	}
+
+	/**
+	 * Load tasks with sync in background - non-blocking
+	 */
+	private loadTasksWithSyncInBackground() {
+		const taskManager = this.plugin.taskManager;
+		if (!taskManager) return;
+
+		// Start background sync without blocking UI
+		taskManager
+			.getAllTasksWithSync()
+			.then((tasks) => {
+				// Only update if we got different data
+				if (tasks.length !== this.tasks.length) {
+					this.tasks = tasks;
+					console.log(
+						`TaskView updated with ${this.tasks.length} tasks (background sync)`
+					);
+					// Update the view with new data
+					this.triggerViewUpdate();
+				}
+			})
+			.catch((error) => {
+				console.warn("Background task sync failed:", error);
+			});
 	}
 
 	public async triggerViewUpdate() {

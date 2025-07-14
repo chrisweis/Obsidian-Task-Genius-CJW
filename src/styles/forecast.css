@@ -4,7 +4,7 @@
 	flex-direction: column;
 	height: 100%;
 	overflow: hidden;
-	flex-grow: 1;
+	flex: 1;
 }
 
 .forecast-header {
@@ -91,6 +91,7 @@
 
 .forecast-left-column {
 	width: 360px;
+	min-width: 360px;
 	border-right: 1px solid var(--background-modifier-border);
 	display: flex;
 	flex-direction: column;

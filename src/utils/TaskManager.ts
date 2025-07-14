@@ -1535,6 +1535,70 @@ export class TaskManager extends Component {
 	}
 
 	/**
+	 * Get all tasks fast - use cached ICS data without waiting for sync
+	 * This method returns immediately and is suitable for UI initialization
+	 */
+	public getAllTasksFast(): Task[] {
+		const markdownTasks = this.queryTasks();
+
+		// Get ICS tasks if ICS manager is available
+		const icsManager = this.plugin.getIcsManager();
+		if (icsManager) {
+			try {
+				// Use non-blocking method to get cached ICS events
+				const icsEvents = icsManager.getAllEventsNonBlocking(true);
+				// Apply holiday detection to cached events
+				const icsEventsWithHoliday = icsEvents.map((event) => {
+					const source = icsManager
+						.getConfig()
+						.sources.find((s: any) => s.id === event.source.id);
+					if (source?.holidayConfig?.enabled) {
+						return {
+							...event,
+							isHoliday: HolidayDetector.isHoliday(
+								event,
+								source.holidayConfig
+							),
+							showInForecast: true,
+						};
+					}
+					return {
+						...event,
+						isHoliday: false,
+						showInForecast: true,
+					};
+				});
+
+				const icsTasks =
+					icsManager.convertEventsWithHolidayToTasks(
+						icsEventsWithHoliday
+					);
+
+				// Merge ICS tasks with markdown tasks
+				return [...markdownTasks, ...icsTasks];
+			} catch (error) {
+				console.error(
+					"Error getting tasks with holiday detection (fast):",
+					error
+				);
+				// Fallback to original method
+				try {
+					const icsEvents = icsManager.getAllEventsNonBlocking(false);
+					const icsTasks = icsManager.convertEventsToTasks(icsEvents);
+					return [...markdownTasks, ...icsTasks];
+				} catch (fallbackError) {
+					console.error(
+						"Error in fallback fast task retrieval:",
+						fallbackError
+					);
+				}
+			}
+		}
+
+		return markdownTasks;
+	}
+
+	/**
 	 * get available context or projects from current all tasks
 	 */
 	public getAvailableContextOrProjects(): {

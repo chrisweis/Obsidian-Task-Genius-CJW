@@ -242,6 +242,48 @@ export class IcsManager extends Component {
 	}
 
 	/**
+	 * Get all events from all enabled sources without blocking
+	 * This will return cached data immediately and optionally trigger background sync
+	 */
+	getAllEventsNonBlocking(triggerBackgroundSync: boolean = true): IcsEvent[] {
+		const events = this.getAllEvents();
+
+		// Optionally trigger background sync if data might be stale
+		if (triggerBackgroundSync) {
+			this.triggerBackgroundSyncIfNeeded();
+		}
+
+		return events;
+	}
+
+	/**
+	 * Trigger background sync if needed (non-blocking)
+	 */
+	private triggerBackgroundSyncIfNeeded(): void {
+		const now = Date.now();
+
+		// Check if we need to sync any sources
+		const needsSync = this.config.sources.some((source) => {
+			if (!source.enabled) return false;
+
+			const cacheEntry = this.cache.get(source.id);
+			if (!cacheEntry) return true; // No cache, needs sync
+
+			// Check if cache is expired
+			const isExpired = now > cacheEntry.expiresAt;
+			return isExpired;
+		});
+
+		// Only sync if enough time has passed since last sync and we need it
+		if (needsSync && now - this.lastSyncTime > this.SYNC_DEBOUNCE_MS) {
+			// Start background sync without waiting
+			this.syncAllSources().catch((error) => {
+				console.warn("Background ICS sync failed:", error);
+			});
+		}
+	}
+
+	/**
 	 * Get events from a specific source
 	 */
 	getEventsFromSource(sourceId: string): IcsEvent[] {
@@ -466,9 +508,16 @@ export class IcsManager extends Component {
 				// Notify listeners
 				this.onEventsUpdated?.(sourceId, result.data.events);
 			} else {
+				// Handle different types of errors with appropriate logging
+				const errorType = this.categorizeError(result.error);
+				console.warn(
+					`ICS sync failed for source ${sourceId} (${errorType}):`,
+					result.error
+				);
+
 				this.updateSyncStatus(sourceId, {
 					status: "error",
-					error: result.error || "Unknown error",
+					error: `${errorType}: ${result.error || "Unknown error"}`,
 				});
 			}
 
@@ -476,9 +525,16 @@ export class IcsManager extends Component {
 		} catch (error) {
 			const errorMessage =
 				error instanceof Error ? error.message : "Unknown error";
+			const errorType = this.categorizeError(errorMessage);
+
+			console.warn(
+				`ICS sync exception for source ${sourceId} (${errorType}):`,
+				error
+			);
+
 			this.updateSyncStatus(sourceId, {
 				status: "error",
-				error: errorMessage,
+				error: `${errorType}: ${errorMessage}`,
 			});
 
 			return {
@@ -597,7 +653,23 @@ export class IcsManager extends Component {
 					cacheEntry.lastModified;
 			}
 
-			const response = await requestUrl(requestParams);
+			// Create timeout promise
+			const timeoutMs = this.config.networkTimeout * 1000;
+			const timeoutPromise = new Promise<never>((_, reject) => {
+				setTimeout(() => {
+					reject(
+						new Error(
+							`Request timeout after ${this.config.networkTimeout} seconds`
+						)
+					);
+				}, timeoutMs);
+			});
+
+			// Race between request and timeout
+			const response = await Promise.race([
+				requestUrl(requestParams),
+				timeoutPromise,
+			]);
 
 			// Handle 304 Not Modified
 			if (response.status === 304 && cacheEntry) {
@@ -892,6 +964,51 @@ export class IcsManager extends Component {
 			status: "idle",
 		};
 		this.syncStatuses.set(sourceId, { ...current, ...updates });
+	}
+
+	/**
+	 * Categorize error types for better handling
+	 */
+	private categorizeError(errorMessage?: string): string {
+		if (!errorMessage) return "unknown";
+
+		const message = errorMessage.toLowerCase();
+
+		if (
+			message.includes("timeout") ||
+			message.includes("request timeout")
+		) {
+			return "timeout";
+		}
+		if (
+			message.includes("connection") ||
+			message.includes("network") ||
+			message.includes("err_connection")
+		) {
+			return "network";
+		}
+		if (message.includes("404") || message.includes("not found")) {
+			return "not-found";
+		}
+		if (
+			message.includes("403") ||
+			message.includes("unauthorized") ||
+			message.includes("401")
+		) {
+			return "auth";
+		}
+		if (
+			message.includes("500") ||
+			message.includes("502") ||
+			message.includes("503")
+		) {
+			return "server";
+		}
+		if (message.includes("parse") || message.includes("invalid")) {
+			return "parse";
+		}
+
+		return "unknown";
 	}
 
 	/**
