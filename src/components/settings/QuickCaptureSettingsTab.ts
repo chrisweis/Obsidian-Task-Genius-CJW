@@ -24,6 +24,10 @@ export function renderQuickCaptureSettingsTab(
 					settingTab.plugin.settings.quickCapture.enableQuickCapture =
 						value;
 					settingTab.applySettingsUpdate();
+
+					setTimeout(() => {
+						settingTab.display();
+					}, 200);
 				})
 		);
 
