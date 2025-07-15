@@ -343,6 +343,125 @@ describe("File Metadata Inheritance", () => {
 		});
 	});
 
+	describe("Tags Inheritance", () => {
+		test("should inherit tags from file metadata", () => {
+			const content = "- [ ] Task without tags";
+			const fileMetadata = {
+				tags: ["#work", "#urgent", "#meeting"],
+			};
+
+			const tasks = parser.parseLegacy(content, "test.md", fileMetadata);
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.tags).toBeDefined();
+			expect(tasks[0].metadata.tags).toEqual(["#work", "#urgent", "#meeting"]);
+		});
+
+		test("should merge task tags with inherited tags", () => {
+			const content = "- [ ] Task with existing tags #personal";
+			const fileMetadata = {
+				tags: ["#work", "#urgent"],
+			};
+
+			const tasks = parser.parseLegacy(content, "test.md", fileMetadata);
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.tags).toBeDefined();
+			expect(tasks[0].metadata.tags).toContain("#personal");
+			expect(tasks[0].metadata.tags).toContain("#work");
+			expect(tasks[0].metadata.tags).toContain("#urgent");
+		});
+
+		test("should not duplicate tags when merging", () => {
+			const content = "- [ ] Task with duplicate tag #work";
+			const fileMetadata = {
+				tags: ["#work", "#urgent"],
+			};
+
+			const tasks = parser.parseLegacy(content, "test.md", fileMetadata);
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.tags).toBeDefined();
+			// Should only have one instance of #work
+			const workTags = tasks[0].metadata.tags.filter((tag: string) => tag === "#work");
+			expect(workTags).toHaveLength(1);
+			expect(tasks[0].metadata.tags).toContain("#urgent");
+		});
+
+		test("should parse special tag formats from file metadata", () => {
+			const content = "- [ ] Task inheriting project tag";
+			const fileMetadata = {
+				tags: ["#project/myproject", "#area/work", "#@/office"],
+			};
+
+			const tasks = parser.parseLegacy(content, "test.md", fileMetadata);
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.project).toBe("myproject");
+			expect(tasks[0].metadata.area).toBe("work");
+			expect(tasks[0].metadata.context).toBe("office");
+			expect(tasks[0].metadata.tags).toContain("#project/myproject");
+			expect(tasks[0].metadata.tags).toContain("#area/work");
+			expect(tasks[0].metadata.tags).toContain("#@/office");
+		});
+
+		test("should prioritize task metadata over tag-derived metadata", () => {
+			const content = "- [ ] Task with explicit project [project::taskproject]";
+			const fileMetadata = {
+				tags: ["#project/fileproject"],
+			};
+
+			const tasks = parser.parseLegacy(content, "test.md", fileMetadata);
+
+			expect(tasks).toHaveLength(1);
+			// Task's explicit project should take precedence
+			expect(tasks[0].metadata.project).toBe("taskproject");
+			expect(tasks[0].metadata.tags).toContain("#project/fileproject");
+		});
+
+		test("should handle mixed tag formats in file metadata", () => {
+			const content = "- [ ] Task with mixed tag inheritance";
+			const fileMetadata = {
+				tags: ["#regular-tag", "#project/myproject", "#normalTag", "#area/work"],
+			};
+
+			const tasks = parser.parseLegacy(content, "test.md", fileMetadata);
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.project).toBe("myproject");
+			expect(tasks[0].metadata.area).toBe("work");
+			expect(tasks[0].metadata.tags).toContain("#regular-tag");
+			expect(tasks[0].metadata.tags).toContain("#normalTag");
+			expect(tasks[0].metadata.tags).toContain("#project/myproject");
+			expect(tasks[0].metadata.tags).toContain("#area/work");
+		});
+
+		test("should handle empty tags array in file metadata", () => {
+			const content = "- [ ] Task with empty tags";
+			const fileMetadata = {
+				tags: [],
+			};
+
+			const tasks = parser.parseLegacy(content, "test.md", fileMetadata);
+
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0].metadata.tags).toEqual([]);
+		});
+
+		test("should handle non-array tags in file metadata", () => {
+			const content = "- [ ] Task with non-array tags";
+			const fileMetadata = {
+				tags: "single-tag",
+			};
+
+			const tasks = parser.parseLegacy(content, "test.md", fileMetadata);
+
+			expect(tasks).toHaveLength(1);
+			// Should inherit as a single tag
+			expect(tasks[0].metadata.tags).toContain("single-tag");
+		});
+	});
+
 	describe("Configuration Migration", () => {
 		test("should work with migrated settings", () => {
 			// 模拟迁移后的设置结构

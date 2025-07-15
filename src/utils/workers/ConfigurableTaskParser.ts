@@ -128,6 +128,24 @@ export class MarkdownTaskParser {
 					isSubtask
 				);
 
+				// Process inherited tags and merge with task's own tags
+				let finalTags = tags;
+				if (inheritedMetadata.tags) {
+					try {
+						const inheritedTags = JSON.parse(
+							inheritedMetadata.tags
+						);
+						if (Array.isArray(inheritedTags)) {
+							finalTags = this.mergeTags(tags, inheritedTags);
+						}
+					} catch (e) {
+						// If parsing fails, treat as a single tag
+						finalTags = this.mergeTags(tags, [
+							inheritedMetadata.tags,
+						]);
+					}
+				}
+
 				// Use provided tgProject or determine from config
 				const taskTgProject =
 					tgProject || this.determineTgProject(filePath);
@@ -154,7 +172,7 @@ export class MarkdownTaskParser {
 					parentId,
 					childrenIds: [],
 					metadata: inheritedMetadata,
-					tags,
+					tags: finalTags,
 					comment,
 					lineNumber: i + 1,
 					actualIndent: actualSpaces,
@@ -1096,6 +1114,17 @@ export class MarkdownTaskParser {
 	}
 
 	private convertToLegacyTask(enhancedTask: EnhancedTask): Task {
+		// Helper function to safely parse tags from metadata
+		const parseTagsFromMetadata = (tagsString: string): string[] => {
+			try {
+				const parsed = JSON.parse(tagsString);
+				return Array.isArray(parsed) ? parsed : [];
+			} catch (e) {
+				// If parsing fails, treat as a single tag
+				return [tagsString];
+			}
+		};
+
 		return {
 			id: enhancedTask.id,
 			content: enhancedTask.content,
@@ -1106,8 +1135,11 @@ export class MarkdownTaskParser {
 			originalMarkdown: enhancedTask.originalMarkdown,
 			children: enhancedTask.children || [],
 			metadata: {
-				tags: enhancedTask.tags || enhancedTask.metadata.tags,
-				children: enhancedTask.children,
+				tags:
+					enhancedTask.tags ||
+					(enhancedTask.metadata.tags
+						? parseTagsFromMetadata(enhancedTask.metadata.tags)
+						: []),
 				priority:
 					enhancedTask.priority || enhancedTask.metadata.priority,
 				startDate:
@@ -1136,6 +1168,8 @@ export class MarkdownTaskParser {
 							.filter((id) => id.length > 0)
 					: undefined,
 				onCompletion: enhancedTask.metadata.onCompletion,
+				// Legacy compatibility fields that should remain in metadata
+				children: enhancedTask.children,
 				heading: Array.isArray(enhancedTask.heading)
 					? enhancedTask.heading
 					: enhancedTask.heading
@@ -1239,6 +1273,55 @@ export class MarkdownTaskParser {
 	}
 
 	/**
+	 * Parse tags array to extract special tag formats and convert them to metadata
+	 * @param tags Array of tags to parse
+	 * @returns Object containing extracted metadata from tags
+	 */
+	private parseTagsForMetadata(tags: string[]): Record<string, string> {
+		const metadata: Record<string, string> = {};
+
+		for (const tag of tags) {
+			// Remove # prefix if present
+			const tagWithoutHash = tag.startsWith("#") ? tag.substring(1) : tag;
+			const slashPos = tagWithoutHash.indexOf("/");
+
+			if (slashPos !== -1) {
+				const prefix = tagWithoutHash.substring(0, slashPos);
+				const value = tagWithoutHash.substring(slashPos + 1);
+
+				// Check if this is a special tag prefix that should be converted to metadata
+				const metadataKey = this.config.specialTagPrefixes[prefix];
+				if (
+					metadataKey &&
+					this.config.metadataParseMode !== MetadataParseMode.None
+				) {
+					metadata[metadataKey] = value;
+				}
+			}
+		}
+
+		return metadata;
+	}
+
+	/**
+	 * Merge tags from different sources, removing duplicates
+	 * @param baseTags Base tags array (from task)
+	 * @param inheritedTags Tags to inherit (from file metadata)
+	 * @returns Merged tags array with duplicates removed
+	 */
+	private mergeTags(baseTags: string[], inheritedTags: string[]): string[] {
+		const merged = [...baseTags];
+
+		for (const tag of inheritedTags) {
+			if (!merged.includes(tag)) {
+				merged.push(tag);
+			}
+		}
+
+		return merged;
+	}
+
+	/**
 	 * Inherit metadata from file frontmatter and project configuration
 	 */
 	private inheritFileMetadata(
@@ -1336,28 +1419,69 @@ export class MarkdownTaskParser {
 			"indentLevel",
 			"actualIndent",
 			"listMarker",
+			"tgProject",
+			"comment",
+			"metadata", // Prevent recursive metadata inheritance
 		]);
 
 		// Inherit from file metadata (frontmatter) if available
 		if (this.fileMetadata) {
 			for (const [key, value] of Object.entries(this.fileMetadata)) {
-				// Only inherit if:
-				// 1. The field is not in the non-inheritable list
-				// 2. The task doesn't already have a meaningful value for this field
-				// 3. The file metadata value is not undefined/null
-				if (
-					!nonInheritableFields.has(key) &&
-					(inherited[key] === undefined ||
-						inherited[key] === null ||
-						inherited[key] === "") &&
-					value !== undefined &&
-					value !== null
-				) {
-					// Convert priority values to numbers before inheritance
-					if (key === "priority") {
-						inherited[key] = convertPriorityValue(value);
-					} else {
-						inherited[key] = String(value);
+				// Special handling for tags field
+				if (key === "tags" && Array.isArray(value)) {
+					// Parse tags to extract special tag formats (e.g., #project/myproject)
+					const tagMetadata = this.parseTagsForMetadata(value);
+
+					// Merge extracted metadata from tags
+					for (const [tagKey, tagValue] of Object.entries(
+						tagMetadata
+					)) {
+						if (
+							!nonInheritableFields.has(tagKey) &&
+							(inherited[tagKey] === undefined ||
+								inherited[tagKey] === null ||
+								inherited[tagKey] === "") &&
+							tagValue !== undefined &&
+							tagValue !== null
+						) {
+							// Convert priority values to numbers before inheritance
+							if (tagKey === "priority") {
+								inherited[tagKey] =
+									convertPriorityValue(tagValue);
+							} else {
+								inherited[tagKey] = String(tagValue);
+							}
+						}
+					}
+
+					// Store the tags array itself as tags metadata
+					if (
+						!nonInheritableFields.has("tags") &&
+						(inherited["tags"] === undefined ||
+							inherited["tags"] === null ||
+							inherited["tags"] === "")
+					) {
+						inherited["tags"] = JSON.stringify(value);
+					}
+				} else {
+					// Only inherit if:
+					// 1. The field is not in the non-inheritable list
+					// 2. The task doesn't already have a meaningful value for this field
+					// 3. The file metadata value is not undefined/null
+					if (
+						!nonInheritableFields.has(key) &&
+						(inherited[key] === undefined ||
+							inherited[key] === null ||
+							inherited[key] === "") &&
+						value !== undefined &&
+						value !== null
+					) {
+						// Convert priority values to numbers before inheritance
+						if (key === "priority") {
+							inherited[key] = convertPriorityValue(value);
+						} else {
+							inherited[key] = String(value);
+						}
 					}
 				}
 			}

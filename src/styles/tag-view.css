@@ -5,6 +5,11 @@
 	height: 100%;
 	width: 100%;
 	overflow: hidden;
+	flex: 1;
+}
+
+.task-genius-view:has(.task-details.visible) .tags-left-column {
+	display: none;
 }
 
 .tags-content {
