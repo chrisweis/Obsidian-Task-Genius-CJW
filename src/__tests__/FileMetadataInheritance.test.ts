@@ -457,8 +457,8 @@ describe("File Metadata Inheritance", () => {
 			const tasks = parser.parseLegacy(content, "test.md", fileMetadata);
 
 			expect(tasks).toHaveLength(1);
-			// Should inherit as a single tag
-			expect(tasks[0].metadata.tags).toContain("single-tag");
+			// Should inherit as a single tag with # prefix
+			expect(tasks[0].metadata.tags).toContain("#single-tag");
 		});
 	});
 

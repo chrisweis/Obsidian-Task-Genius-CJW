@@ -40,6 +40,28 @@ export class TagViewComponent extends TwoColumnViewBase<string> {
 	}
 
 	/**
+	 * Normalize a tag to ensure it has a # prefix
+	 * @param tag The tag to normalize
+	 * @returns Normalized tag with # prefix
+	 */
+	private normalizeTag(tag: string): string {
+		if (typeof tag !== 'string') {
+			return tag;
+		}
+		
+		// Trim whitespace
+		const trimmed = tag.trim();
+		
+		// If empty or already starts with #, return as is
+		if (!trimmed || trimmed.startsWith('#')) {
+			return trimmed;
+		}
+		
+		// Add # prefix
+		return `#${trimmed}`;
+	}
+
+	/**
 	 * 重写基类中的索引构建方法，为标签创建索引
 	 */
 	protected buildItemsIndex(): void {
@@ -55,10 +77,13 @@ export class TagViewComponent extends TwoColumnViewBase<string> {
 						return;
 					}
 
-					if (!this.allTagsMap.has(tag)) {
-						this.allTagsMap.set(tag, new Set());
+					// 规范化标签格式
+					const normalizedTag = this.normalizeTag(tag);
+
+					if (!this.allTagsMap.has(normalizedTag)) {
+						this.allTagsMap.set(normalizedTag, new Set());
 					}
-					this.allTagsMap.get(tag)?.add(task.id);
+					this.allTagsMap.get(normalizedTag)?.add(task.id);
 				});
 			}
 		});

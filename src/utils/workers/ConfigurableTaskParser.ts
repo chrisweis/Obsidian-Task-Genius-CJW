@@ -1304,15 +1304,41 @@ export class MarkdownTaskParser {
 	}
 
 	/**
+	 * Normalize a tag to ensure it has a # prefix
+	 * @param tag The tag to normalize
+	 * @returns Normalized tag with # prefix
+	 */
+	private normalizeTag(tag: string): string {
+		if (typeof tag !== 'string') {
+			return tag;
+		}
+		
+		// Trim whitespace
+		const trimmed = tag.trim();
+		
+		// If empty or already starts with #, return as is
+		if (!trimmed || trimmed.startsWith('#')) {
+			return trimmed;
+		}
+		
+		// Add # prefix
+		return `#${trimmed}`;
+	}
+
+	/**
 	 * Merge tags from different sources, removing duplicates
 	 * @param baseTags Base tags array (from task)
 	 * @param inheritedTags Tags to inherit (from file metadata)
 	 * @returns Merged tags array with duplicates removed
 	 */
 	private mergeTags(baseTags: string[], inheritedTags: string[]): string[] {
-		const merged = [...baseTags];
+		// Normalize all tags before merging
+		const normalizedBaseTags = baseTags.map(tag => this.normalizeTag(tag));
+		const normalizedInheritedTags = inheritedTags.map(tag => this.normalizeTag(tag));
+		
+		const merged = [...normalizedBaseTags];
 
-		for (const tag of inheritedTags) {
+		for (const tag of normalizedInheritedTags) {
 			if (!merged.includes(tag)) {
 				merged.push(tag);
 			}
@@ -1461,7 +1487,9 @@ export class MarkdownTaskParser {
 							inherited["tags"] === null ||
 							inherited["tags"] === "")
 					) {
-						inherited["tags"] = JSON.stringify(value);
+						// Normalize tags before storing
+						const normalizedTags = value.map(tag => this.normalizeTag(tag));
+						inherited["tags"] = JSON.stringify(normalizedTags);
 					}
 				} else {
 					// Only inherit if:
