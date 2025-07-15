@@ -122,8 +122,8 @@ describe("TaskParsingService Integration", () => {
 					pathMappings: [],
 					metadataConfig: {
 						metadataKey: "project",
-						inheritFromFrontmatter: true,
-						inheritFromFrontmatterForSubtasks: false,
+						
+						
 						enabled: true,
 					},
 					configFile: {

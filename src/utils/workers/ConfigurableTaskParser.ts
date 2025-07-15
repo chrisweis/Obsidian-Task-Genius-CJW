@@ -1297,22 +1297,20 @@ export class MarkdownTaskParser {
 		}
 
 		// Early return if enhanced project features are disabled
-		// Without enhanced project, metadata inheritance should not work
-		if (!this.config.projectConfig?.enableEnhancedProject) {
+		// Check if file metadata inheritance is enabled
+		if (!this.config.fileMetadataInheritance?.enabled) {
 			return inherited;
 		}
 
 		// Check if frontmatter inheritance is enabled
-		if (
-			!this.config.projectConfig?.metadataConfig?.inheritFromFrontmatter
-		) {
+		if (!this.config.fileMetadataInheritance?.inheritFromFrontmatter) {
 			return inherited;
 		}
 
 		// Check if subtask inheritance is allowed
 		if (
 			isSubtask &&
-			!this.config.projectConfig?.metadataConfig
+			!this.config.fileMetadataInheritance
 				?.inheritFromFrontmatterForSubtasks
 		) {
 			return inherited;
@@ -1335,8 +1333,6 @@ export class MarkdownTaskParser {
 			"parentId",
 			"children",
 			"childrenIds",
-			"tags", // Tags are task-specific
-			"comment", // Comments are task-specific
 			"indentLevel",
 			"actualIndent",
 			"listMarker",
@@ -1347,11 +1343,13 @@ export class MarkdownTaskParser {
 			for (const [key, value] of Object.entries(this.fileMetadata)) {
 				// Only inherit if:
 				// 1. The field is not in the non-inheritable list
-				// 2. The task doesn't already have this field
-				// 3. The value is not undefined/null
+				// 2. The task doesn't already have a meaningful value for this field
+				// 3. The file metadata value is not undefined/null
 				if (
 					!nonInheritableFields.has(key) &&
-					!inherited[key] &&
+					(inherited[key] === undefined ||
+						inherited[key] === null ||
+						inherited[key] === "") &&
 					value !== undefined &&
 					value !== null
 				) {
@@ -1372,12 +1370,14 @@ export class MarkdownTaskParser {
 			)) {
 				// Only inherit if:
 				// 1. The field is not in the non-inheritable list
-				// 2. The task doesn't already have this field (task metadata takes precedence)
+				// 2. The task doesn't already have a meaningful value for this field (task metadata takes precedence)
 				// 3. File metadata doesn't have this field (file metadata takes precedence over project config)
 				// 4. The value is not undefined/null
 				if (
 					!nonInheritableFields.has(key) &&
-					!inherited[key] &&
+					(inherited[key] === undefined ||
+						inherited[key] === null ||
+						inherited[key] === "") &&
 					!(
 						this.fileMetadata &&
 						this.fileMetadata[key] !== undefined

@@ -26,6 +26,13 @@ export interface TaskParserConfig {
 	metadataParseMode: MetadataParseMode; // Metadata parsing mode
 	specialTagPrefixes: Record<string, string>; // Special tag prefix mapping, e.g. "project" -> "project"
 
+	// File Metadata Inheritance
+	fileMetadataInheritance?: {
+		enabled: boolean;
+		inheritFromFrontmatter: boolean;
+		inheritFromFrontmatterForSubtasks: boolean;
+	};
+
 	// Enhanced project configuration
 	projectConfig?: {
 		enableEnhancedProject: boolean;
@@ -36,8 +43,6 @@ export interface TaskParserConfig {
 		}>;
 		metadataConfig: {
 			metadataKey: string;
-			inheritFromFrontmatter: boolean;
-			inheritFromFrontmatterForSubtasks: boolean;
 			enabled: boolean;
 		};
 		configFile: {

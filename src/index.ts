@@ -1034,11 +1034,40 @@ export default class TaskProgressBarPlugin extends Plugin {
 	}
 
 	async loadSettings() {
+		const savedData = await this.loadData();
 		this.settings = Object.assign(
 			{},
 			DEFAULT_SETTINGS,
-			await this.loadData()
+			savedData
 		);
+		
+		// Migrate old inheritance settings to new structure
+		this.migrateInheritanceSettings(savedData);
+	}
+
+	private migrateInheritanceSettings(savedData: any) {
+		// Check if old inheritance settings exist and new ones don't
+		if (savedData?.projectConfig?.metadataConfig && 
+			!savedData?.fileMetadataInheritance) {
+			
+			const oldConfig = savedData.projectConfig.metadataConfig;
+			
+			// Migrate to new structure
+			this.settings.fileMetadataInheritance = {
+				enabled: true,
+				inheritFromFrontmatter: oldConfig.inheritFromFrontmatter ?? true,
+				inheritFromFrontmatterForSubtasks: oldConfig.inheritFromFrontmatterForSubtasks ?? false
+			};
+			
+			// Remove old inheritance settings from project config
+			if (this.settings.projectConfig?.metadataConfig) {
+				delete (this.settings.projectConfig.metadataConfig as any).inheritFromFrontmatter;
+				delete (this.settings.projectConfig.metadataConfig as any).inheritFromFrontmatterForSubtasks;
+			}
+			
+			// Save the migrated settings
+			this.saveSettings();
+		}
 	}
 
 	async saveSettings() {

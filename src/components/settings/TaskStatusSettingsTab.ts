@@ -19,6 +19,79 @@ export function renderTaskStatusSettingsTab(
 		.setDesc(t("Configure checkbox status settings"))
 		.setHeading();
 
+	// File Metadata Inheritance Settings
+	new Setting(containerEl)
+		.setName(t("File Metadata Inheritance"))
+		.setDesc(
+			t("Configure how tasks inherit metadata from file frontmatter")
+		)
+		.setHeading();
+
+	new Setting(containerEl)
+		.setName(t("Enable file metadata inheritance"))
+		.setDesc(
+			t(
+				"Allow tasks to inherit metadata properties from their file's frontmatter"
+			)
+		)
+		.addToggle((toggle) =>
+			toggle
+				.setValue(
+					settingTab.plugin.settings.fileMetadataInheritance.enabled
+				)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.fileMetadataInheritance.enabled =
+						value;
+					settingTab.applySettingsUpdate();
+
+					setTimeout(() => {
+						settingTab.display();
+					}, 200);
+				})
+		);
+
+	if (settingTab.plugin.settings.fileMetadataInheritance.enabled) {
+		new Setting(containerEl)
+			.setName(t("Inherit from frontmatter"))
+			.setDesc(
+				t(
+					"Tasks inherit metadata properties like priority, context, etc. from file frontmatter when not explicitly set on the task"
+				)
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(
+						settingTab.plugin.settings.fileMetadataInheritance
+							.inheritFromFrontmatter
+					)
+					.onChange(async (value) => {
+						settingTab.plugin.settings.fileMetadataInheritance.inheritFromFrontmatter =
+							value;
+						settingTab.applySettingsUpdate();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName(t("Inherit from frontmatter for subtasks"))
+			.setDesc(
+				t(
+					"Allow subtasks to inherit metadata from file frontmatter. When disabled, only top-level tasks inherit file metadata"
+				)
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(
+						settingTab.plugin.settings.fileMetadataInheritance
+							.inheritFromFrontmatterForSubtasks
+					)
+					.onChange(async (value) => {
+						settingTab.plugin.settings.fileMetadataInheritance.inheritFromFrontmatterForSubtasks =
+							value;
+						settingTab.applySettingsUpdate();
+					})
+			);
+	}
+
 	// Check if Tasks plugin is installed and show compatibility warning
 	const tasksAPI = getTasksAPI(settingTab.plugin);
 	if (tasksAPI) {

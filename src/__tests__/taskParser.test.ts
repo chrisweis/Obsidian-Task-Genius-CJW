@@ -83,9 +83,9 @@ describe("ConfigurableTaskParser", () => {
 				],
 				metadataConfig: {
 					metadataKey: "project",
-					inheritFromFrontmatter: true,
+					
 					enabled: true,
-					inheritFromFrontmatterForSubtasks: true,
+					
 				},
 				configFile: {
 					fileName: "project.md",

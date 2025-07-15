@@ -34,8 +34,8 @@ export function renderProjectSettingsTab(
 							pathMappings: [],
 							metadataConfig: {
 								metadataKey: "project",
-								inheritFromFrontmatter: true,
-								inheritFromFrontmatterForSubtasks: false,
+								
+								
 								enabled: false,
 							},
 							configFile: {
@@ -80,8 +80,8 @@ export function renderProjectSettingsTab(
 					pathMappings: [],
 					metadataConfig: {
 						metadataKey: "project",
-						inheritFromFrontmatter: true,
-						inheritFromFrontmatterForSubtasks: false,
+						
+						
 						enabled: false,
 					},
 					configFile: {
@@ -193,8 +193,8 @@ export function renderProjectSettingsTab(
 								pathMappings: [],
 								metadataConfig: {
 									metadataKey: "project",
-									inheritFromFrontmatter: true,
-									inheritFromFrontmatterForSubtasks: false,
+									
+									
 									enabled: false,
 								},
 								configFile: {
@@ -289,51 +289,6 @@ export function renderProjectSettingsTab(
 					});
 			});
 
-		new Setting(containerEl)
-			.setName(t("Inherit from frontmatter"))
-			.setDesc(t("Inherit other metadata fields from file frontmatter"))
-			.addToggle((toggle) => {
-				toggle
-					.setValue(
-						settingTab.plugin.settings.projectConfig?.metadataConfig
-							?.inheritFromFrontmatter || true
-					)
-					.onChange(async (value) => {
-						if (
-							settingTab.plugin.settings.projectConfig
-								?.metadataConfig
-						) {
-							settingTab.plugin.settings.projectConfig.metadataConfig.inheritFromFrontmatter =
-								value;
-							await settingTab.plugin.saveSettings();
-						}
-					});
-			});
-
-		new Setting(containerEl)
-			.setName(t("Inherit from frontmatter for subtasks"))
-			.setDesc(
-				t(
-					"Allow subtasks to inherit metadata from file frontmatter. When disabled, only top-level tasks inherit file metadata."
-				)
-			)
-			.addToggle((toggle) => {
-				toggle
-					.setValue(
-						settingTab.plugin.settings.projectConfig?.metadataConfig
-							?.inheritFromFrontmatterForSubtasks || false
-					)
-					.onChange(async (value) => {
-						if (
-							settingTab.plugin.settings.projectConfig
-								?.metadataConfig
-						) {
-							settingTab.plugin.settings.projectConfig.metadataConfig.inheritFromFrontmatterForSubtasks =
-								value;
-							await settingTab.plugin.saveSettings();
-						}
-					});
-			});
 
 		// Project config file settings
 		new Setting(containerEl)

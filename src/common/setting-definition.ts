@@ -412,14 +412,20 @@ export interface ProjectPathMapping {
 	enabled: boolean;
 }
 
-/** Project metadata configuration */
-export interface ProjectMetadataConfig {
-	/** Metadata key to use for project name */
-	metadataKey: string;
+/** File metadata inheritance configuration */
+export interface FileMetadataInheritanceConfig {
+	/** Whether file metadata inheritance is enabled */
+	enabled: boolean;
 	/** Whether to inherit from file frontmatter */
 	inheritFromFrontmatter: boolean;
 	/** Whether subtasks should inherit metadata from file frontmatter */
 	inheritFromFrontmatterForSubtasks: boolean;
+}
+
+/** Project metadata configuration */
+export interface ProjectMetadataConfig {
+	/** Metadata key to use for project name */
+	metadataKey: string;
 	/** Whether this config is enabled */
 	enabled: boolean;
 }
@@ -555,6 +561,9 @@ export interface TaskProgressBarSettings {
 	hideProgressBarFolders: string;
 	hideProgressBarMetadata: string;
 	showProgressBarBasedOnHeading: string;
+
+	// File Metadata Inheritance Settings
+	fileMetadataInheritance: FileMetadataInheritanceConfig;
 
 	// Checkbox Status Settings
 	autoCompleteParent: boolean;
@@ -880,14 +889,19 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		dataview: "area",
 	},
 
+	// File Metadata Inheritance Defaults
+	fileMetadataInheritance: {
+		enabled: true,
+		inheritFromFrontmatter: true,
+		inheritFromFrontmatterForSubtasks: false,
+	},
+
 	// Enhanced Project Configuration
 	projectConfig: {
 		enableEnhancedProject: false,
 		pathMappings: [],
 		metadataConfig: {
 			metadataKey: "project",
-			inheritFromFrontmatter: false,
-			inheritFromFrontmatterForSubtasks: false,
 			enabled: false,
 		},
 		configFile: {

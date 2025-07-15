@@ -90,8 +90,8 @@ describe("Project Source Display", () => {
 				metadataConfig: {
 					enabled: true,
 					metadataKey: "projectName",
-					inheritFromFrontmatter: true,
-					inheritFromFrontmatterForSubtasks: false,
+					
+					
 				},
 				configFile: {
 					enabled: true,

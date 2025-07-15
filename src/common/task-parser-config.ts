@@ -91,6 +91,9 @@ export const getConfig = (
 		projectConfig: plugin?.settings?.projectConfig?.enableEnhancedProject
 			? plugin?.settings?.projectConfig
 			: undefined,
+
+		// File Metadata Inheritance
+		fileMetadataInheritance: plugin?.settings?.fileMetadataInheritance,
 	};
 
 	return config;
