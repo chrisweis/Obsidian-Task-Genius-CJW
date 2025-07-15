@@ -39,14 +39,84 @@ function getTaskStatusConfig(plugin: TaskProgressBarPlugin) {
 }
 
 /**
+ * Checks if a replacement operation is a valid task marker replacement
+ * @param tr The transaction containing selection and change information
+ * @param fromA Start position of the replacement
+ * @param toA End position of the replacement
+ * @param insertedText The text being inserted
+ * @param originalText The text being replaced
+ * @param pos The position in the new document
+ * @param newLineText The full line text after the change
+ * @param plugin The plugin instance for accessing settings
+ * @returns true if this is a valid task marker replacement, false otherwise
+ */
+function isValidTaskMarkerReplacement(
+	tr: Transaction,
+	fromA: number,
+	toA: number,
+	insertedText: string,
+	originalText: string,
+	pos: number,
+	newLineText: string,
+	plugin: TaskProgressBarPlugin
+): boolean {
+	// Only single character replacements are considered valid task marker operations
+	if (toA - fromA !== 1 || insertedText.length !== 1) {
+		return false;
+	}
+
+	// Check if user actively selected text before replacement
+	const startSelection = tr.startState.selection.main;
+	const hasUserSelection = !startSelection.empty;
+	
+	// If user had a selection that covers the replacement range, this is intentional replacement
+	if (hasUserSelection && fromA >= startSelection.from && toA <= startSelection.to) {
+		console.log(
+			`User selection detected (${startSelection.from}-${startSelection.to}) covering replacement range (${fromA}-${toA}). Skipping automatic cycling as this is user-intended replacement.`
+		);
+		return false;
+	}
+
+	// Get valid task status marks from plugin settings
+	const { marks } = getTaskStatusConfig(plugin);
+	const validMarks = Object.values(marks);
+	
+	// Check if both the original and inserted characters are valid task status marks
+	const isOriginalValidMark = validMarks.includes(originalText) || originalText === ' ';
+	const isInsertedValidMark = validMarks.includes(insertedText) || insertedText === ' ';
+	
+	// If either character is not a valid task mark, this is likely manual input
+	if (!isOriginalValidMark || !isInsertedValidMark) {
+		return false;
+	}
+
+	// Check if the replacement position is at a task marker location
+	const taskRegex = /^[\s|\t]*([-*+]|\d+\.)\s+\[(.)]/;
+	const match = newLineText.match(taskRegex);
+	
+	if (!match) {
+		return false;
+	}
+
+	// Log successful validation for debugging
+	console.log(
+		`Valid task marker replacement detected. No user selection or selection doesn't cover replacement range. Original: '${originalText}' -> New: '${insertedText}' at position ${fromA}-${toA}`
+	);
+
+	return true;
+}
+
+/**
  * Finds a task status change event in the transaction
  * @param tr The transaction to check
  * @param tasksPluginLoaded Whether the Obsidian Tasks plugin is loaded
+ * @param plugin The plugin instance (optional for backwards compatibility)
  * @returns Information about all changed task statuses or empty array if no status was changed
  */
 export function findTaskStatusChanges(
 	tr: Transaction,
-	tasksPluginLoaded: boolean
+	tasksPluginLoaded: boolean,
+	plugin?: TaskProgressBarPlugin
 ): {
 	position: number;
 	currentMark: string;
@@ -257,15 +327,40 @@ export function findTaskStatusChanges(
 						pos === newLine.from + markIndex &&
 						insertedText !== "["
 					) {
-						// NEW: Check if this is a replacement operation (user selected and replaced text)
-						// If fromA != toA, it means user deleted existing text and replaced it
-						// This indicates user has explicit intent for the specific character
-						// In this case, we should NOT trigger automatic cycling
+						// Check if this is a replacement operation and validate if it's a valid task marker replacement
 						if (fromA !== toA) {
-							console.log(
-								`Detected replacement operation (fromA=${fromA}, toA=${toA}). User manually input '${insertedText}', skipping automatic cycling.`
-							);
-							return; // Skip this change, don't add to taskChanges
+							const originalText = tr.startState.doc.sliceString(fromA, toA);
+							
+							// Only perform validation if plugin is provided
+							if (plugin) {
+								const isValidReplacement = isValidTaskMarkerReplacement(
+									tr,
+									fromA,
+									toA,
+									insertedText,
+									originalText,
+									pos,
+									newLineText,
+									plugin
+								);
+								
+								if (!isValidReplacement) {
+									console.log(
+										`Detected invalid task marker replacement (fromA=${fromA}, toA=${toA}). User manually input '${insertedText}' (original: '${originalText}'), skipping automatic cycling.`
+									);
+									return; // Skip this change, don't add to taskChanges
+								}
+								
+								console.log(
+									`Detected valid task marker replacement (fromA=${fromA}, toA=${toA}). Original: '${originalText}' -> New: '${insertedText}', proceeding with automatic cycling.`
+								);
+							} else {
+								// Fallback to original logic for backwards compatibility
+								console.log(
+									`Detected replacement operation (fromA=${fromA}, toA=${toA}). User manually input '${insertedText}', skipping automatic cycling.`
+								);
+								return; // Skip this change, don't add to taskChanges
+							}
 						}
 
 						changedPosition = pos;
@@ -425,7 +520,7 @@ export function handleCycleCompleteStatusTransaction(
 	}
 
 	// Check if any task statuses were changed in this transaction
-	const taskStatusChanges = findTaskStatusChanges(tr, !!getTasksAPI(plugin));
+	const taskStatusChanges = findTaskStatusChanges(tr, !!getTasksAPI(plugin), plugin);
 	if (taskStatusChanges.length === 0) {
 		return tr;
 	}
