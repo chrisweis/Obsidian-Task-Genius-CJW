@@ -2887,14 +2887,59 @@ export class TaskManager extends Component {
 	/**
 	 * Force reindex all tasks by clearing all current indices and rebuilding from scratch
 	 */
-	public async forceReindex(): Promise<void> {
-		this.log("Force reindexing all tasks");
+	/**
+	 * Force reindex all tasks with optional cache strategy
+	 * @param options - Optional configuration for cache clearing behavior
+	 */
+	public async forceReindex(options?: {
+		clearProjectCaches?: boolean; // Whether to clear project-related caches (default: true)
+		preserveValidCaches?: boolean; // Whether to preserve caches for unchanged files (default: false)
+		logCacheStats?: boolean; // Whether to log cache statistics before/after (default: false)
+	}): Promise<void> {
+		const {
+			clearProjectCaches = true,
+			preserveValidCaches = false,
+			logCacheStats = false
+		} = options || {};
+
+		this.log(`Force reindexing all tasks (clearProjectCaches: ${clearProjectCaches}, preserveValidCaches: ${preserveValidCaches})`);
+
+		// Log cache statistics before clearing if requested
+		if (logCacheStats && this.taskParsingService) {
+			try {
+				const beforeStats = this.taskParsingService.getDetailedCacheStats();
+				this.log("Cache statistics before clearing: " + JSON.stringify(beforeStats.summary, null, 2));
+			} catch (error) {
+				console.warn("Failed to get cache statistics:", error);
+			}
+		}
 
 		// Reset initialization state
 		this.initialized = false;
 
 		// Clear all caches
 		this.indexer.resetCache();
+
+		// Clear project-related caches based on options
+		if (clearProjectCaches && this.taskParsingService) {
+			try {
+				if (preserveValidCaches) {
+					// Smart cache clearing - only clear stale entries
+					if ((this.taskParsingService as any).projectConfigManager) {
+						const clearedCount = await (this.taskParsingService as any).projectConfigManager.clearStaleEntries();
+						this.log(`Smart cache clearing: removed ${clearedCount} stale entries`);
+					}
+				} else {
+					// Full cache clearing (default behavior)
+					this.taskParsingService.clearAllCaches();
+					this.log("Cleared all project-related caches (config, data, metadata)");
+				}
+			} catch (error) {
+				console.error("Error clearing project caches:", error);
+			}
+		} else if (!clearProjectCaches) {
+			this.log("Skipping project cache clearing as requested");
+		}
 
 		// Clear the persister cache
 		try {
@@ -2938,6 +2983,16 @@ export class TaskManager extends Component {
 		// Mark rebuild as complete
 		const finalTaskCount = this.getAllTasks().length;
 		progressManager.completeRebuild(finalTaskCount);
+
+		// Log cache statistics after rebuilding if requested
+		if (logCacheStats && this.taskParsingService) {
+			try {
+				const afterStats = this.taskParsingService.getDetailedCacheStats();
+				this.log("Cache statistics after rebuilding: " + JSON.stringify(afterStats.summary, null, 2));
+			} catch (error) {
+				console.warn("Failed to get final cache statistics:", error);
+			}
+		}
 
 		// Trigger an update event
 		this.app.workspace.trigger(
