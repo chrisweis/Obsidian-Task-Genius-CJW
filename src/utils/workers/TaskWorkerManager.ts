@@ -18,7 +18,7 @@ import {
 	TaskParseResult,
 } from "./TaskIndexWorkerMessage";
 import { FileMetadataTaskParser } from "./FileMetadataTaskParser";
-import { FileParsingConfiguration } from "../../common/setting-definition";
+import { FileParsingConfiguration, FileMetadataInheritanceConfig } from "../../common/setting-definition";
 
 // Import worker and utilities
 // @ts-ignore Ignore type error for worker import
@@ -48,6 +48,7 @@ export interface WorkerPoolOptions {
 		ignoreHeading: string;
 		focusHeading: string;
 		fileParsingConfig?: FileParsingConfiguration;
+		fileMetadataInheritance?: FileMetadataInheritanceConfig;
 	};
 }
 
@@ -66,6 +67,8 @@ export const DEFAULT_WORKER_OPTIONS: WorkerPoolOptions = {
 		dailyNotePath: "",
 		ignoreHeading: "",
 		focusHeading: "",
+		fileParsingConfig: undefined,
+		fileMetadataInheritance: undefined,
 	},
 };
 
@@ -196,6 +199,7 @@ export class TaskWorkerManager extends Component {
 				ignoreHeading: "",
 				focusHeading: "",
 				fileParsingConfig: config,
+				fileMetadataInheritance: undefined,
 			};
 		}
 	}
@@ -572,6 +576,7 @@ export class TaskWorkerManager extends Component {
 							ignoreHeading: "",
 							focusHeading: "",
 							fileParsingConfig: undefined,
+							fileMetadataInheritance: undefined,
 						},
 					};
 

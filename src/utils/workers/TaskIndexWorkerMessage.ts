@@ -5,7 +5,7 @@
 import { CachedMetadata, FileStats, ListItemCache } from "obsidian";
 import { Task } from "../../types/task";
 import { MetadataFormat } from "../taskUtil";
-import { FileParsingConfiguration } from "../../common/setting-definition";
+import { FileParsingConfiguration, FileMetadataInheritanceConfig } from "../../common/setting-definition";
 
 /**
  * Command to parse tasks from a file
@@ -217,6 +217,9 @@ export type TaskWorkerSettings = {
 
 	// File parsing configuration for metadata and tag-based task extraction
 	fileParsingConfig?: FileParsingConfiguration;
+	
+	// File metadata inheritance configuration
+	fileMetadataInheritance?: FileMetadataInheritanceConfig;
 };
 
 /**
