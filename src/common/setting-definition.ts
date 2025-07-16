@@ -287,6 +287,17 @@ export interface QuickCaptureSettings {
 		folder: string; // Folder path for daily notes
 		template: string; // Template file path for daily notes
 	};
+	// Minimal mode settings
+	enableMinimalMode: boolean;
+	minimalModeSettings: {
+		showDateButton: boolean;
+		showPriorityButton: boolean;
+		showLocationButton: boolean;
+		showTagButton: boolean;
+		defaultLocation: "fixed" | "daily-note";
+		autoAddTaskPrefix: boolean; // 自动添加 - [ ] 前缀
+		suggestTrigger: string; // 触发字符，默认 "/"
+	};
 }
 
 /** Define the structure for task gutter settings */
@@ -802,6 +813,16 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			format: "YYYY-MM-DD",
 			folder: "",
 			template: "",
+		},
+		enableMinimalMode: false,
+		minimalModeSettings: {
+			showDateButton: true,
+			showPriorityButton: true,
+			showLocationButton: true,
+			showTagButton: true,
+			defaultLocation: "fixed",
+			autoAddTaskPrefix: true,
+			suggestTrigger: "/",
 		},
 	},
 

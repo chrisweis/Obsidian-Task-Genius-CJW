@@ -203,6 +203,8 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 	 * Get the current task cache
 	 */
 	public getCache(): TaskCache {
+		// Ensure cache structure is complete
+		this.ensureCacheStructure(this.taskCache);
 		return this.taskCache;
 	}
 
@@ -1082,6 +1084,14 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 	 * Update the modification time for a file
 	 */
 	public updateFileMtime(filePath: string, mtime: number): void {
+		// Ensure Map objects exist before using them
+		if (!this.taskCache.fileMtimes) {
+			this.taskCache.fileMtimes = new Map<string, number>();
+		}
+		if (!this.taskCache.fileProcessedTimes) {
+			this.taskCache.fileProcessedTimes = new Map<string, number>();
+		}
+		
 		this.taskCache.fileMtimes.set(filePath, mtime);
 		this.taskCache.fileProcessedTimes.set(filePath, Date.now());
 	}
@@ -1133,9 +1143,27 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 	}
 
 	/**
+	 * Ensure cache structure is complete
+	 */
+	private ensureCacheStructure(cache: TaskCache): void {
+		// Ensure fileMtimes exists
+		if (!cache.fileMtimes) {
+			cache.fileMtimes = new Map<string, number>();
+		}
+
+		// Ensure fileProcessedTimes exists
+		if (!cache.fileProcessedTimes) {
+			cache.fileProcessedTimes = new Map<string, number>();
+		}
+	}
+
+	/**
 	 * Set the cache from an external source (e.g. persisted cache)
 	 */
 	public setCache(cache: TaskCache): void {
+		// Ensure cache structure is complete
+		this.ensureCacheStructure(cache);
+		
 		this.taskCache = cache;
 
 		// Update lastIndexTime for all files in the cache

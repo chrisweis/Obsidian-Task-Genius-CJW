@@ -65,6 +65,8 @@ import {
 } from "./editor-ext/filterTasks";
 import { Task } from "./types/task";
 import { QuickCaptureModal } from "./components/QuickCaptureModal";
+import { MinimalQuickCaptureModal } from "./components/MinimalQuickCaptureModal";
+import { MinimalQuickCaptureSuggest } from "./components/MinimalQuickCaptureSuggest";
 import { MarkdownView } from "obsidian";
 import { Notice } from "obsidian";
 import { t } from "./translations/helper";
@@ -182,6 +184,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 	// ICS manager instance
 	icsManager: IcsManager;
+	
+	// Minimal quick capture suggest
+	minimalQuickCaptureSuggest: MinimalQuickCaptureSuggest;
 
 	// Version manager instance
 	versionManager: VersionManager;
@@ -531,6 +536,16 @@ export default class TaskProgressBarPlugin extends Plugin {
 			callback: () => {
 				// Create a modal with full task metadata options
 				new QuickCaptureModal(this.app, this, {}, true).open();
+			},
+		});
+
+		// Add command for minimal quick capture
+		this.addCommand({
+			id: "minimal-quick-capture",
+			name: t("Minimal Quick Capture"),
+			callback: () => {
+				// Create a minimal modal for quick task capture
+				new MinimalQuickCaptureModal(this.app, this).open();
 			},
 		});
 
@@ -1009,6 +1024,11 @@ export default class TaskProgressBarPlugin extends Plugin {
 			this.registerEditorExtension([
 				quickCaptureExtension(this.app, this),
 			]);
+		}
+		
+		// Initialize minimal quick capture suggest
+		if (this.settings.quickCapture.enableMinimalMode) {
+			this.minimalQuickCaptureSuggest = new MinimalQuickCaptureSuggest(this.app, this);
 		}
 
 		// Add task filter extension

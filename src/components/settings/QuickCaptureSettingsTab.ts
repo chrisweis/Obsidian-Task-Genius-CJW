@@ -208,6 +208,119 @@ export function renderQuickCaptureSettingsTab(
 				})
 		);
 
+	// Minimal mode settings
+	new Setting(containerEl).setName(t("Minimal Mode")).setHeading();
+
+	new Setting(containerEl)
+		.setName(t("Enable minimal mode"))
+		.setDesc(t("Enable simplified single-line quick capture with inline suggestions"))
+		.addToggle((toggle) =>
+			toggle
+				.setValue(settingTab.plugin.settings.quickCapture.enableMinimalMode)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.enableMinimalMode = value;
+					settingTab.applySettingsUpdate();
+					// Refresh the settings display to show/hide minimal mode options
+					setTimeout(() => {
+						settingTab.display();
+					}, 100);
+				})
+		);
+
+	if (!settingTab.plugin.settings.quickCapture.enableMinimalMode) return;
+
+	// Auto-add task prefix
+	new Setting(containerEl)
+		.setName(t("Auto-add task prefix"))
+		.setDesc(t("Automatically add '- [ ]' prefix to captured content"))
+		.addToggle((toggle) =>
+			toggle
+				.setValue(settingTab.plugin.settings.quickCapture.minimalModeSettings.autoAddTaskPrefix)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.minimalModeSettings.autoAddTaskPrefix = value;
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	// Suggest trigger character
+	new Setting(containerEl)
+		.setName(t("Suggest trigger character"))
+		.setDesc(t("Character to trigger the suggestion menu"))
+		.addText((text) =>
+			text
+				.setValue(settingTab.plugin.settings.quickCapture.minimalModeSettings.suggestTrigger)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.minimalModeSettings.suggestTrigger = value || "/";
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	// Default location
+	new Setting(containerEl)
+		.setName(t("Default location"))
+		.setDesc(t("Default location for capturing tasks"))
+		.addDropdown((dropdown) =>
+			dropdown
+				.addOption("fixed", t("Fixed file"))
+				.addOption("daily-note", t("Daily note"))
+				.setValue(settingTab.plugin.settings.quickCapture.minimalModeSettings.defaultLocation)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.minimalModeSettings.defaultLocation = value as "fixed" | "daily-note";
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	// Quick action buttons
+	new Setting(containerEl).setName(t("Quick Action Buttons")).setHeading();
+
+	new Setting(containerEl)
+		.setName(t("Show date button"))
+		.setDesc(t("Show date selection button in minimal mode"))
+		.addToggle((toggle) =>
+			toggle
+				.setValue(settingTab.plugin.settings.quickCapture.minimalModeSettings.showDateButton)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.minimalModeSettings.showDateButton = value;
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	new Setting(containerEl)
+		.setName(t("Show priority button"))
+		.setDesc(t("Show priority selection button in minimal mode"))
+		.addToggle((toggle) =>
+			toggle
+				.setValue(settingTab.plugin.settings.quickCapture.minimalModeSettings.showPriorityButton)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.minimalModeSettings.showPriorityButton = value;
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	new Setting(containerEl)
+		.setName(t("Show location button"))
+		.setDesc(t("Show location selection button in minimal mode"))
+		.addToggle((toggle) =>
+			toggle
+				.setValue(settingTab.plugin.settings.quickCapture.minimalModeSettings.showLocationButton)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.minimalModeSettings.showLocationButton = value;
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	new Setting(containerEl)
+		.setName(t("Show tag button"))
+		.setDesc(t("Show tag selection button in minimal mode"))
+		.addToggle((toggle) =>
+			toggle
+				.setValue(settingTab.plugin.settings.quickCapture.minimalModeSettings.showTagButton)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.minimalModeSettings.showTagButton = value;
+					settingTab.applySettingsUpdate();
+				})
+		);
+
 	new Setting(containerEl)
 		.setName(t("Append to file"))
 		.setDesc(t("How to add captured content to the target location"))
