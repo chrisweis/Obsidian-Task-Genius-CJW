@@ -548,6 +548,8 @@ export class ProjectDataWorkerManager {
 	 */
 	clearCache(filePath?: string): void {
 		this.cache.clearCache(filePath);
+		// Also clear ProjectConfigManager cache to ensure consistency
+		this.projectConfigManager.clearCache(filePath);
 	}
 
 	/**

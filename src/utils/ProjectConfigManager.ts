@@ -65,6 +65,14 @@ export class ProjectConfigManager {
 	private configCache = new Map<string, ProjectConfigData>();
 	private lastModifiedCache = new Map<string, number>();
 
+	// Cache for file metadata (frontmatter)
+	private fileMetadataCache = new Map<string, Record<string, any>>();
+	private fileMetadataTimestampCache = new Map<string, number>();
+
+	// Cache for enhanced metadata (merged frontmatter + config + mappings)
+	private enhancedMetadataCache = new Map<string, Record<string, any>>();
+	private enhancedMetadataTimestampCache = new Map<string, string>(); // Composite key: fileTime_configTime
+
 	constructor(options: ProjectConfigManagerOptions) {
 		this.vault = options.vault;
 		this.metadataCache = options.metadataCache;
@@ -159,7 +167,7 @@ export class ProjectConfigManager {
 	}
 
 	/**
-	 * Get file metadata (frontmatter) for a given file
+	 * Get file metadata (frontmatter) for a given file with timestamp caching
 	 */
 	getFileMetadata(filePath: string): Record<string, any> | null {
 		// Early return if enhanced project features are disabled
@@ -174,8 +182,26 @@ export class ProjectConfigManager {
 				return null;
 			}
 
+			const currentTimestamp = (file as TFile).stat.mtime;
+			const cachedTimestamp = this.fileMetadataTimestampCache.get(filePath);
+
+			// Check if cache is valid (file hasn't been modified)
+			if (
+				cachedTimestamp === currentTimestamp &&
+				this.fileMetadataCache.has(filePath)
+			) {
+				return this.fileMetadataCache.get(filePath) || null;
+			}
+
+			// Cache miss or file modified - get fresh metadata
 			const metadata = this.metadataCache.getFileCache(file as TFile);
-			return metadata?.frontmatter || null;
+			const frontmatter = metadata?.frontmatter || {};
+
+			// Update cache with fresh data
+			this.fileMetadataCache.set(filePath, frontmatter);
+			this.fileMetadataTimestampCache.set(filePath, currentTimestamp);
+
+			return frontmatter;
 		} catch (error) {
 			console.warn(`Failed to get file metadata for ${filePath}:`, error);
 			return null;
@@ -261,7 +287,7 @@ export class ProjectConfigManager {
 	}
 
 	/**
-	 * Get enhanced metadata for a file (combines frontmatter and config)
+	 * Get enhanced metadata for a file (combines frontmatter and config) with composite caching
 	 */
 	async getEnhancedMetadata(filePath: string): Promise<Record<string, any>> {
 		// Early return if enhanced project features are disabled
@@ -269,16 +295,50 @@ export class ProjectConfigManager {
 			return {};
 		}
 
-		const fileMetadata = this.getFileMetadata(filePath) || {};
-		const configData = (await this.getProjectConfig(filePath)) || {};
+		try {
+			// Get file timestamp for cache key
+			const file = this.vault.getFileByPath(filePath);
+			if (!file || !("stat" in file)) {
+				return {};
+			}
 
-		// Merge metadata, with file metadata taking precedence
-		let mergedMetadata = { ...configData, ...fileMetadata };
+			const fileTimestamp = (file as TFile).stat.mtime;
 
-		// Apply metadata mappings
-		mergedMetadata = this.applyMetadataMappings(mergedMetadata);
+			// Get config file timestamp for cache key
+			const configFile = await this.findProjectConfigFile(filePath);
+			const configTimestamp = configFile ? configFile.stat.mtime : 0;
 
-		return mergedMetadata;
+			// Create composite cache key
+			const cacheKey = `${fileTimestamp}_${configTimestamp}`;
+			const cachedCacheKey = this.enhancedMetadataTimestampCache.get(filePath);
+
+			// Check if cache is valid (neither file nor config has been modified)
+			if (
+				cachedCacheKey === cacheKey &&
+				this.enhancedMetadataCache.has(filePath)
+			) {
+				return this.enhancedMetadataCache.get(filePath) || {};
+			}
+
+			// Cache miss or files modified - compute fresh enhanced metadata
+			const fileMetadata = this.getFileMetadata(filePath) || {};
+			const configData = (await this.getProjectConfig(filePath)) || {};
+
+			// Merge metadata, with file metadata taking precedence
+			let mergedMetadata = { ...configData, ...fileMetadata };
+
+			// Apply metadata mappings
+			mergedMetadata = this.applyMetadataMappings(mergedMetadata);
+
+			// Update cache with fresh data
+			this.enhancedMetadataCache.set(filePath, mergedMetadata);
+			this.enhancedMetadataTimestampCache.set(filePath, cacheKey);
+
+			return mergedMetadata;
+		} catch (error) {
+			console.warn(`Failed to get enhanced metadata for ${filePath}:`, error);
+			return {};
+		}
 	}
 
 	/**
@@ -292,10 +352,20 @@ export class ProjectConfigManager {
 				this.configCache.delete(configFile.path);
 				this.lastModifiedCache.delete(configFile.path);
 			}
+
+			// Clear file-specific metadata caches
+			this.fileMetadataCache.delete(filePath);
+			this.fileMetadataTimestampCache.delete(filePath);
+			this.enhancedMetadataCache.delete(filePath);
+			this.enhancedMetadataTimestampCache.delete(filePath);
 		} else {
-			// Clear all cache
+			// Clear all caches
 			this.configCache.clear();
 			this.lastModifiedCache.clear();
+			this.fileMetadataCache.clear();
+			this.fileMetadataTimestampCache.clear();
+			this.enhancedMetadataCache.clear();
+			this.enhancedMetadataTimestampCache.clear();
 		}
 	}
 
@@ -661,5 +731,78 @@ export class ProjectConfigManager {
 		filePath: string
 	): Promise<ProjectConfigData | null> {
 		return await this.getProjectConfig(filePath);
+	}
+
+	/**
+	 * Get cache performance statistics and monitoring information
+	 */
+	getCacheStats(): {
+		configCache: {
+			size: number;
+			keys: string[];
+		};
+		fileMetadataCache: {
+			size: number;
+			hitRatio?: number;
+		};
+		enhancedMetadataCache: {
+			size: number;
+			hitRatio?: number;
+		};
+		totalMemoryUsage: {
+			estimatedBytes: number;
+		};
+	} {
+		// Calculate estimated memory usage (rough approximation)
+		const configCacheSize = Array.from(this.configCache.values())
+			.map(config => JSON.stringify(config).length)
+			.reduce((sum, size) => sum + size, 0);
+
+		const fileMetadataCacheSize = Array.from(this.fileMetadataCache.values())
+			.map(metadata => JSON.stringify(metadata).length)
+			.reduce((sum, size) => sum + size, 0);
+
+		const enhancedMetadataCacheSize = Array.from(this.enhancedMetadataCache.values())
+			.map(metadata => JSON.stringify(metadata).length)
+			.reduce((sum, size) => sum + size, 0);
+
+		const totalMemoryUsage = configCacheSize + fileMetadataCacheSize + enhancedMetadataCacheSize;
+
+		return {
+			configCache: {
+				size: this.configCache.size,
+				keys: Array.from(this.configCache.keys()),
+			},
+			fileMetadataCache: {
+				size: this.fileMetadataCache.size,
+			},
+			enhancedMetadataCache: {
+				size: this.enhancedMetadataCache.size,
+			},
+			totalMemoryUsage: {
+				estimatedBytes: totalMemoryUsage,
+			},
+		};
+	}
+
+	/**
+	 * Clear stale cache entries based on file modification times
+	 */
+	async clearStaleEntries(): Promise<number> {
+		let clearedCount = 0;
+
+		// Check file metadata cache for stale entries
+		for (const [filePath, timestamp] of this.fileMetadataTimestampCache.entries()) {
+			const file = this.vault.getFileByPath(filePath);
+			if (!file || !("stat" in file) || (file as TFile).stat.mtime !== timestamp) {
+				this.fileMetadataCache.delete(filePath);
+				this.fileMetadataTimestampCache.delete(filePath);
+				this.enhancedMetadataCache.delete(filePath);
+				this.enhancedMetadataTimestampCache.delete(filePath);
+				clearedCount++;
+			}
+		}
+
+		return clearedCount;
 	}
 }
