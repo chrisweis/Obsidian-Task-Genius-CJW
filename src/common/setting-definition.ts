@@ -494,6 +494,10 @@ export interface FileParsingConfiguration {
 	defaultTaskStatus: string;
 	/** Whether to use worker for file parsing performance */
 	enableWorkerProcessing: boolean;
+	/** Whether to enable mtime-based cache optimization */
+	enableMtimeOptimization: boolean;
+	/** Maximum number of files to track in mtime cache */
+	mtimeCacheSize: number;
 }
 
 /** Timeline Sidebar Settings */
@@ -926,6 +930,8 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		taskContentFromMetadata: "title",
 		defaultTaskStatus: " ",
 		enableWorkerProcessing: true,
+		enableMtimeOptimization: true,
+		mtimeCacheSize: 10000,
 	},
 
 	// Date Settings

@@ -18,7 +18,10 @@ import {
 	TaskParseResult,
 } from "./TaskIndexWorkerMessage";
 import { FileMetadataTaskParser } from "./FileMetadataTaskParser";
-import { FileParsingConfiguration, FileMetadataInheritanceConfig } from "../../common/setting-definition";
+import {
+	FileParsingConfiguration,
+	FileMetadataInheritanceConfig,
+} from "../../common/setting-definition";
 
 // Import worker and utilities
 // @ts-ignore Ignore type error for worker import
@@ -109,6 +112,8 @@ interface TaskMetadata {
 		mtime: number;
 		size: number;
 	};
+	/** Whether this metadata came from cache */
+	fromCache?: boolean;
 }
 
 /**
@@ -155,6 +160,14 @@ export class TaskWorkerManager extends Component {
 	private fileMetadataParser?: FileMetadataTaskParser;
 	/** Whether workers have been initialized to prevent multiple initialization */
 	private initialized: boolean = false;
+	/** Reference to task indexer for cache checking */
+	private taskIndexer?: any;
+	/** Performance statistics */
+	private stats = {
+		filesSkipped: 0,
+		filesProcessed: 0,
+		cacheHitRatio: 0,
+	};
 
 	/**
 	 * Create a new worker pool
@@ -305,6 +318,73 @@ export class TaskWorkerManager extends Component {
 	}
 
 	/**
+	 * Set the task indexer reference for cache checking
+	 */
+	public setTaskIndexer(taskIndexer: any): void {
+		this.taskIndexer = taskIndexer;
+	}
+
+	/**
+	 * Update cache hit ratio statistics
+	 */
+	private updateCacheHitRatio(): void {
+		const totalFiles = this.stats.filesSkipped + this.stats.filesProcessed;
+		this.stats.cacheHitRatio =
+			totalFiles > 0 ? this.stats.filesSkipped / totalFiles : 0;
+	}
+
+	/**
+	 * Get performance statistics
+	 */
+	public getStats() {
+		return { ...this.stats };
+	}
+
+	/**
+	 * Check if a file should be processed (not in valid cache)
+	 */
+	private shouldProcessFile(file: TFile): boolean {
+		if (!this.taskIndexer) {
+			return true; // No indexer, always process
+		}
+
+		// Check if mtime optimization is enabled
+		if (
+			!this.options.settings?.fileParsingConfig?.enableMtimeOptimization
+		) {
+			return true; // Optimization disabled, always process
+		}
+
+		return !this.taskIndexer.hasValidCache(file.path, file.stat.mtime);
+	}
+
+	/**
+	 * Get cached tasks for a file if available
+	 */
+	private getCachedTasksForFile(filePath: string): Task[] | null {
+		if (!this.taskIndexer) {
+			return null;
+		}
+
+		const taskIds = this.taskIndexer.getCache().files.get(filePath);
+		if (!taskIds) {
+			return null;
+		}
+
+		const tasks: Task[] = [];
+		const taskCache = this.taskIndexer.getCache().tasks;
+
+		for (const taskId of taskIds) {
+			const task = taskCache.get(taskId);
+			if (task) {
+				tasks.push(task);
+			}
+		}
+
+		return tasks.length > 0 ? tasks : null;
+	}
+
+	/**
 	 * Process a single file for tasks
 	 */
 	public processFile(
@@ -314,6 +394,19 @@ export class TaskWorkerManager extends Component {
 		// De-bounce repeated requests for the same file
 		let existing = this.outstanding.get(file.path);
 		if (existing) return existing;
+
+		// Check if we can use cached results
+		if (!this.shouldProcessFile(file)) {
+			const cachedTasks = this.getCachedTasksForFile(file.path);
+			if (cachedTasks) {
+				this.stats.filesSkipped++;
+				this.updateCacheHitRatio();
+				this.log(
+					`Using cached tasks for ${file.path} (${cachedTasks.length} tasks)`
+				);
+				return Promise.resolve(cachedTasks);
+			}
+		}
 
 		let promise = deferred<Task[]>();
 		this.outstanding.set(file.path, promise);
@@ -354,14 +447,44 @@ export class TaskWorkerManager extends Component {
 			return new Map<string, Task[]>();
 		}
 
+		// Pre-filter files: separate cached from uncached
+		const filesToProcess: TFile[] = [];
+		const resultMap = new Map<string, Task[]>();
+		let cachedCount = 0;
+
+		for (const file of files) {
+			if (!this.shouldProcessFile(file)) {
+				const cachedTasks = this.getCachedTasksForFile(file.path);
+				if (cachedTasks) {
+					resultMap.set(file.path, cachedTasks);
+					cachedCount++;
+					continue;
+				}
+			}
+			filesToProcess.push(file);
+		}
+
+		this.log(
+			`Batch processing: ${cachedCount} files from cache, ${
+				filesToProcess.length
+			} files to process (cache hit ratio: ${
+				cachedCount > 0
+					? ((cachedCount / files.length) * 100).toFixed(1)
+					: 0
+			}%)`
+		);
+
+		if (filesToProcess.length === 0) {
+			return resultMap; // All files were cached
+		}
+
 		this.isProcessingBatch = true;
 		this.processedFiles = 0;
-		this.totalFilesToProcess = files.length;
+		this.totalFilesToProcess = filesToProcess.length;
 
-		this.log(`Processing batch of ${files.length} files`);
-
-		// 创建一个结果映射
-		const resultMap = new Map<string, Task[]>();
+		this.log(
+			`Processing batch of ${filesToProcess.length} files (${cachedCount} cached)`
+		);
 
 		try {
 			// 将文件分成更小的批次，避免一次性提交太多任务
@@ -397,8 +520,8 @@ export class TaskWorkerManager extends Component {
 				}
 			};
 
-			for (let i = 0; i < files.length; i += batchSize) {
-				const subBatch = files.slice(i, i + batchSize);
+			for (let i = 0; i < filesToProcess.length; i += batchSize) {
+				const subBatch = filesToProcess.slice(i, i + batchSize);
 
 				// 为子批次创建处理任务并添加到队列
 				processingQueue.push(async () => {
@@ -450,7 +573,9 @@ export class TaskWorkerManager extends Component {
 			console.error("Error during batch processing:", error);
 		} finally {
 			this.isProcessingBatch = false;
-			this.log(`Completed batch processing of ${files.length} files`);
+			this.log(
+				`Completed batch processing of ${files.length} files (${cachedCount} from cache, ${filesToProcess.length} processed)`
+			);
 		}
 
 		return resultMap;
@@ -676,6 +801,10 @@ export class TaskWorkerManager extends Component {
 
 			promise.resolve(allTasks);
 			this.outstanding.delete(file.path);
+
+			// Update statistics
+			this.stats.filesProcessed++;
+			this.updateCacheHitRatio();
 		} else if (data.type === "batchResult") {
 			// For batch results, we handle differently as we don't have tasks directly
 			promise.reject(

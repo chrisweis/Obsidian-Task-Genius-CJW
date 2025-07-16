@@ -109,7 +109,6 @@ export interface CanvasTaskMetadata extends StandardTaskMetadata {
 
 	/** Source type to distinguish canvas tasks */
 	sourceType?: "canvas" | "markdown";
-
 }
 
 /** Task Genius Project interface */
@@ -213,6 +212,12 @@ export interface TaskCache {
 
 	/** Priority index: priority -> Set<taskIds> */
 	priority: Map<number, Set<string>>;
+
+	/** File modification times: filePath -> mtime */
+	fileMtimes: Map<string, number>;
+
+	/** File processed times: filePath -> processedTime */
+	fileProcessedTimes: Map<string, number>;
 }
 
 /** Task filter interface for querying tasks */

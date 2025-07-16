@@ -160,6 +160,8 @@ export class TaskManager extends Component {
 						settings: this.plugin.settings,
 					}
 				);
+				// Set task indexer reference for cache checking
+				this.workerManager.setTaskIndexer(this.indexer);
 				this.log("Worker manager initialized");
 			} catch (error) {
 				console.error("Failed to initialize worker manager:", error);
@@ -663,6 +665,7 @@ export class TaskManager extends Component {
 							this.indexer.updateIndexWithTasks(
 								filePath,
 								cacheItem.data
+								// Note: mtime not available here, will be set when file is processed
 							);
 							this.log(
 								`Preloaded ${cacheItem.data.length} tasks from cache for ${filePath}`
@@ -855,7 +858,8 @@ export class TaskManager extends Component {
 									// Update index with cached data
 									this.indexer.updateIndexWithTasks(
 										file.path,
-										cached.data
+										cached.data,
+										file.stat.mtime
 									);
 									this.log(
 										`Loaded ${cached.data.length} tasks from cache for ${file.path}`
@@ -988,7 +992,11 @@ export class TaskManager extends Component {
 			const tasks = await this.workerManager.processFile(file);
 
 			// Update the index with the tasks
-			this.indexer.updateIndexWithTasks(file.path, tasks);
+			this.indexer.updateIndexWithTasks(
+				file.path,
+				tasks,
+				file.stat.mtime
+			);
 
 			// Store tasks in cache if there are any
 			if (tasks.length > 0) {
@@ -1039,7 +1047,11 @@ export class TaskManager extends Component {
 
 			console.log("tasks", tasks, file.path);
 			// Update the index with the tasks
-			this.indexer.updateIndexWithTasks(file.path, tasks);
+			this.indexer.updateIndexWithTasks(
+				file.path,
+				tasks,
+				file.stat.mtime
+			);
 
 			// Store tasks in cache if there are any
 			if (tasks.length > 0) {
@@ -1125,7 +1137,8 @@ export class TaskManager extends Component {
 						// Update index with cached data
 						this.indexer.updateIndexWithTasks(
 							file.path,
-							cached.data
+							cached.data,
+							file.stat.mtime
 						);
 						this.log(
 							`Loaded ${cached.data.length} tasks from cache for ${file.path}`
@@ -1157,7 +1170,11 @@ export class TaskManager extends Component {
 						);
 
 						// Update index with parsed tasks
-						this.indexer.updateIndexWithTasks(file.path, tasks);
+						this.indexer.updateIndexWithTasks(
+							file.path,
+							tasks,
+							file.stat.mtime
+						);
 
 						// Store to cache
 						if (tasks.length > 0) {
@@ -1189,7 +1206,11 @@ export class TaskManager extends Component {
 							file.path,
 							content
 						);
-						this.indexer.updateIndexWithTasks(file.path, tasks);
+						this.indexer.updateIndexWithTasks(
+							file.path,
+							tasks,
+							file.stat.mtime
+						);
 
 						if (tasks.length > 0) {
 							await this.persister.storeFile(file.path, tasks);
@@ -1295,7 +1316,11 @@ export class TaskManager extends Component {
 			);
 
 			// Update index with parsed tasks
-			this.indexer.updateIndexWithTasks(file.path, tasks);
+			this.indexer.updateIndexWithTasks(
+				file.path,
+				tasks,
+				file.stat.mtime
+			);
 
 			// Cache the results
 			if (tasks.length > 0) {
@@ -1350,7 +1375,7 @@ export class TaskManager extends Component {
 	 * Remove a file from the index based on the old path
 	 */
 	private removeFileFromIndexByOldPath(oldPath: string): void {
-		this.indexer.updateIndexWithTasks(oldPath, []);
+		this.indexer.cleanupFileCache(oldPath);
 		try {
 			this.persister.removeFile(oldPath);
 			this.log(`Removed ${oldPath} from cache`);
@@ -1370,7 +1395,7 @@ export class TaskManager extends Component {
 	 */
 	private removeFileFromIndex(file: TFile): void {
 		// 使用 indexer 的方法来删除文件
-		this.indexer.updateIndexWithTasks(file.path, []);
+		this.indexer.cleanupFileCache(file.path);
 
 		// 从缓存中删除文件
 		try {
@@ -2899,16 +2924,22 @@ export class TaskManager extends Component {
 		const {
 			clearProjectCaches = true,
 			preserveValidCaches = false,
-			logCacheStats = false
+			logCacheStats = false,
 		} = options || {};
 
-		this.log(`Force reindexing all tasks (clearProjectCaches: ${clearProjectCaches}, preserveValidCaches: ${preserveValidCaches})`);
+		this.log(
+			`Force reindexing all tasks (clearProjectCaches: ${clearProjectCaches}, preserveValidCaches: ${preserveValidCaches})`
+		);
 
 		// Log cache statistics before clearing if requested
 		if (logCacheStats && this.taskParsingService) {
 			try {
-				const beforeStats = this.taskParsingService.getDetailedCacheStats();
-				this.log("Cache statistics before clearing: " + JSON.stringify(beforeStats.summary, null, 2));
+				const beforeStats =
+					this.taskParsingService.getDetailedCacheStats();
+				this.log(
+					"Cache statistics before clearing: " +
+						JSON.stringify(beforeStats.summary, null, 2)
+				);
 			} catch (error) {
 				console.warn("Failed to get cache statistics:", error);
 			}
@@ -2926,13 +2957,19 @@ export class TaskManager extends Component {
 				if (preserveValidCaches) {
 					// Smart cache clearing - only clear stale entries
 					if ((this.taskParsingService as any).projectConfigManager) {
-						const clearedCount = await (this.taskParsingService as any).projectConfigManager.clearStaleEntries();
-						this.log(`Smart cache clearing: removed ${clearedCount} stale entries`);
+						const clearedCount = await (
+							this.taskParsingService as any
+						).projectConfigManager.clearStaleEntries();
+						this.log(
+							`Smart cache clearing: removed ${clearedCount} stale entries`
+						);
 					}
 				} else {
 					// Full cache clearing (default behavior)
 					this.taskParsingService.clearAllCaches();
-					this.log("Cleared all project-related caches (config, data, metadata)");
+					this.log(
+						"Cleared all project-related caches (config, data, metadata)"
+					);
 				}
 			} catch (error) {
 				console.error("Error clearing project caches:", error);
@@ -2987,8 +3024,12 @@ export class TaskManager extends Component {
 		// Log cache statistics after rebuilding if requested
 		if (logCacheStats && this.taskParsingService) {
 			try {
-				const afterStats = this.taskParsingService.getDetailedCacheStats();
-				this.log("Cache statistics after rebuilding: " + JSON.stringify(afterStats.summary, null, 2));
+				const afterStats =
+					this.taskParsingService.getDetailedCacheStats();
+				this.log(
+					"Cache statistics after rebuilding: " +
+						JSON.stringify(afterStats.summary, null, 2)
+				);
 			} catch (error) {
 				console.warn("Failed to get final cache statistics:", error);
 			}

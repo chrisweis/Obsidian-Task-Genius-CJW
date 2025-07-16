@@ -98,6 +98,8 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 			onCompletion: new Map<string, Set<string>>(),
 			dependsOn: new Map<string, Set<string>>(),
 			taskId: new Map<string, Set<string>>(),
+			fileMtimes: new Map<string, number>(),
+			fileProcessedTimes: new Map<string, number>(),
 		};
 	}
 
@@ -238,7 +240,11 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 	 * Update the index with tasks parsed by external components
 	 * This is the primary method for updating the index
 	 */
-	public updateIndexWithTasks(filePath: string, tasks: Task[]): void {
+	public updateIndexWithTasks(
+		filePath: string,
+		tasks: Task[],
+		fileMtime?: number
+	): void {
 		// Remove existing tasks for this file first
 		this.removeFileFromIndex(filePath);
 
@@ -257,6 +263,11 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 		// Update file index
 		this.taskCache.files.set(filePath, fileTaskIds);
 		this.lastIndexTime.set(filePath, Date.now());
+
+		// Update file mtime if provided
+		if (fileMtime !== undefined) {
+			this.updateFileMtime(filePath, fileMtime);
+		}
 	}
 
 	/**
@@ -1050,6 +1061,75 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 	 */
 	public resetCache(): void {
 		this.taskCache = this.initEmptyCache();
+	}
+
+	/**
+	 * Check if a file has changed since last processing
+	 */
+	public isFileChanged(filePath: string, currentMtime: number): boolean {
+		const lastMtime = this.taskCache.fileMtimes.get(filePath);
+		return lastMtime === undefined || lastMtime < currentMtime;
+	}
+
+	/**
+	 * Get the last known modification time for a file
+	 */
+	public getFileLastMtime(filePath: string): number | undefined {
+		return this.taskCache.fileMtimes.get(filePath);
+	}
+
+	/**
+	 * Update the modification time for a file
+	 */
+	public updateFileMtime(filePath: string, mtime: number): void {
+		this.taskCache.fileMtimes.set(filePath, mtime);
+		this.taskCache.fileProcessedTimes.set(filePath, Date.now());
+	}
+
+	/**
+	 * Check if we have valid cache for a file
+	 */
+	public hasValidCache(filePath: string, currentMtime: number): boolean {
+		// Check if file has tasks in cache
+		const hasTasksInCache = this.taskCache.files.has(filePath);
+
+		// Check if file hasn't changed
+		const hasNotChanged = !this.isFileChanged(filePath, currentMtime);
+
+		return hasTasksInCache && hasNotChanged;
+	}
+
+	/**
+	 * Clean up cache for a specific file
+	 */
+	public cleanupFileCache(filePath: string): void {
+		// Remove from file mtime cache
+		this.taskCache.fileMtimes.delete(filePath);
+		this.taskCache.fileProcessedTimes.delete(filePath);
+
+		// Remove from other caches (handled by existing removeFileFromIndex)
+		this.removeFileFromIndex(filePath);
+	}
+
+	/**
+	 * Validate cache consistency and fix any issues
+	 */
+	public validateCacheConsistency(): void {
+		// Check for files in mtime cache but not in file index
+		for (const filePath of this.taskCache.fileMtimes.keys()) {
+			if (!this.taskCache.files.has(filePath)) {
+				this.taskCache.fileMtimes.delete(filePath);
+				this.taskCache.fileProcessedTimes.delete(filePath);
+			}
+		}
+
+		// Check for files in file index but not in mtime cache
+		for (const filePath of this.taskCache.files.keys()) {
+			if (!this.taskCache.fileMtimes.has(filePath)) {
+				// This is acceptable - mtime might not be set for older cache entries
+				// We don't need to remove the file from index
+			}
+		}
 	}
 
 	/**
