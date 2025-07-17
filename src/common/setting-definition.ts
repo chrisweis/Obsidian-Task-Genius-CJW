@@ -290,13 +290,7 @@ export interface QuickCaptureSettings {
 	// Minimal mode settings
 	enableMinimalMode: boolean;
 	minimalModeSettings: {
-		showDateButton: boolean;
-		showPriorityButton: boolean;
-		showLocationButton: boolean;
-		showTagButton: boolean;
-		defaultLocation: "fixed" | "daily-note";
-		autoAddTaskPrefix: boolean; // 自动添加 - [ ] 前缀
-		suggestTrigger: string; // 触发字符，默认 "/"
+		suggestTrigger: string;
 	};
 }
 
@@ -816,12 +810,6 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		},
 		enableMinimalMode: false,
 		minimalModeSettings: {
-			showDateButton: true,
-			showPriorityButton: true,
-			showLocationButton: true,
-			showTagButton: true,
-			defaultLocation: "fixed",
-			autoAddTaskPrefix: true,
 			suggestTrigger: "/",
 		},
 	},

@@ -6,11 +6,11 @@ import {
 	EditorSuggestContext,
 	EditorSuggestTriggerInfo,
 	TFile,
-	Menu,
-	Scope,
+	setIcon,
 } from "obsidian";
 import TaskProgressBarPlugin from "../index";
 import { t } from "../translations/helper";
+import { getSuggestOptionsByTrigger } from "./suggest/SpecialCharacterSuggests";
 
 interface SuggestOption {
 	id: string;
@@ -18,15 +18,16 @@ interface SuggestOption {
 	icon: string;
 	description: string;
 	replacement: string;
+	trigger?: string;
+	action?: (editor: Editor, cursor: EditorPosition) => void;
 }
 
-export class MinimalQuickCaptureSuggest {
-	app: App;
+export class MinimalQuickCaptureSuggest extends EditorSuggest<SuggestOption> {
 	plugin: TaskProgressBarPlugin;
 	private isMinimalMode: boolean = false;
 
 	constructor(app: App, plugin: TaskProgressBarPlugin) {
-		this.app = app;
+		super(app);
 		this.plugin = plugin;
 	}
 
@@ -39,18 +40,22 @@ export class MinimalQuickCaptureSuggest {
 	}
 
 	/**
-	 * Check if we should show the suggestion menu at the current cursor position
+	 * Get the trigger regex for the suggestion
 	 */
-	shouldShowMenu(editor: Editor, cursor: EditorPosition): boolean {
+	onTrigger(
+		cursor: EditorPosition,
+		editor: Editor,
+		file: TFile
+	): EditorSuggestTriggerInfo | null {
 		// Only trigger in minimal mode
 		if (!this.isMinimalMode) {
-			return false;
+			return null;
 		}
 
 		// Check if we're in a minimal quick capture context
 		const editorEl = (editor as any).cm?.dom as HTMLElement;
 		if (!editorEl || !editorEl.closest(".quick-capture-modal.minimal")) {
-			return false;
+			return null;
 		}
 
 		// Get the current line
@@ -60,150 +65,148 @@ export class MinimalQuickCaptureSuggest {
 				?.suggestTrigger || "/";
 
 		// Check if the cursor is right after the trigger character
-		return cursor.ch > 0 && line.charAt(cursor.ch - 1) === triggerChar;
+		if (cursor.ch > 0 && line.charAt(cursor.ch - 1) === triggerChar) {
+			return {
+				start: { line: cursor.line, ch: cursor.ch - 1 },
+				end: cursor,
+				query: triggerChar,
+			};
+		}
+
+		return null;
 	}
 
 	/**
-	 * Show the suggestion menu at the cursor position
+	 * Get suggestions based on the trigger
 	 */
-	showMenuAtCursor(editor: Editor, cursor: EditorPosition): void {
-		const settings =
-			this.plugin.settings.quickCapture.minimalModeSettings || {};
-		
-		// Get cursor position in screen coordinates for menu positioning
-		const cursorCoords = (editor as any).coordsAtPos?.(cursor) || { left: 0, top: 0 };
-		
-		// Create the menu
-		const menu = new Menu();
-		
-		// Add menu items based on settings
-		if (settings.showDateButton !== false) {
-			menu.addItem((item) => {
-				item.setTitle(`📅 ${t("Date")}`);
-				item.setIcon("calendar");
-				item.onClick(() => {
-					this.handleSuggestionSelection(editor, cursor, "date", "~");
-				});
-			});
+	getSuggestions(context: EditorSuggestContext): SuggestOption[] {
+		// Map old @ to new * for target location
+		const triggerChar = context.query === "@" ? "*" : context.query;
+
+		// Get suggestions from the new system
+		const suggestions = getSuggestOptionsByTrigger(
+			triggerChar,
+			this.plugin
+		);
+
+		// For backward compatibility, return simple trigger suggestions if no specific ones found
+		if (suggestions.length === 0) {
+			return [
+				{
+					id: "date",
+					label: t("Date"),
+					icon: "calendar",
+					description: t("Add date"),
+					replacement: "~",
+					trigger: "~",
+				},
+				{
+					id: "priority",
+					label: t("Priority"),
+					icon: "zap",
+					description: t("Set priority"),
+					replacement: "!",
+					trigger: "!",
+				},
+				{
+					id: "target",
+					label: t("Target Location"),
+					icon: "folder",
+					description: t("Set target location"),
+					replacement: "*",
+					trigger: "*",
+				},
+				{
+					id: "tag",
+					label: t("Tag"),
+					icon: "tag",
+					description: t("Add tags"),
+					replacement: "#",
+					trigger: "#",
+				},
+			];
 		}
 
-		if (settings.showPriorityButton !== false) {
-			menu.addItem((item) => {
-				item.setTitle(`! ${t("Priority")}`);
-				item.setIcon("zap");
-				item.onClick(() => {
-					this.handleSuggestionSelection(editor, cursor, "priority", "!");
-				});
-			});
-		}
+		return suggestions;
+	}
 
-		if (settings.showLocationButton !== false) {
-			menu.addItem((item) => {
-				item.setTitle(`📁 ${t("Location")}`);
-				item.setIcon("folder");
-				item.onClick(() => {
-					this.handleSuggestionSelection(editor, cursor, "location", "📁");
-				});
-			});
-		}
+	/**
+	 * Render suggestion using Obsidian Menu DOM structure
+	 */
+	renderSuggestion(suggestion: SuggestOption, el: HTMLElement): void {
+		el.addClass("menu-item");
+		el.addClass("tappable");
 
-		if (settings.showTagButton !== false) {
-			menu.addItem((item) => {
-				item.setTitle(`# ${t("Tag")}`);
-				item.setIcon("tag");
-				item.onClick(() => {
-					this.handleSuggestionSelection(editor, cursor, "tag", "#");
-				});
-			});
-		}
+		// Create icon element
+		const iconEl = el.createDiv("menu-item-icon");
+		setIcon(iconEl, suggestion.icon);
 
-		// Show the menu at cursor position with proper scope handling
-		this.showMenuWithScope(menu, cursorCoords.left, cursorCoords.top);
+		// Create title element
+		const titleEl = el.createDiv("menu-item-title");
+		titleEl.textContent = suggestion.label;
 	}
 
 	/**
 	 * Handle suggestion selection
 	 */
-	private handleSuggestionSelection(
-		editor: Editor,
-		cursor: EditorPosition,
-		suggestionId: string,
-		replacement: string
+	selectSuggestion(
+		suggestion: SuggestOption,
+		evt: MouseEvent | KeyboardEvent
 	): void {
-		const triggerChar =
-			this.plugin.settings.quickCapture.minimalModeSettings
-				?.suggestTrigger || "/";
+		const editor = this.context?.editor;
+		const cursor = this.context?.end;
+
+		if (!editor || !cursor) return;
 
 		// Replace the trigger character with the replacement
 		const startPos = { line: cursor.line, ch: cursor.ch - 1 };
 		const endPos = cursor;
-		
-		editor.replaceRange(replacement, startPos, endPos);
+
+		editor.replaceRange(suggestion.replacement, startPos, endPos);
 
 		// Move cursor to after the replacement
 		const newCursor = {
 			line: cursor.line,
-			ch: cursor.ch - 1 + replacement.length,
+			ch: cursor.ch - 1 + suggestion.replacement.length,
 		};
 		editor.setCursor(newCursor);
 
-		// Get the modal instance and trigger the appropriate action
+		// Execute custom action if provided (new system)
+		if (suggestion.action) {
+			suggestion.action(editor, newCursor);
+			return;
+		}
+
+		// Fallback to legacy modal-based actions
 		const editorEl = (editor as any).cm?.dom as HTMLElement;
 		const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
 		const modal = (modalEl as any).__minimalQuickCaptureModal;
 
+		this.close();
+
 		if (!modal) return;
 
 		// Get cursor position for menu positioning
-		const cursorCoords = (editor as any).coordsAtPos?.(newCursor) || { left: 0, top: 0 };
+		const cursorCoords = (editor as any).coordsAtPos?.(newCursor) || {
+			left: 0,
+			top: 0,
+		};
 
-		// Handle different suggestion types
-		switch (suggestionId) {
+		// Handle different suggestion types (legacy support)
+		switch (suggestion.id) {
 			case "date":
-				modal.showDatePickerAtCursor(cursorCoords, newCursor);
+				modal.showDatePickerAtCursor?.(cursorCoords, newCursor);
 				break;
 			case "priority":
-				modal.showPriorityMenuAtCursor(cursorCoords, newCursor);
+				modal.showPriorityMenuAtCursor?.(cursorCoords, newCursor);
 				break;
+			case "target":
 			case "location":
-				modal.showLocationMenuAtCursor(cursorCoords, newCursor);
+				modal.showLocationMenuAtCursor?.(cursorCoords, newCursor);
 				break;
 			case "tag":
-				modal.showTagSelectorAtCursor(cursorCoords, newCursor);
+				modal.showTagSelectorAtCursor?.(cursorCoords, newCursor);
 				break;
 		}
-	}
-
-	/**
-	 * Show menu with proper scope handling to prevent enter key from propagating
-	 */
-	private showMenuWithScope(menu: Menu, x: number, y: number): void {
-		// Create a new scope for the menu
-		const menuScope = new Scope();
-		
-		// Override the Enter key to prevent it from propagating to the editor
-		menuScope.register([], "Enter", (evt: KeyboardEvent) => {
-			evt.preventDefault();
-			evt.stopPropagation();
-			return false;
-		});
-		
-		// Push the scope when menu is shown
-		this.app.keymap.pushScope(menuScope);
-		
-		// Show the menu
-		menu.showAtMouseEvent(new MouseEvent("click", { 
-			clientX: x, 
-			clientY: y 
-		}));
-		
-		// Pop the scope when menu is hidden
-		const originalOnHide = menu.onHide;
-		menu.onHide = () => {
-			this.app.keymap.popScope(menuScope);
-			if (originalOnHide) {
-				originalOnHide.call(menu);
-			}
-		};
 	}
 }

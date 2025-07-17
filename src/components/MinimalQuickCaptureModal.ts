@@ -6,7 +6,7 @@ import {
 	moment,
 	EditorPosition,
 	Menu,
-	Scope,
+	setIcon,
 } from "obsidian";
 import {
 	createEmbeddableMarkdownEditor,
@@ -18,6 +18,7 @@ import { t } from "../translations/helper";
 import { MinimalQuickCaptureSuggest } from "./MinimalQuickCaptureSuggest";
 import { DatePickerPopover } from "./date-picker/DatePickerPopover";
 import { TagSuggest } from "./AutoComplete";
+import { SuggestManager, UniversalEditorSuggest } from "./suggest";
 
 interface TaskMetadata {
 	startDate?: Date;
@@ -43,19 +44,24 @@ export class MinimalQuickCaptureModal extends Modal {
 	private locationButton: HTMLButtonElement | null = null;
 	private tagButton: HTMLButtonElement | null = null;
 
-	// Suggest instance
+	// Suggest instances
 	private minimalSuggest: MinimalQuickCaptureSuggest;
+	private suggestManager: SuggestManager;
+	private universalSuggest: UniversalEditorSuggest | null = null;
 
 	constructor(app: App, plugin: TaskProgressBarPlugin) {
 		super(app);
 		this.plugin = plugin;
 		this.minimalSuggest = plugin.minimalQuickCaptureSuggest;
 
+		// Initialize suggest manager
+		this.suggestManager = new SuggestManager(app, plugin);
+
 		// Initialize default metadata with fallback
 		const minimalSettings =
 			this.plugin.settings.quickCapture.minimalModeSettings;
 		this.taskMetadata.location =
-			minimalSettings?.defaultLocation || "fixed";
+			this.plugin.settings.quickCapture.targetType || "fixed";
 		this.taskMetadata.targetFile = this.getTargetFile();
 	}
 
@@ -67,6 +73,9 @@ export class MinimalQuickCaptureModal extends Modal {
 		// Store modal instance reference for suggest system
 		(this.modalEl as any).__minimalQuickCaptureModal = this;
 
+		// Start managing suggests with high priority
+		this.suggestManager.startManaging();
+
 		// Set up the suggest system
 		if (this.minimalSuggest) {
 			this.minimalSuggest.setMinimalMode(true);
@@ -75,11 +84,28 @@ export class MinimalQuickCaptureModal extends Modal {
 		// Create the interface
 		this.createMinimalInterface(contentEl);
 
-		// Register the suggest - EditorSuggest should be registered at plugin level, not here
-		// We'll register it in the plugin's onload method instead
+		// Enable universal suggest for minimal modal after editor is created
+		setTimeout(() => {
+			if (this.markdownEditor?.editor?.editor) {
+				this.universalSuggest =
+					this.suggestManager.enableForMinimalModal(
+						this.markdownEditor.editor.editor
+					);
+				this.universalSuggest.enable();
+			}
+		}, 100);
 	}
 
 	onClose() {
+		// Clean up universal suggest
+		if (this.universalSuggest) {
+			this.universalSuggest.disable();
+			this.universalSuggest = null;
+		}
+
+		// Stop managing suggests and restore original order
+		this.suggestManager.stopManaging();
+
 		// Clean up suggest
 		if (this.minimalSuggest) {
 			this.minimalSuggest.setMinimalMode(false);
@@ -144,9 +170,6 @@ export class MinimalQuickCaptureModal extends Modal {
 
 					onChange: (update) => {
 						this.capturedContent = this.markdownEditor?.value || "";
-
-						// Check if we should show the suggestion menu
-						this.handleSuggestTrigger();
 					},
 				}
 			);
@@ -163,70 +186,51 @@ export class MinimalQuickCaptureModal extends Modal {
 			cls: "quick-actions-left",
 		});
 
-		// Date button
-		if (settings.showDateButton !== false) {
-			this.dateButton = leftContainer.createEl("button", {
-				cls: "quick-action-button",
-				attr: { "aria-label": t("Set date") },
-			});
-			this.dateButton.innerHTML = "📅";
-			this.dateButton.addEventListener("click", () =>
-				this.showDatePicker()
-			);
-			this.updateButtonState(
-				this.dateButton,
-				!!this.taskMetadata.dueDate
-			);
-		}
+		this.dateButton = leftContainer.createEl("button", {
+			cls: ["quick-action-button", "clickable-icon"],
+			attr: { "aria-label": t("Set date") },
+		});
+		setIcon(this.dateButton, "calendar");
+		this.dateButton.addEventListener("click", () => this.showDatePicker());
+		this.updateButtonState(this.dateButton, !!this.taskMetadata.dueDate);
 
-		// Priority button
-		if (settings.showPriorityButton !== false) {
-			this.priorityButton = leftContainer.createEl("button", {
-				cls: "quick-action-button",
-				attr: { "aria-label": t("Set priority") },
-			});
-			this.priorityButton.innerHTML = "!";
-			this.priorityButton.addEventListener("click", () =>
-				this.showPriorityMenu()
-			);
-			this.updateButtonState(
-				this.priorityButton,
-				!!this.taskMetadata.priority
-			);
-		}
+		this.priorityButton = leftContainer.createEl("button", {
+			cls: ["quick-action-button", "clickable-icon"],
+			attr: { "aria-label": t("Set priority") },
+		});
+		setIcon(this.priorityButton, "zap");
+		this.priorityButton.addEventListener("click", () =>
+			this.showPriorityMenu()
+		);
+		this.updateButtonState(
+			this.priorityButton,
+			!!this.taskMetadata.priority
+		);
 
-		// Location button
-		if (settings.showLocationButton !== false) {
-			this.locationButton = leftContainer.createEl("button", {
-				cls: "quick-action-button",
-				attr: { "aria-label": t("Set location") },
-			});
-			this.locationButton.innerHTML = "📁";
-			this.locationButton.addEventListener("click", () =>
-				this.showLocationMenu()
-			);
-			this.updateButtonState(
-				this.locationButton,
-				this.taskMetadata.location !==
-					(settings.defaultLocation || "fixed")
-			);
-		}
+		this.locationButton = leftContainer.createEl("button", {
+			cls: ["quick-action-button", "clickable-icon"],
+			attr: { "aria-label": t("Set location") },
+		});
+		setIcon(this.locationButton, "folder");
+		this.locationButton.addEventListener("click", () =>
+			this.showLocationMenu()
+		);
+		this.updateButtonState(
+			this.locationButton,
+			this.taskMetadata.location !==
+				(this.plugin.settings.quickCapture.targetType || "fixed")
+		);
 
-		// Tag button
-		if (settings.showTagButton !== false) {
-			this.tagButton = leftContainer.createEl("button", {
-				cls: "quick-action-button",
-				attr: { "aria-label": t("Add tags") },
-			});
-			this.tagButton.innerHTML = "#";
-			this.tagButton.addEventListener("click", () =>
-				this.showTagSelector()
-			);
-			this.updateButtonState(
-				this.tagButton,
-				!!(this.taskMetadata.tags && this.taskMetadata.tags.length > 0)
-			);
-		}
+		this.tagButton = leftContainer.createEl("button", {
+			cls: ["quick-action-button", "clickable-icon"],
+			attr: { "aria-label": t("Add tags") },
+		});
+		setIcon(this.tagButton, "tag");
+		this.tagButton.addEventListener("click", () => {});
+		this.updateButtonState(
+			this.tagButton,
+			!!(this.taskMetadata.tags && this.taskMetadata.tags.length > 0)
+		);
 	}
 
 	private createMainButtons(container: HTMLElement) {
@@ -251,104 +255,15 @@ export class MinimalQuickCaptureModal extends Modal {
 	}
 
 	/**
-	 * Handle suggestion trigger check
+	 * Show menu at specified coordinates
 	 */
-	private handleSuggestTrigger(): void {
-		if (!this.markdownEditor || !this.minimalSuggest) return;
-
-		// Get current cursor position
-		const cursor = (this.markdownEditor.editor.editor as any).getCursor();
-
-		// Check if we should show the suggestion menu
-		if (
-			this.minimalSuggest.shouldShowMenu(
-				this.markdownEditor.editor.editor as any,
-				cursor
-			)
-		) {
-			// Add a small delay to ensure the character is fully processed
-			setTimeout(() => {
-				this.minimalSuggest.showMenuAtCursor(
-					this.markdownEditor!.editor.editor as any,
-					cursor
-				);
-			}, 10);
-		}
-	}
-
-	/**
-	 * Show menu with proper scope handling to prevent enter key from propagating
-	 */
-	private showMenuWithScope(menu: Menu, x: number, y: number): void {
-		// Create a new scope for the menu
-		const menuScope = new Scope();
-
-		// Override the Enter key to prevent it from propagating to the editor
-		menuScope.register([], "Enter", (evt: KeyboardEvent) => {
-			evt.preventDefault();
-			evt.stopPropagation();
-			return false;
-		});
-
-		// Also register Escape key to properly close menu
-		menuScope.register([], "Escape", (evt: KeyboardEvent) => {
-			evt.preventDefault();
-			evt.stopPropagation();
-			menu.hide();
-			return false;
-		});
-
-		// Push the scope when menu is shown
-		this.app.keymap.pushScope(menuScope);
-
-		// Show the menu
+	private showMenuAtCoords(menu: Menu, x: number, y: number): void {
 		menu.showAtMouseEvent(
 			new MouseEvent("click", {
 				clientX: x,
 				clientY: y,
 			})
 		);
-
-		// Pop the scope when menu is hidden
-		// We need to hook into the menu's onHide event
-		const originalOnHide = menu.onHide;
-		menu.onHide = () => {
-			this.app.keymap.popScope(menuScope);
-			if (originalOnHide) {
-				originalOnHide.call(menu);
-			}
-		};
-
-		// Add a stronger event listener directly to the menu DOM element
-		// This is a backup method to ensure Enter key doesn't propagate
-		const menuEl = (menu as any).dom;
-		if (menuEl) {
-			const handleKeydown = (evt: KeyboardEvent) => {
-				if (evt.key === "Enter") {
-					evt.preventDefault();
-					evt.stopPropagation();
-					evt.stopImmediatePropagation();
-					
-					// Find the selected item and trigger its click
-					const selectedItem = menuEl.querySelector('.menu-item.selected');
-					if (selectedItem) {
-						(selectedItem as HTMLElement).click();
-					}
-				}
-			};
-			
-			menuEl.addEventListener('keydown', handleKeydown, true);
-			
-			// Clean up the event listener when menu is hidden
-			const originalHide = menu.onHide;
-			menu.onHide = () => {
-				menuEl.removeEventListener('keydown', handleKeydown, true);
-				this.app.keymap.popScope(menuScope);
-				if (originalHide) {
-					originalHide.call(menu);
-				}
-			};
-		}
 	}
 
 	// Methods called by MinimalQuickCaptureSuggest
@@ -381,7 +296,7 @@ export class MinimalQuickCaptureModal extends Modal {
 					if (cursor && this.markdownEditor) {
 						this.replaceAtCursor(
 							cursor,
-							`📅 ${this.formatDate(quickDate.date)}`
+							this.formatDate(quickDate.date)
 						);
 					}
 				});
@@ -400,9 +315,9 @@ export class MinimalQuickCaptureModal extends Modal {
 
 		// Show menu at cursor position if provided, otherwise at button
 		if (coords) {
-			this.showMenuWithScope(menu, coords.left, coords.top);
+			this.showMenuAtCoords(menu, coords.left, coords.top);
 		} else if (this.dateButton) {
-			this.showMenuWithScope(
+			this.showMenuAtCoords(
 				menu,
 				this.dateButton.offsetLeft,
 				this.dateButton.offsetTop
@@ -442,9 +357,9 @@ export class MinimalQuickCaptureModal extends Modal {
 
 		// Show menu at cursor position if provided, otherwise at button
 		if (coords) {
-			this.showMenuWithScope(menu, coords.left, coords.top);
+			this.showMenuAtCoords(menu, coords.left, coords.top);
 		} else if (this.priorityButton) {
-			this.showMenuWithScope(
+			this.showMenuAtCoords(
 				menu,
 				this.priorityButton.offsetLeft,
 				this.priorityButton.offsetTop
@@ -469,13 +384,13 @@ export class MinimalQuickCaptureModal extends Modal {
 				this.updateButtonState(
 					this.locationButton!,
 					this.taskMetadata.location !==
-						(this.plugin.settings.quickCapture.minimalModeSettings
-							?.defaultLocation || "fixed")
+						(this.plugin.settings.quickCapture.targetType ||
+							"fixed")
 				);
 
-				// If called from suggest, replace the 📁 with file icon
+				// If called from suggest, replace the 📁 with file text
 				if (cursor && this.markdownEditor) {
-					this.replaceAtCursor(cursor, "📄");
+					this.replaceAtCursor(cursor, t("Fixed location"));
 				}
 			});
 		});
@@ -489,22 +404,22 @@ export class MinimalQuickCaptureModal extends Modal {
 				this.updateButtonState(
 					this.locationButton!,
 					this.taskMetadata.location !==
-						(this.plugin.settings.quickCapture.minimalModeSettings
-							?.defaultLocation || "fixed")
+						(this.plugin.settings.quickCapture?.targetType ||
+							"fixed")
 				);
 
-				// If called from suggest, replace the 📁 with calendar icon
+				// If called from suggest, replace the 📁 with daily note text
 				if (cursor && this.markdownEditor) {
-					this.replaceAtCursor(cursor, "📅");
+					this.replaceAtCursor(cursor, t("Daily note"));
 				}
 			});
 		});
 
 		// Show menu at cursor position if provided, otherwise at button
 		if (coords) {
-			this.showMenuWithScope(menu, coords.left, coords.top);
+			this.showMenuAtCoords(menu, coords.left, coords.top);
 		} else if (this.locationButton) {
-			this.showMenuWithScope(
+			this.showMenuAtCoords(
 				menu,
 				this.locationButton.offsetLeft,
 				this.locationButton.offsetTop
@@ -512,57 +427,7 @@ export class MinimalQuickCaptureModal extends Modal {
 		}
 	}
 
-	public showTagSelectorAtCursor(cursorCoords: any, cursor: EditorPosition) {
-		this.showTagSelector(cursor, cursorCoords);
-	}
-
-	public showTagSelector(cursor?: EditorPosition, coords?: any) {
-		// Create a temporary input for tag selection
-		const tagInput = document.createElement("input");
-		tagInput.type = "text";
-		tagInput.placeholder = t("Enter tags (comma separated)");
-		tagInput.className = "quick-capture-tag-input";
-
-		// Position the input at cursor position if provided
-		if (coords) {
-			tagInput.style.position = "absolute";
-			tagInput.style.left = `${coords.left}px`;
-			tagInput.style.top = `${coords.top}px`;
-			tagInput.style.zIndex = "1000";
-		}
-
-		// Add to modal temporarily
-		this.contentEl.appendChild(tagInput);
-
-		// Setup tag suggest
-		new TagSuggest(this.app, tagInput, this.plugin);
-
-		// Focus and handle completion
-		tagInput.focus();
-		tagInput.addEventListener("keydown", (e) => {
-			if (e.key === "Enter") {
-				const tags = tagInput.value
-					.split(",")
-					.map((t) => t.trim())
-					.filter((t) => t);
-				this.taskMetadata.tags = tags;
-				this.updateButtonState(this.tagButton!, tags.length > 0);
-
-				// If called from suggest, replace the # with tags
-				if (cursor && this.markdownEditor) {
-					this.replaceAtCursor(
-						cursor,
-						tags.map((t) => `#${t}`).join(" ")
-					);
-				}
-
-				// Remove temp input
-				this.contentEl.removeChild(tagInput);
-			} else if (e.key === "Escape") {
-				this.contentEl.removeChild(tagInput);
-			}
-		});
-	}
+	public showTagSelectorAtCursor(cursorCoords: any, cursor: EditorPosition) {}
 
 	private replaceAtCursor(cursor: EditorPosition, replacement: string) {
 		if (!this.markdownEditor) return;
@@ -601,23 +466,51 @@ export class MinimalQuickCaptureModal extends Modal {
 	private processMinimalContent(content: string): string {
 		if (!content.trim()) return "";
 
-		const settings =
-			this.plugin.settings.quickCapture.minimalModeSettings || {};
+		const lines = content.split("\n");
+		const processedLines = lines.map((line) => {
+			const trimmed = line.trim();
+			if (trimmed && !trimmed.startsWith("- [")) {
+				// Clean any temporary marks from user input before creating task
+				const cleanedContent = this.cleanTemporaryMarks(trimmed);
+				return `- [ ] ${cleanedContent}`;
+			}
+			return line;
+		});
+		return processedLines.join("\n");
+	}
 
-		// Auto-add task prefix if enabled
-		if (settings.autoAddTaskPrefix !== false) {
-			const lines = content.split("\n");
-			const processedLines = lines.map((line) => {
-				const trimmed = line.trim();
-				if (trimmed && !trimmed.startsWith("- [")) {
-					return `- [ ] ${trimmed}`;
-				}
-				return line;
-			});
-			return processedLines.join("\n");
-		}
+	/**
+	 * Clean temporary marks from user input that might conflict with formal metadata
+	 */
+	private cleanTemporaryMarks(content: string): string {
+		let cleaned = content;
 
-		return content;
+		// Remove standalone exclamation marks that users might type for priority
+		cleaned = cleaned.replace(/\s*!\s*/g, " ");
+
+		// Remove standalone tilde marks that users might type for date
+		cleaned = cleaned.replace(/\s*~\s*/g, " ");
+
+		// Remove standalone priority symbols that users might type
+		cleaned = cleaned.replace(/\s*[🔺⏫🔼🔽⏬️]\s*/g, " ");
+
+		// Remove standalone date symbols that users might type
+		cleaned = cleaned.replace(/\s*[📅🛫⏳✅➕❌]\s*/g, " ");
+
+		// Remove location/folder symbols that users might type
+		cleaned = cleaned.replace(/\s*[📁🏠🏢🏪🏫🏬🏭🏯🏰]\s*/g, " ");
+
+		// Remove other metadata symbols that users might type
+		cleaned = cleaned.replace(/\s*[🆔⛔🏁🔁]\s*/g, " ");
+
+		// Remove target/location prefix patterns (like @location, target:)
+		cleaned = cleaned.replace(/\s*@\w*\s*/g, " ");
+		cleaned = cleaned.replace(/\s*target:\s*/gi, " ");
+
+		// Clean up multiple spaces and trim
+		cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+		return cleaned;
 	}
 
 	private addMetadataToContent(content: string): string {

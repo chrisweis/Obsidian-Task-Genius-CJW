@@ -38,8 +38,6 @@
 	justify-content: space-between;
 	align-items: center;
 	padding: var(--size-4-2);
-	border-top: 1px solid var(--background-modifier-border);
-	background-color: var(--background-secondary);
 }
 
 .quick-actions-left {
@@ -50,26 +48,6 @@
 .quick-actions-right {
 	display: flex;
 	gap: var(--size-2-1);
-}
-
-.quick-action-button {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 32px;
-	height: 32px;
-	border-radius: var(--radius-s);
-	border: 1px solid var(--background-modifier-border);
-	background-color: var(--background-primary);
-	color: var(--text-normal);
-	cursor: pointer;
-	transition: all 0.2s ease;
-	font-size: 16px;
-}
-
-.quick-action-button:hover {
-	background-color: var(--background-modifier-hover);
-	border-color: var(--interactive-accent);
 }
 
 .quick-action-button.active {
@@ -133,7 +111,6 @@
 	display: flex;
 	align-items: center;
 	gap: var(--size-2-1);
-	width: 100%;
 }
 
 .suggestion-icon {

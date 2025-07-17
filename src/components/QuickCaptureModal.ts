@@ -26,6 +26,7 @@ import {
 	ParsedTimeResult,
 	LineParseResult,
 } from "../utils/TimeParsingService";
+import { SuggestManager, UniversalEditorSuggest } from "./suggest";
 
 interface TaskMetadata {
 	startDate?: Date;
@@ -106,6 +107,10 @@ export class QuickCaptureModal extends Modal {
 	// Debounce timer for real-time parsing
 	private parseDebounceTimer?: number;
 
+	// Suggest management
+	private suggestManager: SuggestManager;
+	private universalSuggest: UniversalEditorSuggest | null = null;
+
 	constructor(
 		app: App,
 		plugin: TaskProgressBarPlugin,
@@ -114,6 +119,9 @@ export class QuickCaptureModal extends Modal {
 	) {
 		super(app);
 		this.plugin = plugin;
+
+		// Initialize suggest manager
+		this.suggestManager = new SuggestManager(app, plugin);
 
 		// Initialize target file path based on target type
 		if (this.plugin.settings.quickCapture.targetType === "daily-note") {
@@ -150,12 +158,26 @@ export class QuickCaptureModal extends Modal {
 		const { contentEl } = this;
 		this.modalEl.toggleClass("quick-capture-modal", true);
 
+		// Start managing suggests with high priority
+		this.suggestManager.startManaging();
+
 		if (this.useFullFeaturedMode) {
 			this.modalEl.toggleClass(["quick-capture-modal", "full"], true);
 			this.createFullFeaturedModal(contentEl);
 		} else {
 			this.createSimpleModal(contentEl);
 		}
+
+		// Enable universal suggest after editor is created
+		setTimeout(() => {
+			if (this.markdownEditor?.editor?.editor) {
+				this.universalSuggest =
+					this.suggestManager.enableForQuickCaptureModal(
+						this.markdownEditor.editor.editor
+					);
+				this.universalSuggest.enable();
+			}
+		}, 100);
 	}
 
 	createSimpleModal(contentEl: HTMLElement) {
@@ -636,7 +658,9 @@ export class QuickCaptureModal extends Modal {
 				// Don't add metadata to sub-tasks, but still clean time expressions
 				// Preserve the original indentation from the original line
 				const originalIndent = indentMatch[1];
-				const cleanedContent = cleanedLine.trim();
+				const cleanedContent = this.cleanTemporaryMarks(
+					cleanedLine.trim()
+				);
 				processedLines.push(originalIndent + cleanedContent);
 			} else if (isTaskOrList) {
 				// If it's a task, add line-specific metadata
@@ -649,10 +673,12 @@ export class QuickCaptureModal extends Modal {
 					const listPrefix = cleanedLine
 						.trim()
 						.match(/^(-|\d+\.|\*|\+)/)?.[0];
-					const restOfLine = cleanedLine
-						.trim()
-						.substring(listPrefix?.length || 0)
-						.trim();
+					const restOfLine = this.cleanTemporaryMarks(
+						cleanedLine
+							.trim()
+							.substring(listPrefix?.length || 0)
+							.trim()
+					);
 
 					// Use the specified status or default to empty checkbox
 					const statusMark = this.taskMetadata.status || " ";
@@ -665,7 +691,8 @@ export class QuickCaptureModal extends Modal {
 				// Not a list item or task, convert to task and add line-specific metadata
 				// Use the specified status or default to empty checkbox
 				const statusMark = this.taskMetadata.status || " ";
-				const taskLine = `- [${statusMark}] ${cleanedLine}`;
+				const cleanedContent = this.cleanTemporaryMarks(cleanedLine);
+				const taskLine = `- [${statusMark}] ${cleanedContent}`;
 				processedLines.push(
 					this.addLineMetadataToTask(taskLine, lineParseResult)
 				);
@@ -1013,6 +1040,40 @@ export class QuickCaptureModal extends Modal {
 	}
 
 	/**
+	 * Clean temporary marks from user input that might conflict with formal metadata
+	 */
+	private cleanTemporaryMarks(content: string): string {
+		let cleaned = content;
+
+		// Remove standalone exclamation marks that users might type for priority
+		cleaned = cleaned.replace(/\s*!\s*/g, " ");
+
+		// Remove standalone tilde marks that users might type for date
+		cleaned = cleaned.replace(/\s*~\s*/g, " ");
+
+		// Remove standalone priority symbols that users might type
+		cleaned = cleaned.replace(/\s*[🔺⏫🔼🔽⏬️]\s*/g, " ");
+
+		// Remove standalone date symbols that users might type
+		cleaned = cleaned.replace(/\s*[📅🛫⏳✅➕❌]\s*/g, " ");
+
+		// Remove location/folder symbols that users might type
+		cleaned = cleaned.replace(/\s*[📁🏠🏢🏪🏫🏬🏭🏯🏰]\s*/g, " ");
+
+		// Remove other metadata symbols that users might type
+		cleaned = cleaned.replace(/\s*[🆔⛔🏁🔁]\s*/g, " ");
+
+		// Remove target/location prefix patterns (like @location, target:)
+		cleaned = cleaned.replace(/\s*@\w*\s*/g, " ");
+		cleaned = cleaned.replace(/\s*target:\s*/gi, " ");
+
+		// Clean up multiple spaces and trim
+		cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+		return cleaned;
+	}
+
+	/**
 	 * Perform real-time parsing with debouncing
 	 */
 	private performRealTimeParsing(): void {
@@ -1114,6 +1175,15 @@ export class QuickCaptureModal extends Modal {
 
 	onClose() {
 		const { contentEl } = this;
+
+		// Clean up universal suggest
+		if (this.universalSuggest) {
+			this.universalSuggest.disable();
+			this.universalSuggest = null;
+		}
+
+		// Stop managing suggests and restore original order
+		this.suggestManager.stopManaging();
 
 		// Clear debounce timer
 		if (this.parseDebounceTimer) {

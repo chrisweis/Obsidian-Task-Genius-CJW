@@ -130,24 +130,6 @@ export class TaskGeniusIconManager extends Component {
 			}
 		}
 
-		css =
-			`
-input[type=checkbox]:checked {
-	background-color: unset;
-	border: none;
-} 
-input[type=checkbox] {
-	border: none;
-}
-			
-@media (hover: hover) {
-    input[type=checkbox]:checked:hover {
-        background-color: unset;
-        border: none;
-    }
-} 
-` + css;
-
 		return css;
 	}
 
@@ -282,11 +264,20 @@ input[type=checkbox] {
 
 		if (!isSpace) {
 			return `
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox],
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox],
+.${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox] {
+    border: none;
+}
+
 .${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox]:checked,
 .${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox]:checked,
 .${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox]:checked {
 	--checkbox-color: ${fillColor};
 	--checkbox-color-hover: ${fillColor};
+
+	background-color: unset;
+	border: none;
 }
 .${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox]:checked:after,
 .${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox]:checked:after,
@@ -301,9 +292,17 @@ input[type=checkbox] {
 .${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox],
 .${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox],
 .${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox] {
+    border: none;
+}
+
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox],
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox],
+.${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox] {
 	--checkbox-color: ${fillColor};
 	--checkbox-color-hover: ${fillColor};
 
+	background-color: unset;
+	border: none;
 } 
 .${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox]:after,
 .${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox]:after,
