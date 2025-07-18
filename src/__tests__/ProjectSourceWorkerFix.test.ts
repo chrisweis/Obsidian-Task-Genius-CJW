@@ -265,8 +265,8 @@ describe("Project Source Worker Fix", () => {
 					metadataConfig: {
 						enabled: true,
 						metadataKey: "projectName",
-						inheritFromFrontmatter: true,
-						inheritFromFrontmatterForSubtasks: false,
+						
+						
 					},
 					configFile: {
 						enabled: true,

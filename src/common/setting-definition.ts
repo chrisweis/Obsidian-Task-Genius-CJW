@@ -3,6 +3,7 @@ import type TaskProgressBarPlugin from "../index"; // Type-only import
 import { BaseHabitData } from "../types/habit-card";
 import type { RootFilterState } from "../components/task-filter/ViewTaskFilter";
 import { IcsManagerConfig } from "../types/ics";
+import { TimeParsingConfig } from "../utils/TimeParsingService";
 
 // Interface for individual project review settings (If still needed, otherwise remove)
 // Keep it for now, in case it's used elsewhere, but it's not part of TaskProgressBarSettings anymore
@@ -411,14 +412,20 @@ export interface ProjectPathMapping {
 	enabled: boolean;
 }
 
-/** Project metadata configuration */
-export interface ProjectMetadataConfig {
-	/** Metadata key to use for project name */
-	metadataKey: string;
+/** File metadata inheritance configuration */
+export interface FileMetadataInheritanceConfig {
+	/** Whether file metadata inheritance is enabled */
+	enabled: boolean;
 	/** Whether to inherit from file frontmatter */
 	inheritFromFrontmatter: boolean;
 	/** Whether subtasks should inherit metadata from file frontmatter */
 	inheritFromFrontmatterForSubtasks: boolean;
+}
+
+/** Project metadata configuration */
+export interface ProjectMetadataConfig {
+	/** Metadata key to use for project name */
+	metadataKey: string;
 	/** Whether this config is enabled */
 	enabled: boolean;
 }
@@ -496,6 +503,24 @@ export interface TimelineSidebarSettings {
 	showCompletedTasks: boolean;
 	focusModeByDefault: boolean;
 	maxEventsToShow: number;
+	// Quick input collapse settings
+	quickInputCollapsed: boolean;
+	quickInputDefaultHeight: number;
+	quickInputAnimationDuration: number;
+	quickInputCollapseOnCapture: boolean;
+	quickInputShowQuickActions: boolean;
+}
+
+/** OnCompletion Settings */
+export interface OnCompletionSettings {
+	/** Whether onCompletion functionality is enabled */
+	enableOnCompletion: boolean;
+	/** Default archive file path for archive operations */
+	defaultArchiveFile: string;
+	/** Default archive section name */
+	defaultArchiveSection: string;
+	/** Whether to show advanced configuration options in UI */
+	showAdvancedOptions: boolean;
 }
 
 /** File Filter Settings */
@@ -536,6 +561,9 @@ export interface TaskProgressBarSettings {
 	hideProgressBarFolders: string;
 	hideProgressBarMetadata: string;
 	showProgressBarBasedOnHeading: string;
+
+	// File Metadata Inheritance Settings
+	fileMetadataInheritance: FileMetadataInheritanceConfig;
 
 	// Checkbox Status Settings
 	autoCompleteParent: boolean;
@@ -642,6 +670,12 @@ export interface TaskProgressBarSettings {
 
 	// File Filter Settings
 	fileFilter: FileFilterSettings;
+
+	// OnCompletion Settings
+	onCompletion: OnCompletionSettings;
+
+	// Time Parsing Settings
+	timeParsing: TimeParsingConfig;
 }
 
 /** Define the default settings */
@@ -855,14 +889,19 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		dataview: "area",
 	},
 
+	// File Metadata Inheritance Defaults
+	fileMetadataInheritance: {
+		enabled: true,
+		inheritFromFrontmatter: true,
+		inheritFromFrontmatterForSubtasks: false,
+	},
+
 	// Enhanced Project Configuration
 	projectConfig: {
 		enableEnhancedProject: false,
 		pathMappings: [],
 		metadataConfig: {
 			metadataKey: "project",
-			inheritFromFrontmatter: false,
-			inheritFromFrontmatterForSubtasks: false,
 			enabled: false,
 		},
 		configFile: {
@@ -1221,6 +1260,12 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		showCompletedTasks: true,
 		focusModeByDefault: false,
 		maxEventsToShow: 100,
+		// Quick input collapse defaults
+		quickInputCollapsed: false,
+		quickInputDefaultHeight: 150,
+		quickInputAnimationDuration: 300,
+		quickInputCollapseOnCapture: false,
+		quickInputShowQuickActions: true,
 	},
 
 	// File Filter Defaults
@@ -1230,6 +1275,70 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		rules: [
 			// No default rules - let users explicitly choose via preset templates
 		],
+	},
+
+	// OnCompletion Defaults
+	onCompletion: {
+		enableOnCompletion: true,
+		defaultArchiveFile: "Archive/Completed Tasks.md",
+		defaultArchiveSection: "Completed Tasks",
+		showAdvancedOptions: false,
+	},
+
+	// Time Parsing Defaults
+	timeParsing: {
+		enabled: true,
+		supportedLanguages: ["en", "zh"],
+		dateKeywords: {
+			start: [
+				"start",
+				"begin",
+				"from",
+				"starting",
+				"begins",
+				"开始",
+				"从",
+				"起始",
+				"起",
+				"始于",
+				"自",
+			],
+			due: [
+				"due",
+				"deadline",
+				"by",
+				"until",
+				"before",
+				"expires",
+				"ends",
+				"截止",
+				"到期",
+				"之前",
+				"期限",
+				"最晚",
+				"结束",
+				"终止",
+				"完成于",
+			],
+			scheduled: [
+				"scheduled",
+				"on",
+				"at",
+				"planned",
+				"set for",
+				"arranged",
+				"安排",
+				"计划",
+				"在",
+				"定于",
+				"预定",
+				"约定",
+				"设定",
+			],
+		},
+		removeOriginalText: true,
+		perLineProcessing: true,
+		realTimeReplacement: true,
 	},
 };
 

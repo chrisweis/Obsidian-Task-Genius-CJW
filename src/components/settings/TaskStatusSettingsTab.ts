@@ -19,6 +19,79 @@ export function renderTaskStatusSettingsTab(
 		.setDesc(t("Configure checkbox status settings"))
 		.setHeading();
 
+	// File Metadata Inheritance Settings
+	new Setting(containerEl)
+		.setName(t("File Metadata Inheritance"))
+		.setDesc(
+			t("Configure how tasks inherit metadata from file frontmatter")
+		)
+		.setHeading();
+
+	new Setting(containerEl)
+		.setName(t("Enable file metadata inheritance"))
+		.setDesc(
+			t(
+				"Allow tasks to inherit metadata properties from their file's frontmatter"
+			)
+		)
+		.addToggle((toggle) =>
+			toggle
+				.setValue(
+					settingTab.plugin.settings.fileMetadataInheritance.enabled
+				)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.fileMetadataInheritance.enabled =
+						value;
+					settingTab.applySettingsUpdate();
+
+					setTimeout(() => {
+						settingTab.display();
+					}, 200);
+				})
+		);
+
+	if (settingTab.plugin.settings.fileMetadataInheritance.enabled) {
+		new Setting(containerEl)
+			.setName(t("Inherit from frontmatter"))
+			.setDesc(
+				t(
+					"Tasks inherit metadata properties like priority, context, etc. from file frontmatter when not explicitly set on the task"
+				)
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(
+						settingTab.plugin.settings.fileMetadataInheritance
+							.inheritFromFrontmatter
+					)
+					.onChange(async (value) => {
+						settingTab.plugin.settings.fileMetadataInheritance.inheritFromFrontmatter =
+							value;
+						settingTab.applySettingsUpdate();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName(t("Inherit from frontmatter for subtasks"))
+			.setDesc(
+				t(
+					"Allow subtasks to inherit metadata from file frontmatter. When disabled, only top-level tasks inherit file metadata"
+				)
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(
+						settingTab.plugin.settings.fileMetadataInheritance
+							.inheritFromFrontmatterForSubtasks
+					)
+					.onChange(async (value) => {
+						settingTab.plugin.settings.fileMetadataInheritance.inheritFromFrontmatterForSubtasks =
+							value;
+						settingTab.applySettingsUpdate();
+					})
+			);
+	}
+
 	// Check if Tasks plugin is installed and show compatibility warning
 	const tasksAPI = getTasksAPI(settingTab.plugin);
 	if (tasksAPI) {
@@ -280,6 +353,11 @@ export function renderTaskStatusSettingsTab(
 					settingTab.plugin.settings.taskStatuses.completed =
 						value || DEFAULT_SETTINGS.taskStatuses.completed;
 					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
 				})
 		);
 
@@ -319,6 +397,11 @@ export function renderTaskStatusSettingsTab(
 					settingTab.plugin.settings.taskStatuses.planned =
 						value || DEFAULT_SETTINGS.taskStatuses.planned;
 					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
 				})
 		);
 
@@ -358,6 +441,11 @@ export function renderTaskStatusSettingsTab(
 					settingTab.plugin.settings.taskStatuses.inProgress =
 						value || DEFAULT_SETTINGS.taskStatuses.inProgress;
 					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
 				})
 		);
 
@@ -398,6 +486,11 @@ export function renderTaskStatusSettingsTab(
 					settingTab.plugin.settings.taskStatuses.abandoned =
 						value || DEFAULT_SETTINGS.taskStatuses.abandoned;
 					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
 				})
 		);
 
@@ -438,6 +531,11 @@ export function renderTaskStatusSettingsTab(
 					settingTab.plugin.settings.taskStatuses.notStarted =
 						value || DEFAULT_SETTINGS.taskStatuses.notStarted;
 					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
 				})
 		);
 
@@ -524,7 +622,7 @@ export function renderTaskStatusSettingsTab(
 	}
 
 	// Check Switcher section
-	new Setting(containerEl).setName(t("Checkbo x Switcher")).setHeading();
+	new Setting(containerEl).setName(t("Checkbox Switcher")).setHeading();
 
 	new Setting(containerEl)
 		.setName(t("Enable checkbox status switcher"))
@@ -548,40 +646,75 @@ export function renderTaskStatusSettingsTab(
 
 	if (settingTab.plugin.settings.enableTaskStatusSwitcher) {
 		new Setting(containerEl)
-			.setName(t("Enable custom task marks"))
+			.setName(t("Task mark display style"))
 			.setDesc(
 				t(
-					"Replace default checkboxes with styled text marks that follow your checkbox status cycle when clicked."
+					"Choose how task marks are displayed: default checkboxes, custom text marks, or Task Genius icons."
 				)
 			)
-			.addToggle((toggle) => {
-				toggle
-					.setValue(settingTab.plugin.settings.enableCustomTaskMarks)
-					.onChange(async (value) => {
-						settingTab.plugin.settings.enableCustomTaskMarks =
-							value;
-						settingTab.applySettingsUpdate();
-					});
+			.addDropdown((dropdown) => {
+				dropdown.addOption("default", t("Default checkboxes"));
+				dropdown.addOption("textmarks", t("Custom text marks"));
+				dropdown.addOption("icons", t("Task Genius icons"));
+
+				// Determine current value based on existing settings
+				let currentValue = "default";
+				if (settingTab.plugin.settings.enableTaskGeniusIcons) {
+					currentValue = "icons";
+				} else if (settingTab.plugin.settings.enableCustomTaskMarks) {
+					currentValue = "textmarks";
+				}
+
+				dropdown.setValue(currentValue);
+
+				dropdown.onChange(async (value) => {
+					// Reset all options first
+					settingTab.plugin.settings.enableCustomTaskMarks = false;
+					settingTab.plugin.settings.enableTaskGeniusIcons = false;
+
+					// Set the selected option
+					if (value === "textmarks") {
+						settingTab.plugin.settings.enableCustomTaskMarks = true;
+					} else if (value === "icons") {
+						settingTab.plugin.settings.enableTaskGeniusIcons = true;
+					}
+
+					settingTab.applySettingsUpdate();
+
+					// Update Task Genius Icon Manager
+					if (settingTab.plugin.taskGeniusIconManager) {
+						settingTab.plugin.taskGeniusIconManager.update();
+					}
+
+					// Refresh display to show/hide dependent options
+					setTimeout(() => {
+						settingTab.display();
+					}, 200);
+				});
 			});
 
-		new Setting(containerEl)
-			.setName(t("Enable text mark in source mode"))
-			.setDesc(
-				t(
-					"Make the text mark in source mode follow the checkbox status cycle when clicked."
-				)
-			)
-			.addToggle((toggle) => {
-				toggle
-					.setValue(
-						settingTab.plugin.settings.enableTextMarkInSourceMode
+		// Show text mark source mode option only when custom text marks are enabled
+		if (settingTab.plugin.settings.enableCustomTaskMarks) {
+			new Setting(containerEl)
+				.setName(t("Enable text mark in source mode"))
+				.setDesc(
+					t(
+						"Make the text mark in source mode follow the checkbox status cycle when clicked."
 					)
-					.onChange(async (value) => {
-						settingTab.plugin.settings.enableTextMarkInSourceMode =
-							value;
-						settingTab.applySettingsUpdate();
-					});
-			});
+				)
+				.addToggle((toggle) => {
+					toggle
+						.setValue(
+							settingTab.plugin.settings
+								.enableTextMarkInSourceMode
+						)
+						.onChange(async (value) => {
+							settingTab.plugin.settings.enableTextMarkInSourceMode =
+								value;
+							settingTab.applySettingsUpdate();
+						});
+				});
+		}
 	}
 
 	new Setting(containerEl)
@@ -918,7 +1051,9 @@ export function renderTaskStatusSettingsTab(
 	// Auto Date Manager Settings
 	new Setting(containerEl)
 		.setName(t("Auto Date Manager"))
-		.setDesc(t("Automatically manage dates based on checkbox status changes"))
+		.setDesc(
+			t("Automatically manage dates based on checkbox status changes")
+		)
 		.setHeading();
 
 	new Setting(containerEl)
@@ -1001,20 +1136,4 @@ export function renderTaskStatusSettingsTab(
 					})
 			);
 	}
-
-	// Use Task Genius icons
-	new Setting(containerEl)
-		.setName(t("Other settings"))
-		.setHeading();
-
-	new Setting(containerEl)
-		.setName(t("Use Task Genius icons"))
-		.setDesc(t("Use Task Genius icons for task statuses"))
-		.addToggle((toggle) =>
-			toggle.setValue(settingTab.plugin.settings.enableTaskGeniusIcons)
-			.onChange(async (value) => {
-				settingTab.plugin.settings.enableTaskGeniusIcons = value;
-				settingTab.applySettingsUpdate();
-			})
-		);
 }

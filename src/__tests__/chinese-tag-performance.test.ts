@@ -22,8 +22,8 @@ describe("Chinese Tag Parsing Performance", () => {
 				pathMappings: [],
 				metadataConfig: {
 					metadataKey: "project",
-					inheritFromFrontmatter: false,
-					inheritFromFrontmatterForSubtasks: false,
+					
+					
 					enabled: false,
 				},
 				configFile: {

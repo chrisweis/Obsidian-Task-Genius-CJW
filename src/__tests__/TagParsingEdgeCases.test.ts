@@ -28,8 +28,8 @@ describe("Tag Parsing Edge Cases", () => {
 				pathMappings: [],
 				metadataConfig: {
 					metadataKey: "project",
-					inheritFromFrontmatter: false,
-					inheritFromFrontmatterForSubtasks: false,
+					
+					
 					enabled: false,
 				},
 				configFile: {

@@ -85,6 +85,7 @@ import {
 import { getStatusIcon, getTaskGeniusIcon } from "./icon";
 import { RewardManager } from "./utils/RewardManager";
 import { HabitManager } from "./utils/HabitManager";
+import { TaskGeniusIconManager } from "./utils/TaskGeniusIconManager";
 import { monitorTaskCompletedExtension } from "./editor-ext/monitorTaskCompleted";
 import { sortTasksInDocument } from "./commands/sortTaskCommands";
 import { taskGutterExtension } from "./editor-ext/TaskGutterHandler";
@@ -193,6 +194,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 	// Setting tab
 	settingTab: TaskProgressBarSettingTab;
+
+	// Task Genius Icon manager instance
+	taskGeniusIconManager: TaskGeniusIconManager;
 
 	async onload() {
 		await this.loadSettings();
@@ -323,6 +327,10 @@ export default class TaskProgressBarPlugin extends Plugin {
 		);
 
 		this.app.workspace.onLayoutReady(() => {
+			// Initialize Task Genius Icon Manager
+			this.taskGeniusIconManager = new TaskGeniusIconManager(this);
+			this.addChild(this.taskGeniusIconManager);
+
 			if (this.settings.autoCompleteParent) {
 				this.registerEditorExtension([
 					autoCompleteParentExtension(this.app, this),
@@ -1021,14 +1029,45 @@ export default class TaskProgressBarPlugin extends Plugin {
 		if (this.taskManager) {
 			this.taskManager.onunload();
 		}
+
+		// Task Genius Icon Manager cleanup is handled automatically by Component system
 	}
 
 	async loadSettings() {
+		const savedData = await this.loadData();
 		this.settings = Object.assign(
 			{},
 			DEFAULT_SETTINGS,
-			await this.loadData()
+			savedData
 		);
+		
+		// Migrate old inheritance settings to new structure
+		this.migrateInheritanceSettings(savedData);
+	}
+
+	private migrateInheritanceSettings(savedData: any) {
+		// Check if old inheritance settings exist and new ones don't
+		if (savedData?.projectConfig?.metadataConfig && 
+			!savedData?.fileMetadataInheritance) {
+			
+			const oldConfig = savedData.projectConfig.metadataConfig;
+			
+			// Migrate to new structure
+			this.settings.fileMetadataInheritance = {
+				enabled: true,
+				inheritFromFrontmatter: oldConfig.inheritFromFrontmatter ?? true,
+				inheritFromFrontmatterForSubtasks: oldConfig.inheritFromFrontmatterForSubtasks ?? false
+			};
+			
+			// Remove old inheritance settings from project config
+			if (this.settings.projectConfig?.metadataConfig) {
+				delete (this.settings.projectConfig.metadataConfig as any).inheritFromFrontmatter;
+				delete (this.settings.projectConfig.metadataConfig as any).inheritFromFrontmatterForSubtasks;
+			}
+			
+			// Save the migrated settings
+			this.saveSettings();
+		}
 	}
 
 	async saveSettings() {

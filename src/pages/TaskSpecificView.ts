@@ -223,8 +223,11 @@ export class TaskSpecificView extends ItemView {
 		// 4. 先使用预加载的数据快速显示
 		this.switchView(this.currentViewId, this.currentProject);
 
-		// 5. 异步加载最新数据（包含 ICS 同步）
-		await this.loadTasks(true, true); // 跳过视图更新，避免双重渲染
+		// 5. 快速加载缓存数据以立即显示 UI
+		await this.loadTasksFast(true); // 跳过视图更新，避免双重渲染
+
+		// 6. 后台同步最新数据（非阻塞）
+		this.loadTasksWithSyncInBackground();
 
 		this.toggleDetailsVisibility(false);
 
@@ -962,6 +965,66 @@ export class TaskSpecificView extends ItemView {
 		}
 	}
 
+	/**
+	 * Load tasks fast using cached data - for UI initialization
+	 */
+	private async loadTasksFast(skipViewUpdate: boolean = false) {
+		const taskManager = this.plugin.taskManager;
+		if (!taskManager) return;
+
+		// Use fast method to get cached data immediately
+		const newTasks = taskManager.getAllTasksFast();
+		console.log(`TaskSpecificView loaded ${newTasks.length} tasks (fast)`);
+
+		// 检查任务数量是否有变化
+		const hasChanged = this.tasks.length !== newTasks.length;
+		this.tasks = newTasks;
+
+		// 只有在数据有变化时才更新视图
+		if (!skipViewUpdate && hasChanged) {
+			// 直接切换到当前视图
+			if (this.currentViewId) {
+				this.switchView(this.currentViewId, this.currentProject);
+			}
+
+			// 更新操作按钮
+			this.updateActionButtons();
+		}
+	}
+
+	/**
+	 * Load tasks with sync in background - non-blocking
+	 */
+	private loadTasksWithSyncInBackground() {
+		const taskManager = this.plugin.taskManager;
+		if (!taskManager) return;
+
+		// Start background sync without blocking UI
+		taskManager
+			.getAllTasksWithSync()
+			.then((tasks) => {
+				// Only update if we got different data
+				if (tasks.length !== this.tasks.length) {
+					this.tasks = tasks;
+					console.log(
+						`TaskSpecificView updated with ${this.tasks.length} tasks (background sync)`
+					);
+
+					// Update the view with new data
+					if (this.currentViewId) {
+						this.switchView(
+							this.currentViewId,
+							this.currentProject
+						);
+					}
+					this.updateActionButtons();
+				}
+			})
+			.catch((error) => {
+				console.warn("Background task sync failed:", error);
+			});
+	}
+
 	// 添加应用当前过滤器状态的方法
 	private applyCurrentFilter() {
 		console.log(
@@ -1090,8 +1153,14 @@ export class TaskSpecificView extends ItemView {
 			}
 
 			// If the updated task is the currently selected one, refresh details view
+			// Only refresh if not currently editing to prevent UI disruption
 			if (this.currentSelectedTaskId === updatedTask.id) {
-				this.detailsComponent.showTaskDetails(updatedTask);
+				if (this.detailsComponent.isCurrentlyEditing()) {
+					// Update the current task reference without re-rendering UI
+					this.detailsComponent.currentTask = updatedTask;
+				} else {
+					this.detailsComponent.showTaskDetails(updatedTask);
+				}
 			}
 
 			// 直接更新当前视图
@@ -1108,8 +1177,8 @@ export class TaskSpecificView extends ItemView {
 	}
 
 	private async editTask(task: Task) {
-		const file = this.app.vault.getAbstractFileByPath(task.filePath);
-		if (!(file instanceof TFile)) return;
+		const file = this.app.vault.getFileByPath(task.filePath);
+		if (!file) return;
 
 		// Prefer activating existing leaf if file is open
 		const existingLeaf = this.app.workspace
