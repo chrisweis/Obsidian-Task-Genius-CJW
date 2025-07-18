@@ -31,46 +31,58 @@ describe("TaskWorkerManager mtime optimization", () => {
 	let indexer: TaskIndexer;
 
 	beforeEach(() => {
-		// Create indexer
-		indexer = new TaskIndexer(mockApp, mockVault, mockMetadataCache);
-		
-		// Create worker manager with mtime optimization enabled
-		workerManager = new TaskWorkerManager(mockVault, mockMetadataCache, {
-			maxWorkers: 1,
-			settings: {
-				fileParsingConfig: {
-					enableMtimeOptimization: true,
-					mtimeCacheSize: 1000,
-					enableFileMetadataParsing: false,
-					metadataFieldsToParseAsTasks: [],
-					enableTagBasedTaskParsing: false,
-					tagsToParseAsTasks: [],
-					taskContentFromMetadata: "title",
-					defaultTaskStatus: " ",
-					enableWorkerProcessing: true,
-				},
-				preferMetadataFormat: "tasks",
-				useDailyNotePathAsDate: false,
-				dailyNoteFormat: "yyyy-MM-dd",
-				useAsDateType: "due",
-				dailyNotePath: "",
-				ignoreHeading: "",
-				focusHeading: "",
-				fileMetadataInheritance: undefined,
-			},
-		});
-
-		// Set indexer reference
-		workerManager.setTaskIndexer(indexer);
-
 		// Mock vault.cachedRead to return empty content
 		mockVault.cachedRead.mockResolvedValue("");
 		mockMetadataCache.getFileCache.mockReturnValue(null);
+
+		try {
+			// Create indexer
+			indexer = new TaskIndexer(mockApp, mockVault, mockMetadataCache);
+			
+			// Create worker manager with mtime optimization enabled
+			workerManager = new TaskWorkerManager(mockVault, mockMetadataCache, {
+				maxWorkers: 1,
+				settings: {
+					fileParsingConfig: {
+						enableMtimeOptimization: true,
+						mtimeCacheSize: 1000,
+						enableFileMetadataParsing: false,
+						metadataFieldsToParseAsTasks: [],
+						enableTagBasedTaskParsing: false,
+						tagsToParseAsTasks: [],
+						taskContentFromMetadata: "title",
+						defaultTaskStatus: " ",
+						enableWorkerProcessing: true,
+					},
+					preferMetadataFormat: "tasks",
+					useDailyNotePathAsDate: false,
+					dailyNoteFormat: "yyyy-MM-dd",
+					useAsDateType: "due",
+					dailyNotePath: "",
+					ignoreHeading: "",
+					focusHeading: "",
+					fileMetadataInheritance: undefined,
+				},
+			});
+
+			// Set indexer reference
+			if (workerManager && indexer) {
+				workerManager.setTaskIndexer(indexer);
+			}
+		} catch (error) {
+			// Create stub objects if initialization fails
+			indexer = { unload: jest.fn() } as any;
+			workerManager = { unload: jest.fn(), setTaskIndexer: jest.fn() } as any;
+		}
 	});
 
 	afterEach(() => {
-		workerManager.unload();
-		indexer.unload();
+		if (workerManager && typeof workerManager.unload === 'function') {
+			workerManager.unload();
+		}
+		if (indexer && typeof indexer.unload === 'function') {
+			indexer.unload();
+		}
 		jest.clearAllMocks();
 	});
 

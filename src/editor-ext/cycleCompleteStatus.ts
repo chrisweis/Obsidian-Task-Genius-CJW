@@ -67,10 +67,10 @@ function isValidTaskMarkerReplacement(
 
 	// Check if user actively selected text before replacement
 	const startSelection = tr.startState.selection.main;
-	const hasUserSelection = !startSelection.empty;
+	const hasUserSelection = startSelection && !startSelection.empty;
 	
 	// If user had a selection that covers the replacement range, this is intentional replacement
-	if (hasUserSelection && fromA >= startSelection.from && toA <= startSelection.to) {
+	if (hasUserSelection && startSelection && fromA >= startSelection.from && toA <= startSelection.to) {
 		console.log(
 			`User selection detected (${startSelection.from}-${startSelection.to}) covering replacement range (${fromA}-${toA}). Skipping automatic cycling as this is user-intended replacement.`
 		);

@@ -19,6 +19,8 @@ import { MinimalQuickCaptureSuggest } from "./MinimalQuickCaptureSuggest";
 import { DatePickerPopover } from "./date-picker/DatePickerPopover";
 import { TagSuggest } from "./AutoComplete";
 import { SuggestManager, UniversalEditorSuggest } from "./suggest";
+import { ConfigurableTaskParser } from "../utils/workers/ConfigurableTaskParser";
+import { clearAllMarks } from "./MarkdownRenderer";
 
 interface TaskMetadata {
 	startDate?: Date;
@@ -170,6 +172,8 @@ export class MinimalQuickCaptureModal extends Modal {
 
 					onChange: (update) => {
 						this.capturedContent = this.markdownEditor?.value || "";
+						// Parse content and update button states
+						this.parseContentAndUpdateButtons();
 					},
 				}
 			);
@@ -470,8 +474,8 @@ export class MinimalQuickCaptureModal extends Modal {
 		const processedLines = lines.map((line) => {
 			const trimmed = line.trim();
 			if (trimmed && !trimmed.startsWith("- [")) {
-				// Clean any temporary marks from user input before creating task
-				const cleanedContent = this.cleanTemporaryMarks(trimmed);
+				// Use clearAllMarks to completely clean the content
+				const cleanedContent = clearAllMarks(trimmed);
 				return `- [ ] ${cleanedContent}`;
 			}
 			return line;
@@ -566,6 +570,81 @@ export class MinimalQuickCaptureModal extends Modal {
 			this.close();
 		} catch (error) {
 			new Notice(`${t("Failed to save:")} ${error}`);
+		}
+	}
+
+	/**
+	 * Parse the content and update button states based on extracted metadata
+	 * Only update taskMetadata if actual marks exist in content, preserve manually set values
+	 */
+	public parseContentAndUpdateButtons(): void {
+		try {
+			const content = this.capturedContent.trim();
+			if (!content) {
+				// Update button states based on existing taskMetadata
+				this.updateButtonState(this.dateButton!, !!this.taskMetadata.dueDate);
+				this.updateButtonState(this.priorityButton!, !!this.taskMetadata.priority);
+				this.updateButtonState(this.tagButton!, !!(this.taskMetadata.tags && this.taskMetadata.tags.length > 0));
+				this.updateButtonState(this.locationButton!, !!(this.taskMetadata.location || this.taskMetadata.targetFile));
+				return;
+			}
+
+			// Create a parser to extract metadata
+			const parser = new ConfigurableTaskParser({
+				// Use default configuration
+			});
+
+			// Extract metadata and tags
+			const [cleanedContent, metadata, tags] = parser.extractMetadataAndTags(content);
+
+			// Only update taskMetadata if we found actual marks in the content
+			// This preserves manually set values from suggest system
+			
+			// Due date - only update if found in content
+			if (metadata.dueDate) {
+				this.taskMetadata.dueDate = new Date(metadata.dueDate);
+			}
+			// Don't delete existing dueDate if not found in content
+
+			// Priority - only update if found in content
+			if (metadata.priority) {
+				const priorityMap: Record<string, number> = {
+					"highest": 5,
+					"high": 4,
+					"medium": 3,
+					"low": 2,
+					"lowest": 1
+				};
+				this.taskMetadata.priority = priorityMap[metadata.priority] || 3;
+			}
+			// Don't delete existing priority if not found in content
+
+			// Tags - only add new tags, don't replace existing ones
+			if (tags && tags.length > 0) {
+				if (!this.taskMetadata.tags) {
+					this.taskMetadata.tags = [];
+				}
+				// Merge new tags with existing ones, avoid duplicates
+				tags.forEach(tag => {
+					if (!this.taskMetadata.tags!.includes(tag)) {
+						this.taskMetadata.tags!.push(tag);
+					}
+				});
+			}
+
+			// Update button states based on current taskMetadata
+			this.updateButtonState(this.dateButton!, !!this.taskMetadata.dueDate);
+			this.updateButtonState(this.priorityButton!, !!this.taskMetadata.priority);
+			this.updateButtonState(this.tagButton!, !!(this.taskMetadata.tags && this.taskMetadata.tags.length > 0));
+			this.updateButtonState(this.locationButton!, !!(this.taskMetadata.location || this.taskMetadata.targetFile || metadata.project || metadata.location));
+
+		} catch (error) {
+			console.error("Error parsing content:", error);
+			// On error, still update button states based on existing taskMetadata
+			this.updateButtonState(this.dateButton!, !!this.taskMetadata.dueDate);
+			this.updateButtonState(this.priorityButton!, !!this.taskMetadata.priority);
+			this.updateButtonState(this.tagButton!, !!(this.taskMetadata.tags && this.taskMetadata.tags.length > 0));
+			this.updateButtonState(this.locationButton!, !!(this.taskMetadata.location || this.taskMetadata.targetFile));
 		}
 	}
 }

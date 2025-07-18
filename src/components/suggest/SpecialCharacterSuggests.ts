@@ -13,10 +13,17 @@ export function createPrioritySuggestOptions(): SuggestOption[] {
 			label: t("Highest Priority"),
 			icon: "arrow-up",
 			description: t("🔺 Highest priority task"),
-			replacement: "! 🔺",
+			replacement: "",
 			trigger: "!",
 			action: (editor: Editor, cursor: EditorPosition) => {
-				// Priority is already inserted, no additional action needed
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.priority = 5;
+					modal.updateButtonState(modal.priorityButton, true);
+				}
 				new Notice(t("Highest priority set"));
 			},
 		},
@@ -25,9 +32,17 @@ export function createPrioritySuggestOptions(): SuggestOption[] {
 			label: t("High Priority"),
 			icon: "arrow-up",
 			description: t("⏫ High priority task"),
-			replacement: "! ⏫",
+			replacement: "",
 			trigger: "!",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.priority = 4;
+					modal.updateButtonState(modal.priorityButton, true);
+				}
 				new Notice(t("High priority set"));
 			},
 		},
@@ -36,9 +51,17 @@ export function createPrioritySuggestOptions(): SuggestOption[] {
 			label: t("Medium Priority"),
 			icon: "minus",
 			description: t("🔼 Medium priority task"),
-			replacement: "! 🔼",
+			replacement: "",
 			trigger: "!",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.priority = 3;
+					modal.updateButtonState(modal.priorityButton, true);
+				}
 				new Notice(t("Medium priority set"));
 			},
 		},
@@ -47,9 +70,17 @@ export function createPrioritySuggestOptions(): SuggestOption[] {
 			label: t("Low Priority"),
 			icon: "arrow-down",
 			description: t("🔽 Low priority task"),
-			replacement: "! 🔽",
+			replacement: "",
 			trigger: "!",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.priority = 2;
+					modal.updateButtonState(modal.priorityButton, true);
+				}
 				new Notice(t("Low priority set"));
 			},
 		},
@@ -58,9 +89,17 @@ export function createPrioritySuggestOptions(): SuggestOption[] {
 			label: t("Lowest Priority"),
 			icon: "arrow-down",
 			description: t("⏬ Lowest priority task"),
-			replacement: "! ⏬",
+			replacement: "",
 			trigger: "!",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.priority = 1;
+					modal.updateButtonState(modal.priorityButton, true);
+				}
 				new Notice(t("Lowest priority set"));
 			},
 		},
@@ -85,9 +124,17 @@ export function createDateSuggestOptions(): SuggestOption[] {
 			label: t("Today"),
 			icon: "calendar-days",
 			description: t("Set due date to today"),
-			replacement: `~ ${formatDate(today)}`,
+			replacement: "",
 			trigger: "~",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.dueDate = today;
+					modal.updateButtonState(modal.dateButton, true);
+				}
 				new Notice(t("Due date set to today"));
 			},
 		},
@@ -96,9 +143,17 @@ export function createDateSuggestOptions(): SuggestOption[] {
 			label: t("Tomorrow"),
 			icon: "calendar-plus",
 			description: t("Set due date to tomorrow"),
-			replacement: `~ ${formatDate(tomorrow)}`,
+			replacement: "",
 			trigger: "~",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.dueDate = tomorrow;
+					modal.updateButtonState(modal.dateButton, true);
+				}
 				new Notice(t("Due date set to tomorrow"));
 			},
 		},
@@ -107,12 +162,16 @@ export function createDateSuggestOptions(): SuggestOption[] {
 			label: t("Pick Date"),
 			icon: "calendar",
 			description: t("Open date picker"),
-			replacement: "~ ",
+			replacement: "",
 			trigger: "~",
 			action: (editor: Editor, cursor: EditorPosition) => {
-				// This will trigger the date picker modal
-				// Implementation will be added when integrating with existing date picker
-				new Notice(t("Date picker opened"));
+				// Trigger the date picker modal
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.showDatePicker();
+				}
 			},
 		},
 		{
@@ -120,10 +179,18 @@ export function createDateSuggestOptions(): SuggestOption[] {
 			label: t("Scheduled Date"),
 			icon: "calendar-clock",
 			description: t("Set scheduled date"),
-			replacement: "~ ⏰ ",
+			replacement: "",
 			trigger: "~",
 			action: (editor: Editor, cursor: EditorPosition) => {
-				new Notice(t("Scheduled date format added"));
+				// Update modal metadata for scheduled date
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.scheduledDate = today;
+					modal.updateButtonState(modal.dateButton, true);
+				}
+				new Notice(t("Scheduled date set"));
 			},
 		},
 	];
@@ -141,9 +208,18 @@ export function createTargetSuggestOptions(
 			label: t("Inbox"),
 			icon: "inbox",
 			description: t("Save to inbox"),
-			replacement: "* Inbox",
+			replacement: "",
 			trigger: "*",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.location = "fixed";
+					modal.taskMetadata.targetFile = plugin.settings.quickCapture.targetFile;
+					modal.updateButtonState(modal.locationButton, true);
+				}
 				new Notice(t("Target set to Inbox"));
 			},
 		},
@@ -152,9 +228,17 @@ export function createTargetSuggestOptions(
 			label: t("Daily Note"),
 			icon: "calendar-days",
 			description: t("Save to today's daily note"),
-			replacement: "* Daily",
+			replacement: "",
 			trigger: "*",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.location = "daily";
+					modal.updateButtonState(modal.locationButton, true);
+				}
 				new Notice(t("Target set to Daily Note"));
 			},
 		},
@@ -163,9 +247,17 @@ export function createTargetSuggestOptions(
 			label: t("Current File"),
 			icon: "file-text",
 			description: t("Save to current file"),
-			replacement: "* Current",
+			replacement: "",
 			trigger: "*",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.location = "current";
+					modal.updateButtonState(modal.locationButton, true);
+				}
 				new Notice(t("Target set to Current File"));
 			},
 		},
@@ -174,11 +266,16 @@ export function createTargetSuggestOptions(
 			label: t("Choose File"),
 			icon: "folder-open",
 			description: t("Open file picker"),
-			replacement: "* ",
+			replacement: "",
 			trigger: "*",
 			action: (editor: Editor, cursor: EditorPosition) => {
-				// This will trigger the file picker modal
-				new Notice(t("File picker opened"));
+				// Trigger the location menu
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.showLocationMenu();
+				}
 			},
 		},
 	];
@@ -193,9 +290,18 @@ export function createTargetSuggestOptions(
 			label: fileName,
 			icon: "file",
 			description: t("Save to recent file"),
-			replacement: `* ${fileName}`,
+			replacement: "",
 			trigger: "*",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.taskMetadata.location = "fixed";
+					modal.taskMetadata.targetFile = filePath;
+					modal.updateButtonState(modal.locationButton, true);
+				}
 				new Notice(t("Target set to") + ` ${fileName}`);
 			},
 		});
@@ -216,9 +322,20 @@ export function createTagSuggestOptions(
 			label: t("Important"),
 			icon: "star",
 			description: t("Mark as important"),
-			replacement: "# important",
+			replacement: "",
 			trigger: "#",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					if (!modal.taskMetadata.tags) modal.taskMetadata.tags = [];
+					if (!modal.taskMetadata.tags.includes("important")) {
+						modal.taskMetadata.tags.push("important");
+					}
+					modal.updateButtonState(modal.tagButton, true);
+				}
 				new Notice(t("Tagged as important"));
 			},
 		},
@@ -227,9 +344,20 @@ export function createTagSuggestOptions(
 			label: t("Urgent"),
 			icon: "zap",
 			description: t("Mark as urgent"),
-			replacement: "# urgent",
+			replacement: "",
 			trigger: "#",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					if (!modal.taskMetadata.tags) modal.taskMetadata.tags = [];
+					if (!modal.taskMetadata.tags.includes("urgent")) {
+						modal.taskMetadata.tags.push("urgent");
+					}
+					modal.updateButtonState(modal.tagButton, true);
+				}
 				new Notice(t("Tagged as urgent"));
 			},
 		},
@@ -238,9 +366,20 @@ export function createTagSuggestOptions(
 			label: t("Work"),
 			icon: "briefcase",
 			description: t("Work related task"),
-			replacement: "# work",
+			replacement: "",
 			trigger: "#",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					if (!modal.taskMetadata.tags) modal.taskMetadata.tags = [];
+					if (!modal.taskMetadata.tags.includes("work")) {
+						modal.taskMetadata.tags.push("work");
+					}
+					modal.updateButtonState(modal.tagButton, true);
+				}
 				new Notice(t("Tagged as work"));
 			},
 		},
@@ -249,9 +388,20 @@ export function createTagSuggestOptions(
 			label: t("Personal"),
 			icon: "user",
 			description: t("Personal task"),
-			replacement: "# personal",
+			replacement: "",
 			trigger: "#",
 			action: (editor: Editor, cursor: EditorPosition) => {
+				// Update modal metadata instead of inserting text
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					if (!modal.taskMetadata.tags) modal.taskMetadata.tags = [];
+					if (!modal.taskMetadata.tags.includes("personal")) {
+						modal.taskMetadata.tags.push("personal");
+					}
+					modal.updateButtonState(modal.tagButton, true);
+				}
 				new Notice(t("Tagged as personal"));
 			},
 		},
@@ -260,11 +410,16 @@ export function createTagSuggestOptions(
 			label: t("Choose Tag"),
 			icon: "tag",
 			description: t("Open tag picker"),
-			replacement: "# ",
+			replacement: "",
 			trigger: "#",
 			action: (editor: Editor, cursor: EditorPosition) => {
-				// This will trigger the tag picker modal
-				new Notice(t("Tag picker opened"));
+				// Trigger the tag selector modal
+				const editorEl = (editor as any).cm?.dom as HTMLElement;
+				const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+				const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+				if (modal) {
+					modal.showTagSelector();
+				}
 			},
 		},
 	];
@@ -286,9 +441,20 @@ export function createTagSuggestOptions(
 				label: `#${tagName}`,
 				icon: "tag",
 				description: t("Existing tag"),
-				replacement: `# ${tagName}`,
+				replacement: "",
 				trigger: "#",
 				action: (editor: Editor, cursor: EditorPosition) => {
+					// Update modal metadata instead of inserting text
+					const editorEl = (editor as any).cm?.dom as HTMLElement;
+					const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
+					const modal = (modalEl as any)?.__minimalQuickCaptureModal;
+					if (modal) {
+						if (!modal.taskMetadata.tags) modal.taskMetadata.tags = [];
+						if (!modal.taskMetadata.tags.includes(tagName)) {
+							modal.taskMetadata.tags.push(tagName);
+						}
+						modal.updateButtonState(modal.tagButton, true);
+					}
 					new Notice(t("Tagged with") + ` #${tagName}`);
 				},
 			});

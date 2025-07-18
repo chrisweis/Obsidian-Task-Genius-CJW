@@ -10,9 +10,10 @@ import {
 	AnnotationType,
 } from "@codemirror/state";
 import TaskProgressBarPlugin from "../index"; // Adjust the import path as necessary
-import {
-	taskStatusChangeAnnotation, // Import the actual annotation
-} from "../editor-ext/autoCompleteParent"; // Adjust the import path as necessary
+// Remove circular dependency import
+// import {
+// 	taskStatusChangeAnnotation, // Import the actual annotation
+// } from "../editor-ext/autoCompleteParent"; // Adjust the import path as necessary
 import { TaskProgressBarSettings } from "../common/setting-definition";
 import { EditorView } from "@codemirror/view";
 import { Task } from "../types/task";
@@ -23,8 +24,13 @@ const mockAnnotationType = {
 		value,
 	})),
 };
-// Use the actual annotation object from the source file for checks
-const mockParentTaskStatusChangeAnnotation = taskStatusChangeAnnotation;
+// Create mock annotation object to avoid circular dependency
+const mockParentTaskStatusChangeAnnotation = {
+	of: jest.fn().mockImplementation((value: string) => ({
+		type: mockParentTaskStatusChangeAnnotation,
+		value,
+	})),
+};
 
 // Mock Text Object - Consolidated version
 export const createMockText = (content: string): Text => {
@@ -228,6 +234,13 @@ const createMockTransaction = (options: {
 		selectionObj.anchor,
 		selectionObj.head
 	); // Use EditorSelection.single for proper creation
+	
+	// Create start state selection
+	const startSelectionObj = { anchor: 0, head: 0 };
+	const startEditorSelection = EditorSelection.single(
+		startSelectionObj.anchor,
+		startSelectionObj.head
+	);
 
 	const mockTr = {
 		newDoc: newDoc,
@@ -270,7 +283,10 @@ const createMockTransaction = (options: {
 			// @ts-ignore
 			sliceDoc: jest.fn(() => ""),
 		} as unknown as EditorState,
-		startState: EditorState.create({ doc: startDoc }),
+		startState: EditorState.create({
+			doc: startDoc,
+			selection: startEditorSelection
+		}),
 		reconfigured: false,
 	};
 

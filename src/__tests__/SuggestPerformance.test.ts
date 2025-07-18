@@ -10,9 +10,46 @@ jest.mock("obsidian", () => ({
 	TFile: jest.fn(),
 	EditorSuggest: class {
 		constructor() {}
+		getSuggestions() { return []; }
+		renderSuggestion() {}
+		selectSuggestion() {}
+		onTrigger() { return null; }
+		close() {}
 	},
 	setIcon: jest.fn(),
 }));
+
+// Mock moment module
+jest.mock("moment", () => {
+	const moment = function(input) {
+		return {
+			format: () => "2024-01-01",
+			diff: () => 0,
+			startOf: () => moment(),
+			endOf: () => moment(),
+			isSame: () => true,
+			isSameOrBefore: () => true,
+			isSameOrAfter: () => true,
+			isBefore: () => false,
+			isAfter: () => false,
+			isBetween: () => true,
+			clone: () => moment(),
+			add: () => moment(),
+			subtract: () => moment(),
+			valueOf: () => Date.now(),
+			toDate: () => new Date(),
+			weekday: () => 0,
+			day: () => 1,
+			date: () => 1,
+		};
+	};
+	moment.locale = jest.fn(() => "en");
+	moment.utc = () => ({ format: () => "00:00:00" });
+	moment.duration = () => ({ asMilliseconds: () => 0 });
+	moment.weekdaysShort = () => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	moment.weekdaysMin = () => ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+	return moment;
+});
 
 // Mock plugin with realistic data
 const mockPlugin = {

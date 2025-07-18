@@ -8,6 +8,8 @@ import {
 	TFile,
 	setIcon,
 } from "obsidian";
+import { Transaction } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import TaskProgressBarPlugin from "../index";
 import { t } from "../translations/helper";
 import { getSuggestOptionsByTrigger } from "./suggest/SpecialCharacterSuggests";
@@ -64,13 +66,20 @@ export class MinimalQuickCaptureSuggest extends EditorSuggest<SuggestOption> {
 			this.plugin.settings.quickCapture.minimalModeSettings
 				?.suggestTrigger || "/";
 
-		// Check if the cursor is right after the trigger character
-		if (cursor.ch > 0 && line.charAt(cursor.ch - 1) === triggerChar) {
-			return {
-				start: { line: cursor.line, ch: cursor.ch - 1 },
-				end: cursor,
-				query: triggerChar,
-			};
+		// Define all possible trigger characters
+		// Always include "/" for the main menu, plus the configured trigger and special chars
+		const allTriggers = ["/", triggerChar, "~", "!", "*", "#"];
+		
+		// Check if the cursor is right after any trigger character
+		if (cursor.ch > 0) {
+			const charBeforeCursor = line.charAt(cursor.ch - 1);
+			if (allTriggers.includes(charBeforeCursor)) {
+				return {
+					start: { line: cursor.line, ch: cursor.ch - 1 },
+					end: cursor,
+					query: charBeforeCursor,
+				};
+			}
 		}
 
 		return null;
@@ -80,54 +89,50 @@ export class MinimalQuickCaptureSuggest extends EditorSuggest<SuggestOption> {
 	 * Get suggestions based on the trigger
 	 */
 	getSuggestions(context: EditorSuggestContext): SuggestOption[] {
-		// Map old @ to new * for target location
-		const triggerChar = context.query === "@" ? "*" : context.query;
+		const triggerChar = context.query;
 
-		// Get suggestions from the new system
-		const suggestions = getSuggestOptionsByTrigger(
-			triggerChar,
-			this.plugin
-		);
-
-		// For backward compatibility, return simple trigger suggestions if no specific ones found
-		if (suggestions.length === 0) {
+		// If trigger is "/", show all special character options
+		if (triggerChar === "/") {
 			return [
 				{
 					id: "date",
 					label: t("Date"),
 					icon: "calendar",
-					description: t("Add date"),
+					description: t("Add date (triggers ~)"),
 					replacement: "~",
-					trigger: "~",
+					trigger: "/",
 				},
 				{
 					id: "priority",
 					label: t("Priority"),
 					icon: "zap",
-					description: t("Set priority"),
+					description: t("Set priority (triggers !)"),
 					replacement: "!",
-					trigger: "!",
+					trigger: "/",
 				},
 				{
 					id: "target",
 					label: t("Target Location"),
 					icon: "folder",
-					description: t("Set target location"),
+					description: t("Set target location (triggers *)"),
 					replacement: "*",
-					trigger: "*",
+					trigger: "/",
 				},
 				{
 					id: "tag",
 					label: t("Tag"),
 					icon: "tag",
-					description: t("Add tags"),
+					description: t("Add tags (triggers #)"),
 					replacement: "#",
-					trigger: "#",
+					trigger: "/",
 				},
 			];
 		}
 
-		return suggestions;
+		// For special characters, get their specific suggestions
+		// Map old @ to new * for backward compatibility
+		const mappedTrigger = triggerChar === "@" ? "*" : triggerChar;
+		return getSuggestOptionsByTrigger(mappedTrigger, this.plugin);
 	}
 
 	/**
@@ -158,55 +163,91 @@ export class MinimalQuickCaptureSuggest extends EditorSuggest<SuggestOption> {
 
 		if (!editor || !cursor) return;
 
-		// Replace the trigger character with the replacement
-		const startPos = { line: cursor.line, ch: cursor.ch - 1 };
-		const endPos = cursor;
-
-		editor.replaceRange(suggestion.replacement, startPos, endPos);
-
-		// Move cursor to after the replacement
-		const newCursor = {
-			line: cursor.line,
-			ch: cursor.ch - 1 + suggestion.replacement.length,
-		};
-		editor.setCursor(newCursor);
-
-		// Execute custom action if provided (new system)
-		if (suggestion.action) {
-			suggestion.action(editor, newCursor);
-			return;
+		// Get the current trigger character
+		const currentTrigger = this.context?.query || "";
+		
+		// Check if this is a specific metadata selection (not the main menu items)
+		const isSpecificMetadataSelection = ["!", "~", "#", "*"].includes(currentTrigger) && 
+			!["date", "priority", "target", "tag"].includes(suggestion.id);
+		
+		if (isSpecificMetadataSelection) {
+			// This is a specific metadata selection (e.g., "High Priority" from "!" menu)
+			// Just remove the trigger character, don't insert anything
+			const view = (editor as any).cm as EditorView;
+			if (!view) {
+				// Fallback to old method if view is not available
+				const startPos = { line: cursor.line, ch: cursor.ch - 1 };
+				const endPos = cursor;
+				editor.replaceRange("", startPos, endPos);
+				editor.setCursor(startPos);
+			} else {
+				// Use CodeMirror 6 changes API to remove the trigger character
+				const startOffset = view.state.doc.line(cursor.line + 1).from + cursor.ch - 1;
+				const endOffset = view.state.doc.line(cursor.line + 1).from + cursor.ch;
+				
+				view.dispatch({
+					changes: {
+						from: startOffset,
+						to: endOffset,
+						insert: "",
+					},
+					annotations: [Transaction.userEvent.of("input")],
+				});
+			}
+		} else {
+			// This is either:
+			// 1. A main menu selection from "/" (replace with special character)
+			// 2. A general category selection that should insert the replacement
+			const view = (editor as any).cm as EditorView;
+			if (!view) {
+				// Fallback to old method if view is not available
+				const startPos = { line: cursor.line, ch: cursor.ch - 1 };
+				const endPos = cursor;
+				editor.replaceRange(suggestion.replacement, startPos, endPos);
+				const newCursor = {
+					line: cursor.line,
+					ch: cursor.ch - 1 + suggestion.replacement.length,
+				};
+				editor.setCursor(newCursor);
+			} else {
+				// Use CodeMirror 6 changes API
+				const startOffset = view.state.doc.line(cursor.line + 1).from + cursor.ch - 1;
+				const endOffset = view.state.doc.line(cursor.line + 1).from + cursor.ch;
+				
+				view.dispatch({
+					changes: {
+						from: startOffset,
+						to: endOffset,
+						insert: suggestion.replacement,
+					},
+					annotations: [Transaction.userEvent.of("input")],
+				});
+			}
 		}
 
-		// Fallback to legacy modal-based actions
+		// Get the modal instance to update button states
 		const editorEl = (editor as any).cm?.dom as HTMLElement;
 		const modalEl = editorEl?.closest(".quick-capture-modal.minimal");
-		const modal = (modalEl as any).__minimalQuickCaptureModal;
+		const modal = (modalEl as any)?.__minimalQuickCaptureModal;
 
-		this.close();
-
-		if (!modal) return;
-
-		// Get cursor position for menu positioning
-		const cursorCoords = (editor as any).coordsAtPos?.(newCursor) || {
-			left: 0,
-			top: 0,
-		};
-
-		// Handle different suggestion types (legacy support)
-		switch (suggestion.id) {
-			case "date":
-				modal.showDatePickerAtCursor?.(cursorCoords, newCursor);
-				break;
-			case "priority":
-				modal.showPriorityMenuAtCursor?.(cursorCoords, newCursor);
-				break;
-			case "target":
-			case "location":
-				modal.showLocationMenuAtCursor?.(cursorCoords, newCursor);
-				break;
-			case "tag":
-				modal.showTagSelectorAtCursor?.(cursorCoords, newCursor);
-				break;
+		// Execute custom action if provided
+		if (suggestion.action) {
+			const newCursor = {
+				line: cursor.line,
+				ch: cursor.ch - 1 + suggestion.replacement.length,
+			};
+			suggestion.action(editor, newCursor);
 		}
+
+		// Update modal state if available
+		if (modal && typeof modal.parseContentAndUpdateButtons === "function") {
+			// Delay to ensure content is updated
+			setTimeout(() => {
+				modal.parseContentAndUpdateButtons();
+			}, 50);
+		}
+
+		// Close this suggest to allow the next one to trigger
+		this.close();
 	}
 }

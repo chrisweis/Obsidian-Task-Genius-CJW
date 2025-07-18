@@ -4,6 +4,7 @@ module.exports = {
 	testMatch: ["**/__tests__/**/*.test.ts"],
 	moduleNameMapper: {
 		"^obsidian$": "<rootDir>/src/__mocks__/obsidian.ts",
+		"^moment$": "<rootDir>/src/__mocks__/moment.js",
 		"^@codemirror/state$": "<rootDir>/src/__mocks__/codemirror-state.ts",
 		"^@codemirror/view$": "<rootDir>/src/__mocks__/codemirror-view.ts",
 		"^@codemirror/language$":
