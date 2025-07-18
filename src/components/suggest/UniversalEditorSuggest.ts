@@ -11,6 +11,7 @@ import {
 import TaskProgressBarPlugin from "../../index";
 import { t } from "../../translations/helper";
 import { getSuggestOptionsByTrigger } from "./SpecialCharacterSuggests";
+import "../../styles/universal-suggest.css";
 
 export interface SuggestOption {
 	id: string;
@@ -126,21 +127,17 @@ export class UniversalEditorSuggest extends EditorSuggest<SuggestOption> {
 		const container = el.createDiv({ cls: "universal-suggest-item" });
 
 		// Icon
-		const iconEl = container.createDiv({ cls: "universal-suggest-icon" });
-		setIcon(iconEl, suggestion.icon);
+		container.createDiv({ cls: "universal-suggest-container" },(el)=>{
+			const icon = el.createDiv({ cls: "universal-suggest-icon" });
+			setIcon(icon, suggestion.icon);
 
-		// Content
-		const contentEl = container.createDiv({
-			cls: "universal-suggest-content",
+			el.createDiv({
+				cls: "universal-suggest-label",
+				text: suggestion.label,
+			});
 		});
-		contentEl.createDiv({
-			cls: "universal-suggest-label",
-			text: suggestion.label,
-		});
-		contentEl.createDiv({
-			cls: "universal-suggest-description",
-			text: suggestion.description,
-		});
+
+		
 	}
 
 	/**

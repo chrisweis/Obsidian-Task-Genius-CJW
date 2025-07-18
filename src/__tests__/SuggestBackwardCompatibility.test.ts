@@ -20,21 +20,21 @@ jest.mock("obsidian", () => ({
 
 // Mock moment module
 jest.mock("moment", () => {
-	const moment = function(input) {
+	const moment = function(input?: any) {
 		return {
 			format: () => "2024-01-01",
 			diff: () => 0,
-			startOf: () => moment(),
-			endOf: () => moment(),
+			startOf: () => moment(input),
+			endOf: () => moment(input),
 			isSame: () => true,
 			isSameOrBefore: () => true,
 			isSameOrAfter: () => true,
 			isBefore: () => false,
 			isAfter: () => false,
 			isBetween: () => true,
-			clone: () => moment(),
-			add: () => moment(),
-			subtract: () => moment(),
+			clone: () => moment(input),
+			add: () => moment(input),
+			subtract: () => moment(input),
 			valueOf: () => Date.now(),
 			toDate: () => new Date(),
 			weekday: () => 0,
@@ -99,6 +99,7 @@ describe("Backward Compatibility Tests", () => {
 			start: { line: 0, ch: 0 },
 			end: { line: 0, ch: 1 },
 			editor: {} as Editor,
+			file: {} as any,
 		};
 		
 		const suggestions = suggest.getSuggestions(mockContext);
@@ -117,6 +118,7 @@ describe("Backward Compatibility Tests", () => {
 			start: { line: 0, ch: 0 },
 			end: { line: 0, ch: 1 },
 			editor: {} as Editor,
+			file: {} as any,
 		};
 		
 		const suggestions = suggest.getSuggestions(mockContext);
@@ -284,6 +286,7 @@ describe("Backward Compatibility Tests", () => {
 				start: { line: 0, ch: 0 },
 				end: { line: 0, ch: 1 },
 				editor: {} as Editor,
+				file: {} as any,
 			};
 			
 			const suggestions = suggest.getSuggestions(mockContext);

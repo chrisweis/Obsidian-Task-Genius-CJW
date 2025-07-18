@@ -40,7 +40,7 @@ export class SuggestManager {
 
 		this.isManaging = true;
 		// Store original order for restoration
-		this.originalSuggestsOrder = [...this.app.workspace.editorSuggest.suggests];
+		this.originalSuggestsOrder = [...(this.app.workspace as any).editorSuggest.suggests];
 	}
 
 	/**
@@ -54,7 +54,7 @@ export class SuggestManager {
 
 		// Restore original order if needed
 		if (this.originalSuggestsOrder.length > 0) {
-			this.app.workspace.editorSuggest.suggests = [...this.originalSuggestsOrder];
+			(this.app.workspace as any).editorSuggest.suggests = [...this.originalSuggestsOrder];
 		}
 
 		this.isManaging = false;
@@ -77,7 +77,7 @@ export class SuggestManager {
 		this.activeSuggests.set(id, suggest);
 
 		// Insert at the beginning for high priority
-		this.app.workspace.editorSuggest.suggests.unshift(suggest);
+		(this.app.workspace as any).editorSuggest.suggests.unshift(suggest);
 	}
 
 	/**
@@ -88,9 +88,9 @@ export class SuggestManager {
 		if (!suggest) return;
 
 		// Remove from workspace
-		const index = this.app.workspace.editorSuggest.suggests.indexOf(suggest);
+		const index = (this.app.workspace as any).editorSuggest.suggests.indexOf(suggest);
 		if (index !== -1) {
-			this.app.workspace.editorSuggest.suggests.splice(index, 1);
+			(this.app.workspace as any).editorSuggest.suggests.splice(index, 1);
 		}
 
 		// Remove from our tracking
@@ -222,7 +222,7 @@ export class SuggestManager {
 	 * Debug: Log current suggest order
 	 */
 	debugLogSuggestOrder(): void {
-		console.log("Current suggest order:", this.app.workspace.editorSuggest.suggests);
+		console.log("Current suggest order:", (this.app.workspace as any).editorSuggest.suggests);
 		console.log("Managed suggests:", Array.from(this.activeSuggests.keys()));
 	}
 

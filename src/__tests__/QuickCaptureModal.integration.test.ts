@@ -62,21 +62,21 @@ jest.mock("obsidian", () => ({
 
 // Mock moment module
 jest.mock("moment", () => {
-	const moment = function(input) {
+	const moment = function(input?: any) {
 		return {
 			format: () => "2024-01-01",
 			diff: () => 0,
-			startOf: () => moment(),
-			endOf: () => moment(),
+			startOf: () => moment(input),
+			endOf: () => moment(input),
 			isSame: () => true,
 			isSameOrBefore: () => true,
 			isSameOrAfter: () => true,
 			isBefore: () => false,
 			isAfter: () => false,
 			isBetween: () => true,
-			clone: () => moment(),
-			add: () => moment(),
-			subtract: () => moment(),
+			clone: () => moment(input),
+			add: () => moment(input),
+			subtract: () => moment(input),
 			valueOf: () => Date.now(),
 			toDate: () => new Date(),
 			weekday: () => 0,

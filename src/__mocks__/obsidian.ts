@@ -46,7 +46,7 @@ export class App {
 		},
 		trigger: function (eventName: string, ...args: any[]) {
 			if (this._events[eventName]) {
-				this._events[eventName].forEach(callback => callback(...args));
+				this._events[eventName].forEach((callback: any) => callback(...args));
 			}
 		},
 		getFileByPath: function (path: string) {

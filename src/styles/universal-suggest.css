@@ -3,7 +3,6 @@
 .universal-suggest-item {
 	display: flex;
 	align-items: center;
-	padding: 8px 12px;
 	cursor: pointer;
 	border-radius: 4px;
 	transition: background-color 0.1s ease;
@@ -15,6 +14,14 @@
 
 .universal-suggest-item.is-selected {
 	background-color: var(--background-modifier-active-hover);
+}
+
+.universal-suggest-container {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-start;
+	overflow: hidden;
 }
 
 .universal-suggest-icon {
@@ -76,7 +83,7 @@
 	.universal-suggest-item {
 		border: 1px solid var(--background-modifier-border);
 		margin-bottom: 2px;
-	}
+	} 
 	
 	.universal-suggest-item:hover,
 	.universal-suggest-item.is-selected {

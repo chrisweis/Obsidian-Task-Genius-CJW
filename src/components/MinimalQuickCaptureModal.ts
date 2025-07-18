@@ -321,10 +321,11 @@ export class MinimalQuickCaptureModal extends Modal {
 		if (coords) {
 			this.showMenuAtCoords(menu, coords.left, coords.top);
 		} else if (this.dateButton) {
+			const rect = this.dateButton.getBoundingClientRect();
 			this.showMenuAtCoords(
 				menu,
-				this.dateButton.offsetLeft,
-				this.dateButton.offsetTop
+				rect.left,
+				rect.bottom + 5
 			);
 		}
 	}
@@ -363,10 +364,11 @@ export class MinimalQuickCaptureModal extends Modal {
 		if (coords) {
 			this.showMenuAtCoords(menu, coords.left, coords.top);
 		} else if (this.priorityButton) {
+			const rect = this.priorityButton.getBoundingClientRect();
 			this.showMenuAtCoords(
 				menu,
-				this.priorityButton.offsetLeft,
-				this.priorityButton.offsetTop
+				rect.left,
+				rect.bottom + 5
 			);
 		}
 	}
@@ -423,10 +425,11 @@ export class MinimalQuickCaptureModal extends Modal {
 		if (coords) {
 			this.showMenuAtCoords(menu, coords.left, coords.top);
 		} else if (this.locationButton) {
+			const rect = this.locationButton.getBoundingClientRect();
 			this.showMenuAtCoords(
 				menu,
-				this.locationButton.offsetLeft,
-				this.locationButton.offsetTop
+				rect.left,
+				rect.bottom + 5
 			);
 		}
 	}

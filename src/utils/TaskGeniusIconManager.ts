@@ -312,7 +312,7 @@ export class TaskGeniusIconManager extends Component {
     inset-inline-start: -1px;
     position: absolute;
     width: calc(var(--checkbox-size) * 1.2);
-    height: calc(var(--checkbox-size) * 1.2)
+    height: calc(var(--checkbox-size) * 1.2);
     display: block;
 	-webkit-mask-position: 52% 52%;
     -webkit-mask-repeat: no-repeat;
