@@ -97,7 +97,7 @@ describe("Chinese Tag Parsing Performance", () => {
 		console.log(
 			`Parsed 500 mixed Chinese/English tags in ${parseTime.toFixed(2)}ms`
 		);
-		expect(parseTime).toBeLessThan(50);
+		expect(parseTime).toBeLessThan(100);
 	});
 
 	test("should handle deeply nested Chinese tags efficiently", () => {

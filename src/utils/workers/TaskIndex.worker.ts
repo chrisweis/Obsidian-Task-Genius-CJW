@@ -320,11 +320,13 @@ function processFile(
 
 		// Add file metadata tasks if file parsing is enabled and file type supports it
 		// Only apply file metadata parsing to Markdown files, not Canvas files
+		// Also check if fileMetadataInheritance is enabled for task metadata inheritance
 		if (
 			fileExtension === SupportedFileType.MARKDOWN &&
 			settings.fileParsingConfig &&
 			(settings.fileParsingConfig.enableFileMetadataParsing ||
-				settings.fileParsingConfig.enableTagBasedTaskParsing)
+				settings.fileParsingConfig.enableTagBasedTaskParsing ||
+				settings.fileMetadataInheritance?.enabled)
 		) {
 			try {
 				const fileMetadataParser = new FileMetadataTaskParser(

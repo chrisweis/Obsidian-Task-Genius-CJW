@@ -3,6 +3,25 @@ import { QuickCaptureOptions } from "../editor-ext/quickCapture";
 import { moment } from "obsidian";
 
 /**
+ * Get template file with automatic .md extension detection
+ * @param app - Obsidian app instance
+ * @param templatePath - Template file path (may or may not include .md extension)
+ * @returns TFile instance if found, null otherwise
+ */
+function getTemplateFile(app: App, templatePath: string): TFile | null {
+	// First try the original path
+	let templateFile = app.vault.getFileByPath(templatePath);
+
+	if (!templateFile && !templatePath.endsWith(".md")) {
+		// If not found and doesn't end with .md, try adding .md extension
+		const pathWithExtension = `${templatePath}.md`;
+		templateFile = app.vault.getFileByPath(pathWithExtension);
+	}
+
+	return templateFile;
+}
+
+/**
  * Sanitize filename by replacing unsafe characters with safe alternatives
  * This function only sanitizes the filename part, not directory separators
  * @param filename - The filename to sanitize
@@ -128,17 +147,20 @@ export async function saveCapture(
 
 		// If it's a daily note and has a template, use the template
 		if (targetType === "daily-note" && dailyNoteSettings?.template) {
-			const templateFile = app.vault.getFileByPath(
+			const templateFile = getTemplateFile(
+				app,
 				dailyNoteSettings.template
 			);
 			if (templateFile instanceof TFile) {
 				try {
 					initialContent = await app.vault.read(templateFile);
-					// Process date templates in the template content
-					initialContent = processDateTemplates(initialContent);
 				} catch (e) {
 					console.warn("Failed to read template file:", e);
 				}
+			} else {
+				console.warn(
+					`Template file not found: ${dailyNoteSettings.template} (tried with and without .md extension)`
+				);
 			}
 		}
 

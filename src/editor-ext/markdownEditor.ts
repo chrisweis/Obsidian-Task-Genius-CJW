@@ -61,6 +61,7 @@ interface MarkdownEditorProps {
 	value?: string;
 	cls?: string;
 	placeholder?: string;
+	singleLine?: boolean; // New option for single line mode
 
 	onEnter: (
 		editor: EmbeddableMarkdownEditor,
@@ -77,6 +78,7 @@ interface MarkdownEditorProps {
 const defaultProperties: MarkdownEditorProps = {
 	cursorLocation: { anchor: 0, head: 0 },
 	value: "",
+	singleLine: false,
 	cls: "",
 	placeholder: "",
 
@@ -178,50 +180,73 @@ export class EmbeddableMarkdownEditor {
 						);
 
 						// Add keyboard handlers
+						const keyBindings = [
+							{
+								key: "Enter",
+								run: () => {
+									return self.options.onEnter(
+										self,
+										false,
+										false
+									);
+								},
+								shift: () =>
+									self.options.onEnter(
+										self,
+										false,
+										true
+									),
+							},
+							{
+								key: "Mod-Enter",
+								run: () =>
+									self.options.onEnter(
+										self,
+										true,
+										false
+									),
+								shift: () =>
+									self.options.onEnter(
+										self,
+										true,
+										true
+									),
+							},
+							{
+								key: "Escape",
+								run: () => {
+									self.options.onEscape(self);
+									return true;
+								},
+								preventDefault: true,
+							},
+						];
+
+						// For single line mode, prevent Enter key from creating new lines
+						if (self.options.singleLine) {
+							keyBindings[0] = {
+								key: "Enter",
+								run: () => {
+									// In single line mode, Enter should trigger onEnter
+									return self.options.onEnter(
+										self,
+										false,
+										false
+									);
+								},
+								shift: () => {
+									// Even with shift, still call onEnter in single line mode
+									return self.options.onEnter(
+										self,
+										false,
+										true
+									);
+								},
+							};
+						}
+
 						extensions.push(
-							Prec.highest(
-								keymap.of([
-									{
-										key: "Enter",
-										run: () => {
-											return self.options.onEnter(
-												self,
-												false,
-												false
-											);
-										},
-										shift: () =>
-											self.options.onEnter(
-												self,
-												false,
-												true
-											),
-									},
-									{
-										key: "Mod-Enter",
-										run: () =>
-											self.options.onEnter(
-												self,
-												true,
-												false
-											),
-										shift: () =>
-											self.options.onEnter(
-												self,
-												true,
-												true
-											),
-									},
-									{
-										key: "Escape",
-										run: () => {
-											self.options.onEscape(self);
-											return true;
-										},
-										preventDefault: true,
-									},
-								])
-							)
+							Prec.highest(keymap.of(keyBindings))
 						);
 					}
 

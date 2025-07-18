@@ -652,10 +652,80 @@ export class TaskParsingService {
 	}
 
 	/**
-	 * Get cache performance statistics
+	 * Clear all caches (project config, project data, and enhanced metadata)
+	 * This is designed for scenarios like forceReindex where complete cache clearing is needed
+	 */
+	clearAllCaches(): void {
+		// Clear project configuration caches
+		this.clearProjectConfigCache();
+		
+		// Clear project data caches
+		this.clearProjectDataCache();
+		
+		// Force clear all ProjectConfigManager caches including our new timestamp caches
+		if (this.projectConfigManager) {
+			// Call clearCache without parameters to clear ALL caches
+			this.projectConfigManager.clearCache();
+		}
+		
+		// Force clear all ProjectDataWorkerManager caches
+		if (this.projectDataWorkerManager) {
+			// Call clearCache without parameters to clear ALL caches
+			this.projectDataWorkerManager.clearCache();
+		}
+	}
+
+	/**
+	 * Get cache performance statistics including detailed breakdown
 	 */
 	getProjectDataCacheStats() {
-		return this.projectDataWorkerManager?.getCacheStats();
+		const workerStats = this.projectDataWorkerManager?.getCacheStats();
+		const configStats = this.projectConfigManager?.getCacheStats();
+		
+		return {
+			workerManager: workerStats,
+			configManager: configStats,
+			combined: {
+				totalFiles: ((workerStats as any)?.fileCacheSize || 0) + (configStats?.fileMetadataCache.size || 0),
+				totalMemory: (configStats?.totalMemoryUsage.estimatedBytes || 0),
+			}
+		};
+	}
+
+	/**
+	 * Get detailed cache statistics for monitoring and debugging
+	 */
+	getDetailedCacheStats(): {
+		projectConfigManager?: any;
+		projectDataWorkerManager?: any;
+		summary: {
+			totalCachedFiles: number;
+			estimatedMemoryUsage: number;
+			cacheTypes: string[];
+		};
+	} {
+		const configStats = this.projectConfigManager?.getCacheStats();
+		const workerStats = this.projectDataWorkerManager?.getCacheStats();
+		
+		const totalFiles = (configStats?.fileMetadataCache.size || 0) + 
+			(configStats?.enhancedMetadataCache.size || 0) +
+			((workerStats as any)?.fileCacheSize || 0);
+			
+		const cacheTypes = [];
+		if (configStats?.fileMetadataCache.size) cacheTypes.push('fileMetadata');
+		if (configStats?.enhancedMetadataCache.size) cacheTypes.push('enhancedMetadata');
+		if (configStats?.configCache.size) cacheTypes.push('projectConfig');
+		if ((workerStats as any)?.fileCacheSize) cacheTypes.push('projectData');
+		
+		return {
+			projectConfigManager: configStats,
+			projectDataWorkerManager: workerStats,
+			summary: {
+				totalCachedFiles: totalFiles,
+				estimatedMemoryUsage: configStats?.totalMemoryUsage.estimatedBytes || 0,
+				cacheTypes,
+			}
+		};
 	}
 
 	/**

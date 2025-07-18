@@ -74,7 +74,10 @@ export function clearAllMarks(markdown: string): string {
 		"❌", // cancelledDate
 	].filter(Boolean); // Filter out any potentially undefined symbols
 
-	// Remove date fields (symbol followed by date)
+	// Special handling for tilde prefix dates: remove ~ and 📅 but keep date
+	cleanedMarkdown = cleanedMarkdown.replace(/\s*~\s*📅\s*/g, " ");
+	
+	// Remove date fields (symbol followed by date) - normal case
 	symbolsToRemove.forEach((symbol) => {
 		if (!symbol) return; // Should be redundant due to filter, but safe
 		// Escape the symbol for use in regex
@@ -91,6 +94,11 @@ export function clearAllMarks(markdown: string): string {
 		/\s+(?:[🔺⏫🔼🔽⏬️⏬]|\[#[A-C]\])/gu,
 		""
 	);
+
+	// Remove standalone exclamation marks (priority indicators)
+	cleanedMarkdown = cleanedMarkdown.replace(/\s+!\s*/g, " ");
+	cleanedMarkdown = cleanedMarkdown.replace(/^\s*!\s*/, "");
+	cleanedMarkdown = cleanedMarkdown.replace(/\s*!\s*$/, "");
 
 	// Remove non-date metadata fields (id, dependsOn, onCompletion)
 	cleanedMarkdown = cleanedMarkdown.replace(/🆔\s*[^\s]+/g, ""); // Remove id
@@ -222,11 +230,20 @@ export function clearAllMarks(markdown: string): string {
 	// Remove tags from temporary markdown (where links/code are placeholders)
 	tempMarkdown = removeTagsWithLinkProtection(tempMarkdown);
 
-	// Remove context tags from temporary markdown
+	// Remove context tags from temporary markdown  
 	tempMarkdown = tempMarkdown.replace(/@[\w-]+/g, "");
 
-	// Remove any remaining tags that might have been missed
-	tempMarkdown = tempMarkdown.replace(TAG_REGEX, "");
+	// Remove target location patterns (like "target: office 📁")
+	tempMarkdown = tempMarkdown.replace(/\btarget:\s*/gi, "");
+	tempMarkdown = tempMarkdown.replace(/\s*📁\s*/g, " ");
+
+	// Remove any remaining simple tags but preserve special tags like #123-123-123
+	tempMarkdown = tempMarkdown.replace(/#(?![0-9-]+\b)[^\u2000-\u206F\u2E00-\u2E7F'!"#$%&()*+,.:;<=>?@^`{|}~\[\]\\\s]+/g, "");
+
+	// Remove any remaining tilde symbols (~ symbol) that weren't handled by the special case
+	tempMarkdown = tempMarkdown.replace(/\s+~\s+/g, " ");
+	tempMarkdown = tempMarkdown.replace(/\s+~(?=\s|$)/g, "");
+	tempMarkdown = tempMarkdown.replace(/^~\s+/, "");
 
 	// Now restore the preserved segments by replacing placeholders with original content
 	for (const [placeholder, originalText] of placeholderMap) {

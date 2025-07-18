@@ -27,6 +27,7 @@ describe("cycleCompleteStatus Helpers", () => {
 		const tasksPluginLoaded = false; // Assume false for simpler tests unless specifically testing Tasks interaction
 
 		it("should return empty if no task-related change occurred", () => {
+			const mockPlugin = createMockPlugin();
 			const tr = createMockTransaction({
 				startStateDocContent: "Some text",
 				newDocContent: "Some other text",
@@ -40,10 +41,11 @@ describe("cycleCompleteStatus Helpers", () => {
 					},
 				],
 			});
-			expect(findTaskStatusChanges(tr, tasksPluginLoaded)).toEqual([]);
+			expect(findTaskStatusChanges(tr, tasksPluginLoaded, mockPlugin)).toEqual([]);
 		});
 
 		it("should detect a status change from [ ] to [x] via single char insert", () => {
+			const mockPlugin = createMockPlugin();
 			const tr = createMockTransaction({
 				startStateDocContent: "- [ ] Task 1",
 				newDocContent: "- [x] Task 1",
@@ -51,7 +53,7 @@ describe("cycleCompleteStatus Helpers", () => {
 					{ fromA: 3, toA: 3, fromB: 3, toB: 4, insertedText: "x" },
 				], // Insert 'x' at position 3
 			});
-			const changes = findTaskStatusChanges(tr, tasksPluginLoaded);
+			const changes = findTaskStatusChanges(tr, tasksPluginLoaded, mockPlugin);
 			expect(changes).toHaveLength(1);
 			expect(changes[0].position).toBe(3);
 			expect(changes[0].currentMark).toBe(" "); // Mark *before* the change
@@ -60,6 +62,7 @@ describe("cycleCompleteStatus Helpers", () => {
 		});
 
 		it("should detect a status change from [x] to [ ] via single char insert", () => {
+			const mockPlugin = createMockPlugin();
 			const tr = createMockTransaction({
 				startStateDocContent: "- [x] Task 1",
 				newDocContent: "- [ ] Task 1",
@@ -67,7 +70,7 @@ describe("cycleCompleteStatus Helpers", () => {
 					{ fromA: 3, toA: 3, fromB: 3, toB: 4, insertedText: " " },
 				], // Insert ' ' at position 3
 			});
-			const changes = findTaskStatusChanges(tr, tasksPluginLoaded);
+			const changes = findTaskStatusChanges(tr, tasksPluginLoaded, mockPlugin);
 			expect(changes).toHaveLength(1);
 			expect(changes[0].position).toBe(3);
 			expect(changes[0].currentMark).toBe("x");
@@ -76,6 +79,7 @@ describe("cycleCompleteStatus Helpers", () => {
 		});
 
 		it("should detect a status change from [ ] to [/] via replacing space", () => {
+			const mockPlugin = createMockPlugin();
 			const tr = createMockTransaction({
 				startStateDocContent: "  - [ ] Task 1",
 				newDocContent: "  - [/] Task 1",
@@ -83,7 +87,7 @@ describe("cycleCompleteStatus Helpers", () => {
 					{ fromA: 5, toA: 6, fromB: 5, toB: 6, insertedText: "/" },
 				], // Replace ' ' with '/'
 			});
-			const changes = findTaskStatusChanges(tr, tasksPluginLoaded);
+			const changes = findTaskStatusChanges(tr, tasksPluginLoaded, mockPlugin);
 			expect(changes).toHaveLength(1);
 			expect(changes[0].position).toBe(5); // Position where change happens
 			expect(changes[0].currentMark).toBe(" ");
@@ -109,7 +113,8 @@ describe("cycleCompleteStatus Helpers", () => {
 			// The current implementation might return empty or behave unexpectedly.
 			// Let's assume it returns empty based on current logic needing `match` on originalLine.
 			// If needed, `handleCycleCompleteStatusTransaction` might need adjustment or `findTaskStatusChanges` refined.
-			expect(findTaskStatusChanges(tr, tasksPluginLoaded)).toEqual([]);
+			const mockPlugin = createMockPlugin();
+			expect(findTaskStatusChanges(tr, tasksPluginLoaded, mockPlugin)).toEqual([]);
 		});
 
 		it("should NOT detect change when only text after marker changes", () => {
@@ -126,7 +131,8 @@ describe("cycleCompleteStatus Helpers", () => {
 					},
 				],
 			});
-			expect(findTaskStatusChanges(tr, tasksPluginLoaded)).toEqual([]);
+			const mockPlugin = createMockPlugin();
+			expect(findTaskStatusChanges(tr, tasksPluginLoaded, mockPlugin)).toEqual([]);
 		});
 
 		it("should NOT detect change when inserting text before the task marker", () => {
@@ -143,7 +149,8 @@ describe("cycleCompleteStatus Helpers", () => {
 					},
 				],
 			});
-			expect(findTaskStatusChanges(tr, tasksPluginLoaded)).toEqual([]);
+			const mockPlugin = createMockPlugin();
+			expect(findTaskStatusChanges(tr, tasksPluginLoaded, mockPlugin)).toEqual([]);
 		});
 
 		it("should return empty array for multi-line indentation changes", () => {
@@ -164,7 +171,8 @@ describe("cycleCompleteStatus Helpers", () => {
 
 			// Skip the problematic test - this was causing stack overflow
 			// We expect it to return [] because it should detect multi-line indentation.
-			expect(findTaskStatusChanges(tr, tasksPluginLoaded)).toEqual([]);
+			const mockPlugin = createMockPlugin();
+			expect(findTaskStatusChanges(tr, tasksPluginLoaded, mockPlugin)).toEqual([]);
 		});
 
 		it("should detect pasted task content", () => {
@@ -197,7 +205,8 @@ describe("cycleCompleteStatus Helpers", () => {
 					},
 				],
 			});
-			const changes = findTaskStatusChanges(trReplace, tasksPluginLoaded);
+			const mockPlugin = createMockPlugin();
+			const changes = findTaskStatusChanges(trReplace, tasksPluginLoaded, mockPlugin);
 			expect(changes).toHaveLength(1);
 			expect(changes[0].position).toBe(3); // Position of the mark in the new content
 			expect(changes[0].currentMark).toBe(" "); // Mark from the original content before paste
@@ -1054,7 +1063,7 @@ describe("handleCycleCompleteStatusTransaction (Integration)", () => {
 		});
 
 		// First, let's test what findTaskStatusChanges returns
-		const taskChanges = findTaskStatusChanges(tr, false);
+		const taskChanges = findTaskStatusChanges(tr, false, mockPlugin);
 		expect(taskChanges).toHaveLength(1);
 
 		// The currentMark should be 'x' (the original mark that was replaced)
@@ -1095,7 +1104,7 @@ describe("handleCycleCompleteStatusTransaction (Integration)", () => {
 		});
 
 		// Verify that this is detected as a task status change
-		const taskChanges = findTaskStatusChanges(tr, false);
+		const taskChanges = findTaskStatusChanges(tr, false, mockPlugin);
 		expect(taskChanges).toHaveLength(1);
 		expect(taskChanges[0].currentMark).toBe("x"); // Original mark before replacement
 		expect(taskChanges[0].wasCompleteTask).toBe(true);
@@ -1130,7 +1139,7 @@ describe("handleCycleCompleteStatusTransaction (Integration)", () => {
 		});
 
 		// Debug: Check what findTaskStatusChanges detects
-		const taskChanges = findTaskStatusChanges(tr, false);
+		const taskChanges = findTaskStatusChanges(tr, false, mockPlugin);
 		console.log("Debug - taskChanges for space replacement:", taskChanges);
 
 		if (taskChanges.length > 0) {
@@ -1182,7 +1191,7 @@ describe("handleCycleCompleteStatusTransaction (Integration)", () => {
 			],
 		});
 
-		const taskChanges1 = findTaskStatusChanges(tr1, false);
+		const taskChanges1 = findTaskStatusChanges(tr1, false, mockPlugin);
 		const result1 = handleCycleCompleteStatusTransaction(
 			tr1,
 			mockApp,
@@ -1201,7 +1210,7 @@ describe("handleCycleCompleteStatusTransaction (Integration)", () => {
 			],
 		});
 
-		const taskChanges2 = findTaskStatusChanges(tr2, false);
+		const taskChanges2 = findTaskStatusChanges(tr2, false, mockPlugin);
 		const result2 = handleCycleCompleteStatusTransaction(
 			tr2,
 			mockApp,
@@ -1220,7 +1229,7 @@ describe("handleCycleCompleteStatusTransaction (Integration)", () => {
 			],
 		});
 
-		const taskChanges3 = findTaskStatusChanges(tr3, false);
+		const taskChanges3 = findTaskStatusChanges(tr3, false, mockPlugin);
 		const result3 = handleCycleCompleteStatusTransaction(
 			tr3,
 			mockApp,
@@ -1239,7 +1248,7 @@ describe("handleCycleCompleteStatusTransaction (Integration)", () => {
 			],
 		});
 
-		const taskChanges4 = findTaskStatusChanges(tr4, false);
+		const taskChanges4 = findTaskStatusChanges(tr4, false, mockPlugin);
 		const result4 = handleCycleCompleteStatusTransaction(
 			tr4,
 			mockApp,
@@ -1271,7 +1280,7 @@ describe("handleCycleCompleteStatusTransaction (Integration)", () => {
 			],
 		});
 
-		const taskChanges = findTaskStatusChanges(tr, false);
+		const taskChanges = findTaskStatusChanges(tr, false, mockPlugin);
 		console.log("Problem case - taskChanges:", taskChanges);
 
 		// The issue: currentMark should be 'x' (original), but

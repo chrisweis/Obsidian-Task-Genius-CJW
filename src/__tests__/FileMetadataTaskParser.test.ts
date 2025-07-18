@@ -25,6 +25,8 @@ describe("FileMetadataTaskParser", () => {
 			taskContentFromMetadata: "title",
 			defaultTaskStatus: " ",
 			enableWorkerProcessing: true,
+			enableMtimeOptimization: false,
+			mtimeCacheSize: 1000,
 		};
 		parser = new FileMetadataTaskParser(config);
 	});
@@ -206,6 +208,8 @@ describe("FileMetadataTaskParser", () => {
 				taskContentFromMetadata: "title",
 				defaultTaskStatus: " ",
 				enableWorkerProcessing: true,
+				enableMtimeOptimization: false,
+				mtimeCacheSize: 1000,
 			};
 			const disabledParser = new FileMetadataTaskParser(disabledConfig);
 
@@ -358,6 +362,8 @@ describe("FileMetadataTaskUpdater", () => {
 			taskContentFromMetadata: "title",
 			defaultTaskStatus: " ",
 			enableWorkerProcessing: true,
+			enableMtimeOptimization: false,
+			mtimeCacheSize: 1000,
 		};
 
 		// Mock Obsidian App

@@ -24,6 +24,10 @@ export function renderQuickCaptureSettingsTab(
 					settingTab.plugin.settings.quickCapture.enableQuickCapture =
 						value;
 					settingTab.applySettingsUpdate();
+
+					setTimeout(() => {
+						settingTab.display();
+					}, 200);
 				})
 		);
 
@@ -216,6 +220,57 @@ export function renderQuickCaptureSettingsTab(
 				.onChange(async (value) => {
 					settingTab.plugin.settings.quickCapture.appendToFile =
 						value as "append" | "prepend" | "replace";
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	// Minimal mode settings
+	new Setting(containerEl).setName(t("Minimal Mode")).setHeading();
+
+	new Setting(containerEl)
+		.setName(t("Enable minimal mode"))
+		.setDesc(
+			t(
+				"Enable simplified single-line quick capture with inline suggestions"
+			)
+		)
+		.addToggle((toggle) =>
+			toggle
+				.setValue(
+					settingTab.plugin.settings.quickCapture.enableMinimalMode
+				)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.enableMinimalMode =
+						value;
+					settingTab.applySettingsUpdate();
+					// Refresh the settings display to show/hide minimal mode options
+					setTimeout(() => {
+						settingTab.display();
+					}, 100);
+				})
+		);
+
+	if (!settingTab.plugin.settings.quickCapture.enableMinimalMode) return;
+
+	if (!settingTab.plugin.settings.quickCapture.minimalModeSettings) {
+		settingTab.plugin.settings.quickCapture.minimalModeSettings = {
+			suggestTrigger: "/",
+		};
+	}
+
+	// Suggest trigger character
+	new Setting(containerEl)
+		.setName(t("Suggest trigger character"))
+		.setDesc(t("Character to trigger the suggestion menu"))
+		.addText((text) =>
+			text
+				.setValue(
+					settingTab.plugin.settings.quickCapture.minimalModeSettings
+						.suggestTrigger
+				)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.minimalModeSettings.suggestTrigger =
+						value || "/";
 					settingTab.applySettingsUpdate();
 				})
 		);

@@ -50,7 +50,47 @@ jest.mock("obsidian", () => ({
 	Platform: { isPhone: false },
 	MarkdownRenderer: jest.fn(),
 	moment: () => ({ format: jest.fn(() => "2025-01-04") }),
+	EditorSuggest: class {
+		constructor() {}
+		getSuggestions() { return []; }
+		renderSuggestion() {}
+		selectSuggestion() {}
+		onTrigger() { return null; }
+		close() {}
+	},
 }));
+
+// Mock moment module
+jest.mock("moment", () => {
+	const moment = function(input?: any) {
+		return {
+			format: () => "2024-01-01",
+			diff: () => 0,
+			startOf: () => moment(input),
+			endOf: () => moment(input),
+			isSame: () => true,
+			isSameOrBefore: () => true,
+			isSameOrAfter: () => true,
+			isBefore: () => false,
+			isAfter: () => false,
+			isBetween: () => true,
+			clone: () => moment(input),
+			add: () => moment(input),
+			subtract: () => moment(input),
+			valueOf: () => Date.now(),
+			toDate: () => new Date(),
+			weekday: () => 0,
+			day: () => 1,
+			date: () => 1,
+		};
+	};
+	moment.locale = jest.fn(() => "en");
+	moment.utc = () => ({ format: () => "00:00:00" });
+	moment.duration = () => ({ asMilliseconds: () => 0 });
+	moment.weekdaysShort = () => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	moment.weekdaysMin = () => ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+	return moment;
+});
 
 jest.mock("../editor-ext/markdownEditor", () => ({
 	createEmbeddableMarkdownEditor: jest.fn(() => ({

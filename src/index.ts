@@ -65,6 +65,9 @@ import {
 } from "./editor-ext/filterTasks";
 import { Task } from "./types/task";
 import { QuickCaptureModal } from "./components/QuickCaptureModal";
+import { MinimalQuickCaptureModal } from "./components/MinimalQuickCaptureModal";
+import { MinimalQuickCaptureSuggest } from "./components/MinimalQuickCaptureSuggest";
+import { SuggestManager } from "./components/suggest";
 import { MarkdownView } from "obsidian";
 import { Notice } from "obsidian";
 import { t } from "./translations/helper";
@@ -90,6 +93,7 @@ import { monitorTaskCompletedExtension } from "./editor-ext/monitorTaskCompleted
 import { sortTasksInDocument } from "./commands/sortTaskCommands";
 import { taskGutterExtension } from "./editor-ext/TaskGutterHandler";
 import { autoDateManagerExtension } from "./editor-ext/autoDateManager";
+import { taskMarkCleanupExtension } from "./editor-ext/taskMarkCleanup";
 import { ViewManager } from "./pages/ViewManager";
 import { IcsManager } from "./utils/ics/IcsManager";
 import { VersionManager } from "./utils/VersionManager";
@@ -183,6 +187,12 @@ export default class TaskProgressBarPlugin extends Plugin {
 	// ICS manager instance
 	icsManager: IcsManager;
 
+	// Minimal quick capture suggest
+	minimalQuickCaptureSuggest: MinimalQuickCaptureSuggest;
+
+	// Global suggest manager
+	globalSuggestManager: SuggestManager;
+
 	// Version manager instance
 	versionManager: VersionManager;
 
@@ -212,6 +222,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 		// Initialize version manager first
 		this.versionManager = new VersionManager(this.app, this);
 		this.addChild(this.versionManager);
+
+		// Initialize global suggest manager
+		this.globalSuggestManager = new SuggestManager(this.app, this);
 
 		// Initialize rebuild progress manager
 		this.rebuildProgressManager = new RebuildProgressManager();
@@ -531,6 +544,16 @@ export default class TaskProgressBarPlugin extends Plugin {
 			callback: () => {
 				// Create a modal with full task metadata options
 				new QuickCaptureModal(this.app, this, {}, true).open();
+			},
+		});
+
+		// Add command for minimal quick capture
+		this.addCommand({
+			id: "minimal-quick-capture",
+			name: t("Minimal Quick Capture"),
+			callback: () => {
+				// Create a minimal modal for quick task capture
+				new MinimalQuickCaptureModal(this.app, this).open();
 			},
 		});
 
@@ -1011,6 +1034,15 @@ export default class TaskProgressBarPlugin extends Plugin {
 			]);
 		}
 
+		// Initialize minimal quick capture suggest
+		if (this.settings.quickCapture.enableMinimalMode) {
+			this.minimalQuickCaptureSuggest = new MinimalQuickCaptureSuggest(
+				this.app,
+				this
+			);
+			this.registerEditorSuggest(this.minimalQuickCaptureSuggest);
+		}
+
 		// Add task filter extension
 		if (this.settings.taskFilter.enableTaskFilter) {
 			this.registerEditorExtension([taskFilterExtension(this)]);
@@ -1022,9 +1054,17 @@ export default class TaskProgressBarPlugin extends Plugin {
 				autoDateManagerExtension(this.app, this),
 			]);
 		}
+
+		// Add task mark cleanup extension (always enabled)
+		this.registerEditorExtension([taskMarkCleanupExtension()]);
 	}
 
 	onunload() {
+		// Clean up global suggest manager
+		if (this.globalSuggestManager) {
+			this.globalSuggestManager.cleanup();
+		}
+
 		// Clean up task manager when plugin is unloaded
 		if (this.taskManager) {
 			this.taskManager.onunload();
@@ -1035,36 +1075,37 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 	async loadSettings() {
 		const savedData = await this.loadData();
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			savedData
-		);
-		
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
+
 		// Migrate old inheritance settings to new structure
 		this.migrateInheritanceSettings(savedData);
 	}
 
 	private migrateInheritanceSettings(savedData: any) {
 		// Check if old inheritance settings exist and new ones don't
-		if (savedData?.projectConfig?.metadataConfig && 
-			!savedData?.fileMetadataInheritance) {
-			
+		if (
+			savedData?.projectConfig?.metadataConfig &&
+			!savedData?.fileMetadataInheritance
+		) {
 			const oldConfig = savedData.projectConfig.metadataConfig;
-			
+
 			// Migrate to new structure
 			this.settings.fileMetadataInheritance = {
 				enabled: true,
-				inheritFromFrontmatter: oldConfig.inheritFromFrontmatter ?? true,
-				inheritFromFrontmatterForSubtasks: oldConfig.inheritFromFrontmatterForSubtasks ?? false
+				inheritFromFrontmatter:
+					oldConfig.inheritFromFrontmatter ?? true,
+				inheritFromFrontmatterForSubtasks:
+					oldConfig.inheritFromFrontmatterForSubtasks ?? false,
 			};
-			
+
 			// Remove old inheritance settings from project config
 			if (this.settings.projectConfig?.metadataConfig) {
-				delete (this.settings.projectConfig.metadataConfig as any).inheritFromFrontmatter;
-				delete (this.settings.projectConfig.metadataConfig as any).inheritFromFrontmatterForSubtasks;
+				delete (this.settings.projectConfig.metadataConfig as any)
+					.inheritFromFrontmatter;
+				delete (this.settings.projectConfig.metadataConfig as any)
+					.inheritFromFrontmatterForSubtasks;
 			}
-			
+
 			// Save the migrated settings
 			this.saveSettings();
 		}

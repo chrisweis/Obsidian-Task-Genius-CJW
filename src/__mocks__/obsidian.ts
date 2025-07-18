@@ -27,6 +27,36 @@ export class App {
 			if (key === "useTab") return false;
 			return null;
 		},
+		// Event system for vault
+		_events: {} as Record<string, Function[]>,
+		on: function (eventName: string, callback: Function) {
+			if (!this._events[eventName]) {
+				this._events[eventName] = [];
+			}
+			this._events[eventName].push(callback);
+			return { unload: () => this.off(eventName, callback) };
+		},
+		off: function (eventName: string, callback: Function) {
+			if (this._events[eventName]) {
+				const index = this._events[eventName].indexOf(callback);
+				if (index > -1) {
+					this._events[eventName].splice(index, 1);
+				}
+			}
+		},
+		trigger: function (eventName: string, ...args: any[]) {
+			if (this._events[eventName]) {
+				this._events[eventName].forEach((callback: any) => callback(...args));
+			}
+		},
+		getFileByPath: function (path: string) {
+			// Mock implementation for getFileByPath
+			return {
+				path: path,
+				name: path.split('/').pop() || path,
+				children: [], // For directory-like behavior
+			};
+		},
 	};
 
 	workspace = {
@@ -298,8 +328,15 @@ function momentFn(input?: any) {
 };
 
 (momentFn as any).locale = function (locale?: string) {
-	return locale || "en";
+	if (locale) {
+		(momentFn as any)._currentLocale = locale;
+		return locale;
+	}
+	return (momentFn as any)._currentLocale || "en";
 };
+
+// Initialize default locale
+(momentFn as any)._currentLocale = "en";
 
 (momentFn as any).weekdaysShort = function (localeData?: boolean) {
 	return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -307,6 +344,16 @@ function momentFn(input?: any) {
 
 (momentFn as any).weekdaysMin = function (localeData?: boolean) {
 	return ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+};
+
+(momentFn as any).months = function () {
+	return ["January", "February", "March", "April", "May", "June", 
+			"July", "August", "September", "October", "November", "December"];
+};
+
+(momentFn as any).monthsShort = function () {
+	return ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+			"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 };
 
 export const moment = momentFn as any;
@@ -366,6 +413,12 @@ export class Component {
 		// Mock implementation
 		return id;
 	}
+
+	private _events: Array<{ unload: () => void }> = [];
+
+	registerEvent(eventRef: { unload: () => void }): void {
+		this._events.push(eventRef);
+	}
 }
 
 // Mock other common Obsidian utilities
@@ -389,6 +442,28 @@ export function debounce<T extends (...args: any[]) => any>(
 		timeout = setTimeout(later, wait);
 		if (callNow) func(...args);
 	}) as T;
+}
+
+// Mock EditorSuggest class
+export abstract class EditorSuggest<T> extends Component {
+	app: App;
+	
+	constructor(app: App) {
+		super();
+		this.app = app;
+	}
+
+	abstract getSuggestions(context: any): T[] | Promise<T[]>;
+	abstract renderSuggestion(suggestion: T, el: HTMLElement): void;
+	abstract selectSuggestion(suggestion: T, evt: MouseEvent | KeyboardEvent): void;
+
+	onTrigger(cursor: any, editor: any, file: any): any {
+		return null;
+	}
+
+	close(): void {
+		// Mock implementation
+	}
 }
 
 // Add any other Obsidian classes or functions needed for tests

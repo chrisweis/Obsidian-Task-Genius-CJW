@@ -287,6 +287,11 @@ export interface QuickCaptureSettings {
 		folder: string; // Folder path for daily notes
 		template: string; // Template file path for daily notes
 	};
+	// Minimal mode settings
+	enableMinimalMode: boolean;
+	minimalModeSettings: {
+		suggestTrigger: string;
+	};
 }
 
 /** Define the structure for task gutter settings */
@@ -494,6 +499,10 @@ export interface FileParsingConfiguration {
 	defaultTaskStatus: string;
 	/** Whether to use worker for file parsing performance */
 	enableWorkerProcessing: boolean;
+	/** Whether to enable mtime-based cache optimization */
+	enableMtimeOptimization: boolean;
+	/** Maximum number of files to track in mtime cache */
+	mtimeCacheSize: number;
 }
 
 /** Timeline Sidebar Settings */
@@ -799,6 +808,10 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			folder: "",
 			template: "",
 		},
+		enableMinimalMode: false,
+		minimalModeSettings: {
+			suggestTrigger: "/",
+		},
 	},
 
 	// Workflow Defaults
@@ -926,6 +939,8 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		taskContentFromMetadata: "title",
 		defaultTaskStatus: " ",
 		enableWorkerProcessing: true,
+		enableMtimeOptimization: true,
+		mtimeCacheSize: 10000,
 	},
 
 	// Date Settings

@@ -35,6 +35,11 @@ export class MarkdownTaskParser {
 		this.config = config;
 	}
 
+	// Public alias for extractMetadataAndTags
+	public extractMetadataAndTags(content: string): [string, Record<string, string>, string[]] {
+		return this.extractMetadataAndTagsInternal(content);
+	}
+
 	/**
 	 * Create parser with predefined status mapping
 	 */
@@ -118,7 +123,7 @@ export class MarkdownTaskParser {
 				const completed = rawStatus.toLowerCase() === "x";
 				const status = this.getStatusFromMapping(rawStatus);
 				const [cleanedContent, metadata, tags] =
-					this.extractMetadataAndTags(taskContent);
+					this.extractMetadataAndTagsInternal(taskContent);
 
 				// Inherit metadata from file frontmatter
 				// A task is a subtask if it has a parent
@@ -332,7 +337,7 @@ export class MarkdownTaskParser {
 		return [content, " "];
 	}
 
-	private extractMetadataAndTags(
+	private extractMetadataAndTagsInternal(
 		content: string
 	): [string, Record<string, string>, string[]] {
 		const metadata: Record<string, string> = {};
@@ -1548,5 +1553,54 @@ export class MarkdownTaskParser {
 		}
 
 		return inherited;
+	}
+}
+
+export class ConfigurableTaskParser extends MarkdownTaskParser {
+	constructor(config?: Partial<TaskParserConfig>) {
+		// Default configuration
+		const defaultConfig: TaskParserConfig = {
+			parseMetadata: true,
+			parseTags: true,
+			parseComments: true,
+			parseHeadings: true,
+			maxIndentSize: 100,
+			maxParseIterations: 100,
+			maxMetadataIterations: 50,
+			maxTagLength: 50,
+			maxEmojiValueLength: 50,
+			maxStackOperations: 1000,
+			maxStackSize: 50,
+			statusMapping: {
+				"TODO": " ",
+				"IN_PROGRESS": "/",
+				"DONE": "x",
+				"CANCELLED": "-"
+			},
+			emojiMapping: {
+				"📅": "dueDate",
+				"🛫": "startDate",
+				"⏳": "scheduledDate",
+				"✅": "completedDate",
+				"➕": "createdDate",
+				"❌": "cancelledDate",
+				"🆔": "id",
+				"⛔": "dependsOn",
+				"🏁": "onCompletion",
+				"🔁": "repeat",
+				"🔺": "priority",
+				"⏫": "priority",
+				"🔼": "priority",
+				"🔽": "priority",
+				"⏬": "priority"
+			},
+			metadataParseMode: MetadataParseMode.Both,
+			specialTagPrefixes: {
+				"project": "project",
+				"@": "context"
+			}
+		};
+		
+		super({ ...defaultConfig, ...config });
 	}
 }

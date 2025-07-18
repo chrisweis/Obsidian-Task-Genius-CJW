@@ -65,7 +65,12 @@ class TranslationManager {
 	private lowercaseKeyMap: Map<string, Map<string, string>> = new Map();
 
 	private constructor() {
-		this.currentLocale = moment.locale();
+		// Handle test environment where moment might not be properly mocked
+		try {
+			this.currentLocale = moment.locale();
+		} catch (error) {
+			this.currentLocale = "en"; // fallback for test environment
+		}
 
 		// Initialize with all supported translations
 		Object.entries(SUPPORTED_LOCALES).forEach(([locale, translations]) => {
