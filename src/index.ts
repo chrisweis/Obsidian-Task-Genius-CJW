@@ -487,60 +487,10 @@ export default class TaskProgressBarPlugin extends Plugin {
 			await this.saveSettings();
 		}
 
-		// Add a global command for quick capture from anywhere
+		// Add command for quick capture with metadata
 		this.addCommand({
-			id: "global-quick-capture",
-			name: t("Quick capture (Global)"),
-			callback: () => {
-				// Get the active leaf if available
-				const activeLeaf =
-					this.app.workspace.getActiveViewOfType(MarkdownView);
-
-				if (activeLeaf && activeLeaf.editor) {
-					// If we're in a markdown editor, use the editor command
-					const editorView = activeLeaf.editor.cm as EditorView;
-
-					// Import necessary functions dynamically to avoid circular dependencies
-
-					try {
-						// Show the quick capture panel
-						editorView.dispatch({
-							effects: toggleQuickCapture.of(true),
-						});
-					} catch (e) {
-						// No quick capture state found, try to add the extension first
-						// This is a simplified approach and might not work in all cases
-						this.registerEditorExtension([
-							quickCaptureExtension(this.app, this),
-						]);
-
-						// Try again after registering the extension
-						setTimeout(() => {
-							try {
-								editorView.dispatch({
-									effects: toggleQuickCapture.of(true),
-								});
-							} catch (e) {
-								new Notice(
-									t(
-										"Could not open quick capture panel in the current editor"
-									)
-								);
-							}
-						}, 100);
-					}
-				} else {
-					// No active markdown view, show a floating capture window instead
-					// Create a simple modal with capture functionality
-					new QuickCaptureModal(this.app, this).open();
-				}
-			},
-		});
-
-		// Add command for full-featured task capture
-		this.addCommand({
-			id: "full-featured-task-capture",
-			name: t("Task capture with metadata"),
+			id: "quick-capture",
+			name: t("Quick Capture"),
 			callback: () => {
 				// Create a modal with full task metadata options
 				new QuickCaptureModal(this.app, this, {}, true).open();
@@ -888,7 +838,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 		// Add command for toggling quick capture panel in editor
 		this.addCommand({
 			id: "toggle-quick-capture",
-			name: t("Toggle quick capture panel"),
+			name: t("Toggle quick capture panel in editor"),
 			editorCallback: (editor) => {
 				const editorView = editor.cm as EditorView;
 
@@ -906,6 +856,50 @@ export default class TaskProgressBarPlugin extends Plugin {
 					editorView.dispatch({
 						effects: toggleQuickCapture.of(true),
 					});
+				}
+			},
+		});
+
+		this.addCommand({
+			id: "toggle-quick-capture-globally",
+			name: t("Toggle quick capture panel in editor (Globally)"),
+			callback: () => {
+				const activeLeaf =
+					this.app.workspace.getActiveViewOfType(MarkdownView);
+
+				if (activeLeaf && activeLeaf.editor) {
+					// If we're in a markdown editor, use the editor command
+					const editorView = activeLeaf.editor.cm as EditorView;
+
+					// Import necessary functions dynamically to avoid circular dependencies
+
+					try {
+						// Show the quick capture panel
+						editorView.dispatch({
+							effects: toggleQuickCapture.of(true),
+						});
+					} catch (e) {
+						// No quick capture state found, try to add the extension first
+						// This is a simplified approach and might not work in all cases
+						this.registerEditorExtension([
+							quickCaptureExtension(this.app, this),
+						]);
+
+						// Try again after registering the extension
+						setTimeout(() => {
+							try {
+								editorView.dispatch({
+									effects: toggleQuickCapture.of(true),
+								});
+							} catch (e) {
+								new Notice(
+									t(
+										"Could not open quick capture panel in the current editor"
+									)
+								);
+							}
+						}, 100);
+					}
 				}
 			},
 		});
