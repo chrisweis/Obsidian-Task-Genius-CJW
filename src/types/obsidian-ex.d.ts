@@ -13,6 +13,7 @@ import {
 import { Component } from "obsidian";
 import { HabitProps } from "./habit-card";
 import { RootFilterState } from "../components/task-filter/ViewTaskFilter";
+import { BasesViewRegistration } from "./bases";
 
 interface Token extends EditorRange {
 	/** @todo Documentation incomplete. */

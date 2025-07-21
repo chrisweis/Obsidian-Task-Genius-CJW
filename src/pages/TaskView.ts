@@ -285,9 +285,11 @@ export class TaskView extends ItemView {
 						return true;
 					}
 
-					const currentView =
-						this.plugin.app.workspace.getActiveViewOfType(TaskView);
-					if (currentView) {
+					const existingLeaves = this.plugin.app.workspace.getLeavesOfType(TASK_VIEW_TYPE);
+					if (existingLeaves.length > 0) {
+						// Focus the existing view
+						this.plugin.app.workspace.revealLeaf(existingLeaves[0]);
+						const currentView = existingLeaves[0].view as TaskView;
 						currentView.switchView(view.id);
 					} else {
 						// If no view is active, activate one and then switch
@@ -829,6 +831,9 @@ export class TaskView extends ItemView {
 	private switchView(viewId: ViewMode, project?: string | null) {
 		this.currentViewId = viewId;
 		console.log("Switching view to:", viewId, "Project:", project);
+		
+		// Update sidebar to reflect current view
+		this.sidebarComponent.setViewMode(viewId);
 
 		// Hide all components first
 		this.contentComponent.containerEl.hide();
