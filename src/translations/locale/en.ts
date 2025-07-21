@@ -491,7 +491,6 @@ const translations = {
 	"Task Management": "Task Management",
 	Workflows: "Workflows",
 	"Dates & Priority": "Dates & Priority",
-	"Quick Capture": "Quick Capture",
 	Projects: "Projects",
 	Rewards: "Rewards",
 	Habits: "Habits",
