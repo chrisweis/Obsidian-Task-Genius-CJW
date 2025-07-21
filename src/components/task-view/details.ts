@@ -674,7 +674,7 @@ export class TaskDetailsComponent extends Component {
 					// TODO: Show error message to user
 				}
 			}
-		}, 800); // 800ms debounce time
+		}, 800); // 1500ms debounce time - allow time for multi-field editing
 
 		// Use OnCompletionConfigurator directly
 		const onCompletionConfigurator = new OnCompletionConfigurator(

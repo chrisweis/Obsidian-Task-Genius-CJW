@@ -1028,7 +1028,13 @@ export class FileTaskView extends Component implements BasesView {
 				// Refresh the view only if there are changes
 				const hasChanges = this.convertEntriesToFileTasks();
 				if (hasChanges) {
-					this.updateTaskViewComponents();
+					// Only update task view components if not currently editing in details panel
+					if (!this.detailsComponent.isCurrentlyEditing()) {
+						this.updateTaskViewComponents();
+					} else {
+						// Update task data without refreshing the view
+						this.updateTasksEagerly();
+					}
 				}
 			} catch (error) {
 				console.error(
@@ -1070,7 +1076,13 @@ export class FileTaskView extends Component implements BasesView {
 				// Refresh the view only if there are changes
 				const hasChanges = this.convertEntriesToFileTasks();
 				if (hasChanges) {
-					this.updateTaskViewComponents();
+					// Only update task view components if not currently editing in details panel
+					if (!this.detailsComponent.isCurrentlyEditing()) {
+						this.updateTaskViewComponents();
+					} else {
+						// Update task data without refreshing the view
+						this.updateTasksEagerly();
+					}
 				}
 			} catch (error) {
 				console.error("[FileTaskView] Failed to update task:", error);

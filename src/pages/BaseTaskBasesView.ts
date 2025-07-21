@@ -247,8 +247,13 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 				this.detailsComponent.showTaskDetails(updatedTask);
 			}
 
-			// Trigger view update
-			this.onDataUpdated();
+			// Trigger view update only if not currently editing in details panel
+			if (!this.detailsComponent.isCurrentlyEditing()) {
+				this.onDataUpdated();
+			} else {
+				// Update UI with the changed task data without full view refresh
+				this.updateUIWithLatestTaskData();
+			}
 		} catch (error) {
 			console.error(
 				`[${this.type}] Failed to update task completion:`,
@@ -306,8 +311,13 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 				}
 			}
 
-			// Trigger view update
-			this.onDataUpdated();
+			// Trigger view update only if not currently editing in details panel
+			if (!this.detailsComponent.isCurrentlyEditing()) {
+				this.onDataUpdated();
+			} else {
+				// Update UI with the changed task data without full view refresh
+				this.updateUIWithLatestTaskData();
+			}
 		} catch (error) {
 			console.error(`[${this.type}] Failed to update task:`, error);
 			// Show user-friendly error message
@@ -867,6 +877,15 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 		console.log(`[${this.type}] Force updating tasks`);
 		this.convertEntriesToTasks();
 		this.onDataUpdated();
+	}
+
+	/**
+	 * Update UI with latest task data without triggering full view refresh
+	 * This is a placeholder method that subclasses can override
+	 */
+	protected updateUIWithLatestTaskData(): void {
+		console.log(`[${this.type}] Updating UI with latest task data (base implementation)`);
+		// Base implementation does nothing - subclasses should override if needed
 	}
 
 	/**

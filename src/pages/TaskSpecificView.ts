@@ -180,7 +180,9 @@ export class TaskSpecificView extends ItemView {
 			this.app.workspace.on(
 				"task-genius:task-cache-updated",
 				async () => {
-					await this.loadTasks();
+					// Skip view update if currently editing in details panel
+					const skipViewUpdate = this.detailsComponent?.isCurrentlyEditing() || false;
+					await this.loadTasks(false, skipViewUpdate);
 				}
 			)
 		);
@@ -815,6 +817,50 @@ export class TaskSpecificView extends ItemView {
 		this.handleTaskSelection(null);
 	}
 
+	/**
+	 * Get the currently active component based on currentViewId
+	 */
+	private getActiveComponent(): any {
+		if (!this.currentViewId) return null;
+
+		// Check for special view types first
+		const viewConfig = getViewSettingOrDefault(this.plugin, this.currentViewId);
+		
+		// Handle TwoColumn views
+		if (viewConfig.specificConfig?.viewType === "twocolumn") {
+			return this.twoColumnViewComponents.get(this.currentViewId);
+		}
+
+		// Check if it's a special view handled by viewComponentManager
+		if (this.viewComponentManager.isSpecialView(this.currentViewId)) {
+			// For special views, we can't easily get the component instance
+			// Return null to skip the update
+			return null;
+		}
+
+		// Handle forecast views
+		const specificViewType = viewConfig.specificConfig?.viewType;
+		if (specificViewType === "forecast" || this.currentViewId === "forecast") {
+			return this.forecastComponent;
+		}
+
+		// Handle standard view types
+		switch (this.currentViewId) {
+			case "habit":
+				return this.habitsComponent;
+			case "tags":
+				return this.tagsComponent;
+			case "projects":
+				return this.projectsComponent;
+			case "review":
+				return this.reviewComponent;
+			case "inbox":
+			case "flagged":
+			default:
+				return this.contentComponent;
+		}
+	}
+
 	private updateHeaderDisplay() {
 		const config = getViewSettingOrDefault(this.plugin, this.currentViewId);
 		// Use the actual currentViewId for the header
@@ -1164,8 +1210,16 @@ export class TaskSpecificView extends ItemView {
 			}
 
 			// 直接更新当前视图
-			if (this.currentViewId) {
+			// Only switch view if not currently editing in details panel
+			if (this.currentViewId && !this.detailsComponent.isCurrentlyEditing()) {
 				this.switchView(this.currentViewId, this.currentProject);
+			} else if (this.currentViewId) {
+				// Update task data in the current view without full re-render
+				// Find active component and update its task list
+				const activeComponent = this.getActiveComponent();
+				if (activeComponent && typeof activeComponent.setTasks === "function") {
+					activeComponent.setTasks(this.tasks, this.tasks);
+				}
 			}
 
 			return updatedTask;

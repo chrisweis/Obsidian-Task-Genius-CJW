@@ -146,7 +146,9 @@ export class TaskView extends ItemView {
 			this.app.workspace.on(
 				"task-genius:task-cache-updated",
 				async () => {
-					await this.loadTasks();
+					// Skip view update if currently editing in details panel
+					const skipViewUpdate = this.detailsComponent?.isCurrentlyEditing() || false;
+					await this.loadTasks(false, skipViewUpdate);
 				}
 			)
 		);
@@ -1311,7 +1313,20 @@ export class TaskView extends ItemView {
 			}
 
 			// 如果任务在当前视图中，立即更新视图
-			this.switchView(this.currentViewId);
+			// Only switch view if not currently editing in details panel
+			if (!this.detailsComponent.isCurrentlyEditing()) {
+				this.switchView(this.currentViewId);
+			} else {
+				// Update the task in the current view without re-rendering
+				// Use setTasks to update the components with the modified task list
+				if (this.currentViewId === "inbox" || this.currentViewId === "projects") {
+					this.contentComponent.setTasks(this.tasks, this.tasks);
+				} else if (this.currentViewId === "forecast") {
+					this.forecastComponent.setTasks(this.tasks);
+				} else if (this.currentViewId === "tags") {
+					this.tagsComponent.setTasks(this.tasks);
+				}
+			}
 
 			if (this.currentSelectedTaskId === updatedTask.id) {
 				if (this.detailsComponent.isCurrentlyEditing()) {
