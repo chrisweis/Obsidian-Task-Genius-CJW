@@ -11,6 +11,7 @@ import {
 	FilterGroup,
 	RootFilterState,
 } from "../components/task-filter/ViewTaskFilter";
+import { hasProject } from "./taskUtil";
 
 // 从ViewTaskFilter.ts导入相关接口
 
@@ -707,7 +708,7 @@ export function filterTasks(
 		// Only apply default logic if no rules were defined for this view
 		switch (viewId) {
 			case "inbox":
-				filtered = filtered.filter((task) => !task.metadata.project);
+				filtered = filtered.filter((task) => !hasProject(task));
 				break;
 			case "flagged":
 				filtered = filtered.filter(
