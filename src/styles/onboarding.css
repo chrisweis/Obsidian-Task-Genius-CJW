@@ -513,7 +513,8 @@
 	font-weight: 500;
 }
 
-.onboarding-view .updated-views .onboarding-modal .updated-views {
+.onboarding-view .updated-views,
+.onboarding-modal .updated-views {
 	display: flex;
 }
 
