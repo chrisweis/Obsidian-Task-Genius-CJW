@@ -1,4 +1,7 @@
-import { OnboardingConfigManager, OnboardingConfig } from "../../utils/OnboardingConfigManager";
+import {
+	OnboardingConfigManager,
+	OnboardingConfig,
+} from "../../utils/OnboardingConfigManager";
 import { t } from "../../translations/helper";
 import { setIcon } from "obsidian";
 
@@ -14,17 +17,20 @@ export class UserLevelSelector {
 	/**
 	 * Render the user level selector
 	 */
-	render(containerEl: HTMLElement, onSelectionChange: (config: OnboardingConfig) => void) {
+	render(
+		containerEl: HTMLElement,
+		onSelectionChange: (config: OnboardingConfig) => void
+	) {
 		this.onSelectionChange = onSelectionChange;
 		containerEl.empty();
 
 		const configs = this.configManager.getOnboardingConfigs();
-		
+
 		// Create card container
 		const cardsContainer = containerEl.createDiv("user-level-cards");
 
 		// Create cards for each configuration
-		configs.forEach(config => {
+		configs.forEach((config) => {
 			this.createConfigCard(cardsContainer, config);
 		});
 	}
@@ -38,35 +44,35 @@ export class UserLevelSelector {
 
 		// Card header with icon and title
 		const cardHeader = card.createDiv("card-header");
-		
+
 		const iconEl = cardHeader.createDiv("card-icon");
 		setIcon(iconEl, this.getConfigIcon(config.mode));
-		
-		const titleEl = cardHeader.createEl("h3", { 
+
+		const titleEl = cardHeader.createEl("h3", {
 			text: config.name,
-			cls: "card-title"
+			cls: "card-title",
 		});
 
 		// Card description
-		const descEl = card.createEl("p", { 
+		const descEl = card.createEl("p", {
 			text: config.description,
-			cls: "card-description"
+			cls: "card-description",
 		});
 
 		// Features list
 		const featuresEl = card.createDiv("card-features");
 		const featuresList = featuresEl.createEl("ul");
-		
-		config.features.forEach(feature => {
+
+		config.features.forEach((feature) => {
 			const featureItem = featuresList.createEl("li");
 			featureItem.setText(feature);
 		});
 
 		// Recommendation badge for beginner
-		if (config.mode === 'beginner') {
-			const badge = card.createDiv("recommendation-badge");
-			badge.setText(t("Recommended for new users"));
-		}
+		// if (config.mode === 'beginner') {
+		// 	const badge = card.createDiv("recommendation-badge");
+		// 	badge.setText(t("Recommended for new users"));
+		// }
 
 		// Click handler
 		card.addEventListener("click", () => {
@@ -88,11 +94,11 @@ export class UserLevelSelector {
 	 */
 	private getConfigIcon(mode: string): string {
 		switch (mode) {
-			case 'beginner':
+			case "beginner":
 				return "edit-3"; // Lucide edit icon
-			case 'advanced':
+			case "advanced":
 				return "settings"; // Lucide settings icon
-			case 'power':
+			case "power":
 				return "zap"; // Lucide lightning bolt icon
 			default:
 				return "clipboard-list"; // Lucide clipboard icon
@@ -105,7 +111,9 @@ export class UserLevelSelector {
 	private selectConfig(config: OnboardingConfig) {
 		// Remove previous selection
 		if (this.selectedConfig) {
-			const prevCard = document.querySelector(`[data-mode="${this.selectedConfig.mode}"]`);
+			const prevCard = document.querySelector(
+				`[data-mode="${this.selectedConfig.mode}"]`
+			);
 			prevCard?.removeClass("selected");
 		}
 

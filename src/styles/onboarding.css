@@ -2,8 +2,9 @@
 /* Task Genius Onboarding Styles */
 /* ============================= */
 
-/* Main onboarding modal */
-.onboarding-modal {
+/* Main onboarding styles - shared by modal and view */
+.onboarding-modal,
+.onboarding-view {
 	--dialog-width: 800px;
 	--dialog-max-width: 90vw;
 	--dialog-max-height: 90vh;
@@ -12,7 +13,9 @@
 	--onboarding-transition: all 0.2s ease-in-out;
 }
 
-.onboarding-modal .modal-content {
+/* Modal specific styles */
+.onboarding-modal .modal-content,
+.onboarding-view .modal-content {
 	background-color: var(--modal-background);
 	border-radius: var(--modal-radius);
 	max-width: var(--dialog-max-width);
@@ -25,28 +28,38 @@
 	min-height: 100px;
 }
 
+/* View specific styles */
+.onboarding-view {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	background-color: var(--background-primary);
+}
+
+.onboarding-view .view-content {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
 /* Header section */
-.onboarding-modal .onboarding-header {
+.onboarding-modal .onboarding-header,
+.onboarding-view .onboarding-header {
 	padding: var(--onboarding-spacing) var(--onboarding-spacing) var(--size-4-2)
 		var(--onboarding-spacing);
 	text-align: center;
 }
 
-.onboarding-modal .onboarding-header h1 {
-	margin: 0 0 var(--size-4-2) 0;
-	color: var(--text-normal);
-	font-size: 1.5em;
-	font-weight: 600;
-}
-
-.onboarding-modal .onboarding-subtitle {
+.onboarding-modal .onboarding-subtitle,
+.onboarding-view .onboarding-subtitle {
 	color: var(--text-muted);
 	font-size: 0.95em;
 	margin: 0;
 }
 
 /* Content section */
-.onboarding-modal .onboarding-content {
+.onboarding-modal .onboarding-content,
+.onboarding-view .onboarding-content {
 	flex: 1;
 	padding: var(--onboarding-spacing);
 	overflow-y: auto;
@@ -54,7 +67,8 @@
 }
 
 /* Footer section */
-.onboarding-modal .onboarding-footer {
+.onboarding-modal .onboarding-footer,
+.onboarding-view .onboarding-footer {
 	padding: var(--size-4-2) var(--onboarding-spacing) var(--onboarding-spacing)
 		var(--onboarding-spacing);
 	border-top: var(--modal-border-width) solid
@@ -62,7 +76,8 @@
 	flex-shrink: 0;
 }
 
-.onboarding-modal .onboarding-buttons {
+.onboarding-modal .onboarding-buttons,
+.onboarding-view .onboarding-buttons {
 	display: flex;
 	gap: var(--size-4-2);
 	justify-content: space-between;
@@ -70,23 +85,115 @@
 }
 
 /* ============================== */
+/* Settings Check Step */
+/* ============================== */
+
+.onboarding-modal .settings-check-section,
+.onboarding-view .settings-check-section {
+	margin: var(--onboarding-spacing) 0;
+}
+
+.onboarding-modal .changes-summary-list,
+.onboarding-view .changes-summary-list {
+	list-style: none;
+	padding: 0;
+	margin: var(--size-4-2) 0;
+	background: var(--background-secondary);
+	border-radius: var(--onboarding-border-radius);
+	padding: var(--size-4-2);
+}
+
+.onboarding-modal .changes-summary-list li,
+.onboarding-view .changes-summary-list li {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-2-1) 0;
+	color: var(--text-normal);
+	font-size: 0.9em;
+}
+
+.onboarding-modal .change-check,
+.onboarding-view .change-check {
+	color: var(--color-green);
+	font-size: 1.1em;
+	display: flex;
+}
+
+.onboarding-modal .change-text,
+.onboarding-view .change-text {
+	flex: 1;
+}
+
+.onboarding-modal .onboarding-question,
+.onboarding-view .onboarding-question {
+	margin: var(--onboarding-spacing) 0;
+	text-align: center;
+}
+
+.onboarding-modal .question-options,
+.onboarding-view .question-options {
+	display: flex;
+	gap: var(--size-4-3);
+	justify-content: center;
+	margin-top: var(--size-4-3);
+}
+
+.onboarding-modal .question-button,
+.onboarding-view .question-button {
+	padding: var(--size-4-3) var(--size-4-4);
+	border-radius: var(--button-radius);
+	border: none;
+	cursor: pointer;
+	font-size: 0.9em;
+	font-weight: 500;
+	transition: var(--onboarding-transition);
+}
+
+.onboarding-modal .question-options .mod-cta,
+.onboarding-view .question-options .mod-cta {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.onboarding-modal .question-options .mod-cta:hover,
+.onboarding-view .question-options .mod-cta:hover {
+	background: var(--interactive-accent-hover);
+}
+
+.onboarding-modal .question-button:not(.mod-cta),
+.onboarding-view .question-button:not(.mod-cta) {
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.onboarding-modal .question-button:not(.mod-cta):hover,
+.onboarding-view .question-button:not(.mod-cta):hover {
+	background: var(--background-modifier-hover);
+}
+
+/* ============================== */
 /* Welcome Step */
 /* ============================== */
 
-.onboarding-modal .welcome-section {
+.onboarding-modal .welcome-section,
+.onboarding-view .welcome-section {
 	display: flex;
 	flex-direction: column;
 	gap: var(--onboarding-spacing);
 }
 
-.onboarding-modal .features-overview {
+.onboarding-modal .features-overview,
+.onboarding-view .features-overview {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	gap: var(--size-4-3);
 	margin: var(--onboarding-spacing) 0;
 }
 
-.onboarding-modal .feature-item {
+.onboarding-modal .feature-item,
+.onboarding-view .feature-item {
 	display: flex;
 	gap: var(--size-4-2);
 	padding: var(--size-4-3);
@@ -94,34 +201,23 @@
 	border-radius: var(--onboarding-border-radius);
 }
 
-.onboarding-modal .feature-icon {
+.onboarding-modal .feature-icon,
+.onboarding-view .feature-icon {
 	font-size: 1.5em;
 	flex-shrink: 0;
 	line-height: 1;
 }
 
-.onboarding-modal .feature-content h3 {
-	margin: 0 0 var(--size-2-1) 0;
-	color: var(--text-normal);
-	font-size: 1em;
-	font-weight: 600;
-}
-
-.onboarding-modal .feature-content p {
-	margin: 0;
-	color: var(--text-muted);
-	font-size: 0.9em;
-	line-height: 1.4;
-}
-
-.onboarding-modal .setup-note {
+.onboarding-modal .setup-note,
+.onboarding-view .setup-note {
 	text-align: center;
 	padding: var(--size-4-3);
 	background: var(--background-secondary);
 	border-radius: var(--onboarding-border-radius);
 }
 
-.onboarding-modal .setup-description {
+.onboarding-modal .setup-description,
+.onboarding-view .setup-description {
 	color: var(--text-muted);
 	font-size: 0.95em;
 	line-height: 1.5;
@@ -132,14 +228,16 @@
 /* User Level Selection */
 /* ============================== */
 
-.onboarding-modal .user-level-cards {
+.onboarding-modal .user-level-cards,
+.onboarding-view .user-level-cards {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 	gap: var(--onboarding-spacing);
 	margin: var(--onboarding-spacing) 0;
 }
 
-.onboarding-modal .user-level-card {
+.onboarding-modal .user-level-card,
+.onboarding-view .user-level-card {
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--onboarding-border-radius);
 	padding: var(--onboarding-spacing);
@@ -151,11 +249,13 @@
 }
 
 .onboarding-modal .user-level-card:hover,
-.onboarding-modal .user-level-card.card-hover {
+.onboarding-modal .user-level-card.card-hover,
+.onboarding-view .user-level-card.card-hover {
 	border-color: var(--interactive-accent);
 }
 
-.onboarding-modal .user-level-card.selected {
+.onboarding-modal .user-level-card.selected,
+.onboarding-view .user-level-card.selected {
 	border-color: var(--interactive-accent);
 	background: var(--background-modifier-hover);
 }
@@ -231,17 +331,13 @@
 /* Configuration Preview */
 /* ============================== */
 
-.onboarding-modal .config-overview {
+.onboarding-modal .config-overview,
+.onboarding-view .config-overview {
 	margin-bottom: var(--onboarding-spacing);
 }
 
-.onboarding-modal .selected-mode h3 {
-	margin: 0 0 var(--size-4-2) 0;
-	color: var(--text-normal);
-	font-size: 1.1em;
-}
-
-.onboarding-modal .mode-card {
+.onboarding-modal .mode-card,
+.onboarding-view .mode-card {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-3);
@@ -250,40 +346,21 @@
 	border-radius: var(--onboarding-border-radius);
 }
 
-.onboarding-modal .mode-icon {
-	font-size: 1.5em;
+.onboarding-modal .mode-icon,
+.onboarding-view .mode-icon {
+	--icon-size: var(--size-4-4);
 	flex-shrink: 0;
-}
-
-.onboarding-modal .mode-content h4 {
-	margin: 0 0 var(--size-2-1) 0;
-	color: var(--text-normal);
-	font-size: 1em;
-	font-weight: 600;
-}
-
-.onboarding-modal .mode-content p {
-	margin: 0;
-	color: var(--text-muted);
-	font-size: 0.9em;
 }
 
 .onboarding-modal .config-features,
 .onboarding-modal .config-views,
-.onboarding-modal .config-settings {
+.onboarding-modal .config-settings,
+.onboarding-view .config-settings {
 	margin-bottom: var(--onboarding-spacing);
 }
 
-.onboarding-modal .config-features h3,
-.onboarding-modal .config-views h3,
-.onboarding-modal .config-settings h3 {
-	margin: 0 0 var(--size-4-2) 0;
-	color: var(--text-normal);
-	font-size: 1.1em;
-	font-weight: 600;
-}
-
-.onboarding-modal .enabled-features-list {
+.onboarding-modal .enabled-features-list,
+.onboarding-view .enabled-features-list {
 	list-style: none;
 	padding: 0;
 	margin: 0;
@@ -292,7 +369,8 @@
 	padding: var(--size-4-2);
 }
 
-.onboarding-modal .enabled-features-list li {
+.onboarding-modal .enabled-features-list li,
+.onboarding-view .enabled-features-list li {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
@@ -301,18 +379,21 @@
 	font-size: 0.9em;
 }
 
-.onboarding-modal .feature-check {
+.onboarding-modal .feature-check,
+.onboarding-view .feature-check {
 	color: var(--color-green);
 	font-weight: bold;
 }
 
-.onboarding-modal .views-grid {
+.onboarding-modal .views-grid,
+.onboarding-view .views-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 	gap: var(--size-4-2);
 }
 
-.onboarding-modal .view-item {
+.onboarding-modal .view-item,
+.onboarding-view .view-item {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -321,18 +402,21 @@
 	border-radius: var(--onboarding-border-radius);
 }
 
-.onboarding-modal .view-icon {
+.onboarding-modal .view-icon,
+.onboarding-view .view-icon {
 	font-size: 1.2em;
 	margin-bottom: var(--size-2-1);
 }
 
-.onboarding-modal .view-name {
+.onboarding-modal .view-name,
+.onboarding-view .view-name {
 	font-size: 0.8em;
 	color: var(--text-muted);
 	text-align: center;
 }
 
-.onboarding-modal .settings-summary-list {
+.onboarding-modal .settings-summary-list,
+.onboarding-view .settings-summary-list {
 	list-style: none;
 	padding: 0;
 	margin: 0;
@@ -341,7 +425,8 @@
 	padding: var(--size-4-2);
 }
 
-.onboarding-modal .settings-summary-list li {
+.onboarding-modal .settings-summary-list li,
+.onboarding-view .settings-summary-list li {
 	display: flex;
 	justify-content: space-between;
 	padding: var(--size-2-1) 0;
@@ -349,46 +434,153 @@
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.onboarding-modal .settings-summary-list li:last-child {
+.onboarding-modal .settings-summary-list li:last-child,
+.onboarding-view .settings-summary-list li:last-child {
 	border-bottom: none;
 }
 
-.onboarding-modal .setting-label {
+.onboarding-modal .setting-label,
+.onboarding-view .setting-label {
 	color: var(--text-normal);
 	font-weight: 500;
 }
 
-.onboarding-modal .setting-value {
+.onboarding-modal .setting-value,
+.onboarding-view .setting-value {
 	color: var(--text-muted);
 }
 
-.onboarding-modal .config-options {
+.onboarding-modal .config-options,
+.onboarding-view .config-options {
 	margin-top: var(--onboarding-spacing);
 }
 
-.onboarding-modal .customization-note {
+.onboarding-modal .customization-note,
+.onboarding-view .customization-note {
 	text-align: center;
 	padding: var(--size-4-3);
 	background: var(--background-secondary);
 	border-radius: var(--onboarding-border-radius);
 }
 
-.onboarding-modal .note-text {
+.onboarding-modal .note-text,
+.onboarding-view .note-text {
 	color: var(--text-muted);
 	font-size: 0.9em;
 	margin: 0;
 	font-style: italic;
 }
 
+/* Configuration Changes Preview */
+.onboarding-modal .config-changes-summary,
+.onboarding-view .config-changes-summary {
+	margin: var(--onboarding-spacing) 0;
+	padding: var(--size-4-3);
+	background: var(--background-secondary);
+	border-radius: var(--onboarding-border-radius);
+}
+
+.onboarding-modal .preserved-views,
+.onboarding-modal .added-views,
+.onboarding-modal .updated-views,
+.onboarding-modal .settings-changes,
+.onboarding-view .settings-changes {
+	margin: var(--size-4-2) 0;
+	padding: var(--size-4-2);
+	background: var(--background-primary);
+	border-radius: var(--radius-s);
+}
+
+.onboarding-modal .preserved-header,
+.onboarding-view .preserved-header {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-1);
+	margin-bottom: var(--size-4-1);
+}
+
+.onboarding-modal .preserved-icon,
+.onboarding-view .preserved-icon {
+	color: var(--color-green);
+	font-size: 1.1em;
+}
+
+.onboarding-modal .preserved-text,
+.onboarding-modal .change-text,
+.onboarding-view .change-text {
+	color: var(--text-normal);
+	font-size: 0.9em;
+	font-weight: 500;
+}
+
+.onboarding-view .updated-views .onboarding-modal .updated-views {
+	display: flex;
+}
+
+.onboarding-modal .change-icon,
+.onboarding-view .change-icon {
+	color: var(--interactive-accent);
+	font-size: 1.1em;
+	margin-right: var(--size-4-1);
+	display: flex;
+}
+
+.onboarding-modal .preserved-views-list,
+.onboarding-modal .settings-changes-list,
+.onboarding-view .settings-changes-list {
+	list-style: none;
+	padding: 0;
+	margin: var(--size-4-1) 0 0 var(--size-4-4);
+}
+
+.onboarding-modal .preserved-views-list li,
+.onboarding-modal .settings-changes-list li,
+.onboarding-view .settings-changes-list li {
+	display: flex;
+	align-items: center;
+	padding: var(--size-2-1) 0;
+	color: var(--text-muted);
+	font-size: 0.85em;
+}
+
+.onboarding-modal .safety-note,
+.onboarding-view .safety-note {
+	margin-top: var(--size-4-3);
+	padding: var(--size-4-2);
+	background: rgba(var(--color-blue-rgb), 0.1);
+	border-radius: var(--radius-s);
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-1);
+}
+
+.onboarding-modal .safety-icon,
+.onboarding-view .safety-icon {
+	color: var(--color-blue);
+	font-size: 1.1em;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.onboarding-modal .safety-text,
+.onboarding-view .safety-text {
+	color: var(--color-blue);
+	font-size: var(--font-ui-smaller);
+	font-weight: 500;
+}
+
 /* ============================== */
 /* Task Creation Guide */
 /* ============================== */
 
-.onboarding-modal .task-guide-intro {
+.onboarding-modal .task-guide-intro,
+.onboarding-view .task-guide-intro {
 	margin-bottom: var(--onboarding-spacing);
 }
 
-.onboarding-modal .guide-description {
+.onboarding-modal .guide-description,
+.onboarding-view .guide-description {
 	color: var(--text-muted);
 	font-size: 0.95em;
 	line-height: 1.5;
@@ -398,33 +590,19 @@
 .onboarding-modal .task-formats-section,
 .onboarding-modal .quick-capture-section,
 .onboarding-modal .practice-section,
-.onboarding-modal .shortcuts-section {
+.onboarding-modal .shortcuts-section,
+.onboarding-view .shortcuts-section {
 	margin-bottom: var(--onboarding-spacing);
 }
 
-.onboarding-modal .task-formats-section h3,
-.onboarding-modal .quick-capture-section h3,
-.onboarding-modal .practice-section h3,
-.onboarding-modal .shortcuts-section h3 {
-	margin: 0 0 var(--size-4-2) 0;
-	color: var(--text-normal);
-	font-size: 1.1em;
-	font-weight: 600;
-}
-
-.onboarding-modal .format-example {
+.onboarding-modal .format-example,
+.onboarding-view .format-example {
 	margin-top: var(--size-4-4);
 	margin-bottom: var(--size-4-4);
 }
 
-.onboarding-modal .format-example h4 {
-	margin: 0 0 var(--size-2-1) 0;
-	color: var(--text-normal);
-	font-size: 0.95em;
-	font-weight: 600;
-}
-
-.onboarding-modal .format-example code {
+.onboarding-modal .format-example code,
+.onboarding-view .format-example code {
 	background: var(--background-primary);
 	padding: var(--size-2-1) var(--size-4-1);
 	border-radius: var(--radius-s);
@@ -437,7 +615,8 @@
 }
 
 .onboarding-modal .format-legend,
-.onboarding-modal .format-legend small {
+.onboarding-modal .format-legend small,
+.onboarding-view .format-legend small {
 	color: var(--text-faint);
 	font-size: 0.8em;
 	margin-top: var(--size-2-1);
@@ -445,30 +624,25 @@
 }
 
 .onboarding-modal .status-markers,
-.onboarding-modal .metadata-symbols {
+.onboarding-modal .metadata-symbols,
+.onboarding-view .metadata-symbols {
 	margin-top: var(--size-4-2);
 }
 
-.onboarding-modal .status-markers h4,
-.onboarding-modal .metadata-symbols h4 {
-	margin: 0 0 var(--size-4-1) 0;
-	color: var(--text-normal);
-	font-size: 0.95em;
-	font-weight: 600;
-}
-
 .onboarding-modal .status-list,
-.onboarding-modal .symbols-list {
+.onboarding-view .status-list li,
+.onboarding-modal .symbols-list,
+.onboarding-view .symbols-list {
 	list-style: none;
-	padding: 0;
 	margin: 0;
 	background: var(--background-primary);
 	border-radius: var(--onboarding-border-radius);
-	padding: var(--size-4-2);
 }
 
 .onboarding-modal .status-list li,
-.onboarding-modal .symbols-list li {
+.onboarding-view .status-list li,
+.onboarding-modal .symbols-list li,
+.onboarding-view .symbols-list li {
 	display: flex;
 	align-items: center;
 	padding: var(--size-2-1) 0;
@@ -476,7 +650,8 @@
 	color: var(--text-normal);
 }
 
-.onboarding-modal .status-list code {
+.onboarding-modal .status-list code,
+.onboarding-view .status-list code {
 	background: var(--background-secondary);
 	padding: var(--size-2-1) var(--size-4-1);
 	border-radius: var(--radius-s);
@@ -486,13 +661,15 @@
 	text-align: center;
 }
 
-.onboarding-modal .demo-content {
+.onboarding-modal .demo-content,
+.onboarding-view .demo-content {
 	padding: var(--size-4-3);
 	background: var(--background-secondary);
 	border-radius: var(--onboarding-border-radius);
 }
 
-.onboarding-modal .demo-button {
+.onboarding-modal .demo-button,
+.onboarding-view .demo-button {
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 	border: none;
@@ -504,46 +681,54 @@
 	margin-top: var(--size-4-2);
 }
 
-.onboarding-modal .demo-button:hover {
+.onboarding-modal .demo-button:hover,
+.onboarding-view .demo-button:hover {
 	background: var(--interactive-accent-hover);
 }
 
-.onboarding-modal .practice-feedback {
+.onboarding-modal .practice-feedback,
+.onboarding-view .practice-feedback {
 	margin-top: var(--size-4-2);
 }
 
-.onboarding-modal .validation-message {
+.onboarding-modal .validation-message,
+.onboarding-view .validation-message {
 	padding: var(--size-4-2);
 	border-radius: var(--onboarding-border-radius);
 	font-size: 0.9em;
 	margin-bottom: var(--size-2-1);
 }
 
-.onboarding-modal .validation-success {
+.onboarding-modal .validation-success,
+.onboarding-view .validation-success {
 	background: rgba(var(--color-green-rgb), 0.1);
 	border: 1px solid var(--color-green);
 	color: var(--color-green);
 }
 
-.onboarding-modal .validation-error {
+.onboarding-modal .validation-error,
+.onboarding-view .validation-error {
 	background: rgba(var(--color-red-rgb), 0.1);
 	border: 1px solid var(--color-red);
 	color: var(--color-red);
 }
 
-.onboarding-modal .validation-warning {
+.onboarding-modal .validation-warning,
+.onboarding-view .validation-warning {
 	background: rgba(var(--color-orange-rgb), 0.1);
 	border: 1px solid var(--color-orange);
 	color: var(--color-orange);
 }
 
-.onboarding-modal .validation-info {
+.onboarding-modal .validation-info,
+.onboarding-view .validation-info {
 	background: rgba(var(--color-blue-rgb), 0.1);
 	border: 1px solid var(--color-blue);
 	color: var(--color-blue);
 }
 
-.onboarding-modal .shortcuts-list {
+.onboarding-modal .shortcuts-list,
+.onboarding-view .shortcuts-list {
 	list-style: none;
 	padding: 0;
 	margin: 0;
@@ -552,7 +737,8 @@
 	padding: var(--size-4-2);
 }
 
-.onboarding-modal .shortcuts-list li {
+.onboarding-modal .shortcuts-list li,
+.onboarding-view .shortcuts-list li {
 	display: flex;
 	align-items: center;
 	padding: var(--size-2-1) 0;
@@ -560,7 +746,8 @@
 	color: var(--text-normal);
 }
 
-.onboarding-modal .shortcuts-list code {
+.onboarding-modal .shortcuts-list code,
+.onboarding-view .shortcuts-list code {
 	background: var(--background-primary);
 	padding: var(--size-2-1) var(--size-4-2);
 	border-radius: var(--radius-s);
@@ -574,23 +761,20 @@
 /* Completion Page */
 /* ============================== */
 
-.onboarding-modal .completion-success {
+.onboarding-modal .completion-success,
+.onboarding-view .completion-success {
 	text-align: center;
 	margin-bottom: var(--onboarding-spacing);
 }
 
-.onboarding-modal .success-icon {
+.onboarding-modal .success-icon,
+.onboarding-view .success-icon {
 	font-size: 3em;
 	margin-bottom: var(--size-4-2);
 }
 
-.onboarding-modal .completion-success h2 {
-	margin: 0 0 var(--size-4-2) 0;
-	color: var(--text-normal);
-	font-size: 1.4em;
-}
-
-.onboarding-modal .success-message {
+.onboarding-modal .success-message,
+.onboarding-view .success-message {
 	color: var(--text-muted);
 	font-size: 0.95em;
 	margin: 0;
@@ -600,57 +784,54 @@
 .onboarding-modal .quick-start-section,
 .onboarding-modal .next-steps-section,
 .onboarding-modal .resources-section,
-.onboarding-modal .feedback-section {
+.onboarding-modal .feedback-section,
+.onboarding-view .feedback-section {
 	margin-bottom: var(--onboarding-spacing);
 }
 
-.onboarding-modal .completion-summary h3,
-.onboarding-modal .quick-start-section h3,
-.onboarding-modal .next-steps-section h3,
-.onboarding-modal .resources-section h3,
-.onboarding-modal .feedback-section h3 {
-	margin: 0 0 var(--size-4-2) 0;
-	color: var(--text-normal);
-	font-size: 1.1em;
-	font-weight: 600;
-}
-
-.onboarding-modal .config-summary-card {
+.onboarding-modal .config-summary-card,
+.onboarding-view .config-summary-card {
 	padding: var(--size-4-3);
 	background: var(--background-secondary);
 	border-radius: var(--onboarding-border-radius);
 }
 
-.onboarding-modal .config-header {
+.onboarding-modal .config-header,
+.onboarding-view .config-header {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
 	margin-bottom: var(--size-2-1);
 }
 
-.onboarding-modal .config-icon {
+.onboarding-modal .config-icon,
+.onboarding-view .config-icon {
 	font-size: 1.5em;
 }
 
-.onboarding-modal .config-name {
+.onboarding-modal .config-name,
+.onboarding-view .config-name {
 	font-size: 1.1em;
 	font-weight: 600;
 	color: var(--text-normal);
 }
 
-.onboarding-modal .config-description {
+.onboarding-modal .config-description,
+.onboarding-view .config-description {
 	color: var(--text-muted);
 	font-size: 0.9em;
 	margin: 0;
 }
 
-.onboarding-modal .quick-start-steps {
+.onboarding-modal .quick-start-steps,
+.onboarding-view .quick-start-steps {
 	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-2);
 }
 
-.onboarding-modal .quick-start-step {
+.onboarding-modal .quick-start-step,
+.onboarding-view .quick-start-step {
 	display: flex;
 	align-items: flex-start;
 	gap: var(--size-4-3);
@@ -659,7 +840,8 @@
 	border-radius: var(--onboarding-border-radius);
 }
 
-.onboarding-modal .step-number {
+.onboarding-modal .step-number,
+.onboarding-view .step-number {
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 	width: 24px;
@@ -673,19 +855,22 @@
 	flex-shrink: 0;
 }
 
-.onboarding-modal .step-content {
+.onboarding-modal .step-content,
+.onboarding-view .step-content {
 	color: var(--text-normal);
 	font-size: 0.9em;
 	line-height: 1.4;
 }
 
-.onboarding-modal .next-steps-list {
+.onboarding-modal .next-steps-list,
+.onboarding-view .next-steps-list {
 	list-style: none;
 	padding: 0;
 	margin: 0;
 }
 
-.onboarding-modal .next-steps-list li {
+.onboarding-modal .next-steps-list li,
+.onboarding-view .next-steps-list li {
 	display: flex;
 	align-items: flex-start;
 	gap: var(--size-4-2);
@@ -695,25 +880,29 @@
 	margin-bottom: var(--size-2-1);
 }
 
-.onboarding-modal .step-check {
+.onboarding-modal .step-check,
+.onboarding-view .step-check {
 	color: var(--interactive-accent);
 	font-weight: bold;
 	flex-shrink: 0;
 }
 
-.onboarding-modal .step-text {
+.onboarding-modal .step-text,
+.onboarding-view .step-text {
 	color: var(--text-normal);
 	font-size: 0.9em;
 	line-height: 1.4;
 }
 
-.onboarding-modal .resources-list {
+.onboarding-modal .resources-list,
+.onboarding-view .resources-list {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 	gap: var(--size-4-2);
 }
 
-.onboarding-modal .resource-item {
+.onboarding-modal .resource-item,
+.onboarding-view .resource-item {
 	display: flex;
 	gap: var(--size-4-2);
 	padding: var(--size-4-3);
@@ -722,46 +911,39 @@
 	transition: var(--onboarding-transition);
 }
 
-.onboarding-modal .resource-clickable {
+.onboarding-modal .resource-clickable,
+.onboarding-view .resource-clickable {
 	cursor: pointer;
 }
 
-.onboarding-modal .resource-clickable:hover {
+.onboarding-modal .resource-clickable:hover,
+.onboarding-view .resource-clickable:hover {
 	background: var(--background-modifier-hover);
 }
 
-.onboarding-modal .resource-icon {
+.onboarding-modal .resource-icon,
+.onboarding-view .resource-icon {
 	font-size: 1.5em;
 	flex-shrink: 0;
 }
 
-.onboarding-modal .resource-content h4 {
-	margin: 0 0 var(--size-2-1) 0;
-	color: var(--text-normal);
-	font-size: 0.95em;
-	font-weight: 600;
-}
-
-.onboarding-modal .resource-content p {
-	margin: 0;
-	color: var(--text-muted);
-	font-size: 0.85em;
-}
-
-.onboarding-modal .feedback-description {
+.onboarding-modal .feedback-description,
+.onboarding-view .feedback-description {
 	color: var(--text-muted);
 	font-size: 0.9em;
 	line-height: 1.5;
 	margin: 0 0 var(--size-4-2) 0;
 }
 
-.onboarding-modal .feedback-buttons {
+.onboarding-modal .feedback-buttons,
+.onboarding-view .feedback-buttons {
 	display: flex;
 	gap: var(--size-4-2);
 	justify-content: center;
 }
 
-.onboarding-modal .feedback-button {
+.onboarding-modal .feedback-button,
+.onboarding-view .feedback-button {
 	background: var(--background-secondary);
 	border: none;
 	color: var(--text-normal);
@@ -772,44 +954,52 @@
 	transition: var(--onboarding-transition);
 }
 
-.onboarding-modal .feedback-positive:hover {
+.onboarding-modal .feedback-positive:hover,
+.onboarding-view .feedback-positive:hover {
 	background: var(--color-green);
 	color: white;
 }
 
-.onboarding-modal .feedback-negative:hover {
+.onboarding-modal .feedback-negative:hover,
+.onboarding-view .feedback-negative:hover {
 	background: var(--color-red);
 	color: white;
 }
 
-.onboarding-modal .feedback-thanks {
+.onboarding-modal .feedback-thanks,
+.onboarding-view .feedback-thanks {
 	text-align: center;
 	padding: var(--size-4-3);
 	background: var(--background-secondary);
 	border-radius: var(--onboarding-border-radius);
 }
 
-.onboarding-modal .feedback-thanks-message {
+.onboarding-modal .feedback-thanks-message,
+.onboarding-view .feedback-thanks-message {
 	color: var(--text-normal);
 	font-size: 0.9em;
 	margin: 0 0 var(--size-4-2) 0;
 }
 
-.onboarding-modal .feedback-thanks a {
+.onboarding-modal .feedback-thanks a,
+.onboarding-view .feedback-thanks a {
 	color: var(--interactive-accent);
 	text-decoration: none;
 }
 
-.onboarding-modal .feedback-thanks a:hover {
+.onboarding-modal .feedback-thanks a:hover,
+.onboarding-view .feedback-thanks a:hover {
 	text-decoration: underline;
 }
 
-.onboarding-modal .final-message {
+.onboarding-modal .final-message,
+.onboarding-view .final-message {
 	text-align: center;
 	padding: var(--size-4-4);
 }
 
-.onboarding-modal .final-message-text {
+.onboarding-modal .final-message-text,
+.onboarding-view .final-message-text {
 	color: var(--text-muted);
 	font-size: 1em;
 	font-style: italic;
@@ -821,33 +1011,40 @@
 /* ============================== */
 
 @media (max-width: 768px) {
-	.onboarding-modal {
+	.onboarding-modal,
+	.onboarding-view {
 		--dialog-width: 95vw;
 		--dialog-max-width: 95vw;
 		--dialog-max-height: 95vh;
 	}
 
-	.onboarding-modal .user-level-cards {
+	.onboarding-modal .user-level-cards,
+	.onboarding-view .user-level-cards {
 		grid-template-columns: 1fr;
 	}
 
-	.onboarding-modal .features-overview {
+	.onboarding-modal .features-overview,
+	.onboarding-view .features-overview {
 		grid-template-columns: 1fr;
 	}
 
-	.onboarding-modal .views-grid {
+	.onboarding-modal .views-grid,
+	.onboarding-view .views-grid {
 		grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
 	}
 
-	.onboarding-modal .resources-list {
+	.onboarding-modal .resources-list,
+	.onboarding-view .resources-list {
 		grid-template-columns: 1fr;
 	}
 
-	.onboarding-modal .feedback-buttons {
+	.onboarding-modal .feedback-buttons,
+	.onboarding-view .feedback-buttons {
 		flex-direction: column;
 	}
 
-	.onboarding-modal .onboarding-buttons {
+	.onboarding-modal .onboarding-buttons,
+	.onboarding-view .onboarding-buttons {
 		flex-wrap: wrap;
 		justify-content: center;
 	}
@@ -863,7 +1060,8 @@
 /* Animation and Transitions */
 /* ============================== */
 
-.onboarding-modal .onboarding-content {
+.onboarding-modal .onboarding-content,
+.onboarding-view .onboarding-content {
 	animation: fadeInUp 0.3s ease-out;
 }
 
@@ -878,7 +1076,8 @@
 	}
 }
 
-.onboarding-modal .user-level-card.selected {
+.onboarding-modal .user-level-card.selected,
+.onboarding-view .user-level-card.selected {
 	animation: cardSelect 0.2s ease-out;
 }
 

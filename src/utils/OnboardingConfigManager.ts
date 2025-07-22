@@ -310,7 +310,7 @@ export class OnboardingConfigManager {
 	}
 
 	/**
-	 * Apply configuration template to plugin settings
+	 * Apply configuration template to plugin settings with safe view merging
 	 */
 	async applyConfiguration(mode: OnboardingConfigMode): Promise<void> {
 		const configs = this.getOnboardingConfigs();
@@ -320,8 +320,22 @@ export class OnboardingConfigManager {
 			throw new Error(`Configuration mode ${mode} not found`);
 		}
 
-		// Deep merge the selected configuration with current settings
-		const newSettings = this.deepMerge(this.plugin.settings, selectedConfig.settings);
+		// Preserve user's custom views before applying configuration
+		const currentViews = this.plugin.settings.viewConfiguration || [];
+		const userCustomViews = currentViews.filter(view => view.type === 'custom');
+		const templateViews = selectedConfig.settings.viewConfiguration || [];
+
+		// Smart merge: keep user custom views, update/add template views
+		const mergedViews = this.mergeViewConfigurations(templateViews, userCustomViews);
+
+		// Deep merge the selected configuration with current settings, excluding viewConfiguration
+		const configWithoutViews = { ...selectedConfig.settings };
+		delete configWithoutViews.viewConfiguration;
+		
+		const newSettings = this.deepMerge(this.plugin.settings, configWithoutViews);
+		
+		// Apply the safely merged view configuration
+		newSettings.viewConfiguration = mergedViews;
 
 		// Update onboarding status
 		if (!newSettings.onboarding) {
@@ -333,7 +347,7 @@ export class OnboardingConfigManager {
 		this.plugin.settings = newSettings as TaskProgressBarSettings;
 		await this.plugin.saveSettings();
 
-		console.log(`Applied ${mode} configuration template`);
+		console.log(`Applied ${mode} configuration template with ${userCustomViews.length} user custom views preserved`);
 	}
 
 	/**
@@ -400,6 +414,68 @@ export class OnboardingConfigManager {
 		const configs = this.getOnboardingConfigs();
 		const currentConfig = configs.find(config => config.mode === mode);
 		return currentConfig ? currentConfig.name : t('Custom');
+	}
+
+	/**
+	 * Merge view configurations safely, preserving user custom views
+	 */
+	private mergeViewConfigurations(templateViews: ViewConfig[], userCustomViews: ViewConfig[]): ViewConfig[] {
+		// Start with template views (these define which default views are enabled for this mode)
+		const mergedViews: ViewConfig[] = [...templateViews];
+		
+		// Add all user custom views (these are always preserved)
+		userCustomViews.forEach(userView => {
+			// Ensure no duplicate IDs (shouldn't happen with custom views, but safety first)
+			if (!mergedViews.find(view => view.id === userView.id)) {
+				mergedViews.push(userView);
+			}
+		});
+		
+		return mergedViews;
+	}
+
+	/**
+	 * Get preview of configuration changes without applying them
+	 */
+	getConfigurationPreview(mode: OnboardingConfigMode): {
+		viewsToAdd: ViewConfig[];
+		viewsToUpdate: ViewConfig[];
+		userCustomViewsPreserved: ViewConfig[];
+		settingsChanges: string[];
+	} {
+		const configs = this.getOnboardingConfigs();
+		const selectedConfig = configs.find(config => config.mode === mode);
+		
+		if (!selectedConfig) {
+			throw new Error(`Configuration mode ${mode} not found`);
+		}
+
+		const currentViews = this.plugin.settings.viewConfiguration || [];
+		const userCustomViews = currentViews.filter(view => view.type === 'custom');
+		const templateViews = selectedConfig.settings.viewConfiguration || [];
+		
+		const currentViewIds = new Set(currentViews.map(view => view.id));
+		const viewsToAdd = templateViews.filter(view => !currentViewIds.has(view.id));
+		const viewsToUpdate = templateViews.filter(view => currentViewIds.has(view.id));
+		
+		// Analyze setting changes (simplified for now)
+		const settingsChanges: string[] = [];
+		if (selectedConfig.settings.enableView !== this.plugin.settings.enableView) {
+			settingsChanges.push(`Views ${selectedConfig.settings.enableView ? 'enabled' : 'disabled'}`);
+		}
+		if (selectedConfig.settings.quickCapture?.enableQuickCapture !== this.plugin.settings.quickCapture?.enableQuickCapture) {
+			settingsChanges.push(`Quick Capture ${selectedConfig.settings.quickCapture?.enableQuickCapture ? 'enabled' : 'disabled'}`);
+		}
+		if (selectedConfig.settings.workflow?.enableWorkflow !== this.plugin.settings.workflow?.enableWorkflow) {
+			settingsChanges.push(`Workflow ${selectedConfig.settings.workflow?.enableWorkflow ? 'enabled' : 'disabled'}`);
+		}
+
+		return {
+			viewsToAdd,
+			viewsToUpdate,
+			userCustomViewsPreserved: userCustomViews,
+			settingsChanges
+		};
 	}
 
 	/**

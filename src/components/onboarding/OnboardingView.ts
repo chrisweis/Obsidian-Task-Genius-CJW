@@ -1,4 +1,4 @@
-import { App, Modal, Setting, ButtonComponent, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, setIcon, ButtonComponent } from "obsidian";
 import type TaskProgressBarPlugin from "../../index";
 import { t } from "../../translations/helper";
 import {
@@ -6,17 +6,21 @@ import {
 	OnboardingConfigMode,
 	OnboardingConfig,
 } from "../../utils/OnboardingConfigManager";
+import { SettingsChangeDetector } from "../../utils/SettingsChangeDetector";
 import { UserLevelSelector } from "./UserLevelSelector";
 import { ConfigPreview } from "./ConfigPreview";
 import { TaskCreationGuide } from "./TaskCreationGuide";
 import { OnboardingComplete } from "./OnboardingComplete";
 
+export const ONBOARDING_VIEW_TYPE = "task-genius-onboarding";
+
 export enum OnboardingStep {
-	WELCOME = 0,
-	USER_LEVEL_SELECT = 1,
-	CONFIG_PREVIEW = 2,
-	TASK_CREATION_GUIDE = 3,
-	COMPLETE = 4,
+	SETTINGS_CHECK = 0,    // New: Check if user wants onboarding
+	WELCOME = 1,
+	USER_LEVEL_SELECT = 2,
+	CONFIG_PREVIEW = 3,
+	TASK_CREATION_GUIDE = 4,
+	COMPLETE = 5,
 }
 
 export interface OnboardingState {
@@ -24,11 +28,14 @@ export interface OnboardingState {
 	selectedConfig?: OnboardingConfig;
 	skipTaskGuide: boolean;
 	isCompleting: boolean;
+	userHasChanges: boolean;
+	changesSummary: string[];
 }
 
-export class OnboardingModal extends Modal {
+export class OnboardingView extends ItemView {
 	private plugin: TaskProgressBarPlugin;
 	private configManager: OnboardingConfigManager;
+	private settingsDetector: SettingsChangeDetector;
 	private onComplete: () => void;
 	private state: OnboardingState;
 
@@ -39,28 +46,27 @@ export class OnboardingModal extends Modal {
 	private onboardingComplete: OnboardingComplete;
 
 	// UI Elements
-	private headerEl: HTMLElement;
+	private onboardingHeaderEl: HTMLElement;
 	private onboardingContentEl: HTMLElement;
 	private footerEl: HTMLElement;
 	private nextButton: ButtonComponent;
 	private backButton: ButtonComponent;
 	private skipButton: ButtonComponent;
 
-	constructor(
-		app: App,
-		plugin: TaskProgressBarPlugin,
-		onComplete: () => void
-	) {
-		super(app);
+	constructor(leaf: WorkspaceLeaf, plugin: TaskProgressBarPlugin, onComplete: () => void) {
+		super(leaf);
 		this.plugin = plugin;
 		this.configManager = new OnboardingConfigManager(plugin);
+		this.settingsDetector = new SettingsChangeDetector(plugin);
 		this.onComplete = onComplete;
 
 		// Initialize state
 		this.state = {
-			currentStep: OnboardingStep.WELCOME,
+			currentStep: OnboardingStep.SETTINGS_CHECK,
 			skipTaskGuide: false,
 			isCompleting: false,
+			userHasChanges: this.settingsDetector.hasUserMadeChanges(),
+			changesSummary: this.settingsDetector.getChangesSummary(),
 		};
 
 		// Initialize components
@@ -68,38 +74,46 @@ export class OnboardingModal extends Modal {
 		this.configPreview = new ConfigPreview(this.configManager);
 		this.taskCreationGuide = new TaskCreationGuide(this.plugin);
 		this.onboardingComplete = new OnboardingComplete();
-
-		// Setup modal properties
-		this.modalEl.addClass("onboarding-modal");
 	}
 
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.empty();
+	getViewType(): string {
+		return ONBOARDING_VIEW_TYPE;
+	}
 
-		this.createModalStructure();
+	getDisplayText(): string {
+		return t("Task Genius Setup");
+	}
+
+	getIcon(): string {
+		return "zap";
+	}
+
+	async onOpen() {
+		this.createViewStructure();
 		this.displayCurrentStep();
 	}
 
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
+	async onClose() {
+		// Cleanup when view is closed
+		this.contentEl.empty();
 	}
 
 	/**
-	 * Create the basic modal structure
+	 * Create the basic view structure
 	 */
-	private createModalStructure() {
-		const { contentEl } = this;
+	private createViewStructure() {
+		const container = this.contentEl;
+		container.empty();
+		container.addClass("onboarding-view");
 
 		// Header section
-		this.headerEl = contentEl.createDiv("onboarding-header");
+		this.onboardingHeaderEl = container.createDiv("onboarding-header");
 
 		// Main content section
-		this.onboardingContentEl = contentEl.createDiv("onboarding-content");
+		this.onboardingContentEl = container.createDiv("onboarding-content");
 
 		// Footer with navigation buttons
-		this.footerEl = contentEl.createDiv("onboarding-footer");
+		this.footerEl = container.createDiv("onboarding-footer");
 		this.createFooterButtons();
 	}
 
@@ -109,9 +123,9 @@ export class OnboardingModal extends Modal {
 	private createFooterButtons() {
 		const buttonContainer = this.footerEl.createDiv("onboarding-buttons");
 
-		// Skip button (shown on welcome step)
+		// Skip button (shown on appropriate steps)
 		this.skipButton = new ButtonComponent(buttonContainer)
-			.setButtonText(t("Skip onboarding"))
+			.setButtonText(t("Skip setup"))
 			.onClick(() => this.handleSkip());
 
 		// Back button
@@ -131,13 +145,16 @@ export class OnboardingModal extends Modal {
 	 */
 	private displayCurrentStep() {
 		// Clear content
-		this.headerEl.empty();
+		this.onboardingHeaderEl.empty();
 		this.onboardingContentEl.empty();
 
 		// Update button visibility
 		this.updateButtonStates();
 
 		switch (this.state.currentStep) {
+			case OnboardingStep.SETTINGS_CHECK:
+				this.displaySettingsCheckStep();
+				break;
 			case OnboardingStep.WELCOME:
 				this.displayWelcomeStep();
 				break;
@@ -157,22 +174,78 @@ export class OnboardingModal extends Modal {
 	}
 
 	/**
+	 * Display settings check step (new async approach)
+	 */
+	private displaySettingsCheckStep() {
+		// Header
+		this.onboardingHeaderEl.createEl("h1", { text: t("Task Genius Setup") });
+
+		// Content
+		const content = this.onboardingContentEl;
+
+		if (this.state.userHasChanges) {
+			// User has made changes - ask if they want onboarding
+			this.onboardingHeaderEl.createEl("p", {
+				text: t("We noticed you've already configured Task Genius"),
+				cls: "onboarding-subtitle",
+			});
+
+			const checkSection = content.createDiv("settings-check-section");
+
+			// Show detected changes
+			checkSection.createEl("h3", { text: t("Your current configuration includes:") });
+			const changesList = checkSection.createEl("ul", { cls: "changes-summary-list" });
+			
+			this.state.changesSummary.forEach(change => {
+				const item = changesList.createEl("li");
+				const checkIcon = item.createSpan("change-check");
+				setIcon(checkIcon, "check");
+				item.createSpan("change-text").setText(change);
+			});
+
+			// Ask if they want onboarding
+			const questionSection = content.createDiv("onboarding-question");
+			questionSection.createEl("h3", { text: t("Would you like to run the setup wizard anyway?") });
+			
+			const optionsContainer = questionSection.createDiv("question-options");
+			
+			const yesButton = optionsContainer.createEl("button", {
+				text: t("Yes, show me the setup wizard"),
+				cls: "mod-cta question-button",
+			});
+			yesButton.addEventListener("click", () => {
+				this.state.currentStep = OnboardingStep.WELCOME;
+				this.displayCurrentStep();
+			});
+
+			const noButton = optionsContainer.createEl("button", {
+				text: t("No, I'm happy with my current setup"),
+				cls: "question-button",
+			});
+			noButton.addEventListener("click", () => this.handleSkip());
+
+		} else {
+			// User hasn't made changes - proceed with normal onboarding
+			this.state.currentStep = OnboardingStep.WELCOME;
+			this.displayCurrentStep();
+		}
+	}
+
+	/**
 	 * Display welcome step
 	 */
 	private displayWelcomeStep() {
 		// Header
-		this.headerEl.createEl("h1", { text: t("Welcome to Task Genius") });
-		this.headerEl.createEl("p", {
+		this.onboardingHeaderEl.createEl("h1", { text: t("Welcome to Task Genius") });
+		this.onboardingHeaderEl.createEl("p", {
 			text: t(
 				"Transform your task management with advanced progress tracking and workflow automation"
 			),
 			cls: "onboarding-subtitle",
 		});
 
-		// Content
+		// Content - reuse existing welcome step logic from modal
 		const content = this.onboardingContentEl;
-
-		// Welcome message
 		const welcomeSection = content.createDiv("welcome-section");
 
 		// Plugin features overview
@@ -180,28 +253,28 @@ export class OnboardingModal extends Modal {
 
 		const features = [
 			{
-				icon: "bar-chart-3", // Lucide bar chart icon
+				icon: "bar-chart-3",
 				title: t("Progress Tracking"),
 				description: t(
 					"Visual progress bars and completion tracking for all your tasks"
 				),
 			},
 			{
-				icon: "building", // Lucide building icon for project management
+				icon: "building",
 				title: t("Project Management"),
 				description: t(
 					"Organize tasks by projects with advanced filtering and sorting"
 				),
 			},
 			{
-				icon: "zap", // Lucide lightning bolt icon
+				icon: "zap",
 				title: t("Workflow Automation"),
 				description: t(
 					"Automate task status changes and improve your productivity"
 				),
 			},
 			{
-				icon: "calendar", // Lucide calendar icon
+				icon: "calendar",
 				title: t("Multiple Views"),
 				description: t(
 					"Kanban boards, calendars, Gantt charts, and more visualization options"
@@ -233,8 +306,8 @@ export class OnboardingModal extends Modal {
 	 */
 	private displayUserLevelSelectStep() {
 		// Header
-		this.headerEl.createEl("h1", { text: t("Choose Your Usage Mode") });
-		this.headerEl.createEl("p", {
+		this.onboardingHeaderEl.createEl("h1", { text: t("Choose Your Usage Mode") });
+		this.onboardingHeaderEl.createEl("p", {
 			text: t(
 				"Select the configuration that best matches your task management experience"
 			),
@@ -259,8 +332,8 @@ export class OnboardingModal extends Modal {
 		}
 
 		// Header
-		this.headerEl.createEl("h1", { text: t("Configuration Preview") });
-		this.headerEl.createEl("p", {
+		this.onboardingHeaderEl.createEl("h1", { text: t("Configuration Preview") });
+		this.onboardingHeaderEl.createEl("p", {
 			text: t(
 				"Review the settings that will be applied for your selected mode"
 			),
@@ -272,19 +345,6 @@ export class OnboardingModal extends Modal {
 			this.onboardingContentEl,
 			this.state.selectedConfig
 		);
-
-		// Task guide option
-		const optionsSection =
-			this.onboardingContentEl.createDiv("config-options");
-
-		new Setting(optionsSection)
-			.setName(t("Include task creation guide"))
-			.setDesc(t("Show a quick tutorial on creating your first task"))
-			.addToggle((toggle) => {
-				toggle.setValue(!this.state.skipTaskGuide).onChange((value) => {
-					this.state.skipTaskGuide = !value;
-				});
-			});
 	}
 
 	/**
@@ -292,8 +352,8 @@ export class OnboardingModal extends Modal {
 	 */
 	private displayTaskCreationGuideStep() {
 		// Header
-		this.headerEl.createEl("h1", { text: t("Create Your First Task") });
-		this.headerEl.createEl("p", {
+		this.onboardingHeaderEl.createEl("h1", { text: t("Create Your First Task") });
+		this.onboardingHeaderEl.createEl("p", {
 			text: t("Learn how to create and format tasks in Task Genius"),
 			cls: "onboarding-subtitle",
 		});
@@ -309,8 +369,8 @@ export class OnboardingModal extends Modal {
 		if (!this.state.selectedConfig) return;
 
 		// Header
-		this.headerEl.createEl("h1", { text: t("Setup Complete!") });
-		this.headerEl.createEl("p", {
+		this.onboardingHeaderEl.createEl("h1", { text: t("Setup Complete!") });
+		this.onboardingHeaderEl.createEl("p", {
 			text: t("Task Genius is now configured and ready to use"),
 			cls: "onboarding-subtitle",
 		});
@@ -328,19 +388,27 @@ export class OnboardingModal extends Modal {
 	private updateButtonStates() {
 		const step = this.state.currentStep;
 
-		// Skip button - only show on welcome
+		// Skip button - show on settings check and welcome
 		this.skipButton.buttonEl.style.display =
-			step === OnboardingStep.WELCOME ? "inline-block" : "none";
+			step === OnboardingStep.SETTINGS_CHECK || step === OnboardingStep.WELCOME
+				? "inline-block" : "none";
 
-		// Back button - hide on first step
+		// Back button - hide on first two steps
 		this.backButton.buttonEl.style.display =
-			step === OnboardingStep.WELCOME ? "none" : "inline-block";
+			step <= OnboardingStep.WELCOME ? "none" : "inline-block";
 
-		// Next button
+		// Next button text and state
 		const isLastStep = step === OnboardingStep.COMPLETE;
-		this.nextButton.setButtonText(
-			isLastStep ? t("Start Using Task Genius") : t("Next")
-		);
+		const isSettingsCheck = step === OnboardingStep.SETTINGS_CHECK;
+		
+		if (isSettingsCheck) {
+			this.nextButton.buttonEl.style.display = "none"; // Hide on settings check
+		} else {
+			this.nextButton.buttonEl.style.display = "inline-block";
+			this.nextButton.setButtonText(
+				isLastStep ? t("Start Using Task Genius") : t("Next")
+			);
+		}
 
 		// Enable/disable next based on selection
 		if (step === OnboardingStep.USER_LEVEL_SELECT) {
@@ -355,6 +423,7 @@ export class OnboardingModal extends Modal {
 	 */
 	private async handleSkip() {
 		await this.configManager.skipOnboarding();
+		this.onComplete();
 		this.close();
 	}
 
@@ -362,7 +431,7 @@ export class OnboardingModal extends Modal {
 	 * Handle back navigation
 	 */
 	private handleBack() {
-		if (this.state.currentStep > OnboardingStep.WELCOME) {
+		if (this.state.currentStep > OnboardingStep.SETTINGS_CHECK) {
 			this.state.currentStep--;
 
 			// Skip task guide if it was skipped
@@ -450,13 +519,20 @@ export class OnboardingModal extends Modal {
 				this.state.selectedConfig.mode
 			);
 
-			// Close modal and trigger callback
-			this.close();
+			// Close view and trigger callback
 			this.onComplete();
+			this.close();
 		} catch (error) {
 			console.error("Failed to complete onboarding:", error);
 			this.state.isCompleting = false;
 			this.updateButtonStates();
 		}
+	}
+
+	/**
+	 * Close the onboarding view
+	 */
+	private close() {
+		this.leaf.detach();
 	}
 }

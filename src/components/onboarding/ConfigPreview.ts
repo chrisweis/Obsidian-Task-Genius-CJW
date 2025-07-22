@@ -1,8 +1,15 @@
-import { OnboardingConfig } from "../../utils/OnboardingConfigManager";
+import { OnboardingConfig, OnboardingConfigManager } from "../../utils/OnboardingConfigManager";
 import { t } from "../../translations/helper";
 import { setIcon } from "obsidian";
+import type TaskProgressBarPlugin from "../../index";
 
 export class ConfigPreview {
+	private configManager: OnboardingConfigManager;
+
+	constructor(configManager: OnboardingConfigManager) {
+		this.configManager = configManager;
+	}
+
 	/**
 	 * Render configuration preview
 	 */
@@ -144,6 +151,95 @@ export class ConfigPreview {
 			item.createSpan("setting-value").setText(
 				config.settings.fileParsingConfig.enableWorkerProcessing ? t("Enabled") : t("Disabled")
 			);
+		}
+
+		// Show configuration change preview
+		this.renderConfigurationChanges(containerEl, config);
+
+		// Customization note
+		const note = containerEl.createDiv("customization-note");
+		note.createEl("p", {
+			text: t(
+				"You can adjust any of these settings later in the plugin settings."
+			),
+			cls: "note-text",
+		});
+	}
+
+	/**
+	 * Render configuration changes preview
+	 */
+	private renderConfigurationChanges(containerEl: HTMLElement, config: OnboardingConfig) {
+		try {
+			const preview = this.configManager.getConfigurationPreview(config.mode);
+			
+			// Show change summary section
+			const changesSection = containerEl.createDiv("config-changes-summary");
+			changesSection.createEl("h3", { text: t("Configuration Changes") });
+
+			// User custom views preserved
+			if (preview.userCustomViewsPreserved.length > 0) {
+				const preservedSection = changesSection.createDiv("preserved-views");
+				const preservedHeader = preservedSection.createDiv("preserved-header");
+				const preservedIcon = preservedHeader.createSpan("preserved-icon");
+				setIcon(preservedIcon, "shield-check");
+				preservedHeader.createSpan("preserved-text").setText(
+					t("Your custom views will be preserved") + ` (${preview.userCustomViewsPreserved.length})`
+				);
+				
+				const preservedList = preservedSection.createEl("ul", { cls: "preserved-views-list" });
+				preview.userCustomViewsPreserved.forEach(view => {
+					const item = preservedList.createEl("li");
+					const viewIcon = item.createSpan();
+					setIcon(viewIcon, view.icon || "list");
+					item.createSpan().setText(" " + view.name);
+				});
+			}
+
+			// Views to be added
+			if (preview.viewsToAdd.length > 0) {
+				const addedSection = changesSection.createDiv("added-views");
+				const addedIcon = addedSection.createSpan("change-icon");
+				setIcon(addedIcon, "plus-circle");
+				addedSection.createSpan("change-text").setText(
+					t("New views to be added") + ` (${preview.viewsToAdd.length})`
+				);
+			}
+
+			// Views to be updated
+			if (preview.viewsToUpdate.length > 0) {
+				const updatedSection = changesSection.createDiv("updated-views");
+				const updatedIcon = updatedSection.createSpan("change-icon");
+				setIcon(updatedIcon, "refresh-cw");
+				updatedSection.createSpan("change-text").setText(
+					t("Existing views to be updated") + ` (${preview.viewsToUpdate.length})`
+				);
+			}
+
+			// Settings changes
+			if (preview.settingsChanges.length > 0) {
+				const settingsChangesSection = changesSection.createDiv("settings-changes");
+				const settingsIcon = settingsChangesSection.createSpan("change-icon");
+				setIcon(settingsIcon, "settings");
+				settingsChangesSection.createSpan("change-text").setText(t("Feature changes"));
+				
+				const changesList = settingsChangesSection.createEl("ul", { cls: "settings-changes-list" });
+				preview.settingsChanges.forEach(change => {
+					const item = changesList.createEl("li");
+					item.setText(change);
+				});
+			}
+
+			// Safety note
+			const safetyNote = changesSection.createDiv("safety-note");
+			const safetyIcon = safetyNote.createSpan("safety-icon");
+			setIcon(safetyIcon, "info");
+			safetyNote.createSpan("safety-text").setText(
+				t("Only template settings will be applied. Your existing custom configurations will be preserved.")
+			);
+
+		} catch (error) {
+			console.warn("Could not generate configuration preview:", error);
 		}
 	}
 

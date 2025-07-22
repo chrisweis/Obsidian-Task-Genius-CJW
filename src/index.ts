@@ -100,7 +100,8 @@ import { IcsManager } from "./utils/ics/IcsManager";
 import { VersionManager } from "./utils/VersionManager";
 import { RebuildProgressManager } from "./utils/RebuildProgressManager";
 import { OnboardingConfigManager } from "./utils/OnboardingConfigManager";
-import { OnboardingModal } from "./components/onboarding/OnboardingModal";
+import { SettingsChangeDetector } from "./utils/SettingsChangeDetector";
+import { OnboardingView, ONBOARDING_VIEW_TYPE } from "./components/onboarding/OnboardingView";
 
 class TaskProgressBarPopover extends HoverPopover {
 	plugin: TaskProgressBarPlugin;
@@ -204,6 +205,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 	// Onboarding manager instance
 	onboardingConfigManager: OnboardingConfigManager;
+	settingsChangeDetector: SettingsChangeDetector;
 
 	// Preloaded tasks:
 	preloadedTasks: Task[] = [];
@@ -231,6 +233,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		// Initialize onboarding config manager
 		this.onboardingConfigManager = new OnboardingConfigManager(this);
+		this.settingsChangeDetector = new SettingsChangeDetector(this);
 
 		// Initialize global suggest manager
 		this.globalSuggestManager = new SuggestManager(this.app, this);
@@ -417,6 +420,16 @@ export default class TaskProgressBarPlugin extends Plugin {
 					(leaf) => new TimelineSidebarView(leaf, this)
 				);
 
+				// Register the Onboarding View
+				this.registerView(
+					ONBOARDING_VIEW_TYPE,
+					(leaf) => new OnboardingView(leaf, this, () => {
+						console.log("Onboarding completed successfully");
+						// Close the onboarding view and refresh views
+						leaf.detach();
+					})
+				);
+
 				// Add a ribbon icon for opening the TaskView
 				this.addRibbonIcon(
 					"task-genius",
@@ -440,6 +453,15 @@ export default class TaskProgressBarPlugin extends Plugin {
 					name: t("Open Timeline Sidebar"),
 					callback: () => {
 						this.activateTimelineSidebarView();
+					},
+				});
+
+				// Add a command to open the Onboarding/Setup View
+				this.addCommand({
+					id: "open-task-genius-setup",
+					name: t("Open Task Genius Setup"),
+					callback: () => {
+						this.openOnboardingView();
 					},
 				});
 			}
@@ -1080,27 +1102,48 @@ export default class TaskProgressBarPlugin extends Plugin {
 	}
 
 	/**
-	 * Check and show onboarding for first-time users
+	 * Check and show onboarding for first-time users or users who request it
 	 */
 	private async checkAndShowOnboarding(): Promise<void> {
 		try {
 			// Check if this is the first install and onboarding hasn't been completed
 			const versionResult = await this.versionManager.checkVersionChange();
-			const shouldShowOnboarding = versionResult.versionInfo.isFirstInstall && 
-				this.onboardingConfigManager.shouldShowOnboarding();
+			const isFirstInstall = versionResult.versionInfo.isFirstInstall;
+			const shouldShowOnboarding = this.onboardingConfigManager.shouldShowOnboarding();
 
-			if (shouldShowOnboarding) {
+			// For existing users with changes, let the view handle the async detection
+			// For new users, show onboarding directly
+			if ((isFirstInstall && shouldShowOnboarding) || 
+				(!isFirstInstall && shouldShowOnboarding && this.settingsChangeDetector.hasUserMadeChanges())) {
+				
 				// Small delay to ensure UI is ready
 				setTimeout(() => {
-					new OnboardingModal(this.app, this, () => {
-						console.log("Onboarding completed successfully");
-						// Optional: refresh views or trigger other updates
-					}).open();
+					this.openOnboardingView();
 				}, 500);
 			}
 		} catch (error) {
 			console.error("Failed to check onboarding status:", error);
 		}
+	}
+
+	/**
+	 * Open the onboarding view in a new leaf
+	 */
+	async openOnboardingView(): Promise<void> {
+		const { workspace } = this.app;
+
+		// Check if onboarding view is already open
+		const existingLeaf = workspace.getLeavesOfType(ONBOARDING_VIEW_TYPE)[0];
+		
+		if (existingLeaf) {
+			workspace.revealLeaf(existingLeaf);
+			return;
+		}
+
+		// Create a new leaf in the main area and open the onboarding view
+		const leaf = workspace.getLeaf("tab");
+		await leaf.setViewState({ type: ONBOARDING_VIEW_TYPE });
+		workspace.revealLeaf(leaf);
 	}
 
 	async loadSettings() {

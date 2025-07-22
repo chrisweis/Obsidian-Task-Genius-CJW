@@ -55,7 +55,9 @@ export class TaskCreationGuide {
 
 		const emojiLegend = emojiFormat.createDiv("format-legend");
 		emojiLegend.createEl("small", {
-			text: "📅 = Due date, 🔺 = High priority, # = Project tag",
+			text: t(
+				"📅 = Due date, 🔺 = High priority, #project/ = Docs project tag"
+			),
 		});
 
 		// Dataview format
@@ -74,7 +76,7 @@ export class TaskCreationGuide {
 
 		const mixedLegend = mixedFormat.createDiv("format-legend");
 		mixedLegend.createEl("small", {
-			text: "Combine emoji and dataview syntax as needed",
+			text: t("Combine emoji and dataview syntax as needed"),
 		});
 
 		// Status markers
