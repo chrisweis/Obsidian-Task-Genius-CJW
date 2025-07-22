@@ -1020,15 +1020,20 @@ export class TaskTreeItemComponent extends Component {
 			}
 		}
 
-		// If only the content changed, just update the markdown
-		if (oldTask.originalMarkdown !== task.originalMarkdown) {
-			// Just re-render the markdown content
+		// If content or originalMarkdown changed, update the markdown display
+		if (oldTask.originalMarkdown !== task.originalMarkdown || oldTask.content !== task.content) {
+			// Re-render the markdown content
 			this.contentEl.empty();
 			this.renderMarkdown();
-		} else {
-			// Full refresh needed for other changes
-			this.element.empty();
-			this.onload();
+		}
+		
+		// Check if metadata changed and need full refresh
+		if (JSON.stringify(oldTask.metadata) !== JSON.stringify(task.metadata)) {
+			// Re-render metadata
+			const metadataEl = this.parentContainer.querySelector('.task-metadata') as HTMLElement;
+			if (metadataEl) {
+				this.renderMetadata(metadataEl);
+			}
 		}
 	}
 

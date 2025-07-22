@@ -509,7 +509,12 @@ export class TaskDetailsComponent extends Component {
 			const updatedTask: Task = { ...task };
 
 			// Update task properties
-			updatedTask.content = contentInput.getValue();
+			const newContent = contentInput.getValue();
+			updatedTask.content = newContent;
+			// Also update originalMarkdown if content has changed
+			if (task.content !== newContent) {
+				updatedTask.originalMarkdown = newContent;
+			}
 
 			// Update metadata properties
 			const metadata = { ...updatedTask.metadata };
@@ -854,6 +859,7 @@ export class TaskDetailsComponent extends Component {
 		// Compare key properties that can be edited in the form
 		const compareProps = [
 			"content",
+			"originalMarkdown",
 			"project",
 			"tags",
 			"context",

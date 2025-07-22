@@ -788,14 +788,16 @@ export class TaskListItemComponent extends Component {
 			}
 		}
 
-		// If only the content changed, just update the markdown
-		if (oldTask.originalMarkdown !== task.originalMarkdown) {
-			// Just re-render the markdown content
+		// If content or originalMarkdown changed, update the markdown display
+		if (oldTask.originalMarkdown !== task.originalMarkdown || oldTask.content !== task.content) {
+			// Re-render the markdown content
 			this.contentEl.empty();
 			this.renderMarkdown();
-		} else {
-			// Full refresh needed for other changes
-			this.updateTaskDisplay();
+		}
+		
+		// Check if metadata changed and update metadata display
+		if (JSON.stringify(oldTask.metadata) !== JSON.stringify(task.metadata)) {
+			this.renderMetadata();
 		}
 	}
 

@@ -531,22 +531,28 @@ export class ContentComponent extends Component {
 
 		// Option 1: Task still visible after filtering, update in place
 		if (taskStillVisible) {
+			// Find the updated task from filteredTasks (which has been refreshed from allTasks)
+			const taskFromFiltered = this.filteredTasks.find(t => t.id === updatedTask.id);
+			if (!taskFromFiltered) {
+				return;
+			}
+			
 			// Find the rendered component and update it
 			if (!this.isTreeView) {
 				const component = this.taskComponents.find(
 					(c) => c.getTask().id === updatedTask.id
 				);
-				component?.updateTask(updatedTask); // Update rendered component
+				component?.updateTask(taskFromFiltered); // Update rendered component with filtered task
 			} else {
 				// For tree view, check root components and recursively search
 				let updated = false;
 				for (const rootComp of this.treeComponents) {
 					if (rootComp.getTask().id === updatedTask.id) {
-						rootComp.updateTask(updatedTask);
+						rootComp.updateTask(taskFromFiltered);
 						updated = true;
 						break;
 					} else {
-						if (rootComp.updateTaskRecursively(updatedTask)) {
+						if (rootComp.updateTaskRecursively(taskFromFiltered)) {
 							updated = true;
 							break;
 						}
