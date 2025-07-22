@@ -176,7 +176,7 @@ export const quickCaptureOptions = Facet.define<
 				"Quick capture.md",
 			placeholder:
 				values.find((v) => v.placeholder)?.placeholder ||
-				"Capture thoughts, tasks, or ideas...",
+				t("Capture thoughts, tasks, or ideas..."),
 			appendToFile:
 				values.find((v) => v.appendToFile !== undefined)
 					?.appendToFile ?? "append",

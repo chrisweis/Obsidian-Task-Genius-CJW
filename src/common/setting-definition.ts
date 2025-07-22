@@ -685,6 +685,15 @@ export interface TaskProgressBarSettings {
 
 	// Time Parsing Settings
 	timeParsing: TimeParsingConfig;
+
+	// Onboarding Settings
+	onboarding?: {
+		completed: boolean;
+		version: string;
+		configMode: 'beginner' | 'advanced' | 'power' | 'custom';
+		skipOnboarding?: boolean;
+		completedAt?: string;
+	};
 }
 
 /** Define the default settings */
@@ -1355,6 +1364,15 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		perLineProcessing: true,
 		realTimeReplacement: true,
 	},
+
+	// Onboarding Defaults
+	onboarding: {
+		completed: false,
+		version: "",
+		configMode: 'beginner',
+		skipOnboarding: false,
+		completedAt: ""
+	}
 };
 
 // Helper function to get view settings safely

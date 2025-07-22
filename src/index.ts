@@ -79,6 +79,7 @@ import "./styles/view.css";
 import "./styles/view-config.css";
 import "./styles/task-status.css";
 import "./styles/quadrant/quadrant.css";
+import "./styles/onboarding.css";
 import { TaskSpecificView } from "./pages/TaskSpecificView";
 import { TASK_SPECIFIC_VIEW_TYPE } from "./pages/TaskSpecificView";
 import {
@@ -98,6 +99,8 @@ import { ViewManager } from "./pages/ViewManager";
 import { IcsManager } from "./utils/ics/IcsManager";
 import { VersionManager } from "./utils/VersionManager";
 import { RebuildProgressManager } from "./utils/RebuildProgressManager";
+import { OnboardingConfigManager } from "./utils/OnboardingConfigManager";
+import { OnboardingModal } from "./components/onboarding/OnboardingModal";
 
 class TaskProgressBarPopover extends HoverPopover {
 	plugin: TaskProgressBarPlugin;
@@ -199,6 +202,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 	// Rebuild progress manager instance
 	rebuildProgressManager: RebuildProgressManager;
 
+	// Onboarding manager instance
+	onboardingConfigManager: OnboardingConfigManager;
+
 	// Preloaded tasks:
 	preloadedTasks: Task[] = [];
 
@@ -222,6 +228,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 		// Initialize version manager first
 		this.versionManager = new VersionManager(this.app, this);
 		this.addChild(this.versionManager);
+
+		// Initialize onboarding config manager
+		this.onboardingConfigManager = new OnboardingConfigManager(this);
 
 		// Initialize global suggest manager
 		this.globalSuggestManager = new SuggestManager(this.app, this);
@@ -343,6 +352,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 			// Initialize Task Genius Icon Manager
 			this.taskGeniusIconManager = new TaskGeniusIconManager(this);
 			this.addChild(this.taskGeniusIconManager);
+
+			// Check and show onboarding for first-time users
+			this.checkAndShowOnboarding();
 
 			if (this.settings.autoCompleteParent) {
 				this.registerEditorExtension([
@@ -1065,6 +1077,30 @@ export default class TaskProgressBarPlugin extends Plugin {
 		}
 
 		// Task Genius Icon Manager cleanup is handled automatically by Component system
+	}
+
+	/**
+	 * Check and show onboarding for first-time users
+	 */
+	private async checkAndShowOnboarding(): Promise<void> {
+		try {
+			// Check if this is the first install and onboarding hasn't been completed
+			const versionResult = await this.versionManager.checkVersionChange();
+			const shouldShowOnboarding = versionResult.versionInfo.isFirstInstall && 
+				this.onboardingConfigManager.shouldShowOnboarding();
+
+			if (shouldShowOnboarding) {
+				// Small delay to ensure UI is ready
+				setTimeout(() => {
+					new OnboardingModal(this.app, this, () => {
+						console.log("Onboarding completed successfully");
+						// Optional: refresh views or trigger other updates
+					}).open();
+				}, 500);
+			}
+		} catch (error) {
+			console.error("Failed to check onboarding status:", error);
+		}
 	}
 
 	async loadSettings() {

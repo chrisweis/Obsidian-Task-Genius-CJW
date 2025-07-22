@@ -26,7 +26,7 @@ Task Genius transforms Obsidian into a powerful task management system with adva
 | **View Modes** | Inbox, Forecast, Projects, Tags, Calendar, Gantt charts, Kanban boards |
 | **Workflows** | Multi-stage workflows with automatic timestamping, templates, and process tracking |
 | **Habit Tracking** | Daily habits, streak tracking, visual calendar, and progress analytics |
-| **Quick Capture** | Alt+C hotkey, global commands, templates, and automated task creation |
+| **Quick Capture** | global commands, templates, and automated task creation |
 | **Filtering & Search** | Advanced in-editor filtering, vault-wide search, saved queries, and custom perspectives |
 | **Gamification** | Achievement rewards, custom milestones, and motivational feedback |
 

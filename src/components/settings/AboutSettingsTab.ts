@@ -1,6 +1,7 @@
 import { setIcon, Setting } from "obsidian";
 import { TaskProgressBarSettingTab } from "../../setting";
 import { t } from "../../translations/helper";
+import { OnboardingModal } from "../onboarding/OnboardingModal";
 
 export function renderAboutSettingsTab(
 	settingTab: TaskProgressBarSettingTab,
@@ -30,6 +31,26 @@ export function renderAboutSettingsTab(
 			button.setButtonText(t("Open Documentation")).onClick(() => {
 				window.open("https://taskgenius.md/docs/getting-started");
 			});
+		});
+
+	// Onboarding/Help Section
+	new Setting(containerEl)
+		.setName(t("Onboarding"))
+		.setDesc(t("Restart the welcome guide and setup wizard"))
+		.addButton((button) => {
+			button
+				.setButtonText(t("Restart Onboarding"))
+				.setIcon("graduation-cap")
+				.onClick(async () => {
+					// Reset onboarding status
+					await settingTab.plugin.onboardingConfigManager.resetOnboarding();
+					
+					// Show onboarding modal
+					new OnboardingModal(settingTab.plugin.app, settingTab.plugin, () => {
+						// Optional: refresh settings display
+						settingTab.display();
+					}).open();
+				});
 		});
 
 	new Setting(containerEl)

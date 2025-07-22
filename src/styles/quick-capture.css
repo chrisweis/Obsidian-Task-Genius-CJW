@@ -107,12 +107,6 @@
 	opacity: 0.8;
 }
 
-.suggestion-container {
-	display: flex;
-	align-items: center;
-	gap: var(--size-2-1);
-}
-
 .suggestion-icon {
 	font-size: 16px;
 	min-width: 20px;

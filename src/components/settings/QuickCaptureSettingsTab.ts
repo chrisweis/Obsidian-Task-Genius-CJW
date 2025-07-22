@@ -10,11 +10,7 @@ export function renderQuickCaptureSettingsTab(
 
 	new Setting(containerEl)
 		.setName(t("Enable quick capture"))
-		.setDesc(
-			t(
-				"Toggle this to enable Org-mode style quick capture panel. Press Alt+C to open the capture panel."
-			)
-		)
+		.setDesc(t("Toggle this to enable Org-mode style quick capture panel."))
 		.addToggle((toggle) =>
 			toggle
 				.setValue(
