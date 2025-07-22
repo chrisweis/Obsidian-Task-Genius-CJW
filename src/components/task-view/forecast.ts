@@ -981,52 +981,91 @@ export class ForecastComponent extends Component {
 	private calculateFilteredDateSections() {
 		this.dateSections = [];
 
-		// Use the helper function to get tasks for the selected date based on relevantDate
-		const selectedTasks = this.getTasksForRelevantDate(this.selectedDate);
-
-		const todayTimestamp = new Date(this.currentDate).setHours(0, 0, 0, 0);
-		const selectedTimestamp = new Date(this.selectedDate).setHours(
-			0,
-			0,
-			0,
-			0
+		// 基于选择日期重新分类所有任务
+		const selectedTimestamp = new Date(this.selectedDate).setHours(0, 0, 0, 0);
+		
+		// 获取有相关日期的任务
+		const tasksWithRelevantDate = this.allTasks.filter(
+			(task) => this.getRelevantDate(task) !== undefined
 		);
-
-		// Section for the selected date
-		if (selectedTasks.length > 0) {
-			this.dateSections.push({
-				// Format title based on whether it's today, tomorrow, or other day relative to today
-				title: this.formatSectionTitleForDate(this.selectedDate), // Use helper
-				date: new Date(this.selectedDate),
-				tasks: selectedTasks,
-				isExpanded: true,
-			});
-		}
-
-		// Add overdue/past scheduled section if applicable (selected date is today or future, and past tasks exist)
-		if (selectedTimestamp >= todayTimestamp && this.pastTasks.length > 0) {
-			this.dateSections.unshift({
-				title: t("Past Due"), // Keep title
-				date: new Date(0), // Placeholder
-				tasks: this.pastTasks, // Use pastTasks
-				isExpanded: true,
-			});
-		}
-
-		// Add future sections relative to the selected date
-		// Filter futureTasks based on their relevantDate being after selectedDate
-		const futureTasksAfterSelected = this.futureTasks.filter((task) => {
-			const relevantTimestamp = this.getRelevantDate(task);
-			// Ensure relevantTimestamp exists and is strictly greater than selectedTimestamp
-			return (
-				relevantTimestamp !== undefined &&
-				relevantTimestamp > selectedTimestamp
-			);
+		
+		// 相对于选择日期重新分类
+		const pastTasksRelativeToSelected = tasksWithRelevantDate.filter((task) => {
+			const relevantTimestamp = this.getRelevantDate(task)!;
+			return relevantTimestamp < selectedTimestamp;
+		});
+		
+		const selectedDateTasks = tasksWithRelevantDate.filter((task) => {
+			const relevantTimestamp = this.getRelevantDate(task)!;
+			return relevantTimestamp === selectedTimestamp;
+		});
+		
+		const futureTasksRelativeToSelected = tasksWithRelevantDate.filter((task) => {
+			const relevantTimestamp = this.getRelevantDate(task)!;
+			return relevantTimestamp > selectedTimestamp;
 		});
 
+		// 获取排序配置
+		const sortCriteria = this.plugin.settings.viewConfiguration.find(
+			(view) => view.id === "forecast"
+		)?.sortCriteria;
+
+		// 对重新分类的任务进行排序
+		let sortedPastTasks: Task[];
+		let sortedSelectedDateTasks: Task[];
+		let sortedFutureTasks: Task[];
+
+		if (sortCriteria && sortCriteria.length > 0) {
+			sortedPastTasks = sortTasks(
+				pastTasksRelativeToSelected,
+				sortCriteria,
+				this.plugin.settings
+			);
+			sortedSelectedDateTasks = sortTasks(
+				selectedDateTasks,
+				sortCriteria,
+				this.plugin.settings
+			);
+			sortedFutureTasks = sortTasks(
+				futureTasksRelativeToSelected,
+				sortCriteria,
+				this.plugin.settings
+			);
+		} else {
+			sortedPastTasks = this.sortTasksByPriorityAndRelevantDate(
+				pastTasksRelativeToSelected
+			);
+			sortedSelectedDateTasks = this.sortTasksByPriorityAndRelevantDate(
+				selectedDateTasks
+			);
+			sortedFutureTasks = this.sortTasksByPriorityAndRelevantDate(
+				futureTasksRelativeToSelected
+			);
+		}
+
+		// Section for the selected date
+		if (sortedSelectedDateTasks.length > 0) {
+			this.dateSections.push({
+				title: this.formatSectionTitleForDate(this.selectedDate),
+				date: new Date(this.selectedDate),
+				tasks: sortedSelectedDateTasks,
+				isExpanded: true,
+			});
+		}
+
+		// Add Past Due section if applicable
+		if (sortedPastTasks.length > 0) {
+			this.dateSections.unshift({
+				title: t("Past Due"),
+				date: new Date(0), // Placeholder
+				tasks: sortedPastTasks,
+				isExpanded: true,
+			});
+		}
+
+		// Add future sections by date
 		const dateMap = new Map<string, Task[]>();
-		futureTasksAfterSelected.forEach((task) => {
-			// We already know relevantTimestamp is defined from the filter above
+		sortedFutureTasks.forEach((task) => {
 			const relevantTimestamp = this.getRelevantDate(task)!;
 			const date = new Date(relevantTimestamp);
 			// Create date key
@@ -1037,7 +1076,7 @@ export class ForecastComponent extends Component {
 			if (!dateMap.has(dateKey)) {
 				dateMap.set(dateKey, []);
 			}
-			// Avoid duplicates if somehow a task slipped through category logic (unlikely but safe)
+			// Avoid duplicates
 			if (!dateMap.get(dateKey)!.some((t) => t.id === task.id)) {
 				dateMap.get(dateKey)!.push(task);
 			}
@@ -1047,10 +1086,8 @@ export class ForecastComponent extends Component {
 		sortedDates.forEach((dateKey) => {
 			const [year, month, day] = dateKey.split("-").map(Number);
 			const date = new Date(year, month - 1, day);
-			const tasks = dateMap.get(dateKey)!; // Tasks within category are sorted by priority
+			const tasks = dateMap.get(dateKey)!;
 
-			// Format title relative to today for consistency, but could be relative to selectedDate
-			// Let's stick to formatting relative to today (Today, Tomorrow, DayOfWeek)
 			let title = this.formatSectionTitleForDate(date);
 
 			this.dateSections.push({
@@ -1064,6 +1101,24 @@ export class ForecastComponent extends Component {
 				),
 			});
 		});
+
+		// 处理排序配置中的降序设置
+		if (sortCriteria && sortCriteria.length > 0) {
+			const dueDateSortCriterion = sortCriteria.find(
+				(t) => t.field === "dueDate"
+			);
+			const scheduledDateSortCriterion = sortCriteria.find(
+				(t) => t.field === "scheduledDate"
+			);
+			if (dueDateSortCriterion && dueDateSortCriterion.order === "desc") {
+				this.dateSections.reverse();
+			} else if (
+				scheduledDateSortCriterion &&
+				scheduledDateSortCriterion.order === "desc"
+			) {
+				this.dateSections.reverse();
+			}
+		}
 
 		// Handle empty state in renderDateSectionsUI
 	}
