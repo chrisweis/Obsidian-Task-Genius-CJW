@@ -388,7 +388,7 @@ export class WriteAPI {
 								(fm as any).priority = md.priority;
 								console.log("[WriteAPI][FileSource] wrote fm.priority", { priority: md.priority });
 							}
-							if (md.tags !== undefined) {
+							if (md.tags !== undefined && Array.isArray(md.tags) && md.tags.length > 0) {
 								(fm as any).tags = Array.isArray(md.tags)
 									? md.tags
 									: (typeof md.tags === "string" ? [md.tags] : md.tags);
