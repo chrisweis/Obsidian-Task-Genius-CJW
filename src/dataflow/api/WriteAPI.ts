@@ -412,7 +412,7 @@ export class WriteAPI {
 							}
 							if (md.startDate !== undefined) {
 								(fm as any).startDate = formatDate(md.startDate);
-								console.log("[WriteAPI][FileSource] wrote fm.startDate", { startDate: (fm as any).startDate });
+								console.log("[WriteAPI。][FileSource] wrote fm.startDate", { startDate: (fm as any).startDate });
 							}
 							if (md.scheduledDate !== undefined) {
 								(fm as any).scheduledDate = formatDate(md.scheduledDate);
