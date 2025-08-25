@@ -432,30 +432,36 @@ export class FileSourceConfig {
     if (!this.config.statusMapping.autoDetect) {
       return;
     }
-    
+
     // Extract symbols from task status configuration
     const symbolToType: Record<string, string> = {};
-    
+    const typeToSymbols: Record<string, string[]> = {};
+
     for (const [type, symbols] of Object.entries(taskStatuses)) {
       const symbolList = symbols.split('|').filter(s => s);
+      typeToSymbols[type] = typeToSymbols[type] || [];
       for (const symbol of symbolList) {
         // Handle potential pattern like '/>' being split into '/' and '>'
         if (symbol.length === 1 || symbol === '/>') {
           if (symbol === '/>') {
             symbolToType['/'] = type;
             symbolToType['>'] = type;
+            typeToSymbols[type].push('/');
+            typeToSymbols[type].push('>');
           } else {
             symbolToType[symbol] = type;
+            typeToSymbols[type].push(symbol);
           }
         } else {
           // For multi-character symbols, add each character separately
           for (const char of symbol) {
             symbolToType[char] = type;
+            typeToSymbols[type].push(char);
           }
         }
       }
     }
-    
+
     // Update symbol to metadata mappings based on type
     const typeToMetadata: Record<string, string> = {
       'completed': 'completed',
@@ -464,16 +470,32 @@ export class FileSourceConfig {
       'abandoned': 'cancelled',
       'notStarted': 'not-started'
     };
-    
+
     for (const [symbol, type] of Object.entries(symbolToType)) {
       if (typeToMetadata[type]) {
         this.config.statusMapping.symbolToMetadata[symbol] = typeToMetadata[type];
       }
     }
-    
+
+    // Also update metadata->symbol so metadata strings map back to the user's preferred symbol
+    const preferredFallback: Record<string, string> = {
+      completed: 'x',
+      inProgress: '/',
+      planned: '?',
+      abandoned: '-',
+      notStarted: ' '
+    };
+    for (const [type, mdValue] of Object.entries(typeToMetadata)) {
+      const symbols = typeToSymbols[type] || [];
+      const preferred = symbols[0] || preferredFallback[type];
+      if (mdValue && preferred !== undefined) {
+        this.config.statusMapping.metadataToSymbol[mdValue] = preferred;
+      }
+    }
+
     this.notifyListeners();
   }
-  
+
   /**
    * Create a configuration preset for common use cases
    */

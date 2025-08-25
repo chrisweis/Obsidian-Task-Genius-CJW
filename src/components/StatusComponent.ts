@@ -70,7 +70,7 @@ export class StatusComponent extends Component {
 					// Create checkbox-like element for the status
 					interactiveElement = createTaskCheckbox(
 						status.text,
-						this.task,
+						{ ...this.task, status: status.text } as any,
 						statusEl
 					);
 				}

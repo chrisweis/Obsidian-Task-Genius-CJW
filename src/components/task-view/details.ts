@@ -55,6 +55,27 @@ export function getStatusText(
 	return statusTextMap[status as keyof typeof statusTextMap] || "No status";
 }
 
+function mapTextStatusToSymbol(status: string): string {
+	if (!status) return " ";
+	if (status.length === 1) return status; // already a symbol mark
+	const map: Record<string, string> = {
+		"completed": "x",
+		"done": "x",
+		"finished": "x",
+		"in-progress": "/",
+		"in progress": "/",
+		"doing": "/",
+		"planned": "?",
+		"todo": "?",
+		"cancelled": "-",
+		"canceled": "-",
+		"not-started": " ",
+		"not started": " ",
+	};
+	const key = status.toLowerCase();
+	return map[key] ?? status;
+}
+
 export function createTaskCheckbox(
 	status: string,
 	task: Task,
@@ -64,10 +85,9 @@ export function createTaskCheckbox(
 		cls: "task-list-item-checkbox",
 		type: "checkbox",
 	});
-	checkbox.dataset.task = status;
-	if (status !== " ") {
-		checkbox.checked = true;
-	}
+	const symbol = mapTextStatusToSymbol(status);
+	checkbox.dataset.task = symbol;
+	checkbox.checked = symbol !== " ";
 
 	return checkbox;
 }

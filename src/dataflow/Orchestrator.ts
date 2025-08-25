@@ -138,6 +138,12 @@ export class DataflowOrchestrator {
 				this.plugin.settings.fileSource,
 				this.fileFilterManager
 			);
+			// Keep FileSource status mapping in sync with Task Status settings
+			try {
+				this.fileSource.syncStatusMappingFromSettings(this.plugin.settings.taskStatuses);
+			} catch (e) {
+				console.warn("[DataflowOrchestrator] Failed to sync FileSource status mapping on init", e);
+			}
 		}
 	}
 
@@ -612,6 +618,14 @@ export class DataflowOrchestrator {
 				this.fileFilterManager
 			);
 			this.fileSource.initialize();
+			// Sync status mapping from Task Status settings on creation
+			try {
+				if (settings?.taskStatuses) {
+					this.fileSource.syncStatusMappingFromSettings(settings.taskStatuses);
+				}
+			} catch (e) {
+				console.warn("[DataflowOrchestrator] Failed to sync FileSource status mapping on settings create", e);
+			}
 		} else if (!settings?.fileSource?.enabled && this.fileSource) {
 			// Disable FileSource if it exists but is disabled
 			this.fileSource.cleanup();
@@ -619,6 +633,15 @@ export class DataflowOrchestrator {
 		} else if (this.fileSource && settings?.fileSource) {
 			// Update existing FileSource configuration
 			this.fileSource.updateConfig(settings.fileSource);
+		}
+
+		// Always try syncing status mapping when settings update and FileSource is active
+		if (this.fileSource && settings?.taskStatuses) {
+			try {
+				this.fileSource.syncStatusMappingFromSettings(settings.taskStatuses);
+			} catch (e) {
+				console.warn("[DataflowOrchestrator] Failed to sync FileSource status mapping on settings update", e);
+			}
 		}
 
 		// Update FileFilterManager

@@ -5,7 +5,7 @@
  * and treated as tasks with various strategies and options.
  */
 
-import { Setting } from "obsidian";
+import { Setting, Notice } from "obsidian";
 import type TaskProgressBarPlugin from "../../index";
 import type { FileSourceConfiguration } from "../../types/file-source";
 import { t } from "../../translations/helper";
@@ -716,6 +716,64 @@ function createStatusMappingSection(
 		);
 
 	if (config.statusMapping && config.statusMapping.enabled) {
+
+			// Sync mapping from Task Status Settings
+			new Setting(containerEl)
+				.setName(t("Sync from Task Status Settings"))
+				.setDesc(t("Populate FileSource status mapping from your checkbox status configuration"))
+				.addButton((button) =>
+					button
+						.setButtonText(t("Sync now"))
+						.setCta()
+						.onClick(async () => {
+							try {
+								const orchestrator = (plugin as any).dataflowOrchestrator;
+								if (orchestrator?.updateSettings) {
+									// Delegate to orchestrator so in-memory FileSource mapping syncs immediately
+									orchestrator.updateSettings(plugin.settings);
+									new Notice(t("FileSource status mapping synced"));
+								} else {
+									// Fallback: derive symbol->metadata mapping from Task Status settings
+									const taskStatuses = (plugin.settings.taskStatuses || {}) as Record<string, string>;
+									const symbolToType: Record<string, string> = {};
+									for (const [type, symbols] of Object.entries(taskStatuses)) {
+										const list = String(symbols).split("|").filter(Boolean);
+										for (const sym of list) {
+											if (sym === "/>") { symbolToType["/"] = type; symbolToType[">"] = type; continue; }
+											if (sym.length === 1) symbolToType[sym] = type; else {
+												for (const ch of sym) symbolToType[ch] = type;
+											}
+										}
+									}
+									const typeToMetadata: Record<string, string> = {
+										completed: "completed",
+										inProgress: "in-progress",
+										planned: "planned",
+										abandoned: "cancelled",
+										notStarted: "not-started",
+									};
+									plugin.settings.fileSource.statusMapping = plugin.settings.fileSource.statusMapping || {
+										enabled: true,
+										metadataToSymbol: {},
+										symbolToMetadata: {},
+										autoDetect: true,
+										caseSensitive: false,
+									};
+									plugin.settings.fileSource.statusMapping.symbolToMetadata = {};
+									for (const [symbol, type] of Object.entries(symbolToType)) {
+										const md = typeToMetadata[type];
+										if (md) plugin.settings.fileSource.statusMapping.symbolToMetadata[symbol] = md;
+									}
+									await plugin.saveSettings();
+									new Notice(t("FileSource status mapping synced"));
+								}
+							} catch (e) {
+								console.error("Failed to sync FileSource status mapping:", e);
+								new Notice(t("Failed to sync mapping"));
+							}
+						})
+				);
+
 		new Setting(containerEl)
 			.setName(t("Case Sensitive Matching"))
 			.setDesc(t("Enable case-sensitive matching for status values"))
@@ -870,7 +928,7 @@ function createPerformanceSection(
 
 	// Note: Worker Processing setting has been moved to IndexSettingsTab.ts > Performance Configuration section
 	// This avoids duplication and provides centralized control for all worker processing
-	
+
 	new Setting(containerEl)
 		.setName(t("Cache TTL"))
 		.setDesc(t("Time-to-live for cached results in milliseconds (default: 300000 = 5 minutes)"))

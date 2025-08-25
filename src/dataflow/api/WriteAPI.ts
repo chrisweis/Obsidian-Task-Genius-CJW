@@ -293,20 +293,166 @@ export class WriteAPI {
 			const preferFrontmatterTitle = cfg?.preferFrontmatterTitle ?? true;
 			const customContentField = (this.plugin.settings?.fileSource?.fileTaskProperties as any)?.customContentField as string | undefined;
 
+
+				console.log("[WriteAPI][FileSource] updateFileSourceTask start", {
+					taskId,
+					contentSource,
+					preferFrontmatterTitle,
+					customContentField,
+					updates
+				});
+
+
+				// Apply frontmatter updates for non-content fields (status, completed, metadata)
+				try {
+					const md = (updates.metadata ?? {}) as any;
+					const hasFrontmatterUpdates = (
+						updates.status !== undefined ||
+						updates.completed !== undefined ||
+						md.priority !== undefined ||
+						md.tags !== undefined ||
+						md.project !== undefined ||
+						md.context !== undefined ||
+						md.area !== undefined ||
+						md.dueDate !== undefined ||
+						md.startDate !== undefined ||
+						md.scheduledDate !== undefined
+					);
+
+					if (hasFrontmatterUpdates) {
+						// Announce start of a write operation for frontmatter updates
+						emit(this.app, Events.WRITE_OPERATION_START, { path: file.path, taskId });
+
+						const formatDate = (val: any): any => {
+							if (val === undefined || val === null) return val;
+							if (typeof val === "number") {
+								// Write as YYYY-MM-DD for frontmatter consistency
+								return new Date(val).toISOString().split("T")[0];
+							}
+							if (val instanceof Date) {
+								return val.toISOString().split("T")[0];
+							}
+							return val; // assume already a string
+						};
+ 
+						await this.app.fileManager.processFrontMatter(file, (fm) => {
+							// Top-level status/completed
+							if (updates.status !== undefined) {
+								// If status mapping is enabled, prefer writing human-readable metadata value;
+								// otherwise write the raw symbol.
+								const fsMapping = this.plugin.settings?.fileSource?.statusMapping;
+								let statusToWrite: string = updates.status as any;
+								if (fsMapping?.enabled) {
+									// Try explicit symbol->metadata mapping first
+									const mapped = fsMapping.symbolToMetadata?.[statusToWrite];
+									if (mapped) {
+										statusToWrite = mapped;
+										console.log("[WriteAPI][FileSource] mapped via symbolToMetadata", { mapped });
+									} else {
+										console.log("[WriteAPI][FileSource] fallback mapping from taskStatuses", this.plugin.settings?.taskStatuses);
+										// Derive from Task Status settings as a fallback
+										const taskStatuses = (this.plugin.settings?.taskStatuses || {}) as Record<string, string>;
+										const listByType = Object.entries(taskStatuses).map(([type, symbols]) => ({ type, symbols: String(symbols) }));
+										for (const entry of listByType) {
+											const parts = entry.symbols.split("|").filter(Boolean);
+											for (const sym of parts) {
+												if (sym === statusToWrite || (sym.length > 1 && sym.includes(statusToWrite))) {
+													// Map types to canonical metadata values
+													const typeToMetadata: Record<string, string> = {
+														completed: "completed",
+														inProgress: "in-progress",
+														planned: "planned",
+														abandoned: "cancelled",
+														notStarted: "not-started",
+													};
+													const md = typeToMetadata[entry.type];
+													if (md) {
+														statusToWrite = md;
+														console.log("[WriteAPI][FileSource] mapped via taskStatuses", { type: entry.type, md });
+													}
+													break;
+												}
+											}
+											if (statusToWrite !== (updates.status as any)) break;
+										}
+									}
+								}
+								(fm as any).status = statusToWrite;
+							}
+							if (updates.completed !== undefined) {
+								(fm as any).completed = updates.completed;
+							}
+
+							// Metadata fields
+							if (md.priority !== undefined) {
+								(fm as any).priority = md.priority;
+								console.log("[WriteAPI][FileSource] wrote fm.priority", { priority: md.priority });
+							}
+							if (md.tags !== undefined) {
+								(fm as any).tags = Array.isArray(md.tags)
+									? md.tags
+									: (typeof md.tags === "string" ? [md.tags] : md.tags);
+								console.log("[WriteAPI][FileSource] wrote fm.tags", { tags: (fm as any).tags });
+							}
+							if (md.project !== undefined) {
+								(fm as any).project = md.project;
+								console.log("[WriteAPI][FileSource] wrote fm.project", { project: md.project });
+							}
+							if (md.context !== undefined) {
+								(fm as any).context = md.context;
+								console.log("[WriteAPI][FileSource] wrote fm.context", { context: md.context });
+							}
+							if (md.area !== undefined) {
+								(fm as any).area = md.area;
+								console.log("[WriteAPI][FileSource] wrote fm.area", { area: md.area });
+							}
+							if (md.dueDate !== undefined) {
+								(fm as any).dueDate = formatDate(md.dueDate);
+								console.log("[WriteAPI][FileSource] wrote fm.dueDate", { dueDate: (fm as any).dueDate });
+							}
+							if (md.startDate !== undefined) {
+								(fm as any).startDate = formatDate(md.startDate);
+								console.log("[WriteAPI][FileSource] wrote fm.startDate", { startDate: (fm as any).startDate });
+							}
+							if (md.scheduledDate !== undefined) {
+								(fm as any).scheduledDate = formatDate(md.scheduledDate);
+								console.log("[WriteAPI][FileSource] wrote fm.scheduledDate", { scheduledDate: (fm as any).scheduledDate });
+							}
+						});
+
+						// Announce completion of frontmatter write operation
+						emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: file.path, taskId });
+					}
+				} catch (error) {
+					console.error("WriteAPI: Error updating file-source task frontmatter:", error);
+					return { success: false, error: String(error) };
+				}
+
 			// Handle content/title change
-			if (updates.content && updates.content !== originalTask.content) {
+			const shouldWriteContent = typeof updates.content === "string";
+			console.log("[WriteAPI][FileSource] content change gate", {
+				originalContent: originalTask.content,
+				updatesContent: updates.content,
+				shouldWriteContent
+			});
+			if (shouldWriteContent) {
 				try {
 					// Announce start of a write operation
 					emit(this.app, Events.WRITE_OPERATION_START, { path: file.path, taskId });
 
+					console.log("[WriteAPI][FileSource] content branch", { contentSource, preferFrontmatterTitle, customContentField });
 					switch (contentSource) {
 						case "title": {
 							if (preferFrontmatterTitle) {
 								await this.app.fileManager.processFrontMatter(file, (fm) => {
 									(fm as any).title = updates.content;
 								});
+								console.log("[WriteAPI][FileSource] wrote fm.title (branch: title)", { title: updates.content });
+								const cacheAfter = this.app.metadataCache.getFileCache(file);
+								console.log("[WriteAPI][FileSource] cache fm.title after write (branch: title)", { title: cacheAfter?.frontmatter?.title });
 							} else {
 								newFilePath = await this.renameFile(file, updates.content!);
+								console.log("[WriteAPI][FileSource] renamed file (branch: title)", { newFilePath });
 							}
 							break;
 						}
@@ -319,14 +465,35 @@ export class WriteAPI {
 								await this.app.fileManager.processFrontMatter(file, (fm) => {
 									(fm as any)[customContentField] = updates.content;
 								});
+								console.log("[WriteAPI][FileSource] wrote fm[customContentField] (branch: custom)", { field: customContentField, value: updates.content });
+								const cacheAfter = this.app.metadataCache.getFileCache(file);
+								console.log("[WriteAPI][FileSource] cache fm[customContentField] after write (branch: custom)", { field: customContentField, value: cacheAfter?.frontmatter?.[customContentField] });
+							} else if (preferFrontmatterTitle) {
+								await this.app.fileManager.processFrontMatter(file, (fm) => {
+									(fm as any).title = updates.content;
+								});
+								console.log("[WriteAPI][FileSource] wrote fm.title (branch: custom fallback)", { title: updates.content });
+								const cacheAfter2 = this.app.metadataCache.getFileCache(file);
+								console.log("[WriteAPI][FileSource] cache fm.title after write (branch: custom fallback)", { title: cacheAfter2?.frontmatter?.title });
 							} else {
 								newFilePath = await this.renameFile(file, updates.content!);
+								console.log("[WriteAPI][FileSource] renamed file (branch: custom fallback)", { newFilePath });
 							}
 							break;
 						}
 						case "filename":
 						default: {
-							newFilePath = await this.renameFile(file, updates.content!);
+							if (preferFrontmatterTitle) {
+								await this.app.fileManager.processFrontMatter(file, (fm) => {
+									(fm as any).title = updates.content;
+								});
+								console.log("[WriteAPI][FileSource] wrote fm.title (branch: filename/default)", { title: updates.content });
+								const cacheAfter = this.app.metadataCache.getFileCache(file);
+								console.log("[WriteAPI][FileSource] cache fm.title after write (branch: filename/default)", { title: cacheAfter?.frontmatter?.title });
+							} else {
+								newFilePath = await this.renameFile(file, updates.content!);
+								console.log("[WriteAPI][FileSource] renamed file (branch: filename/default)", { newFilePath });
+							}
 							break;
 						}
 					}

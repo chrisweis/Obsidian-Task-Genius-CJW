@@ -339,7 +339,7 @@ export class FileSource {
       // Check frontmatter template references
       if (config.checkTemplateMetadata && fileCache?.frontmatter) {
         const frontmatter = fileCache.frontmatter;
-        return frontmatter.template === templatePath || 
+        return frontmatter.template === templatePath ||
                frontmatter.templateFile === templatePath ||
                frontmatter.templatePath === templatePath;
       }
@@ -576,7 +576,7 @@ export class FileSource {
       // Check if file matches any template path
       const matchesTemplate = templateConfig.templatePaths.some(templatePath => {
         // Simple path matching - could be enhanced with more sophisticated matching
-        return filePath.includes(templatePath) || 
+        return filePath.includes(templatePath) ||
                (fileCache?.frontmatter?.template === templatePath) ||
                (fileCache?.frontmatter?.templateFile === templatePath);
       });
@@ -603,23 +603,41 @@ export class FileSource {
 
     switch (config.contentSource) {
       case 'filename':
+        // If user prefers frontmatter title, show it over filename
+        if (config.preferFrontmatterTitle && fileCache?.frontmatter?.title) {
+          return fileCache.frontmatter.title as string;
+        }
         return config.stripExtension ? fileNameWithoutExt : fileName;
 
       case 'title':
         // Always prefer frontmatter title if available, fallback to filename without extension
-        return fileCache?.frontmatter?.title || fileNameWithoutExt;
+        return (fileCache?.frontmatter?.title as string) || fileNameWithoutExt;
 
       case 'h1':
         const h1 = fileCache?.headings?.find(h => h.level === 1);
-        return h1?.heading || fileNameWithoutExt;
+        return (h1?.heading as string) || fileNameWithoutExt;
 
       case 'custom':
         if (config.customContentField && fileCache?.frontmatter) {
-          return fileCache.frontmatter[config.customContentField] || fileNameWithoutExt;
+          const val = fileCache.frontmatter[config.customContentField];
+          if (val) return val as string;
+          // If custom field not present, optionally prefer frontmatter title
+          if (config.preferFrontmatterTitle && fileCache.frontmatter.title) {
+            return fileCache.frontmatter.title as string;
+          }
+          return fileNameWithoutExt;
+        }
+        // No custom field specified: optionally prefer frontmatter title
+        if (config.preferFrontmatterTitle && fileCache?.frontmatter?.title) {
+          return fileCache.frontmatter.title as string;
         }
         return fileNameWithoutExt;
 
       default:
+        // Default to respecting preferFrontmatterTitle when available
+        if (config.preferFrontmatterTitle && fileCache?.frontmatter?.title) {
+          return fileCache.frontmatter.title as string;
+        }
         return config.stripExtension ? fileNameWithoutExt : fileName;
     }
   }
@@ -636,18 +654,34 @@ export class FileSource {
     const config = this.config.getConfig();
     const frontmatter = fileCache?.frontmatter || {};
 
-    // Get status from frontmatter and map it to symbol if needed
-    let status = frontmatter.status || config.fileTaskProperties.defaultStatus;
-
-    // Apply status mapping if enabled
-    if (config.statusMapping && config.statusMapping.enabled && frontmatter.status) {
-      // Try to map the metadata value to a symbol
-      const mappedStatus = this.config.mapMetadataToSymbol(frontmatter.status);
-      if (mappedStatus !== frontmatter.status) {
-        // Mapping was successful
-        status = mappedStatus;
-        console.log(`[FileSource] Mapped status '${frontmatter.status}' to '${mappedStatus}' for ${filePath}`);
+    // Derive status from frontmatter and eagerly map textual metadata to a symbol
+    const rawStatus = frontmatter.status ?? "";
+    const toSymbol = (val: string): string => {
+      if (!val) return config.fileTaskProperties.defaultStatus;
+      // Already a single-character mark
+      if (val.length === 1) return val;
+      const sm = this.config.getConfig().statusMapping;
+      const target = sm.caseSensitive ? val : String(val).toLowerCase();
+      // Try configured metadata->symbol table first
+      for (const [k, sym] of Object.entries(sm.metadataToSymbol || {})) {
+        const key = sm.caseSensitive ? k : k.toLowerCase();
+        if (key === target) return sym;
       }
+      // Fallback to common defaults to be robust
+      const defaults: Record<string, string> = {
+        "completed": "x", "done": "x", "finished": "x",
+        "in-progress": "/", "in progress": "/", "doing": "/",
+        "planned": "?", "todo": "?",
+        "cancelled": "-", "canceled": "-",
+        "not-started": " ", "not started": " ",
+      };
+      const norm = String(val).toLowerCase();
+      if (defaults[norm] !== undefined) return defaults[norm];
+      return config.fileTaskProperties.defaultStatus;
+    };
+    let status = rawStatus ? toSymbol(rawStatus) : config.fileTaskProperties.defaultStatus;
+    if (rawStatus && status !== rawStatus) {
+      console.log(`[FileSource] Mapped status '${rawStatus}' to '${status}' for ${filePath}`);
     }
 
     // Extract standard task metadata
@@ -895,6 +929,17 @@ export class FileSource {
    */
   updateConfiguration(config: Partial<FileSourceConfiguration>): void {
     this.config.updateConfig(config);
+  }
+
+  /**
+   * Sync FileSource status mapping from plugin TaskStatus settings
+   */
+  public syncStatusMappingFromSettings(taskStatuses: Record<string, string>): void {
+    try {
+      this.config.syncWithTaskStatuses(taskStatuses);
+    } catch (e) {
+      console.warn("[FileSource] Failed to sync status mapping from settings", e);
+    }
   }
 
   /**

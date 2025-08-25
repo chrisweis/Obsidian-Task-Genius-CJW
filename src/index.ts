@@ -326,14 +326,6 @@ export default class TaskProgressBarPlugin extends Plugin {
 					})
 			);
 
-			// Add a ribbon icon for opening the TaskView
-			this.addRibbonIcon(
-				"task-genius",
-				t("Open Task Genius view"),
-				() => {
-					this.activateTaskView();
-				}
-			);
 			// Add a command to open the TaskView
 			this.addCommand({
 				id: "open-task-genius-view",
@@ -367,6 +359,16 @@ export default class TaskProgressBarPlugin extends Plugin {
 			addIcon("planned", getStatusIcon("planned"));
 			addIcon("abandoned", getStatusIcon("abandoned"));
 			addIcon("notStarted", getStatusIcon("notStarted"));
+
+
+			// Add a ribbon icon for opening the TaskView
+			this.addRibbonIcon(
+				"task-genius",
+				t("Open Task Genius view"),
+				() => {
+					this.activateTaskView();
+				}
+			);
 
 			// Initialize dataflow orchestrator (primary architecture)
 			try {

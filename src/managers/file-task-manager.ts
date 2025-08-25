@@ -217,17 +217,21 @@ export class FileTaskManagerImpl implements FileTaskManager {
 	 */
 	fileTaskToPropertyUpdates(
 		task: FileTask,
-		mapping: FileTaskPropertyMapping = DEFAULT_FILE_TASK_MAPPING
+		mapping: FileTaskPropertyMapping = DEFAULT_FILE_TASK_MAPPING,
+		excludeContent: boolean = false
 	): Record<string, any> {
 		const updates: Record<string, any> = {};
 
 		// Update content property based on configuration
-		const config = this.fileSourceConfig?.fileTaskProperties;
-		if (config?.contentSource && config.contentSource !== 'filename') {
-			// Only update content property if it's not handled by file renaming
-			const shouldUpdateProperty = this.shouldUpdateContentProperty(config);
-			if (shouldUpdateProperty) {
-				updates[mapping.contentProperty] = task.content;
+		// Skip content if it was already handled separately (e.g., in handleContentUpdate)
+		if (!excludeContent) {
+			const config = this.fileSourceConfig?.fileTaskProperties;
+			if (config?.contentSource && config.contentSource !== 'filename') {
+				// Only update content property if it's not handled by file renaming
+				const shouldUpdateProperty = this.shouldUpdateContentProperty(config);
+				if (shouldUpdateProperty) {
+					updates[mapping.contentProperty] = task.content;
+				}
 			}
 		}
 		// Note: If contentSource is 'filename', content updates are handled by file renaming
@@ -317,10 +321,12 @@ export class FileTaskManagerImpl implements FileTaskManager {
 	): Promise<void> {
 		// Merge updates into the task
 		const updatedTask = { ...task, ...updates };
+		let contentHandledSeparately = false;
 
 		// Handle content changes - re-extract time components if content changed
 		if (updates.content && updates.content !== task.content) {
 			await this.handleContentUpdate(task, updates.content);
+			contentHandledSeparately = true;
 			
 			// Re-extract time components from updated content
 			const enhancedMetadata = this.extractTimeComponents(updates.content);
@@ -352,8 +358,12 @@ export class FileTaskManagerImpl implements FileTaskManager {
 			}
 		}
 
-		// Convert to property updates (excluding content which is handled separately)
-		const propertyUpdates = this.fileTaskToPropertyUpdates(updatedTask);
+		// Convert to property updates (excluding content if it was handled separately)
+		const propertyUpdates = this.fileTaskToPropertyUpdates(
+			updatedTask,
+			DEFAULT_FILE_TASK_MAPPING,
+			contentHandledSeparately
+		);
 
 		console.log(
 			`[FileTaskManager] Updating file task ${task.content} with properties:`,
@@ -363,7 +373,12 @@ export class FileTaskManagerImpl implements FileTaskManager {
 		// Update properties through the source entry
 		for (const [key, value] of Object.entries(propertyUpdates)) {
 			try {
-				task.sourceEntry.updateProperty(key, value);
+				// Note: updateProperty might be async, so we await it
+				if (typeof task.sourceEntry.updateProperty === 'function') {
+					await Promise.resolve(task.sourceEntry.updateProperty(key, value));
+				} else {
+					console.error(`updateProperty method not available on source entry for key: ${key}`);
+				}
 			} catch (error) {
 				console.error(`Failed to update property ${key}:`, error);
 			}
@@ -445,10 +460,15 @@ export class FileTaskManagerImpl implements FileTaskManager {
 	): Promise<void> {
 		try {
 			// Update the title property in frontmatter through the source entry
-			task.sourceEntry.updateProperty('title', newTitle);
-			console.log(
-				`[FileTaskManager] Updated frontmatter title for ${task.filePath} to: ${newTitle}`
-			);
+			// Note: updateProperty might be async, so we await it
+			if (typeof task.sourceEntry.updateProperty === 'function') {
+				await Promise.resolve(task.sourceEntry.updateProperty('title', newTitle));
+				console.log(
+					`[FileTaskManager] Updated frontmatter title for ${task.filePath} to: ${newTitle}`
+				);
+			} else {
+				throw new Error('updateProperty method not available on source entry');
+			}
 		} catch (error) {
 			console.error(`[FileTaskManager] Failed to update frontmatter title:`, error);
 			// Fallback to file renaming if frontmatter update fails
@@ -520,10 +540,15 @@ export class FileTaskManagerImpl implements FileTaskManager {
 	): Promise<void> {
 		try {
 			// Update the custom field in frontmatter through the source entry
-			task.sourceEntry.updateProperty(fieldName, newContent);
-			console.log(
-				`[FileTaskManager] Updated custom field '${fieldName}' for ${task.filePath} to: ${newContent}`
-			);
+			// Note: updateProperty might be async, so we await it
+			if (typeof task.sourceEntry.updateProperty === 'function') {
+				await Promise.resolve(task.sourceEntry.updateProperty(fieldName, newContent));
+				console.log(
+					`[FileTaskManager] Updated custom field '${fieldName}' for ${task.filePath} to: ${newContent}`
+				);
+			} else {
+				throw new Error('updateProperty method not available on source entry');
+			}
 		} catch (error) {
 			console.error(`[FileTaskManager] Failed to update custom field '${fieldName}':`, error);
 		}
