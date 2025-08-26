@@ -71,9 +71,16 @@ export class ProjectBasesView extends BaseTaskBasesView {
 			"[ProjectBasesView] onDataUpdated called, isLoaded:",
 			this.isLoaded
 		);
+		console.log("[ProjectBasesView] this.data type:", typeof this.data);
+		console.log("[ProjectBasesView] this.data:", this.data);
 
 		// Force convert entries to tasks to get latest data
-		this.convertEntriesToTasks();
+		try {
+			this.convertEntriesToTasks();
+		} catch (error) {
+			console.error("[ProjectBasesView] Error converting entries to tasks:", error);
+			this.tasks = [];
+		}
 
 		// Then update the view
 		this.updateProjectTasks();

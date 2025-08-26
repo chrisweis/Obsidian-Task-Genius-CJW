@@ -2,7 +2,7 @@
  * Version Manager for handling plugin version detection and upgrade logic
  */
 
-import { App, Component, Notice } from "obsidian";
+import { App, Component, Notice, requireApiVersion } from "obsidian";
 import { LocalStorageCache } from "../cache/local-storage-cache";
 import TaskProgressBarPlugin from "../index";
 
@@ -361,23 +361,7 @@ export class VersionManager extends Component {
 	 */
 	public isObsidianVersionSupported(requiredVersion: string): boolean {
 		try {
-			// Use Obsidian's requireApiVersion function if available
-			if (typeof (window as any).requireApiVersion === "function") {
-				return (window as any).requireApiVersion(requiredVersion);
-			}
-
-			// Fallback: check if the app has version information
-			const obsidianVersion = (this.app as any).appVersion;
-			if (obsidianVersion) {
-				return (
-					this.compareVersions(obsidianVersion, requiredVersion) >= 0
-				);
-			}
-
-			console.warn(
-				"Cannot determine Obsidian version, assuming not supported"
-			);
-			return false;
+			return requireApiVersion(requiredVersion)
 		} catch (error) {
 			console.error("Error checking Obsidian version support:", error);
 			return false;

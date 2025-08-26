@@ -344,10 +344,16 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 			// Debug Bases API availability
 			this.debugBasesApiAvailability(entry);
 
-			// Map task metadata to Bases properties
+			// Handle content/title updates specially based on user preferences
+			if (originalTask.content !== updatedTask.content) {
+				await this.handleContentUpdate(entry, originalTask, updatedTask);
+			}
+
+			// Map task metadata to Bases properties (excluding content which was handled above)
 			const updates = this.mapTaskMetadataToBases(
 				originalTask,
-				updatedTask
+				updatedTask,
+				true // exclude content from property updates
 			);
 			console.log(`[${this.type}] Mapped updates:`, updates);
 
@@ -429,16 +435,190 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 	}
 
 	/**
+	 * Handle content/title update based on user preferences
+	 */
+	private async handleContentUpdate(
+		entry: any,
+		originalTask: Task,
+		updatedTask: Task
+	): Promise<void> {
+		const newContent = updatedTask.content;
+		
+		// Get file source configuration to determine how to handle title updates
+		const fileConfig = this.plugin.settings?.fileSource?.fileTaskProperties;
+		const contentSource = fileConfig?.contentSource || 'title';
+		const preferFrontmatterTitle = fileConfig?.preferFrontmatterTitle ?? true;
+		
+		console.log(`[${this.type}] Handling content update:`, {
+			contentSource,
+			preferFrontmatterTitle,
+			newContent
+		});
+
+		try {
+			// First try to update using the Bases API based on configuration
+			switch (contentSource) {
+				case 'title':
+					if (preferFrontmatterTitle) {
+						// Update frontmatter title property using Bases API
+						await this.updateBasesProperty(entry, 'title', newContent);
+						console.log(`[${this.type}] Updated title in frontmatter via Bases API`);
+					} else {
+						// Try to rename file through Bases API if supported
+						// Fallback to file manager if needed
+						if (!await this.tryUpdateFilenameViaBasesAPI(entry, newContent)) {
+							await this.fallbackRenameFile(entry, newContent);
+						}
+					}
+					break;
+					
+				case 'filename':
+					// Try to rename through Bases API, fallback to direct rename
+					if (!await this.tryUpdateFilenameViaBasesAPI(entry, newContent)) {
+						await this.fallbackRenameFile(entry, newContent);
+					}
+					break;
+					
+				case 'h1':
+					// Update H1 property if available, otherwise fallback
+					if (!await this.tryUpdateH1ViaBasesAPI(entry, newContent)) {
+						await this.fallbackUpdateH1(entry, newContent);
+					}
+					break;
+					
+				case 'custom':
+					// Update custom field using Bases API
+					const customField = fileConfig?.customContentField;
+					if (customField) {
+						await this.updateBasesProperty(entry, customField, newContent);
+						console.log(`[${this.type}] Updated custom field '${customField}' via Bases API`);
+					}
+					break;
+					
+				default:
+					// Default to updating title property
+					await this.updateBasesProperty(entry, 'title', newContent);
+					break;
+			}
+		} catch (error) {
+			console.error(`[${this.type}] Failed to update content:`, error);
+			// Try fallback to default update
+			await this.updateBasesProperty(entry, 'title', newContent);
+		}
+	}
+
+	/**
+	 * Try to update filename through Bases API
+	 */
+	private async tryUpdateFilenameViaBasesAPI(entry: any, newContent: string): Promise<boolean> {
+		try {
+			// Check if Bases API supports file renaming
+			if (typeof entry.renameFile === 'function') {
+				await entry.renameFile(newContent);
+				console.log(`[${this.type}] Renamed file via Bases API`);
+				return true;
+			}
+			// Try updating through file.name property
+			if (entry.file && typeof entry.updateProperty === 'function') {
+				await entry.updateProperty('file.name', newContent);
+				console.log(`[${this.type}] Updated file name via Bases property`);
+				return true;
+			}
+		} catch (error) {
+			console.log(`[${this.type}] Cannot rename via Bases API, will use fallback`);
+		}
+		return false;
+	}
+
+	/**
+	 * Try to update H1 heading through Bases API
+	 */
+	private async tryUpdateH1ViaBasesAPI(entry: any, newContent: string): Promise<boolean> {
+		try {
+			// Try to update h1 property if it exists
+			if (typeof entry.updateProperty === 'function') {
+				await entry.updateProperty('h1', newContent);
+				console.log(`[${this.type}] Updated H1 via Bases API`);
+				return true;
+			}
+		} catch (error) {
+			console.log(`[${this.type}] Cannot update H1 via Bases API, will use fallback`);
+		}
+		return false;
+	}
+
+	/**
+	 * Fallback: Rename file using Obsidian's file manager
+	 */
+	private async fallbackRenameFile(entry: any, newContent: string): Promise<void> {
+		try {
+			const file = entry.file;
+			if (!file || !file.path) {
+				console.error(`[${this.type}] Cannot rename: no file path found`);
+				return;
+			}
+
+			// Sanitize the new name
+			const sanitizedName = newContent
+				.replace(/[\\/:*?"<>|]/g, '-')
+				.replace(/\s+/g, ' ')
+				.trim();
+				
+			if (!sanitizedName) {
+				console.error(`[${this.type}] Cannot rename: invalid new name`);
+				return;
+			}
+
+			const lastSlash = file.path.lastIndexOf('/');
+			const directory = lastSlash > 0 ? file.path.substring(0, lastSlash) : '';
+			const extension = file.extension || 'md';
+			const newPath = directory ? `${directory}/${sanitizedName}.${extension}` : `${sanitizedName}.${extension}`;
+			
+			const tFile = this.app.vault.getAbstractFileByPath(file.path);
+			if (tFile && 'extension' in tFile) {
+				await this.app.fileManager.renameFile(tFile, newPath);
+				console.log(`[${this.type}] Renamed file from ${file.path} to ${newPath} using fallback`);
+			}
+		} catch (error) {
+			console.error(`[${this.type}] Fallback rename failed:`, error);
+		}
+	}
+
+	/**
+	 * Fallback: Update H1 heading in file content
+	 */
+	private async fallbackUpdateH1(entry: any, newContent: string): Promise<void> {
+		try {
+			const file = entry.file;
+			if (!file || !file.path) {
+				console.error(`[${this.type}] Cannot update H1: no file path found`);
+				return;
+			}
+
+			const tFile = this.app.vault.getAbstractFileByPath(file.path);
+			if (tFile && 'extension' in tFile) {
+				const content = await this.app.vault.read(tFile);
+				const updatedContent = content.replace(/^#\s+.*/m, `# ${newContent}`);
+				await this.app.vault.modify(tFile, updatedContent);
+				console.log(`[${this.type}] Updated H1 heading using fallback`);
+			}
+		} catch (error) {
+			console.error(`[${this.type}] Fallback H1 update failed:`, error);
+		}
+	}
+
+	/**
 	 * Map Task metadata to Bases properties
 	 */
 	private mapTaskMetadataToBases(
 		originalTask: Task,
-		updatedTask: Task
+		updatedTask: Task,
+		excludeContent: boolean = false
 	): Record<string, any> {
 		const updates: Record<string, any> = {};
 
-		// Check content changes
-		if (originalTask.content !== updatedTask.content) {
+		// Check content changes (skip if handled separately)
+		if (!excludeContent && originalTask.content !== updatedTask.content) {
 			updates.title = updatedTask.content;
 			updates.content = updatedTask.content;
 		}
@@ -470,50 +650,45 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 			updates.priority = updatedMeta.priority;
 		}
 
-		// Dates
+		// Dates - Update both canonical and alias properties for compatibility
 		if (originalMeta.dueDate !== updatedMeta.dueDate) {
-			updates.dueDate = updatedMeta.dueDate
+			const dateValue = updatedMeta.dueDate
 				? new Date(updatedMeta.dueDate)
 				: undefined;
-			updates.due = updatedMeta.dueDate
-				? new Date(updatedMeta.dueDate)
-				: undefined;
+			updates.dueDate = dateValue;
+			updates.due = dateValue;
 		}
 
 		if (originalMeta.startDate !== updatedMeta.startDate) {
-			updates.startDate = updatedMeta.startDate
+			const dateValue = updatedMeta.startDate
 				? new Date(updatedMeta.startDate)
 				: undefined;
-			updates.start = updatedMeta.startDate
-				? new Date(updatedMeta.startDate)
-				: undefined;
+			updates.startDate = dateValue;
+			updates.start = dateValue;
 		}
 
 		if (originalMeta.scheduledDate !== updatedMeta.scheduledDate) {
-			updates.scheduledDate = updatedMeta.scheduledDate
+			const dateValue = updatedMeta.scheduledDate
 				? new Date(updatedMeta.scheduledDate)
 				: undefined;
-			updates.scheduled = updatedMeta.scheduledDate
-				? new Date(updatedMeta.scheduledDate)
-				: undefined;
+			updates.scheduledDate = dateValue;
+			updates.scheduled = dateValue;
 		}
 
 		if (originalMeta.completedDate !== updatedMeta.completedDate) {
-			updates.completedDate = updatedMeta.completedDate
+			const dateValue = updatedMeta.completedDate
 				? new Date(updatedMeta.completedDate)
 				: undefined;
-			updates.completed = updatedMeta.completedDate
-				? new Date(updatedMeta.completedDate)
-				: undefined;
+			updates.completedDate = dateValue;
+			updates.completed = dateValue;
 		}
 
 		if (originalMeta.cancelledDate !== updatedMeta.cancelledDate) {
-			updates.cancelledDate = updatedMeta.cancelledDate
+			const dateValue = updatedMeta.cancelledDate
 				? new Date(updatedMeta.cancelledDate)
 				: undefined;
-			updates.cancelled = updatedMeta.cancelledDate
-				? new Date(updatedMeta.cancelledDate)
-				: undefined;
+			updates.cancelledDate = dateValue;
+			updates.cancelled = dateValue;
 		}
 
 		// Other metadata
@@ -551,25 +726,51 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 	}
 
 	/**
+	 * Helper method to get the actual data array from this.data
+	 */
+	private getDataArray(): any[] {
+		// Check if this.data is a wrapper object with a data property
+		if (this.data && typeof this.data === 'object' && !Array.isArray(this.data)) {
+			if ((this.data as any).data && Array.isArray((this.data as any).data)) {
+				return (this.data as any).data;
+			}
+		}
+		
+		// If this.data is already an array, return it
+		if (Array.isArray(this.data)) {
+			return this.data;
+		}
+		
+		// Default to empty array if we can't find the data
+		return [];
+	}
+
+	/**
 	 * Find the original Bases entry by task ID
 	 */
 	private findEntryByTaskId(taskId: string): any | null {
-		for (const group of this.data) {
-			if (!group.entries) continue;
+		const dataArray = this.getDataArray();
+		
+		if (dataArray.length === 0) {
+			console.error(`[${this.type}] No data available in findEntryByTaskId`);
+			return null;
+		}
 
-			for (const entry of group.entries) {
-				try {
-					// Check if this entry corresponds to the task ID
-					const entryTaskId = this.generateTaskId(entry);
-					if (entryTaskId === taskId) {
-						return entry;
-					}
-				} catch (error) {
-					// Continue searching if this entry can't be processed
-					continue;
+		// Search through the entries directly (new format)
+		for (const entry of dataArray) {
+			try {
+				// Check if this entry corresponds to the task ID
+				const entryTaskId = this.generateTaskId(entry);
+				if (entryTaskId === taskId) {
+					return entry;
 				}
+			} catch (error) {
+				// Continue searching if this entry can't be processed
+				continue;
 			}
 		}
+		
+		console.warn(`[${this.type}] Entry not found for task ID: ${taskId}`);
 		return null;
 	}
 
@@ -619,13 +820,112 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 		this.onConfigUpdated();
 	}
 
-	updateData(properties: BasesProperty[], data: BasesViewData[]): void {
-		console.log(`[${this.type}] Data updated via updateData:`, {
-			properties,
-			data,
+	updateData(properties: any, data: any): void {
+		console.log(`[${this.type}] updateData called`);
+		
+		// Helper function to safely stringify with circular reference handling
+		const safeStringify = (obj: any, depth: number = 3) => {
+			const seen = new WeakSet();
+			let currentDepth = 0;
+			
+			return JSON.stringify(obj, function(key, value) {
+				if (currentDepth > depth) {
+					return '[Max Depth]';
+				}
+				
+				if (typeof value === 'object' && value !== null) {
+					// Handle circular references
+					if (seen.has(value)) {
+						return '[Circular Reference]';
+					}
+					seen.add(value);
+					
+					// Track depth for nested objects
+					currentDepth++;
+					
+					// Skip certain known large/circular objects
+					if (key === 'app' || key === 'ctx' || key === 'vault' || key === 'parent') {
+						return '[Skipped: Large Object]';
+					}
+				}
+				
+				// Handle functions
+				if (typeof value === 'function') {
+					return '[Function]';
+				}
+				
+				return value;
+			}, 2);
+		};
+		
+		console.log(`[${this.type}] First parameter (properties):`, properties);
+		console.log(`[${this.type}] Second parameter (data):`, data);
+		
+		// Try to stringify the second parameter if it's an array
+		if (Array.isArray(data) && data.length > 0) {
+			console.log(`[${this.type}] First data item (JSON):`, safeStringify(data[0]));
+			console.log(`[${this.type}] First 3 data items (JSON):`, safeStringify(data.slice(0, 3)));
+		} else if (data && typeof data === 'object') {
+			console.log(`[${this.type}] Data object structure (JSON):`, safeStringify(data));
+		}
+		
+		// Check both parameters to find the actual data array
+		let actualData: any[] = [];
+		let actualProperties: any[] = [];
+		
+		// Check if first parameter is the data
+		if (Array.isArray(properties)) {
+			console.log(`[${this.type}] First parameter is an array with ${properties.length} items`);
+			if (properties.length > 0 && properties[0].file) {
+				console.log(`[${this.type}] First parameter appears to be the data (has file property)`);
+				actualData = properties;
+				actualProperties = Array.isArray(data) ? data : [];
+			} else {
+				actualProperties = properties;
+			}
+		}
+		
+		// Check if second parameter is the data
+		if (Array.isArray(data)) {
+			console.log(`[${this.type}] Second parameter is an array with ${data.length} items`);
+			if (data.length > 0 && data[0].file) {
+				console.log(`[${this.type}] Second parameter appears to be the data (has file property)`);
+				actualData = data;
+			}
+		} else if (data && !Array.isArray(data)) {
+			console.log(`[${this.type}] Data is not an array, checking for nested structures`);
+			console.log(`[${this.type}] Data object keys:`, Object.keys(data));
+			
+			// Try to extract the actual data array from various possible locations
+			if (data.data && Array.isArray(data.data)) {
+				console.log(`[${this.type}] Found data array at data.data`);
+				actualData = data.data;
+			}
+		}
+		
+		console.log(`[${this.type}] Final actualData:`, {
+			isArray: Array.isArray(actualData),
+			length: Array.isArray(actualData) ? actualData.length : 'N/A',
+			firstItem: Array.isArray(actualData) && actualData.length > 0 ? actualData[0] : null
 		});
-		this.properties = properties;
-		this.data = data;
+		
+		// Store the entire object if it has a data property, or the array directly
+		if (data && typeof data === 'object' && !Array.isArray(data) && data.data) {
+			// Store the entire wrapper object - convertEntriesToTasks will extract the array
+			this.data = data;
+			this.properties = properties || [];
+		} else {
+			this.properties = actualProperties;
+			this.data = actualData;
+		}
+		
+		console.log(`[${this.type}] this.data set, type:`, typeof this.data);
+		if (Array.isArray(this.data)) {
+			console.log(`[${this.type}] this.data is array with ${this.data.length} items`);
+		} else if (this.data && (this.data as any).data) {
+			console.log(`[${this.type}] this.data is wrapper object with data array of ${(this.data as any).data.length} items`);
+		}
+		console.log(`[${this.type}] this.properties set with ${this.properties.length} properties`);
 
 		// Data has been updated, trigger the standard data update flow
 		this.onDataUpdated();
@@ -635,6 +935,25 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 		console.log(`[${this.type}] Displaying view`);
 		this.containerEl.show();
 		this.onDisplay();
+	}
+
+	// Ephemeral state methods for Obsidian view system
+	getEphemeralState(): any {
+		return {
+			selectedTaskId: this.currentSelectedTaskId,
+			detailsVisible: this.isDetailsVisible,
+		};
+	}
+
+	setEphemeralState(state: any): void {
+		if (state) {
+			if (state.selectedTaskId) {
+				this.currentSelectedTaskId = state.selectedTaskId;
+			}
+			if (state.detailsVisible !== undefined) {
+				this.isDetailsVisible = state.detailsVisible;
+			}
+		}
 	}
 
 	// BaseView interface implementation
@@ -683,26 +1002,73 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 	protected convertEntriesToTasks(): boolean {
 		console.log(`[${this.type}] Converting entries to tasks`);
 		console.log(`[${this.type}] Raw data:`, this.data);
+		
+		// Safe stringify helper
+		const safeStringify = (obj: any, depth: number = 2) => {
+			const seen = new WeakSet();
+			let currentDepth = 0;
+			
+			return JSON.stringify(obj, function(key, value) {
+				if (currentDepth > depth) {
+					return '[Max Depth]';
+				}
+				
+				if (typeof value === 'object' && value !== null) {
+					if (seen.has(value)) {
+						return '[Circular]';
+					}
+					seen.add(value);
+					currentDepth++;
+					
+					// Skip large objects
+					if (key === 'app' || key === 'ctx' || key === 'vault' || key === 'parent' || key === 'formulaResults') {
+						return '[Skipped]';
+					}
+				}
+				
+				if (typeof value === 'function') {
+					return '[Function]';
+				}
+				
+				return value;
+			}, 2);
+		};
+		
+		// Get the actual data array using helper method
+		const dataArray = this.getDataArray();
+		console.log(`[${this.type}] Got data array with ${dataArray.length} items`);
 
-		if (!this.data || this.data.length === 0) {
+		// Ensure we have data to process
+		if (!dataArray || dataArray.length === 0) {
 			console.log(`[${this.type}] No data available, clearing tasks`);
 			this.tasks = [];
 			return true;
 		}
 
 		const newTasks: Task[] = [];
+		
+		// Log first entry structure in JSON format
+		if (dataArray.length > 0) {
+			console.log(`[${this.type}] First entry (JSON):`, safeStringify(dataArray[0]));
+		}
 
-		for (const group of this.data) {
-			if (!group.entries) {
-				console.log(`[${this.type}] Group has no entries:`, group);
-				continue;
+		// Process each entry - they come directly in the array with file/note/frontmatter properties
+		for (let i = 0; i < dataArray.length; i++) {
+			const entry = dataArray[i];
+			
+			// Only log first few entries to avoid spam
+			if (i < 3) {
+				console.log(`[${this.type}] Processing entry ${i}:`, entry);
+				console.log(`[${this.type}] Entry ${i} type:`, typeof entry);
+				console.log(`[${this.type}] Entry ${i} keys:`, Object.keys(entry));
 			}
-
-			console.log(
-				`[${this.type}] Processing ${group.entries.length} entries from group`
-			);
-
-			for (const entry of group.entries) {
+			
+			// Check if this is a valid entry with file or note data
+			const entryAsAny = entry as any;
+			if (entryAsAny.file || entryAsAny.note) {
+				if (i < 3) {
+					console.log(`[${this.type}] Entry ${i} has file/note data, processing as task`);
+				}
 				try {
 					const task = this.entryToTask(entry);
 					if (task) {
@@ -710,56 +1076,152 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 					}
 				} catch (error) {
 					console.error(
-						`[${this.type}] Error converting entry to task:`,
-						error,
-						entry
+						`[${this.type}] Error converting entry ${i} to task:`,
+						error
 					);
+					if (i < 3) {
+						console.error(`[${this.type}] Failed entry structure:`, safeStringify(entry));
+					}
 				}
+			}
+			// Fallback: check if this is old format with entries array
+			else if (entry.entries && Array.isArray(entry.entries)) {
+				console.log(
+					`[${this.type}] Processing ${entry.entries.length} entries from group (old format)`
+				);
+				for (const subEntry of entry.entries) {
+					try {
+						const task = this.entryToTask(subEntry);
+						if (task) {
+							newTasks.push(task);
+						}
+					} catch (error) {
+						console.error(
+							`[${this.type}] Error converting sub-entry to task:`,
+							error,
+							subEntry
+						);
+					}
+				}
+			} else {
+				console.log(`[${this.type}] Skipping entry - no file/note data:`, entry);
 			}
 		}
 
 		console.log(
-			`[${this.type}] Converted ${newTasks.length} tasks from ${this.data.length} data groups`
+			`[${this.type}] Converted ${newTasks.length} tasks from ${dataArray.length} data entries`
 		);
+
+		// Log sample tasks to see what was created
+		if (newTasks.length > 0) {
+			console.log(`[${this.type}] First 3 created tasks:`, newTasks.slice(0, 3));
+			console.log(`[${this.type}] Task properties example:`, {
+				id: newTasks[0].id,
+				content: newTasks[0].content,
+				filePath: newTasks[0].filePath,
+				metadata: newTasks[0].metadata
+			});
+		} else {
+			console.warn(`[${this.type}] WARNING: No tasks were created from ${this.data.length} data entries!`);
+		}
 
 		// Check if tasks have changed
 		const hasChanged = this.hasTasksChanged(this.tasks, newTasks);
 		this.tasks = newTasks;
 
 		console.log(
-			`[${this.type}] Task conversion complete. Has changes: ${hasChanged}`
+			`[${this.type}] Task conversion complete. Has changes: ${hasChanged}, Total tasks: ${this.tasks.length}`
 		);
 		return hasChanged;
 	}
 
 	protected entryToTask(entry: any): Task | null {
 		try {
+			// Safe stringify for logging
+			const safeStringify = (obj: any) => {
+				const seen = new WeakSet();
+				return JSON.stringify(obj, function(key, value) {
+					if (typeof value === 'object' && value !== null) {
+						if (seen.has(value)) return '[Circular]';
+						seen.add(value);
+						if (key === 'app' || key === 'ctx' || key === 'vault' || key === 'parent' || key === 'formulaResults') {
+							return '[Skipped]';
+						}
+					}
+					if (typeof value === 'function') return '[Function]';
+					return value;
+				}, 2);
+			};
+			
+			// Only log for first few entries to reduce noise
+			const shouldLog = this.tasks.length < 3;
+			
+			if (shouldLog) {
+				console.log(`[${this.type}] Converting entry to task (JSON):`, safeStringify(entry));
+			}
+			
 			// Extract basic file information
-			const file = entry.file;
+			let file = entry.file;
 			const frontmatter = entry.frontmatter || {};
+			
+			// Skip non-markdown files that aren't likely to contain tasks
+			if (file && file.extension) {
+				if (file.extension === 'canvas' || file.extension === 'pdf' || file.extension === 'png' || file.extension === 'jpg') {
+					console.log(`[${this.type}] Skipping non-task file: ${file.path} (${file.extension})`);
+					return null;
+				}
+			}
+			
+			// Check if this is a special file type (like Kanban board) that shouldn't be processed as a task
+			if (frontmatter['kanban-plugin'] || frontmatter['excalidraw-plugin']) {
+				console.log(`[${this.type}] Skipping special plugin file: ${file?.path}`);
+				return null;
+			}
 
 			if (!file) {
 				console.warn(
 					`[${this.type}] Entry missing file information:`,
 					entry
 				);
-				return null;
+				// Check if the entry has path directly (new format)
+				if (entry.path || entry.filePath) {
+					console.log(`[${this.type}] Entry has direct path property, creating file object`);
+					const filePath = entry.path || entry.filePath;
+					// Create a file object for compatibility
+					file = { path: filePath };
+					entry.file = file;
+				} else {
+					console.error(`[${this.type}] No file path found, returning null`);
+					return null;
+				}
 			}
+
+			console.log(`[${this.type}] File path:`, file.path);
 
 			// Extract task content from multiple sources
 			const content = this.extractTaskContent(entry);
+			console.log(`[${this.type}] Extracted content:`, content);
+			
+			// Skip entries with no meaningful task content
+			if (!content || content === "") {
+				console.log(`[${this.type}] Skipping entry with no task content: ${file.path}`);
+				return null;
+			}
 
 			// Extract task metadata
 			const metadata = this.extractTaskMetadata(entry);
+			console.log(`[${this.type}] Extracted metadata:`, metadata);
 
 			// Extract task status mark
 			const status = this.extractTaskStatus(entry);
+			console.log(`[${this.type}] Extracted status:`, status);
 
-			console.log("[BaseTaskBasesView] Entry:", entry);
+			const taskId = this.generateTaskId(entry);
+			console.log(`[${this.type}] Generated task ID:`, taskId);
 
 			// Build task object
 			const task: Task = {
-				id: this.generateTaskId(entry),
+				id: taskId,
 				content: content,
 				completed: this.extractCompletionStatus(entry),
 				status: status,
@@ -774,6 +1236,7 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 				},
 			};
 
+			console.log(`[${this.type}] Created task:`, task);
 			return task;
 		} catch (error) {
 			console.error(
@@ -781,6 +1244,7 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 				error,
 				entry
 			);
+			console.error(`[${this.type}] Error stack:`, (error as Error).stack);
 			return null;
 		}
 	}
@@ -894,9 +1358,17 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 	private extractTaskContent(entry: any): string {
 		// Try multiple content sources in priority order
 		const contentSources = [
+			// Check note.data first (new Bases API)
+			() => entry.note?.data?.title,
+			() => entry.note?.data?.content,
+			() => entry.note?.data?.text,
+			() => entry.note?.data?.task,
+			// Then try the getEntryProperty method
 			() => this.getEntryProperty(entry, "title", "note"),
 			() => this.getEntryProperty(entry, "content", "note"),
 			() => this.getEntryProperty(entry, "text", "note"),
+			() => this.getEntryProperty(entry, "task", "note"),
+			// Fall back to file name if no content found
 			() => entry.file?.basename,
 			() => entry.file?.name,
 		];
@@ -910,6 +1382,11 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 			} catch (error) {
 				// Continue to next source
 			}
+		}
+
+		// If we only have a file name and no real content, return null to skip this entry
+		if (entry.file?.basename && !entry.note?.data) {
+			return "";
 		}
 
 		return "Untitled Task";
@@ -1041,8 +1518,17 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 	 */
 	private extractProject(entry: any): string {
 		const projectSources = [
+			// Check note.data first (new Bases API)
+			() => entry.note?.data?.project,
+			() => entry.note?.data?.projectName,
+			() => entry.note?.data?.['tgProject'],
+			// Then try standard methods
 			() => this.getEntryProperty(entry, "project", "note"),
+			() => this.getEntryProperty(entry, "projectName", "note"),
+			() => this.getEntryProperty(entry, "tgProject", "note"),
 			() => entry.frontmatter?.project,
+			() => entry.frontmatter?.projectName,
+			// Finally check tags
 			() => this.extractProjectFromTags(entry),
 		];
 
@@ -1050,6 +1536,7 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 			try {
 				const project = getProject();
 				if (project && typeof project === "string") {
+					console.log(`[${this.type}] Found project: ${project}`);
 					return project.trim();
 				}
 			} catch (error) {
@@ -1169,7 +1656,7 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 			// Fallback to random ID
 		}
 
-		return `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+		return `task-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 	}
 
 	/**
@@ -1180,9 +1667,19 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 		propertyName: string,
 		type: "note" | "file" | "formula" = "note"
 	): any {
+		// Only log important properties
+		const shouldLog = ["title", "content", "text", "completed", "status"].includes(propertyName);
+		if (shouldLog) {
+			console.log(`[${this.type}] Getting property '${propertyName}' of type '${type}' from entry`);
+		}
+		
 		try {
 			if (typeof entry.getValue === "function") {
-				return entry.getValue({ type, name: propertyName });
+				const value = entry.getValue({ type, name: propertyName });
+				if (shouldLog && value !== undefined) {
+					console.log(`[${this.type}] Got value from getValue function:`, value);
+				}
+				return value;
 			}
 		} catch (error) {
 			// Fallback to direct access
@@ -1190,16 +1687,43 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 
 		// Fallback: try direct property access
 		try {
-			if (type === "note" && entry.frontmatter) {
-				return entry.frontmatter[propertyName];
+			if (type === "note") {
+				// Try note.data structure (new Bases API)
+				if (entry.note?.data && entry.note.data[propertyName] !== undefined) {
+					if (shouldLog) {
+						console.log(`[${this.type}] Got value from note.data:`, entry.note.data[propertyName]);
+					}
+					return entry.note.data[propertyName];
+				}
+				// Try frontmatter
+				if (entry.frontmatter && entry.frontmatter[propertyName] !== undefined) {
+					if (shouldLog) {
+						console.log(`[${this.type}] Got value from frontmatter:`, entry.frontmatter[propertyName]);
+					}
+					return entry.frontmatter[propertyName];
+				}
+				// Try direct property on entry
+				if (entry[propertyName] !== undefined) {
+					if (shouldLog) {
+						console.log(`[${this.type}] Got value from direct property:`, entry[propertyName]);
+					}
+					return entry[propertyName];
+				}
 			}
 			if (type === "file" && entry.file) {
-				return entry.file[propertyName];
+				const value = entry.file[propertyName];
+				if (value !== undefined && shouldLog) {
+					console.log(`[${this.type}] Got value from file:`, value);
+				}
+				return value;
 			}
 		} catch (error) {
 			// Ignore error
 		}
 
+		if (shouldLog) {
+			console.log(`[${this.type}] Property '${propertyName}' not found`);
+		}
 		return undefined;
 	}
 
