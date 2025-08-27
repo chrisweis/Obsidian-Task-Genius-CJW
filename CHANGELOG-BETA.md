@@ -4,6 +4,12 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.4](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.3...9.8.0-beta.4) (2025-08-27)
+
+### Refactors
+
+* **quadrant:** replace custom feedback elements with Obsidian Notice API ([b2b4ce9](https://github.com/Quorafind/Obsidian-Task-Genius/commit/b2b4ce99fcb634b24921db034a62ebc18bfc9b7d))
+
 ## [9.8.0-beta.3](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.2...9.8.0-beta.3) (2025-08-27)
 
 ### Bug Fixes
