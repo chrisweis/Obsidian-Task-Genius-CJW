@@ -1869,27 +1869,6 @@ settings:
 .task-genius-iframe-modal .modal-title {
   display: flex;
   flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.task-genius-external-link-btn {
-  margin-left: auto;
-  margin-right: 8px;
-  padding: 4px;
-  cursor: pointer;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--text-muted);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.task-genius-external-link-btn:hover {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
 }
 .time-parsing-example {
   padding: var(--size-2-2);

@@ -4,6 +4,13 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.6](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.5...9.8.0-beta.6) (2025-08-27)
+
+### Features
+
+* **modal:** add external link button to IframeModal header ([5511203](https://github.com/Quorafind/Obsidian-Task-Genius/commit/5511203be77fa60af0a8c8781cf0706bc456f305))
+* **settings:** add bases-support URL and improve modal styling ([b10a757](https://github.com/Quorafind/Obsidian-Task-Genius/commit/b10a75700194da8e57c096058defa279ad33b07b))
+
 ## [9.8.0-beta.5](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.4...9.8.0-beta.5) (2025-08-27)
 
 ### Refactors
