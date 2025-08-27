@@ -16,7 +16,12 @@
 		"release:patch": "release-it patch",
 		"release:minor": "release-it minor",
 		"release:major": "release-it major",
-		"release:dry": "release-it --dry-run"
+		"release:dry": "release-it --dry-run",
+		"release:beta": "release-it --config .release-it.beta.cjs --preRelease=beta",
+		"release:beta:patch": "release-it patch --config .release-it.beta.cjs --preRelease=beta",
+		"release:beta:minor": "release-it minor --config .release-it.beta.cjs --preRelease=beta",
+		"release:beta:major": "release-it major --config .release-it.beta.cjs --preRelease=beta",
+		"release:beta:dry": "release-it --config .release-it.beta.cjs --preRelease=beta --dry-run"
 	},
 	"keywords": [
 		"obsidian",
@@ -59,6 +64,7 @@
 		"regexp-match-indices": "^1.0.2",
 		"release-it": "^19.0.4",
 		"rrule": "^2.8.1",
+		"semver": "^7.7.2",
 		"ts-jest": "^29.1.0",
 		"tslib": "2.4.0",
 		"typescript": "4.7.3"
