@@ -4,6 +4,20 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.3](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.2...9.8.0-beta.3) (2025-08-27)
+
+### Bug Fixes
+
+* **task-view:** resolve task sorting instability and scroll jumping ([ac54fdb](https://github.com/Quorafind/Obsidian-Task-Genius/commit/ac54fdb0bb6248bf34772dd420e954bd33a3656d))
+
+### Refactors
+
+* **settings:** consolidate dataflowEnabled into enableIndexer ([e599302](https://github.com/Quorafind/Obsidian-Task-Genius/commit/e599302be2a07bc1d65fb79aaa761c738f88cc71))
+
+### Chores
+
+* **task-view:** remove debug console.log and comment ([cfb9b03](https://github.com/Quorafind/Obsidian-Task-Genius/commit/cfb9b03c64e9a8e3e0c7e94e496f3cf1fca665b8))
+
 ## [9.8.0-beta.2](https://github.com/Quorafind/Obsidian-Task-Genius/compare/v9.8.0-beta.0-9-g134bfb8dc2f4f28ac7ecde4e4df3442c193ad46f...9.8.0-beta.2) (2025-08-27)
 
 ### Bug Fixes
