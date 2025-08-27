@@ -1,4 +1,4 @@
-import { App, Component, setIcon, Platform, DropdownComponent } from "obsidian";
+import { App, Component, setIcon, Platform, DropdownComponent, Notice } from "obsidian";
 import TaskProgressBarPlugin from "../../index";
 import { Task } from "../../types/task";
 import { QuadrantColumnComponent } from "./quadrant-column";
@@ -542,64 +542,18 @@ export class QuadrantComponent extends Component {
 		}
 	}
 
-	private showUpdateFeedback(task: Task, quadrant: QuadrantDefinition) {
-		// Create a temporary feedback element
-		const feedbackEl = document.createElement("div");
-		feedbackEl.className = "tg-quadrant-update-feedback";
-		feedbackEl.innerHTML = `
-			<div class="tg-quadrant-feedback-content">
-				<span class="tg-quadrant-feedback-icon">${quadrant.priorityEmoji}</span>
-				<span class="tg-quadrant-feedback-text">
-					${t("Task moved to")} ${quadrant.title}
-				</span>
-			</div>
-		`;
-
-		// Add to the container
-		this.containerEl.appendChild(feedbackEl);
-
-		// Animate in
-		setTimeout(() => {
-			feedbackEl.addClass("tg-quadrant-feedback--show");
-		}, 10);
-
-		// Remove after delay
-		setTimeout(() => {
-			feedbackEl.addClass("tg-quadrant-feedback--hide");
-			setTimeout(() => {
-				feedbackEl.remove();
-			}, 300);
-		}, 2000);
+	private showUpdateFeedback(_task: Task, quadrant: QuadrantDefinition) {
+		// Use Obsidian's native Notice API for feedback
+		const message = `${quadrant.priorityEmoji} ${t("Task moved to")} ${quadrant.title}`;
+		new Notice(message, 2000);
 	}
 
-	private showErrorFeedback(task: Task, error: any) {
+	private showErrorFeedback(_task: Task, error: any) {
 		console.error("Task update error:", error);
 
-		// Create error feedback
-		const feedbackEl = document.createElement("div");
-		feedbackEl.className =
-			"tg-quadrant-update-feedback tg-quadrant-feedback--error";
-		feedbackEl.innerHTML = `
-			<div class="tg-quadrant-feedback-content">
-				<span class="tg-quadrant-feedback-icon">⚠️</span>
-				<span class="tg-quadrant-feedback-text">
-					${t("Failed to update task")}
-				</span>
-			</div>
-		`;
-
-		this.containerEl.appendChild(feedbackEl);
-
-		setTimeout(() => {
-			feedbackEl.addClass("tg-quadrant-feedback--show");
-		}, 10);
-
-		setTimeout(() => {
-			feedbackEl.addClass("tg-quadrant-feedback--hide");
-			setTimeout(() => {
-				feedbackEl.remove();
-			}, 300);
-		}, 3000);
+		// Use Obsidian's native Notice API for error feedback
+		const message = `⚠️ ${t("Failed to update task")}`;
+		new Notice(message, 3000);
 	}
 
 	private categorizeTasksByQuadrant(tasks: Task[]): Map<string, Task[]> {
