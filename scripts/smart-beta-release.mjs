@@ -8,6 +8,24 @@ import semver from 'semver';
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
 const currentVersion = packageJson.version;
 
+// Get the latest tag version
+let latestTag = null;
+try {
+	const tagOutput = execSync('git tag -l --sort=-v:refname | head -1', { encoding: 'utf8' }).trim();
+	if (tagOutput) {
+		latestTag = tagOutput.replace(/^v/, '');
+	}
+} catch (e) {
+	// No tags found
+}
+
+// Check for version mismatch warning
+if (latestTag && semver.gt(latestTag, currentVersion)) {
+	console.warn(`⚠️  Warning: package.json version (${currentVersion}) is behind latest tag (${latestTag})`);
+	console.warn(`   You may want to sync package.json version first.`);
+	console.log('');
+}
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 const increment = args[0]; // 'patch', 'minor', 'major', or undefined
