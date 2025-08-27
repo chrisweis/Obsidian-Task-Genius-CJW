@@ -103,10 +103,7 @@ export class TaskView extends ItemView {
 	constructor(leaf: WorkspaceLeaf, private plugin: TaskProgressBarPlugin) {
 		super(leaf);
 
-		// 使用预加载的任务进行快速初始显示
 		this.tasks = this.plugin.preloadedTasks || [];
-
-		console.log("tasks", this.tasks);
 
 		this.scope = new Scope(this.app.scope);
 
