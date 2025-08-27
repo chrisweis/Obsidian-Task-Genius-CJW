@@ -96,11 +96,35 @@ module.exports = {
 			},
 			infile: "CHANGELOG-BETA.md",
 			header: "# Beta Changelog\n\nAll notable changes to beta releases will be documented in this file.\n\n",
+			context: {
+				// GitHub 仓库信息，用于生成链接
+				host: "https://github.com",
+				owner: "Quorafind",
+				repository: "Obsidian-Task-Progress-Bar",
+				repoUrl: "https://github.com/Quorafind/Obsidian-Task-Progress-Bar",
+				linkCompare: true, // 生成版本比较链接
+				linkReferences: true, // 生成提交链接
+			},
 			// 限制 git log 的提交范围，避免 ENAMETOOLONG 错误
 			gitRawCommitsOpts: {
 				from: getLastRelevantTag(), // 智能获取上一个相关版本
 				// 简化格式，减少命令行长度
 				format: '%s%n%b%n-hash-%n%H%n-gitTags-%n%d',
+			},
+			writerOpts: {
+				// 确保生成正确的版本标题和链接
+				mainTemplate: `{{#each releases}}
+## {{#if @root.linkCompare}}[{{version}}]({{@root.repoUrl}}/compare/{{previousTag}}...{{currentTag}}){{else}}{{version}}{{/if}}{{#if title}} "{{title}}"{{/if}}{{#if date}} ({{date}}){{/if}}
+
+{{#each sections}}
+### {{title}}
+
+{{#each commits}}
+* {{#if scope}}**{{scope}}:** {{/if}}{{subject}}{{#if hash}} ([{{short}}]({{@root.repoUrl}}/commit/{{hash}})){{/if}}
+{{/each}}
+
+{{/each}}
+{{/each}}`,
 			}
 		},
 		"./scripts/ob-bumper.mjs": {
