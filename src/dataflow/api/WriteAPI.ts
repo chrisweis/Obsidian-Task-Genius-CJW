@@ -215,7 +215,7 @@ export class WriteAPI {
 			}
 
 			// Update content if changed
-			if (args.updates.content && args.updates.content !== originalTask.content) {
+			if (args.updates.content !== undefined) {
 				// Extract the task prefix and metadata
 				const prefixMatch = taskLine.match(/^(\s*[-*+]\s*\[[^\]]*\]\s*)/);
 				if (prefixMatch) {
@@ -1013,7 +1013,8 @@ export class WriteAPI {
 		}
 
 		// Priority
-		if (args.priority !== undefined && args.priority > 0) {
+		// Only add priority if it's a valid number between 1-5
+		if (typeof args.priority === 'number' && args.priority >= 1 && args.priority <= 5) {
 			if (useDataviewFormat) {
 				let priorityValue: string;
 				switch (args.priority) {

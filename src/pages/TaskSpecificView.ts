@@ -1226,6 +1226,55 @@ export class TaskSpecificView extends ItemView {
 		// Task cache listener will trigger loadTasks -> triggerViewUpdate
 	}
 
+	/**
+	 * Extract only the fields that have changed between two tasks
+	 */
+	private extractChangedFields(originalTask: Task, updatedTask: Task): Partial<Task> {
+		const changes: Partial<Task> = {};
+		
+		// Check top-level fields
+		if (originalTask.content !== updatedTask.content) {
+			changes.content = updatedTask.content;
+		}
+		if (originalTask.completed !== updatedTask.completed) {
+			changes.completed = updatedTask.completed;
+		}
+		if (originalTask.status !== updatedTask.status) {
+			changes.status = updatedTask.status;
+		}
+		
+		// Check metadata fields
+		const metadataChanges: Partial<typeof originalTask.metadata> = {};
+		let hasMetadataChanges = false;
+		
+		// Compare each metadata field
+		const metadataFields = ['priority', 'project', 'tags', 'context', 'dueDate', 'startDate', 'scheduledDate', 'completedDate', 'recurrence'];
+		for (const field of metadataFields) {
+			const originalValue = (originalTask.metadata as any)?.[field];
+			const updatedValue = (updatedTask.metadata as any)?.[field];
+			
+			// Handle arrays specially (tags)
+			if (field === 'tags') {
+				const origTags = originalValue || [];
+				const updTags = updatedValue || [];
+				if (origTags.length !== updTags.length || !origTags.every((t: string, i: number) => t === updTags[i])) {
+					metadataChanges.tags = updTags;
+					hasMetadataChanges = true;
+				}
+			} else if (originalValue !== updatedValue) {
+				(metadataChanges as any)[field] = updatedValue;
+				hasMetadataChanges = true;
+			}
+		}
+		
+		// Only include metadata if there are changes
+		if (hasMetadataChanges) {
+			changes.metadata = metadataChanges as any;
+		}
+		
+		return changes;
+	}
+
 	private async handleTaskUpdate(originalTask: Task, updatedTask: Task) {
 		if (!this.plugin.writeAPI) {
 			console.error("WriteAPI not available");
@@ -1243,10 +1292,14 @@ export class TaskSpecificView extends ItemView {
 		);
 
 		try {
-			// Always use WriteAPI
+			// Extract only the changed fields
+			const updates = this.extractChangedFields(originalTask, updatedTask);
+			
+			// Always use WriteAPI with only the changed fields
+			// Use originalTask.id to ensure we're updating the correct task
 			const writeResult = await this.plugin.writeAPI.updateTask({
-				taskId: updatedTask.id,
-				updates: updatedTask,
+				taskId: originalTask.id,
+				updates: updates,
 			});
 			if (!writeResult.success) {
 				throw new Error(writeResult.error || "Failed to update task");
@@ -1302,10 +1355,14 @@ export class TaskSpecificView extends ItemView {
 			throw new Error("WriteAPI not available");
 		}
 		try {
-			// Always use WriteAPI
+			// Extract only the changed fields
+			const updates = this.extractChangedFields(originalTask, updatedTask);
+			
+			// Always use WriteAPI with only the changed fields
+			// Use originalTask.id to ensure we're updating the correct task
 			const writeResult = await this.plugin.writeAPI.updateTask({
-				taskId: updatedTask.id,
-				updates: updatedTask,
+				taskId: originalTask.id,
+				updates: updates,
 			});
 			if (!writeResult.success) {
 				throw new Error(writeResult.error || "Failed to update task");

@@ -839,7 +839,24 @@ export class InlineEditor extends Component {
 		(input as any)._fieldType = fieldType;
 		(input as any)._updateCallback = updateCallback;
 
-		this.registerDomEvent(input, "input", this.boundHandlers.handleInput);
+		// For date inputs, only save on blur or Enter key, not on input change
+		const isDateField = fieldType && ['dueDate', 'startDate', 'scheduledDate', 'cancelledDate', 'completedDate'].includes(fieldType);
+		
+		if (isDateField) {
+			// For date inputs, update the value but don't trigger save on input
+			this.registerDomEvent(input, "input", (e: Event) => {
+				const target = e.target as HTMLInputElement;
+				const updateCallback = (target as any)._updateCallback;
+				if (updateCallback) {
+					updateCallback(target.value);
+					// Don't call debouncedSave here for date fields
+				}
+			});
+		} else {
+			// For non-date inputs, use the regular handler that includes debounced save
+			this.registerDomEvent(input, "input", this.boundHandlers.handleInput);
+		}
+		
 		this.registerDomEvent(input, "blur", this.boundHandlers.handleBlur);
 		this.registerDomEvent(
 			input,
