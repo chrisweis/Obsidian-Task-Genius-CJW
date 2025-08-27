@@ -743,7 +743,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 						// Check if dataflow is enabled
 						if (
-							this.settings?.dataflowEnabled &&
+							this.settings?.enableIndexer &&
 							this.dataflowOrchestrator
 						) {
 							// Use dataflow orchestrator for refresh
@@ -803,7 +803,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 					try {
 						// Check if dataflow is enabled
 						if (
-							this.settings?.dataflowEnabled &&
+							this.settings?.enableIndexer &&
 							this.dataflowOrchestrator
 						) {
 							// Use dataflow orchestrator for force reindex

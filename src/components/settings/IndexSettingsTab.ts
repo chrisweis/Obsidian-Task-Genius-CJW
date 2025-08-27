@@ -29,7 +29,7 @@ export function renderIndexSettingsTab(
 	new Setting(containerEl)
 		.setName(t("Enable Indexer"))
 		.addToggle((toggle) => {
-			toggle.setValue(settingTab.plugin.settings.dataflowEnabled ?? true);
+			toggle.setValue(settingTab.plugin.settings.enableIndexer ?? true);
 			toggle.onChange(async (value) => {
 				settingTab.plugin.settings.enableIndexer = value;
 								settingTab.applySettingsUpdate();
