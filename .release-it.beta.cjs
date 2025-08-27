@@ -35,10 +35,41 @@ function getLastRelevantTag() {
 		}
 		
 		// 按照 semver 排序，从高到低
-		const sortedTags = reachableTags.sort((a, b) => semver.rcompare(a.version, b.version));
+		const sortedTags = reachableTags.sort((a, b) => {
+			const versionCompare = semver.rcompare(a.version, b.version);
+			if (versionCompare !== 0) return versionCompare;
+			
+			// 如果版本相同，优先选择带 'v' 前缀的标签（通常是更正式的）
+			const aHasV = a.tag.startsWith('v');
+			const bHasV = b.tag.startsWith('v');
+			if (aHasV && !bHasV) return -1;
+			if (!aHasV && bHasV) return 1;
+			
+			// 如果都有或都没有 'v' 前缀，按标签名字母顺序
+			return b.tag.localeCompare(a.tag);
+		});
 		
-		// 获取最新的标签（已发布的最新版本）
-		const latestTag = sortedTags[0];
+		// 对于相同版本的多个标签，选择最近的一个（通过检查提交距离）
+		let latestTag = sortedTags[0];
+		if (sortedTags.length > 1) {
+			const sameVersionTags = sortedTags.filter(t => t.version === latestTag.version);
+			if (sameVersionTags.length > 1) {
+				// 选择距离 HEAD 最近的标签
+				let minDistance = Infinity;
+				for (const tag of sameVersionTags) {
+					try {
+						const distance = parseInt(execSync(`git rev-list --count ${tag.tag}..HEAD`, { encoding: 'utf8' }).trim());
+						if (distance < minDistance) {
+							minDistance = distance;
+							latestTag = tag;
+						}
+					} catch (e) {
+						// 忽略错误
+					}
+				}
+			}
+		}
+		
 		console.log(`Using latest reachable tag: ${latestTag.tag} (version: ${latestTag.version})`);
 		
 		// 显示提交数量信息
@@ -75,8 +106,8 @@ module.exports = {
 		requireCleanWorkingDir: true,
 		pushArgs: "--follow-tags -o ci.skip",
 		commitMessage: "chore(release): bump version to ${version} [beta]",
-		tagName: "v${version}",
-		tagAnnotation: "Beta Release v${version}",
+		tagName: "${version}",
+		tagAnnotation: "Beta Release ${version}",
 		addUntrackedFiles: true,
 	},
 	plugins: {
@@ -121,7 +152,7 @@ module.exports = {
 			"dist/task-genius-${version}.zip",
 		],
 		proxy: process.env.HTTPS_PROXY,
-		releaseName: "v${version} (Beta)",
+		releaseName: "${version} (Beta)",
 		releaseNotes: (context) => {
 			// 获取智能范围信息
 			const fromTag = getLastRelevantTag();

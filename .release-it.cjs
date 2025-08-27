@@ -18,7 +18,7 @@ module.exports = {
 		pushArgs: "--follow-tags -o ci.skip",
 		commitMessage: "chore(release): bump version to ${version}",
 		tagName: "${version}",
-		tagAnnotation: "Release v${version}",
+		tagAnnotation: "Release ${version}",
 		addUntrackedFiles: true,
 	},
 	plugins: {
@@ -56,6 +56,6 @@ module.exports = {
 			"dist/task-genius-${version}.zip",
 		],
 		proxy: process.env.HTTPS_PROXY,
-		releaseName: "v${version}",
+		releaseName: "${version}",
 	},
 };
