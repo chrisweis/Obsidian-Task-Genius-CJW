@@ -33,30 +33,29 @@ const increment = args[0]; // 'patch', 'minor', 'major', or undefined
 // Check if we're already on a beta version
 const isCurrentlyBeta = semver.prerelease(currentVersion) !== null;
 
-let releaseCommand = 'npx release-it --config .release-it.beta.cjs';
+let releaseCommand = null;
 
 if (isCurrentlyBeta && (!increment || increment === 'continue')) {
-	// If already on beta and no increment specified, just bump the prerelease
+	// If already on beta and no increment specified, just bump the prerelease number
 	console.log(`📦 Current version: ${currentVersion} (beta)`);
 	console.log('🔄 Continuing beta sequence...');
-	// Use 'prerelease' increment to properly continue the beta sequence
-	releaseCommand += ' prerelease --preRelease=beta';
+	// Use a special config without preRelease to continue existing beta sequence cleanly
+	releaseCommand = 'npx release-it --config .release-it.beta-continue.cjs prerelease';
 } else if (increment === 'patch' || increment === 'minor' || increment === 'major') {
 	// If increment is specified, create new beta.0 for that version
 	console.log(`📦 Current version: ${currentVersion}`);
 	console.log(`🚀 Creating new ${increment} beta version...`);
-	releaseCommand += ` ${increment} --preRelease=beta`;
+	releaseCommand = `npx release-it --config .release-it.beta.cjs ${increment} --preRelease=beta`;
 } else if (!isCurrentlyBeta) {
 	// If not on beta and no increment, default to patch
 	console.log(`📦 Current version: ${currentVersion} (stable)`);
 	console.log('🚀 Creating new patch beta version...');
-	releaseCommand += ' patch --preRelease=beta';
+	releaseCommand = 'npx release-it --config .release-it.beta.cjs patch --preRelease=beta';
 } else {
 	// Default to continuing prerelease
 	console.log(`📦 Current version: ${currentVersion} (beta)`);
 	console.log('🔄 Continuing beta sequence...');
-	// Use 'prerelease' increment to properly continue the beta sequence
-	releaseCommand += ' prerelease --preRelease=beta';
+	releaseCommand = 'npx release-it --config .release-it.beta-continue.cjs prerelease';
 }
 
 // Add any additional arguments
