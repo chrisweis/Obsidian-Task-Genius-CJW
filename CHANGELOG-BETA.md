@@ -2,6 +2,18 @@
 
 All notable changes to beta releases will be documented in this file.
 
+
+
+## [9.8.0-beta.5](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.4...9.8.0-beta.5) (2025-08-27)
+
+### Refactors
+
+* **settings:** restructure beta features into dedicated tabs ([b0431ce](https://github.com/Quorafind/Obsidian-Task-Genius/commit/b0431ce8a99e4d0fce2a9ef49c0878957d5ecd73))
+
+### Chores
+
+* **docs:** update changelog-beta documentation ([e3ba531](https://github.com/Quorafind/Obsidian-Task-Genius/commit/e3ba531c04913878ba1800c7a9858129517e4b20))
+
 ## [9.8.0-beta.4](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.3...9.8.0-beta.4) (2025-08-27)
 
 ### Refactors
