@@ -1,40 +1,56 @@
 require('dotenv').config();
 
 const { execSync } = require('child_process');
+const semver = require('semver');
 
 // 智能获取上一个相关版本标签
 function getLastRelevantTag() {
 	try {
-		// 获取当前版本
-		const currentVersion = require('./package.json').version;
-		const [major, minor] = currentVersion.split('.');
-		
-		// 尝试找到同一主版本.次版本系列的最新beta标签
-		const betaTags = execSync(`git tag -l "v${major}.${minor}.*-beta.*" --sort=-version:refname`, { encoding: 'utf8' })
+		// 获取所有标签（包括带 v 前缀和不带 v 前缀的）
+		const allTags = execSync('git tag -l', { encoding: 'utf8' })
 			.trim()
 			.split('\n')
 			.filter(Boolean);
 		
-		if (betaTags.length > 0 && betaTags[0] !== `v${currentVersion}`) {
-			console.log(`Using last beta tag: ${betaTags[0]}`);
-			return betaTags[0];
+		// 过滤出在当前分支历史中的标签
+		const reachableTags = [];
+		for (const tag of allTags) {
+			try {
+				// 检查标签是否可以从 HEAD 访问到（即在当前分支的历史中）
+				execSync(`git merge-base --is-ancestor ${tag} HEAD`, { encoding: 'utf8' });
+				// 尝试解析版本号（移除可能的 'v' 前缀）
+				const versionString = tag.replace(/^v/, '');
+				const version = semver.valid(versionString);
+				if (version) {
+					reachableTags.push({ tag, version });
+				}
+			} catch (e) {
+				// 标签不在当前分支历史中，跳过
+			}
 		}
 		
-		// 如果没有找到同系列的beta，尝试找最新的正式版本
-		const releaseTags = execSync(`git tag -l "${major}.*" --sort=-version:refname`, { encoding: 'utf8' })
-			.trim()
-			.split('\n')
-			.filter(tag => tag && !tag.includes('beta') && !tag.includes('alpha'))
-			.slice(0, 1);
-		
-		if (releaseTags.length > 0) {
-			console.log(`Using last release tag: ${releaseTags[0]}`);
-			return releaseTags[0];
+		if (reachableTags.length === 0) {
+			console.log('No valid tags found in current branch history, using HEAD~30');
+			return 'HEAD~30';
 		}
 		
-		// 如果都没有，就用最近的30个提交
-		console.log('No relevant tags found, using HEAD~30');
-		return 'HEAD~30';
+		// 按照 semver 排序，从高到低
+		const sortedTags = reachableTags.sort((a, b) => semver.rcompare(a.version, b.version));
+		
+		// 获取最新的标签（已发布的最新版本）
+		const latestTag = sortedTags[0];
+		console.log(`Using latest reachable tag: ${latestTag.tag} (version: ${latestTag.version})`);
+		
+		// 显示提交数量信息
+		try {
+			const commitCount = execSync(`git rev-list --count ${latestTag.tag}..HEAD`, { encoding: 'utf8' }).trim();
+			console.log(`Will include ${commitCount} commits since ${latestTag.tag}`);
+		} catch (e) {
+			// 忽略错误，这只是信息性输出
+		}
+		
+		return latestTag.tag;
+		
 	} catch (error) {
 		console.warn('Warning: Could not determine last relevant tag, using HEAD~30', error.message);
 		return 'HEAD~30';
