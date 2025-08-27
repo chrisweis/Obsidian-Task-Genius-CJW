@@ -39,7 +39,8 @@ if (isCurrentlyBeta && (!increment || increment === 'continue')) {
 	// If already on beta and no increment specified, just bump the prerelease
 	console.log(`📦 Current version: ${currentVersion} (beta)`);
 	console.log('🔄 Continuing beta sequence...');
-	releaseCommand += ' --preRelease';
+	// Use 'prerelease' increment to properly continue the beta sequence
+	releaseCommand += ' prerelease --preRelease=beta';
 } else if (increment === 'patch' || increment === 'minor' || increment === 'major') {
 	// If increment is specified, create new beta.0 for that version
 	console.log(`📦 Current version: ${currentVersion}`);
@@ -54,7 +55,8 @@ if (isCurrentlyBeta && (!increment || increment === 'continue')) {
 	// Default to continuing prerelease
 	console.log(`📦 Current version: ${currentVersion} (beta)`);
 	console.log('🔄 Continuing beta sequence...');
-	releaseCommand += ' --preRelease';
+	// Use 'prerelease' increment to properly continue the beta sequence
+	releaseCommand += ' prerelease --preRelease=beta';
 }
 
 // Add any additional arguments
