@@ -69,10 +69,24 @@ let additionalArgs = argParts.join(' ');
 if (additionalArgs) {
 	releaseCommand += ' ' + additionalArgs;
 }
+// If this is a dry-run, relax git cleanliness requirements to avoid false negatives
+if (argParts.includes('--dry-run')) {
+	releaseCommand += ' --no-git.requireCleanWorkingDir --no-git.requireUpstream';
+}
 
 console.log(`\n📝 Executing: ${releaseCommand}\n`);
 
+// Pass dry-run env flag downstream so hooks can skip writes
+const __dry = args.includes('--dry-run') || (additionalArgs && additionalArgs.includes('--dry-run'));
+if (__dry) process.env.RELEASE_IT_DRY_RUN = '1';
+
+
+// NOTE: In dry-run we want hooks to no-op; we propagate a flag via env
+
 try {
+
+// (dry-run) pass env flag to hooks
+
 	execSync(releaseCommand, { stdio: 'inherit' });
 } catch (error) {
 	console.error('❌ Release failed:', error.message);

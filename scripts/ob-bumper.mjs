@@ -37,9 +37,6 @@ class ObsidianVersionBump extends Plugin {
    */
   async readManifest() {
     const { isDryRun } = this.config;
-    // allow external flags override (e.g., from smart-beta-release dry-run)
-    const forceDry = process.env.RELEASE_IT_DRY_RUN === '1' || process.env.RELEASE_IT === '1';
-    this.config.isDryRun = this.config.isDryRun || forceDry;
     const latest = isPreRelease(this.config.contextOptions.latestVersion);
     let manifestToRead = this.getManifest(latest);
     this.log.exec(`Reading manifest from ${manifestToRead}`, isDryRun);

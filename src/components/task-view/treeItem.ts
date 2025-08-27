@@ -929,6 +929,12 @@ export class TaskTreeItemComponent extends Component {
 				);
 			});
 		}
+		// Stable sort children with lowest-priority tie-breakers: filePath -> line
+		tasksToRender = [...tasksToRender].sort((a, b) => {
+			const fp = (a.filePath || "").localeCompare(b.filePath || "");
+			if (fp !== 0) return fp;
+			return (a.line ?? 0) - (b.line ?? 0);
+		});
 
 		// Render each filtered child task
 		tasksToRender.forEach((childTask) => {
@@ -1110,6 +1116,36 @@ export class TaskTreeItemComponent extends Component {
 			}
 		}
 		// If the loop finishes, the task was not found in this component's subtree
+		return false;
+	}
+
+	/**
+	 * Find a component in this subtree by task id.
+	 */
+	public findComponentByTaskId(taskId: string): TaskTreeItemComponent | null {
+		if (this.task.id === taskId) return this;
+		for (const child of this.childComponents) {
+			const found = child.findComponentByTaskId(taskId);
+			if (found) return found;
+		}
+		return null;
+	}
+
+	/**
+	 * Remove a child component (any depth) by task id. Returns true if removed.
+	 */
+	public removeChildByTaskId(taskId: string): boolean {
+		for (let i = 0; i < this.childComponents.length; i++) {
+			const child = this.childComponents[i];
+			if (child.getTask().id === taskId) {
+				child.unload();
+				this.childComponents.splice(i, 1);
+				return true;
+			}
+			if (child.removeChildByTaskId(taskId)) {
+				return true;
+			}
+		}
 		return false;
 	}
 

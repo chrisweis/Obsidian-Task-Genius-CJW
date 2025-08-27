@@ -556,18 +556,24 @@ function compareTasks<
 		}
 	}
 
-	// Maintain original relative order if all criteria are equal
-	// 检查是否有lineNumber属性
+	// Maintain stable order with lowest priority tie-breakers: filePath -> line -> lineNumber -> id
+	const filePathA = (taskA as any).filePath ?? "";
+	const filePathB = (taskB as any).filePath ?? "";
+	if (filePathA !== filePathB) {
+		return filePathA.localeCompare(filePathB);
+	}
 	if ((taskA as any).line !== undefined && (taskB as any).line !== undefined) {
 		return ((taskA as any).line as number) - ((taskB as any).line as number);
 	} else if (
 		(taskA as any).lineNumber !== undefined &&
 		(taskB as any).lineNumber !== undefined
 	) {
-		return (
-			(taskA as any).lineNumber as number
-		) - ((taskB as any).lineNumber as number);
+		return ((taskA as any).lineNumber as number) - ((taskB as any).lineNumber as number);
 	}
+	// Final fallback on id for deterministic order
+	const idA = (taskA as any).id ?? "";
+	const idB = (taskB as any).id ?? "";
+	if (idA !== idB) return idA.localeCompare(idB);
 	return 0;
 }
 

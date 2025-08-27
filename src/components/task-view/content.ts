@@ -273,7 +273,8 @@ export class ContentComponent extends Component {
 				this.plugin.settings
 			);
 		} else {
-			// Default sorting: completed tasks last, then by priority, due date, and content
+			// Default sorting: completed tasks last, then by priority, due date, content,
+			// with lowest-priority tie-breakers: filePath -> line
 			this.filteredTasks.sort((a, b) => {
 				const completedA = a.completed;
 				const completedB = b.completed;
@@ -289,7 +290,14 @@ export class ContentComponent extends Component {
 				const dueB = b.metadata.dueDate ?? Infinity;
 				if (dueA !== dueB) return dueA - dueB;
 
-				return a.content.localeCompare(b.content);
+				// Content compare (case-insensitive numeric aware)
+				const collator = new Intl.Collator(undefined, { usage: "sort", sensitivity: "base", numeric: true });
+				const contentCmp = collator.compare(a.content ?? "", b.content ?? "");
+				if (contentCmp !== 0) return contentCmp;
+				// Lowest-priority tie-breakers to ensure stability across files
+				const fp = (a.filePath || "").localeCompare(b.filePath || "");
+				if (fp !== 0) return fp;
+				return (a.line ?? 0) - (b.line ?? 0);
 			});
 		}
 
@@ -320,15 +328,18 @@ export class ContentComponent extends Component {
 			console.log("ContentComponent: Processing pending force refresh");
 			this.isRendering = false; // Cancel any ongoing render
 		}
-		
+
 		// Prevent concurrent renders (unless force refresh)
 		if (this.isRendering) {
 			console.log("ContentComponent: Already rendering, skipping refresh");
 			return;
 		}
-		
+
 		this.isRendering = true;
-		
+
+		// Capture scroll state to mitigate scrollbar jumping
+		const prevScrollState = this.captureScrollState();
+
 		try {
 			this.cleanupComponents(); // Clear previous state and components
 
@@ -348,6 +359,12 @@ export class ContentComponent extends Component {
 				// Add all non-filtered tasks to the taskMap
 				this.notFilteredTasks.forEach((task) => taskMap.set(task.id, task));
 				this.rootTasks = tasksToTree(this.filteredTasks); // Calculate root tasks
+				// Stable sort roots with lowest-priority tie-breakers: filePath -> line
+				this.rootTasks.sort((a, b) => {
+					const fp = (a.filePath || "").localeCompare(b.filePath || "");
+					if (fp !== 0) return fp;
+					return (a.line ?? 0) - (b.line ?? 0);
+				});
 				this.loadRootTaskBatch(taskMap); // Load the first batch
 			} else {
 				this.loadTaskBatch(); // Load the first batch
@@ -355,6 +372,8 @@ export class ContentComponent extends Component {
 
 			// Add load marker if necessary
 			this.checkAndAddLoadMarker();
+			// Restore scroll state after render
+			this.restoreScrollState(prevScrollState);
 		} finally {
 			// Reset rendering flag after completion
 			setTimeout(() => {
@@ -362,6 +381,47 @@ export class ContentComponent extends Component {
 				this.pendingForceRefresh = false; // Reset force refresh flag
 			}, 50); // Small delay to prevent immediate re-entry
 		}
+	}
+
+	// Capture current scroll state (anchor id + offset + scrollTop)
+	private captureScrollState() {
+		const container = this.taskListEl;
+		if (!container) return { scrollTop: 0, anchorId: null as string | null, anchorOffset: 0 };
+		const scrollTop = container.scrollTop;
+		let anchorId: string | null = null;
+		let anchorOffset = 0;
+		const containerRect = container.getBoundingClientRect();
+		// Find first visible task item
+		const items = Array.from(container.querySelectorAll<HTMLElement>(".task-item"));
+		for (const el of items) {
+			const rect = el.getBoundingClientRect();
+			const offset = rect.top - containerRect.top;
+			if (rect.bottom > containerRect.top) {
+				anchorId = el.getAttribute("data-task-id");
+				anchorOffset = Math.max(0, offset);
+				break;
+			}
+		}
+		return { scrollTop, anchorId, anchorOffset };
+	}
+
+	// Restore scroll state after re-render
+	private restoreScrollState(state: { scrollTop: number; anchorId: string | null; anchorOffset: number }) {
+		const container = this.taskListEl;
+		if (!container) return;
+		// Try anchor-based restoration first
+		if (state.anchorId) {
+			const anchorEl = container.querySelector<HTMLElement>(`[data-task-id="${state.anchorId}"]`);
+			if (anchorEl) {
+				const desiredOffset = state.anchorOffset;
+				const currentOffset = anchorEl.getBoundingClientRect().top - container.getBoundingClientRect().top;
+				const delta = currentOffset - desiredOffset;
+				container.scrollTop += delta;
+				return;
+			}
+		}
+		// Fallback: restore raw scrollTop
+		container.scrollTop = state.scrollTop;
 	}
 
 	private loadTaskBatch(): number {
@@ -572,73 +632,171 @@ export class ContentComponent extends Component {
 	}
 
 	public updateTask(updatedTask: Task) {
-		// Update the task in the main data source
-		const taskIndexAll = this.allTasks.findIndex(
-			(t) => t.id === updatedTask.id
-		);
-		if (taskIndexAll !== -1) {
-			this.allTasks[taskIndexAll] = { ...updatedTask };
-		}
-
-		// 同时更新 notFilteredTasks 中的任务
-		const taskIndexNotFiltered = this.notFilteredTasks.findIndex(
-			(t) => t.id === updatedTask.id
-		);
-		if (taskIndexNotFiltered !== -1) {
+		// 1) Update sources
+		const taskIndexAll = this.allTasks.findIndex((t) => t.id === updatedTask.id);
+		if (taskIndexAll !== -1) this.allTasks[taskIndexAll] = { ...updatedTask };
+		const taskIndexNotFiltered = this.notFilteredTasks.findIndex((t) => t.id === updatedTask.id);
+		if (taskIndexNotFiltered !== -1)
 			this.notFilteredTasks[taskIndexNotFiltered] = { ...updatedTask };
-		}
-
-		// Update selected task state if it was the one updated
-		if (this.selectedTask && this.selectedTask.id === updatedTask.id) {
+		if (this.selectedTask && this.selectedTask.id === updatedTask.id)
 			this.selectedTask = { ...updatedTask };
-		}
 
-		// Re-apply filters to see if the task should still be visible and update count
-		const previousFilteredTasksLength = this.filteredTasks.length;
+		// 2) Re-apply filters and detect visibility change
+		const prevLen = this.filteredTasks.length;
 		this.applyFilters();
-		const taskStillVisible = this.filteredTasks.some(
-			(t) => t.id === updatedTask.id
-		);
+		const taskFromFiltered = this.filteredTasks.find((t) => t.id === updatedTask.id);
+		const taskStillVisible = !!taskFromFiltered;
 
-		// Option 1: Task still visible after filtering, update in place
-		if (taskStillVisible) {
-			// Find the updated task from filteredTasks (which has been refreshed from allTasks)
-			const taskFromFiltered = this.filteredTasks.find(t => t.id === updatedTask.id);
-			if (!taskFromFiltered) {
-				return;
+		// Helper: insert list item at correct position (list view)
+		const insertListItem = (taskToInsert: Task) => {
+			const compIds = new Set(this.taskComponents.map((c) => c.getTask().id));
+			const sortedIndex = this.filteredTasks.findIndex((t) => t.id === taskToInsert.id);
+			// Find the next rendered neighbor after sortedIndex
+			let nextComp: any = null;
+			for (let i = sortedIndex + 1; i < this.filteredTasks.length; i++) {
+				const id = this.filteredTasks[i].id;
+				if (compIds.has(id)) {
+					nextComp = this.taskComponents.find((c) => c.getTask().id === id);
+					break;
+				}
 			}
-			
-			// Find the rendered component and update it
-			if (!this.isTreeView) {
-				const component = this.taskComponents.find(
-					(c) => c.getTask().id === updatedTask.id
-				);
-				component?.updateTask(taskFromFiltered); // Update rendered component with filtered task
+			// Create component
+			const taskComponent = new TaskListItemComponent(
+				taskToInsert,
+				this.currentViewId,
+				this.app,
+				this.plugin
+			);
+			// Attach events
+			taskComponent.onTaskSelected = this.selectTask.bind(this);
+			taskComponent.onTaskCompleted = (t) => { this.params.onTaskCompleted?.(t); };
+			taskComponent.onTaskUpdate = async (orig, upd) => { if (this.params.onTaskUpdate) await this.params.onTaskUpdate(orig, upd); };
+			taskComponent.onTaskContextMenu = (e, t) => { this.params.onTaskContextMenu?.(e, t); };
+			this.addChild(taskComponent);
+			taskComponent.load();
+			// Insert DOM
+			if (nextComp) {
+				this.taskListEl.insertBefore(taskComponent.element, nextComp.element);
+				const idx = this.taskComponents.indexOf(nextComp);
+				this.taskComponents.splice(idx, 0, taskComponent);
 			} else {
-				// For tree view, check root components and recursively search
-				let updated = false;
-				for (const rootComp of this.treeComponents) {
-					if (rootComp.getTask().id === updatedTask.id) {
-						rootComp.updateTask(taskFromFiltered);
-						updated = true;
-						break;
-					} else {
-						if (rootComp.updateTaskRecursively(taskFromFiltered)) {
-							updated = true;
-							break;
+				this.taskListEl.appendChild(taskComponent.element);
+				this.taskComponents.push(taskComponent);
+			}
+		};
+
+		// Helper: remove list item
+		const removeListItem = (taskId: string) => {
+			const idx = this.taskComponents.findIndex((c) => c.getTask().id === taskId);
+			if (idx >= 0) {
+				const comp = this.taskComponents[idx];
+				this.removeChild(comp);
+				comp.element.remove();
+				this.taskComponents.splice(idx, 1);
+			}
+		};
+
+		// Helper: sort comparator for roots (filePath -> line)
+		const rootComparator = (a: Task, b: Task) => {
+			const fp = (a.filePath || "").localeCompare(b.filePath || "");
+			if (fp !== 0) return fp;
+			return (a.line ?? 0) - (b.line ?? 0);
+		};
+
+		if (taskStillVisible) {
+			if (!this.isTreeView) {
+				// List view: update in place or insert if new to view
+				const comp = this.taskComponents.find((c) => c.getTask().id === updatedTask.id);
+				if (comp) {
+					comp.updateTask(taskFromFiltered!);
+				} else {
+					insertListItem(taskFromFiltered!);
+				}
+			} else {
+				// Tree view: update existing subtree or insert to parent/root
+				const comp = this.treeComponents.find((c) => c.getTask().id === updatedTask.id);
+				if (comp) {
+					comp.updateTask(taskFromFiltered!);
+				} else {
+					// Not a root comp; try update within children
+					let updated = false;
+					for (const rootComp of this.treeComponents) {
+						if (rootComp.updateTaskRecursively(taskFromFiltered!)) { updated = true; break; }
+					}
+					if (!updated) {
+						// Insert new visible task
+						const parentId = taskFromFiltered!.metadata.parent;
+						if (parentId) {
+							// Find parent comp and rebuild its children list incrementally
+							for (const rootComp of this.treeComponents) {
+								const parentComp = rootComp.findComponentByTaskId(parentId);
+								if (parentComp) {
+									const newChildren = this.notFilteredTasks.filter((t) => t.metadata.parent === parentId);
+									parentComp.updateChildTasks(newChildren);
+									updated = true;
+									break;
+								}
+							}
+						} else {
+							// Root insertion
+							const taskMap = new Map<string, Task>();
+							this.notFilteredTasks.forEach((t) => taskMap.set(t.id, t));
+							const childTasks = this.notFilteredTasks.filter((t) => t.metadata.parent === taskFromFiltered!.id);
+							const newRoot = new TaskTreeItemComponent(
+								taskFromFiltered!, this.currentViewId, this.app, 0, childTasks, taskMap, this.plugin
+							);
+							newRoot.onTaskSelected = this.selectTask.bind(this);
+							newRoot.onTaskCompleted = (t) => { this.params.onTaskCompleted?.(t); };
+							newRoot.onTaskUpdate = async (orig, upd) => { if (this.params.onTaskUpdate) await this.params.onTaskUpdate(orig, upd); };
+							newRoot.onTaskContextMenu = (e, t) => { this.params.onTaskContextMenu?.(e, t); };
+							this.addChild(newRoot);
+							newRoot.load();
+							// Determine insert index among existing roots
+							let insertAt = this.treeComponents.length;
+							for (let i = 0; i < this.treeComponents.length; i++) {
+								if (rootComparator(taskFromFiltered!, this.treeComponents[i].getTask()) < 0) {
+									insertAt = i; break;
+								}
+							}
+							if (insertAt < this.treeComponents.length) {
+								this.taskListEl.insertBefore(newRoot.element, this.treeComponents[insertAt].element);
+								this.treeComponents.splice(insertAt, 0, newRoot);
+							} else {
+								this.taskListEl.appendChild(newRoot.element);
+								this.treeComponents.push(newRoot);
+							}
 						}
 					}
 				}
 			}
-		}
-		// Option 2: Task visibility changed or something else requires full refresh
-		else {
-			this.refreshTaskList();
-			return; // Exit early as refresh handles everything
+		} else {
+			// Task became not visible
+			if (!this.isTreeView) {
+				removeListItem(updatedTask.id);
+				// Optional: backfill one more item if available
+				if (this.nextTaskIndex < this.filteredTasks.length) {
+					this.loadTaskBatch();
+				}
+			} else {
+				// Tree view removal
+				// If root component exists, remove it
+				const idx = this.treeComponents.findIndex((c) => c.getTask().id === updatedTask.id);
+				if (idx >= 0) {
+					const comp = this.treeComponents[idx];
+					this.removeChild(comp);
+					comp.element.remove();
+					this.treeComponents.splice(idx, 1);
+				} else {
+					// Otherwise remove from its parent's subtree
+					for (const rootComp of this.treeComponents) {
+						if (rootComp.removeChildByTaskId(updatedTask.id)) break;
+					}
+				}
+			}
 		}
 
-		// Update count display if it wasn't handled by a full refresh
-		if (this.filteredTasks.length !== previousFilteredTasksLength) {
+		// 3) Update count display (no full refresh path)
+		if (this.filteredTasks.length !== prevLen) {
 			this.countEl.setText(`${this.filteredTasks.length} ${t("tasks")}`);
 		}
 	}
