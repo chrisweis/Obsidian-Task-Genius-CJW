@@ -26,9 +26,15 @@ if (latestTag && semver.gt(latestTag, currentVersion)) {
 	console.log('');
 }
 
-// Parse command line arguments
+// Parse command line arguments (support flags like --dry-run anywhere)
 const args = process.argv.slice(2);
-const increment = args[0]; // 'patch', 'minor', 'major', or undefined
+const knownIncrements = new Set(['patch', 'minor', 'major', 'continue']);
+let increment = undefined;
+const argParts = [];
+for (const a of args) {
+	if (knownIncrements.has(a) && !increment) increment = a;
+	else argParts.push(a);
+}
 
 // Check if we're already on a beta version
 const isCurrentlyBeta = semver.prerelease(currentVersion) !== null;
@@ -58,8 +64,8 @@ if (isCurrentlyBeta && (!increment || increment === 'continue')) {
 	releaseCommand = 'npx release-it --config .release-it.beta-continue.cjs prerelease';
 }
 
-// Add any additional arguments
-const additionalArgs = args.slice(1).join(' ');
+// Add any additional arguments and ensure --dry-run passes through to release-it
+let additionalArgs = argParts.join(' ');
 if (additionalArgs) {
 	releaseCommand += ' ' + additionalArgs;
 }

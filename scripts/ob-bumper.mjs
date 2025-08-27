@@ -24,10 +24,12 @@ class ObsidianVersionBump extends Plugin {
     }
   }
   async writeJson(file, data) {
-    // const { isDryRun } = this.config;
+    const { isDryRun } = this.config;
     const { indent = 4 } = this.getContext();
-    await writeFile(file, JSON.stringify(data, null, indent));
-    // this.log.exec(`Write to ${file}`, isDryRun);
+    if (!isDryRun) {
+      await writeFile(file, JSON.stringify(data, null, indent));
+    }
+    this.log.exec(`Write to ${file}`, isDryRun);
   }
 
   /**
@@ -35,6 +37,9 @@ class ObsidianVersionBump extends Plugin {
    */
   async readManifest() {
     const { isDryRun } = this.config;
+    // allow external flags override (e.g., from smart-beta-release dry-run)
+    const forceDry = process.env.RELEASE_IT_DRY_RUN === '1' || process.env.RELEASE_IT === '1';
+    this.config.isDryRun = this.config.isDryRun || forceDry;
     const latest = isPreRelease(this.config.contextOptions.latestVersion);
     let manifestToRead = this.getManifest(latest);
     this.log.exec(`Reading manifest from ${manifestToRead}`, isDryRun);
@@ -96,7 +101,9 @@ class ObsidianVersionBump extends Plugin {
     const { isDryRun } = this.config;
     const versions = await this.readJson(versionsList);
     versions[targetVersion] = minAppVersion;
-    !isDryRun && (await this.writeJson(versionsList, versions));
+    if (!isDryRun) {
+      await this.writeJson(versionsList, versions);
+    }
     this.log.exec(
       `Wrote version ${targetVersion} to ${versionsList}`,
       isDryRun,

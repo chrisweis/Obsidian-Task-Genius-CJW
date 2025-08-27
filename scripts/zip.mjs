@@ -7,6 +7,13 @@ import {globby} from "globby"
 
 const assets = ["main.js", "styles.css", "manifest.json"];
 
+const isDryRun = process.env.RELEASE_IT_DRY_RUN === '1' || process.env.RELEASE_IT === '1';
+
+if (isDryRun) {
+	console.log("[dry-run] skip zipping dist artifacts");
+	process.exit(0);
+}
+
 await globby("dist/*.zip").then(files => Promise.all(files.map(f => rm(f))))
 
 const zip = new JSZip();
