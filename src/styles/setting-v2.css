@@ -191,9 +191,14 @@
 
 .task-genius-iframe-modal {
 	width: 90%;
-	max-width: 1000px;
+	max-width: 1400px;
 	max-height: 90vh;
 	overflow-y: auto;
+}
+
+.task-genius-iframe-modal .modal-title {
+	display: flex;
+	flex-direction: row;
 }
 
 .time-parsing-example {

@@ -673,6 +673,8 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					return `${base}/ics-support`;
 				case "mcp-integration":
 					return `${base}/mcp-integration`;
+					case "bases-support":
+						return `${base}/bases-support`; 
 				case "beta-test":
 					return `${base}/getting-started`;
 				case "experimental":
