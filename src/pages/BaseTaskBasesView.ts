@@ -596,7 +596,7 @@ export abstract class BaseTaskBasesView extends Component implements BasesView {
 			}
 
 			const tFile = this.app.vault.getAbstractFileByPath(file.path);
-			if (tFile && 'extension' in tFile) {
+			if (tFile instanceof TFile) {
 				const content = await this.app.vault.read(tFile);
 				const updatedContent = content.replace(/^#\s+.*/m, `# ${newContent}`);
 				await this.app.vault.modify(tFile, updatedContent);
