@@ -100,7 +100,7 @@
 }
 
 .task-content-metadata-container.multi-line-content .task-item-content {
-	width: 100%;
+	/* width: 100%; */
 }
 
 .task-content-metadata-container.multi-line-content .task-item-metadata {
