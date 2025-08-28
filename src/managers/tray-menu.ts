@@ -81,11 +81,11 @@ export class TrayMenuBuilder {
           {
             label: "Priority",
             submenu: [
-              { label: "🔺 Highest", click: () => actions.setPriority(t, 5) },
-              { label: "⏫ High", click: () => actions.setPriority(t, 4) },
-              { label: "🔼 Medium", click: () => actions.setPriority(t, 3) },
-              { label: "🔽 Low", click: () => actions.setPriority(t, 2) },
-              { label: "⏬️ Lowest", click: () => actions.setPriority(t, 1) },
+              { label: "Highest", click: () => actions.setPriority(t, 5) },
+              { label: "High", click: () => actions.setPriority(t, 4) },
+              { label: "Medium", click: () => actions.setPriority(t, 3) },
+              { label: "Low", click: () => actions.setPriority(t, 2) },
+              { label: "Lowest", click: () => actions.setPriority(t, 1) },
             ]
           },
         ]

@@ -2,6 +2,8 @@ import { App, Component, Notice, Platform, TFile, Menu } from "obsidian";
 import TaskProgressBarPlugin from "../index";
 import type { Task } from "../types/task";
 import { TrayMenuBuilder } from "./tray-menu";
+import { getTaskGeniusIcon } from "../icon";
+import { t } from "@/translations/helper";
 
 /** Desktop notification manager based on dataflow QueryAPI */
 export class NotificationManager extends Component {
@@ -120,21 +122,16 @@ export class NotificationManager extends Component {
         // Adopt existing tray - don't recreate
         this.electronTray = g[globalKey].tray;
         this.trayOwnerToken = g[globalKey].owner;
+        try { await this.applyThemeToTray(nativeImage); this.subscribeNativeTheme(nativeImage); } catch {}
         return true;
       }
 
-      // Create a new tray and register as singleton
-      const img = nativeImage.createEmpty ? nativeImage.createEmpty() : nativeImage.createFromDataURL("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAt8BjePz7p8AAAAASUVORK5CYII=");
-      const tray = new Tray(img);
-      tray.setToolTip("Task Genius");
+      // Create a new tray and apply theme-based icon
+      this.electronTray = new Tray(nativeImage.createEmpty());
+      try { this.electronTray.setToolTip("Task Genius"); } catch {}
+      try { await this.applyThemeToTray(nativeImage); this.subscribeNativeTheme(nativeImage); } catch {}
 
-      try {
-        if ((process as any)?.platform === "darwin" && tray.setTitle) {
-          tray.setTitle("🔔");
-        }
-      } catch {}
-
-      tray.on?.("click", async () => {
+      this.electronTray.on?.("click", async () => {
         await this.sendDailySummary();
         try { (this.plugin as any).activateTaskView?.(); } catch {}
       });
@@ -143,15 +140,103 @@ export class NotificationManager extends Component {
       const owner = Symbol("tg-tray-owner");
       // Ensure we don't leak multiple listeners on HMR/reloads
       try { g[globalKey]?.tray?.removeAllListeners?.(); } catch {}
-      g[globalKey] = { tray, owner };
-      this.electronTray = tray;
+      g[globalKey] = { tray: this.electronTray, owner };
       this.trayOwnerToken = owner;
+
+
+      // Done
       return true;
     } catch (e) {
       console.warn("Failed to create/adopt Electron tray:", e);
       return false;
     }
   }
+
+  private getNativeTheme(): any | null {
+    try {
+      const electron = this.getElectron();
+      return (electron as any)?.nativeTheme || (electron as any)?.remote?.nativeTheme || null;
+    } catch { return null; }
+  }
+
+  private isDarkTheme(): boolean {
+    const nt = this.getNativeTheme();
+    if (nt && typeof nt.shouldUseDarkColors === "boolean") return nt.shouldUseDarkColors;
+    try { return window.matchMedia("(prefers-color-scheme: dark)").matches; } catch { return false; }
+  }
+
+  private async applyThemeToTray(nativeImage: any): Promise<void> {
+    if (!this.electronTray) return;
+    const isDark = this.isDarkTheme();
+    const color = isDark ? "#FFFFFF" : "#000000";
+    const img = await this.buildTrayNativeImage(nativeImage, color);
+    try { this.electronTray.setImage?.(img); } catch {}
+  }
+
+  private subscribeNativeTheme(nativeImage: any): void {
+    const nt = this.getNativeTheme();
+    try {
+      if (!nt) return;
+      const handler = () => { this.applyThemeToTray(nativeImage).catch(() => {}); };
+      nt.removeAllListeners?.("updated");
+      nt.on?.("updated", handler);
+    } catch {}
+  }
+
+  private async buildTrayNativeImage(nativeImage: any, color?: string): Promise<any> {
+    try {
+      const size = Platform.isMacOS ? 14 : 24;
+      const canvas = document.createElement("canvas");
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return nativeImage.createEmpty();
+
+      // Get the actual color to use - default to current theme color
+      const actualColor = color || this.getCurrentThemeColor();
+
+      // Use Task Genius icon for all platforms with theme-aware color
+      const svg = this.generateThemedTaskGeniusIcon(actualColor);
+      const img = new Image();
+      const blob = new Blob([svg], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(blob);
+      await new Promise<void>((resolve) => { img.onload = () => resolve(); img.src = url; });
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+
+      const dataUrl = canvas.toDataURL("image/png");
+      const ni = nativeImage.createFromDataURL(dataUrl);
+      
+      // Set as template image on macOS for automatic theme adaptation
+      try { 
+        if (Platform.isMacOS && ni.setTemplateImage) {
+          ni.setTemplateImage(true);
+        }
+      } catch {}
+      
+      return ni;
+    } catch {
+      return nativeImage.createEmpty();
+    }
+  }
+
+  private getCurrentThemeColor(): string {
+    // Get current theme color based on system preference
+    const isDark = this.isDarkTheme();
+    // Use CSS variable or default colors
+    const styles = getComputedStyle(document.body);
+    const currentColor = styles.getPropertyValue('--text-normal')?.trim() || 
+                        (isDark ? '#FFFFFF' : '#000000');
+    return currentColor;
+  }
+
+  private generateThemedTaskGeniusIcon(color: string): string {
+    // Get the original Task Genius icon and replace currentColor with the theme color
+    const originalSvg = getTaskGeniusIcon();
+    // Replace all instances of currentColor with the dynamic color
+    return originalSvg.replace(/currentColor/g, color);
+  }
+
 
   // Helper: identify ICS badge tasks to exclude from tray/status menus
   private isIcsBadge(task: Task): boolean {
@@ -256,17 +341,17 @@ export class NotificationManager extends Component {
 
       // macOS 可以设置文字，Windows/Linux 更新 tooltip
       try {
-        if ((process as any)?.platform === "darwin" && this.electronTray.setTitle) {
-          this.electronTray.setTitle(pending.length > 0 ? `🔔 ${pending.length}` : "🔔");
+        if (Platform.isMacOS && this.electronTray.setTitle) {
+          this.electronTray.setTitle(pending.length > 0 ? ` ${pending.length} ${t("Tasks")}` : (" " + t("No Tasks")));
         }
       } catch {}
-      try { this.electronTray.setToolTip?.(pending.length > 0 ? `${pending.length} tasks due or overdue` : "No due today"); } catch {}
+      try { this.electronTray.setToolTip?.(pending.length > 0 ? `${pending.length} ${t("tasks due or overdue")}` : t("No due today")); } catch {}
 
       // Build context menu via helper
       const builder = new TrayMenuBuilder(this.plugin);
       await builder.applyToTray(this.electronTray, {
         openVault: () => this.openVault(),
-        openTaskView: () => { try { (this.plugin as any).activateTaskView?.(); } catch {} },
+        openTaskView: () => { try { (this.plugin as TaskProgressBarPlugin).activateTaskView?.(); } catch {} },
         openTask: (task: Task) => this.openTask(task),
         completeTask: (id: string) => this.completeTask(id),
         postponeTask: (task: Task, offsetMs: number) => this.postponeTask(task, offsetMs),
@@ -319,7 +404,7 @@ export class NotificationManager extends Component {
     if (this.statusBarItem) {
       this.statusBarItem.empty();
       const btn = this.statusBarItem.createEl("span", { cls: "task-genius-tray" });
-      btn.textContent = pending.length > 0 ? `🔔 ${pending.length}` : "🔔";
+      btn.textContent = pending.length > 0 ? `${pending.length} ${t("Tasks")}` : t("No Tasks");
       btn.style.cursor = "pointer";
       btn.onclick = async (ev) => {
         // Build an Obsidian menu that mirrors system tray quick actions using internal submenu API
