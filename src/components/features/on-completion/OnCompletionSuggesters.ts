@@ -6,7 +6,7 @@ import {
 	AbstractInputSuggest,
 	TextComponent,
 } from "obsidian";
-import TaskProgressBarPlugin from "../../../index";
+import TaskProgressBarPlugin from "@/index";
 
 /**
  * Suggester for task IDs

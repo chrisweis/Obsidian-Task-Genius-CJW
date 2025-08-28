@@ -12,16 +12,16 @@ import {
 	CountHabitProps,
 	ScheduledHabitProps,
 	MappingHabitProps,
-} from "../../../types/habit-card"; // Assuming types are in src/types
-import TaskProgressBarPlugin from "../../../index";
+} from "@/types/habit-card"; // Assuming types are in src/types
+import TaskProgressBarPlugin from "@/index";
 import {
 	DailyHabitCard,
 	CountHabitCard,
 	ScheduledHabitCard,
 	MappingHabitCard,
 } from "./habitcard/index"; // Import the habit card classes
-import { t } from "../../../translations/helper";
-import "../../../styles/habit.css";
+import { t } from "@/translations/helper";
+import "@/styles/habit.css";
 
 export class Habit extends Component {
 	plugin: TaskProgressBarPlugin;

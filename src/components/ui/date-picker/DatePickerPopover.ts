@@ -1,7 +1,7 @@
 import { App, Component, CloseableComponent } from "obsidian";
 import { createPopper, Instance as PopperInstance } from "@popperjs/core";
 import { DatePickerComponent, DatePickerState } from "./DatePickerComponent";
-import type TaskProgressBarPlugin from "../../../index";
+import type TaskProgressBarPlugin from "@/index";
 
 export class DatePickerPopover extends Component implements CloseableComponent {
 	private app: App;

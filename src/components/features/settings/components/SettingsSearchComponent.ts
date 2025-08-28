@@ -1,8 +1,8 @@
 import { Component, setIcon } from "obsidian";
-import { SettingsIndexer } from "./SettingsIndexer";
-import { SearchResult } from "../../types/SettingsSearch";
-import { t } from "../../translations/helper";
-import { TaskProgressBarSettingTab } from "../../setting";
+import { SettingsIndexer } from "@/components/features/settings/core/SettingsIndexer";
+import { SearchResult } from "@/types/SettingsSearch";
+import { t } from "@/translations/helper";
+import { TaskProgressBarSettingTab } from "@/setting";
 
 /**
  * 设置搜索组件

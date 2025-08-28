@@ -3,7 +3,7 @@
  */
 
 import { App } from "obsidian";
-import { FileTaskManagerImpl } from "../../managers/file-task-manager";
+import { FileTaskManagerImpl } from "@/managers/file-task-manager";
 import { FileTask } from "../../types/file-task";
 import { FileSourceConfiguration } from "../../types/file-source";
 

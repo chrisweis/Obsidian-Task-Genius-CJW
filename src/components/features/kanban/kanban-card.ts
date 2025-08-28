@@ -1,11 +1,11 @@
 import { App, Component, MarkdownRenderer, Menu, TFile } from "obsidian";
-import { Task } from "../../../types/task"; // Adjust path
-import { MarkdownRendererComponent } from "../../ui/renderers/MarkdownRenderer"; // Adjust path
-import TaskProgressBarPlugin from "../../../index"; // Adjust path
-import { KanbanSpecificConfig } from "../../../common/setting-definition";
-import { createTaskCheckbox } from "../../features/task/view/details";
-import { getEffectiveProject } from "../../../utils/task/task-operations";
-import { sanitizePriorityForClass } from "../../../utils/task/priority-utils";
+import { Task } from "@/types/task"; // Adjust path
+import { MarkdownRendererComponent } from "@/components/ui/renderers/MarkdownRenderer"; // Adjust path
+import TaskProgressBarPlugin from "@/index"; // Adjust path
+import { KanbanSpecificConfig } from "@/common/setting-definition";
+import { createTaskCheckbox } from "@/components/features/task/view/details";
+import { getEffectiveProject } from "@/utils/task/task-operations";
+import { sanitizePriorityForClass } from "@/utils/task/priority-utils";
 
 export class KanbanCardComponent extends Component {
 	public element: HTMLElement;

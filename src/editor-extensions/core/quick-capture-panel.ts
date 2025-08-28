@@ -21,11 +21,11 @@ import {
 	EmbeddableMarkdownEditor,
 } from "./markdown-editor";
 import TaskProgressBarPlugin from "../../index";
-import { saveCapture, processDateTemplates } from "../../utils/file/file-operations";
-import { t } from "../../translations/helper";
-import "../../styles/quick-capture.css";
-import { FileSuggest } from "../../components/AutoComplete";
-import { QuickCaptureSuggest } from "../autocomplete/task-metadata-suggest";
+import { saveCapture, processDateTemplates } from "@/utils/file/file-operations";
+import { t } from "@/translations/helper";
+import "@/styles/quick-capture.css";
+import { FileSuggest } from "@/components/ui/inputs/AutoComplete";
+import { QuickCaptureSuggest } from "@/editor-extensions/autocomplete/task-metadata-suggest";
 
 /**
  * Sanitize filename by replacing unsafe characters with safe alternatives

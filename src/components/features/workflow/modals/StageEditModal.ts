@@ -5,7 +5,7 @@ import {
 	DropdownComponent,
 	ExtraButtonComponent,
 } from "obsidian";
-import { t } from '../../../../translations/helper';
+import { t } from '@/translations/helper';
 
 // Stage edit modal
 export class StageEditModal extends Modal {

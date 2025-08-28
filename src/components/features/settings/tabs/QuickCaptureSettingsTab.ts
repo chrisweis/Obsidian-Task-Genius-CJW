@@ -1,6 +1,6 @@
 import { Setting, Notice, App } from "obsidian";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { t } from "../../translations/helper";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { t } from "@/translations/helper";
 
 export function renderQuickCaptureSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

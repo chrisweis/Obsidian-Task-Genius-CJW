@@ -1,7 +1,7 @@
 import { PluginSettingTab, Setting } from "obsidian";
-import { t } from "../../translations/helper";
-import { TaskProgressBarSettingTab } from "../../setting";
-import type { EnhancedTimeParsingConfig } from "../../types/time-parsing";
+import { t } from "@/translations/helper";
+import { TaskProgressBarSettingTab } from "@/setting";
+import type { EnhancedTimeParsingConfig } from "@/types/time-parsing";
 
 export function renderTimeParsingSettingsTab(
 	pluginSettingTab: TaskProgressBarSettingTab,

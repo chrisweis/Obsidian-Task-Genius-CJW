@@ -1,8 +1,8 @@
 import { App, Component, moment } from "obsidian";
-import { CalendarEvent } from '../../../../index';
+import { CalendarEvent } from '@/components/features/calendar/index';
 import { renderCalendarEvent } from "../rendering/event-renderer";
 import { CalendarViewComponent, CalendarViewOptions } from "./base-view";
-import TaskProgressBarPlugin from "../../../../index";
+import TaskProgressBarPlugin from "@/index";
 
 export class DayView extends CalendarViewComponent {
 	private currentDate: moment.Moment;

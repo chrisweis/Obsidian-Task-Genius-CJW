@@ -1,5 +1,5 @@
-import { OnboardingConfig } from "../../managers/onboarding-manager";
-import { t } from "../../../translations/helper";
+import { OnboardingConfig } from "@/managers/onboarding-manager";
+import { t } from "@/translations/helper";
 import { setIcon } from "obsidian";
 
 export class OnboardingComplete {

@@ -1,8 +1,8 @@
 import { Component, App } from "obsidian";
-import { Task } from "../../../types/task";
+import { Task } from "@/types/task";
 import { TableView, TableViewCallbacks } from "./TableView";
 import { TableSpecificConfig } from "../../../common/setting-definition";
-import TaskProgressBarPlugin from "../../../index";
+import TaskProgressBarPlugin from "@/index";
 
 /**
  * Table view adapter to make TableView compatible with ViewComponentManager

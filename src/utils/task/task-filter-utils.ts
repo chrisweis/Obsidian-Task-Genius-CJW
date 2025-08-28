@@ -5,12 +5,12 @@ import {
 	getViewSettingOrDefault,
 } from "../../common/setting-definition";
 import TaskProgressBarPlugin from "../../index";
-import { sortTasks } from "../../commands/sortTaskCommands";
+import { sortTasks } from "@/commands/sortTaskCommands";
 import {
 	Filter,
 	FilterGroup,
 	RootFilterState,
-} from "../../components/task-filter/ViewTaskFilter";
+} from "@/components/features/task/filter/ViewTaskFilter";
 import { hasProject } from "./task-operations";
 
 // 从ViewTaskFilter.ts导入相关接口

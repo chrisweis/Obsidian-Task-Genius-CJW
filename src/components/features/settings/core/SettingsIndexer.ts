@@ -1,11 +1,11 @@
 import { prepareFuzzySearch } from "obsidian";
-import { SETTINGS_METADATA } from "../../common/settings-metadata";
+import { SETTINGS_METADATA } from "@/common/settings-metadata";
 import {
 	SettingsSearchIndex,
 	SettingSearchItem,
 	SearchResult,
-} from "../../types/SettingsSearch";
-import { t } from "../../translations/helper";
+} from "@/types/SettingsSearch";
+import { t } from "@/translations/helper";
 
 /**
  * 高性能设置项索引器

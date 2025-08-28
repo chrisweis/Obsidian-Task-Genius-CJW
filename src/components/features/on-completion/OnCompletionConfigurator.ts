@@ -9,15 +9,15 @@ import {
 	OnCompletionConfig,
 	OnCompletionActionType,
 	OnCompletionParseResult,
-} from "../../../types/onCompletion";
-import TaskProgressBarPlugin from "../../../index";
-import { t } from "../../../translations/helper";
+} from "@/types/onCompletion";
+import TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
 import {
 	TaskIdSuggest,
 	FileLocationSuggest,
 	ActionTypeSuggest,
 } from "./OnCompletionSuggesters";
-import "../../../styles/onCompletion.css";
+import "@/styles/onCompletion.css";
 
 export interface OnCompletionConfiguratorOptions {
 	initialValue?: string;

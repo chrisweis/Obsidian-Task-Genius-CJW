@@ -4,10 +4,10 @@
  */
 
 import { App, Modal, TFile, MarkdownView, ButtonComponent } from "obsidian";
-import { Task } from "../../../../types/task";
-import TaskProgressBarPlugin from "../../../../index";
+import { Task } from "@/types/task";
+import TaskProgressBarPlugin from "@/index";
 import { TaskMetadataEditor } from "./MetadataEditor";
-import { t } from "../../../../translations/helper";
+import { t } from "@/translations/helper";
 
 export class TaskDetailsModal extends Modal {
 	private task: Task;

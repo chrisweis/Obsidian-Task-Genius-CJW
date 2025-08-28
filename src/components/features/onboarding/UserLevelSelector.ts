@@ -1,8 +1,7 @@
 import {
 	OnboardingConfigManager,
 	OnboardingConfig,
-} from "../../managers/onboarding-manager";
-import { t } from "../../../translations/helper";
+} from "@/managers/onboarding-manager";
 import { setIcon } from "obsidian";
 
 export class UserLevelSelector {

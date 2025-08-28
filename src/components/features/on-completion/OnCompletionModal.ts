@@ -3,9 +3,9 @@ import {
 	OnCompletionConfigurator,
 	OnCompletionConfiguratorOptions,
 } from "./OnCompletionConfigurator";
-import TaskProgressBarPlugin from "../../../index";
-import { t } from "../../../translations/helper";
-import "../../../styles/onCompletion.css";
+import TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
+import "@/styles/onCompletion.css";
 
 export interface OnCompletionModalOptions {
 	initialValue?: string;

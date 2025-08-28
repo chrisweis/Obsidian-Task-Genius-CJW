@@ -1,7 +1,7 @@
 import { Setting } from "obsidian";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { t } from "../../translations/helper";
-import { HabitList } from "../HabitSettingList";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { t } from "@/translations/helper";
+import { HabitList } from "@/components/features/habit/components/HabitSettingList";
 
 export function renderHabitSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

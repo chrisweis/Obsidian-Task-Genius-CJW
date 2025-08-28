@@ -11,14 +11,14 @@ import {
 	DropdownComponent,
 	TextAreaComponent,
 } from "obsidian";
-import { Task } from "../../../../types/task";
-import TaskProgressBarPlugin from "../../../../index";
-import { t } from "../../../../translations/helper";
-import { ProjectSuggest, TagSuggest, ContextSuggest } from "../../../ui/inputs/AutoComplete";
-import { StatusComponent } from "../../../ui/feedback/StatusIndicator";
+import { Task } from "@/types/task";
+import TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
+import { ProjectSuggest, TagSuggest, ContextSuggest } from "@/components/ui/inputs/AutoComplete";
+import { StatusComponent } from "@/components/ui/feedback/StatusIndicator";
 import { format } from "date-fns";
-import { getEffectiveProject, isProjectReadonly } from "../../../../utils/task/task-operations";
-import { OnCompletionConfigurator } from "../onCompletion/OnCompletionConfigurator";
+import { getEffectiveProject, isProjectReadonly } from "@/utils/task/task-operations";
+import { OnCompletionConfigurator } from "@/components/features/on-completion/OnCompletionConfigurator";
 
 export interface MetadataChangeEvent {
 	field: string;

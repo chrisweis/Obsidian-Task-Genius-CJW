@@ -4,8 +4,8 @@
 
 import { CachedMetadata, FileStats, ListItemCache } from "obsidian";
 import { Task } from "../../types/task";
-import { MetadataFormat } from "../../utils/task/task-operations";
-import { FileParsingConfiguration, FileMetadataInheritanceConfig } from "../../common/setting-definition";
+import { MetadataFormat } from "@/utils/task/task-operations";
+import { FileParsingConfiguration, FileMetadataInheritanceConfig } from "@/common/setting-definition";
 
 /**
  * Command to parse tasks from a file

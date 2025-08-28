@@ -16,7 +16,7 @@ import {
 	appHasDailyNotesPluginLoaded,
 	getDailyNoteSettings,
 } from "obsidian-daily-notes-interface";
-import { saveCapture, processDateTemplates } from "../../utils/file/file-operations";
+import { saveCapture, processDateTemplates } from "@/utils/file/file-operations";
 import { Events, emit } from "../events/Events";
 import { CanvasTaskUpdater } from "../../parsers/canvas-task-updater";
 

@@ -1,8 +1,8 @@
 import { App, Component, moment } from "obsidian";
-import { CalendarEvent } from '../../../../index';
+import { CalendarEvent } from '@/components/features/calendar/index';
 import { renderCalendarEvent } from "../rendering/event-renderer"; // Use new renderer
 import { CalendarViewComponent, CalendarViewOptions } from "./base-view"; // Import base class
-import TaskProgressBarPlugin from "../../../../index"; // Import plugin type
+import TaskProgressBarPlugin from "@/index"; // Import plugin type
 
 export class AgendaView extends CalendarViewComponent {
 	// Extend base class

@@ -32,14 +32,14 @@ import {
 	renderTimelineSidebarSettingsTab,
 	renderIndexSettingsTab,
 	IcsSettingsComponent,
-} from "./components/settings";
-import { renderFileFilterSettingsTab } from "./components/settings/FileFilterSettingsTab";
-import { renderTimeParsingSettingsTab } from "./components/settings/TimeParsingSettingsTab";
-import { SettingsSearchComponent } from "./components/settings/SettingsSearchComponent";
-import { renderMcpIntegrationSettingsTab } from "./components/settings/McpIntegrationSettingsTab";
-import { IframeModal } from "./components/IframeModal";
-import { renderTaskTimerSettingTab } from "./components/settings/TaskTimerSettingTab";
-import { renderBasesSettingsTab } from "./components/settings/BasesSettingsTab";
+} from "./components/features/settings";
+import { renderFileFilterSettingsTab } from "./components/features/settings/tabs/FileFilterSettingsTab";
+import { renderTimeParsingSettingsTab } from "./components/features/settings/tabs/TimeParsingSettingsTab";
+import { SettingsSearchComponent } from "./components//features/settings/components/SettingsSearchComponent";
+import { renderMcpIntegrationSettingsTab } from "./components/features/settings/tabs/McpIntegrationSettingsTab";
+import { IframeModal } from "@/components/ui/modals/IframeModal";
+import { renderTaskTimerSettingTab } from "./components/features/settings/tabs/TaskTimerSettingsTab";
+import { renderBasesSettingsTab } from "./components/features/settings/tabs/BasesSettingsTab";
 
 export class TaskProgressBarSettingTab extends PluginSettingTab {
 	plugin: TaskProgressBarPlugin;

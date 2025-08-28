@@ -1,7 +1,7 @@
 import { Setting, TextAreaComponent, Notice, setIcon } from "obsidian";
-import type TaskProgressBarPlugin from "../../../index";
-import { t } from "../../../translations/helper";
-import { QuickCaptureModal } from "../../features/quick-capture/modals/QuickCaptureModal";
+import type TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal";
 
 export class TaskCreationGuide {
 	private plugin: TaskProgressBarPlugin;

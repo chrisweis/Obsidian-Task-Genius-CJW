@@ -3,7 +3,7 @@
  */
 
 import { TFile } from "obsidian";
-import { FileFilterManager } from "../../managers/file-filter-manager";
+import { FileFilterManager } from "@/managers/file-filter-manager";
 
 /**
  * Supported file types for task parsing

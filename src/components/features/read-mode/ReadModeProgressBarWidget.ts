@@ -1,4 +1,4 @@
-import TaskProgressBarPlugin from '../../../../index';
+import TaskProgressBarPlugin from '@/index';
 import {
 	Component,
 	debounce,
@@ -6,13 +6,13 @@ import {
 	MarkdownSectionInformation,
 	TFile,
 } from "obsidian";
-import { shouldHideProgressBarInPreview } from "../utils";
-import { formatProgressText } from '../../../../editor-extensions/ui-widgets/progress-bar-widget";
+import { shouldHideProgressBarInPreview } from "@/utils";
+import { formatProgressText } from '@/editor-extensions/ui-widgets/progress-bar-widget';
 import {
 	checkIfParentElementHasGoalFormat,
 	extractTaskAndGoalInfoReadMode,
 	getCustomTotalGoalReadMode,
-} from "../core/goal/read-mode";
+} from "@/core/goal/read-mode";
 
 interface GroupElement {
 	parentElement: HTMLElement;

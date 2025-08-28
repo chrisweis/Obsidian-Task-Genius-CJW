@@ -6,10 +6,10 @@ import {
 	Setting,
 	SliderComponent,
 } from "obsidian";
-import { MappingHabitProps } from "../../../types/habit-card";
+import { MappingHabitProps } from "@/types/habit-card";
 import { HabitCard } from "./habitcard";
-import TaskProgressBarPlugin from "../../../index";
-import { getTodayLocalDateString } from "../../../utils/date/date-formatter";
+import TaskProgressBarPlugin from "@/index";
+import { getTodayLocalDateString } from "@/utils/date/date-formatter";
 
 export class MappingHabitCard extends HabitCard {
 	constructor(

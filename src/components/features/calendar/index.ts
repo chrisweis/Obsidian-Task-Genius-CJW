@@ -7,13 +7,13 @@ import {
 	moment,
 	setIcon,
 } from "obsidian";
-import { Task } from "../../../types/task"; // Assuming Task type exists here
-import { IcsTask } from "../../../types/ics";
+import { Task } from "@/types/task"; // Assuming Task type exists here
+import { IcsTask } from "@/types/ics";
 // Removed: import { renderCalendarEvent } from "./event";
-import "../../../styles/calendar/view.css"; // Import the CSS file
-import "../../../styles/calendar/event.css"; // Import the CSS file
-import "../../../styles/calendar/badge.css"; // Import the badge CSS file
-import { t } from "../../../translations/helper";
+import "@/styles/calendar/view.css"; // Import the CSS file
+import "@/styles/calendar/event.css"; // Import the CSS file
+import "@/styles/calendar/badge.css"; // Import the badge CSS file
+import { t } from "@/translations/helper";
 
 // Import view rendering functions
 import { MonthView } from "./views/month-view";
@@ -21,8 +21,8 @@ import { WeekView } from "./views/week-view";
 import { DayView } from "./views/day-view";
 import { AgendaView } from "./views/agenda-view";
 import { YearView } from "./views/year-view";
-import TaskProgressBarPlugin from "../../../index";
-import { QuickCaptureModal } from "../../features/quick-capture/modals/QuickCaptureModal";
+import TaskProgressBarPlugin from "@/index";
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal";
 // Import algorithm functions (optional for now, could be used within views)
 // import { calculateEventLayout, determineEventColor } from './algorithm';
 

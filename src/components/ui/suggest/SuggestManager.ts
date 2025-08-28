@@ -1,5 +1,5 @@
 import { App, Editor, EditorSuggest, TFile } from "obsidian";
-import TaskProgressBarPlugin from "../../../index";
+import TaskProgressBarPlugin from "@/index";
 import { UniversalEditorSuggest, UniversalSuggestConfig } from "./UniversalEditorSuggest";
 
 export interface SuggestManagerConfig {

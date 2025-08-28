@@ -1,8 +1,8 @@
 import type { Task, TaskCache, TaskFilter, SortingCriteria, TaskIndexer as TaskIndexerInterface } from "../../types/task";
 import type { App, Vault, MetadataCache, TFile } from "obsidian";
-import { TaskIndexer } from "../../core/task-indexer";
-import { Storage } from "../persistence/Storage";
-import { emit, Events, Seq } from "../events/Events";
+import { TaskIndexer } from "@/core/task-indexer";
+import { Storage } from "@/dataflow/persistence/Storage";
+import { emit, Events, Seq } from "@/dataflow/events/Events";
 
 /**
  * Task Repository - combines TaskIndexer with Storage for a complete data layer

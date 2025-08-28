@@ -5,22 +5,22 @@ import {
 	MarkdownRenderer as ObsidianMarkdownRenderer,
 	TFile,
 } from "obsidian";
-import { type Task } from "../../../types/task";
-import "../../../styles/gantt/gantt.css";
+import { type Task } from "@/types/task";
+import "@/styles/gantt/gantt.css";
 
 // Import new components and helpers
-import { DateHelper } from "../../../utils/date/date-helper";
+import { DateHelper } from "@/utils/date/date-helper";
 import { TimelineHeaderComponent } from "./timeline-header";
 import { GridBackgroundComponent } from "./grid-background";
 import { TaskRendererComponent } from "./task-renderer";
-import TaskProgressBarPlugin from "../../../index";
+import TaskProgressBarPlugin from "@/index";
 import {
 	FilterComponent,
 	buildFilterOptionsFromTasks,
-} from "../task/filter/in-view/filter";
-import { ActiveFilter, FilterCategory } from "../task/filter/in-view/filter-type";
-import { ScrollToDateButton } from '../task/filter/in-view/custom/scroll-to-date-button";
-import { PRIORITY_MAP } from "../../../common/default-symbol";
+} from "@/components/features/task/filter/in-view/filter";
+import { ActiveFilter, FilterCategory } from "@/components/features/task/filter/in-view/filter-type";
+import { ScrollToDateButton } from '@/components/features/task/filter/in-view/custom/scroll-to-date-button';
+import { PRIORITY_MAP } from "@/common/default-symbol";
 
 // Define the PRIORITY_MAP here as well, or import it if moved to a shared location
 // This is needed to convert filter value (icon/text) back to number for comparison

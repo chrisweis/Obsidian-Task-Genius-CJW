@@ -1,7 +1,6 @@
 import { Setting } from "obsidian";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { t } from "../../translations/helper";
-import { ConfirmModal } from "../ConfirmModal";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { t } from "@/translations/helper";
 
 export function renderBetaTestSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

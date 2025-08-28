@@ -1,7 +1,7 @@
 import { Editor, EditorPosition, Notice } from "obsidian";
-import TaskProgressBarPlugin from "../../../index";
+import TaskProgressBarPlugin from "@/index";
 import { SuggestOption } from "./UniversalEditorSuggest";
-import { t } from "../../../translations/helper";
+import { t } from "@/translations/helper";
 
 /**
  * Priority suggest options based on existing priority system

@@ -7,9 +7,9 @@ import {
 } from "@codemirror/state";
 import TaskProgressBarPlugin from "../../index";
 import { taskStatusChangeAnnotation } from "./status-switcher";
-import { getTasksAPI } from "../../utils";
+import { getTasksAPI } from "@/utils";
 import { priorityChangeAnnotation } from "../ui-widgets/priority-picker";
-import { parseTaskLine } from "../../utils/task/task-operations";
+import { parseTaskLine } from "@/utils/task/task-operations";
 
 /**
  * Creates an editor extension that cycles through task statuses when a user clicks on a task marker

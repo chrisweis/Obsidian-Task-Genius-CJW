@@ -8,9 +8,9 @@ import {
 	moment,
 	setTooltip,
 } from "obsidian";
-import { t } from "../../../translations/helper";
-import "../../../styles/date-picker.css";
-import type TaskProgressBarPlugin from "../../../index";
+import { t } from "@/translations/helper";
+import "@/styles/date-picker.css";
+import type TaskProgressBarPlugin from "@/index";
 
 export interface DatePickerState {
 	selectedDate: string | null;

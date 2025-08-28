@@ -1,12 +1,12 @@
 import { ItemView, WorkspaceLeaf, setIcon, ButtonComponent } from "obsidian";
-import type TaskProgressBarPlugin from "../../../index";
-import { t } from "../../../translations/helper";
+import type TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
 import {
 	OnboardingConfigManager,
 	OnboardingConfigMode,
 	OnboardingConfig,
-} from "../../managers/onboarding-manager";
-import { SettingsChangeDetector } from "../../services/settings-change-detector";
+} from "@/managers/onboarding-manager";
+import { SettingsChangeDetector } from "@/services/settings-change-detector";
 import { UserLevelSelector } from "./UserLevelSelector";
 import { ConfigPreview } from "./ConfigPreview";
 import { TaskCreationGuide } from "./TaskCreationGuide";

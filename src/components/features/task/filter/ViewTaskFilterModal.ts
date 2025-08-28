@@ -1,7 +1,7 @@
 import { App } from "obsidian";
 import { Modal } from "obsidian";
 import { TaskFilterComponent, RootFilterState } from "./ViewTaskFilter";
-import type TaskProgressBarPlugin from "../../../../index";
+import type TaskProgressBarPlugin from "@/index";
 
 export class ViewTaskFilterModal extends Modal {
 	public taskFilterComponent: TaskFilterComponent;

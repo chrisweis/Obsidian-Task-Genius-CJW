@@ -5,12 +5,12 @@ import {
 	ExtraButtonComponent,
 	Platform,
 } from "obsidian";
-import { Task } from "../../../../types/task";
+import { Task } from "@/types/task";
 import { TaskListRendererComponent } from "./TaskList";
-import { t } from "../../../../translations/helper";
-import TaskProgressBarPlugin from "../../../../index";
-import { getInitialViewMode, saveViewMode } from "../../../../utils/ui/view-mode-utils";
-import "../../../../styles/view.css";
+import { t } from "@/translations/helper";
+import TaskProgressBarPlugin from "@/index";
+import { getInitialViewMode, saveViewMode } from "@/utils/ui/view-mode-utils";
+import "@/styles/view.css";
 
 /**
  * 双栏组件的基础接口配置

@@ -5,18 +5,18 @@ import {
 	Platform,
 	setIcon,
 } from "obsidian";
-import { Task } from "../../../../types/task";
-import { CalendarComponent, CalendarOptions } from './calendar";
+import { Task } from "@/types/task";
+import { CalendarComponent, CalendarOptions } from './calendar';
 import { TaskListItemComponent } from "./listItem";
-import { t } from "../../../../translations/helper";
-import "../../../../styles/forecast.css";
-import "../../../../styles/calendar.css";
+import { t } from "@/translations/helper";
+import "@/styles/forecast.css";
+import "@/styles/calendar.css";
 import { TaskTreeItemComponent } from "./treeItem";
 import { TaskListRendererComponent } from "./TaskList";
-import TaskProgressBarPlugin from "../../../../index";
-import { ForecastSpecificConfig } from "../../../../common/setting-definition";
-import { sortTasks } from "../../commands/sortTaskCommands"; // 导入 sortTasks 函数
-import { getInitialViewMode, saveViewMode } from "../../../../utils/ui/view-mode-utils";
+import TaskProgressBarPlugin from "@/index";
+import { ForecastSpecificConfig } from "@/common/setting-definition";
+import { sortTasks } from "@/commands/sortTaskCommands"; // 导入 sortTasks 函数
+import { getInitialViewMode, saveViewMode } from "@/utils/ui/view-mode-utils";
 
 interface DateSection {
 	title: string;

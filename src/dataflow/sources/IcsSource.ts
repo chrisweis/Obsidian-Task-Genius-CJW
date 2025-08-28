@@ -7,8 +7,8 @@
 
 import { App, EventRef } from "obsidian";
 import { Events, emit, Seq } from "../events/Events";
-import type { IcsManager } from "../../managers/ics-manager";
-import type { Task } from "../../types/task";
+import type { IcsManager } from "@/managers/ics-manager";
+import type { Task } from "@/types/task";
 
 export class IcsSource {
 	private eventRefs: EventRef[] = [];

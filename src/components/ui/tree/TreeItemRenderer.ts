@@ -1,5 +1,5 @@
 import { Component, setIcon } from "obsidian";
-import { TreeNode, TreeNodeEvents } from "../../../types/tree";
+import { TreeNode, TreeNodeEvents } from "@/types/tree";
 
 /**
  * Configuration for tree item rendering

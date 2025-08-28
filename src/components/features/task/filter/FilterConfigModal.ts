@@ -1,8 +1,8 @@
 import { App, Modal, Setting, Notice, DropdownComponent } from "obsidian";
-import { t } from "../../../../translations/helper";
-import { SavedFilterConfig } from "../../../../common/setting-definition";
+import { t } from "@/translations/helper";
+import { SavedFilterConfig } from "@/common/setting-definition";
 import { RootFilterState } from "./ViewTaskFilter";
-import type TaskProgressBarPlugin from "../../../../index";
+import type TaskProgressBarPlugin from "@/index";
 
 export class FilterConfigModal extends Modal {
 	private plugin: TaskProgressBarPlugin;

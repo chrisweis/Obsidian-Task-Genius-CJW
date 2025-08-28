@@ -12,8 +12,8 @@ import {
 } from "obsidian";
 import { taskProgressBarExtension } from "./editor-extensions/ui-widgets/progress-bar-widget";
 import { taskTimerExtension } from "./editor-extensions/date-time/task-timer";
-import { updateProgressBarInElement } from "./components/readModeProgressbarWidget";
-import { applyTaskTextMarks } from "./components/readModeTextMark";
+import { updateProgressBarInElement } from "./components/features/read-mode/ReadModeProgressBarWidget";
+import { applyTaskTextMarks } from "./components/features/read-mode/ReadModeTextMark";
 import {
 	DEFAULT_SETTINGS,
 	TaskProgressBarSettings,
@@ -68,7 +68,7 @@ import { Task } from "./types/task";
 import { QuickCaptureModal } from "./components/features/quick-capture/modals/QuickCaptureModal";
 import { MinimalQuickCaptureModal } from "./components/features/quick-capture/modals/MinimalQuickCaptureModal";
 import { MinimalQuickCaptureSuggest } from "./components/features/quick-capture/suggest/MinimalQuickCaptureSuggest";
-import { SuggestManager } from "./components/suggest";
+import { SuggestManager } from "./components/ui/suggest";
 import { MarkdownView } from "obsidian";
 import { Notice } from "obsidian";
 import { t } from "./translations/helper";
@@ -86,7 +86,7 @@ import { TASK_SPECIFIC_VIEW_TYPE } from "./pages/TaskSpecificView";
 import {
 	TimelineSidebarView,
 	TIMELINE_SIDEBAR_VIEW_TYPE,
-} from "./components/timeline-sidebar/TimelineSidebarView";
+} from "./components/features/timeline-sidebar/TimelineSidebarView";
 import { getStatusIcon, getTaskGeniusIcon } from "./icon";
 import { RewardManager } from "./managers/reward-manager";
 import { HabitManager } from "./managers/habit-manager";
@@ -107,7 +107,7 @@ import { SettingsChangeDetector } from "./services/settings-change-detector";
 import {
 	OnboardingView,
 	ONBOARDING_VIEW_TYPE,
-} from "./components/onboarding/OnboardingView";
+} from "./components/features/onboarding/OnboardingView";
 import { TaskTimerExporter } from "./services/timer-export-service";
 import { TaskTimerManager } from "./managers/timer-manager";
 import { McpServerManager } from "./mcp/McpServerManager";

@@ -5,15 +5,15 @@ import {
 	ExtraButtonComponent,
 	Platform,
 } from "obsidian";
-import { Task } from "../../../../types/task";
+import { Task } from "@/types/task";
 import { TaskListItemComponent } from "./listItem";
-import { t } from "../../../../translations/helper";
-import "../../../../styles/tag-view.css";
+import { t } from "@/translations/helper";
+import "@/styles/tag-view.css";
 import { TaskTreeItemComponent } from "./treeItem";
 import { TaskListRendererComponent } from "./TaskList";
-import TaskProgressBarPlugin from "../../../../index";
-import { sortTasks } from "../../commands/sortTaskCommands";
-import { getInitialViewMode, saveViewMode } from "../../../../utils/ui/view-mode-utils";
+import TaskProgressBarPlugin from "@/index";
+import { sortTasks } from "@/commands/sortTaskCommands";
+import { getInitialViewMode, saveViewMode } from "@/utils/ui/view-mode-utils";
 
 interface SelectedTags {
 	tags: string[];

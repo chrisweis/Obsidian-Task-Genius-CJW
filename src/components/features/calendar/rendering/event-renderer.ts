@@ -1,11 +1,11 @@
 import { App, Component, debounce, moment } from "obsidian";
-import { CalendarEvent } from '../../../../index'; // Adjust path as needed
+import { CalendarEvent } from '@/components/features/calendar/index'; // Adjust path as needed
 import { EventLayout, determineEventColor } from "../algorithm"; // Adjust path as needed
 import {
 	clearAllMarks,
 	MarkdownRendererComponent,
-} from "../../../ui/renderers/MarkdownRenderer";
-import { createTaskCheckbox } from "../../../features/task/view/details";
+} from "@/components/ui/renderers/MarkdownRenderer";
+import { createTaskCheckbox } from "@/components/features/task/view/details";
 
 export type EventViewType =
 	| "month"

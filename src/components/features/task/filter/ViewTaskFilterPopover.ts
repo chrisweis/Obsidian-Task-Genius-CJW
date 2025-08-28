@@ -2,7 +2,7 @@ import { App } from "obsidian";
 import { CloseableComponent, Component } from "obsidian";
 import { createPopper, Instance as PopperInstance } from "@popperjs/core";
 import { TaskFilterComponent, RootFilterState } from "./ViewTaskFilter";
-import type TaskProgressBarPlugin from "../../../../index";
+import type TaskProgressBarPlugin from "@/index";
 
 export class ViewTaskFilterPopover
 	extends Component

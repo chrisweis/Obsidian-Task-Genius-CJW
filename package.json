@@ -53,7 +53,7 @@
 		"codemirror": "^6.0.0",
 		"cross-env": "^7.0.3",
 		"dotenv": "^17.2.1",
-		"esbuild": "0.13.12",
+		"esbuild": "0.25.9",
 		"esbuild-plugin-inline-worker": "https://github.com/mitschabaude/esbuild-plugin-inline-worker",
 		"globby": "^14.1.0",
 		"husky": "^9.1.7",

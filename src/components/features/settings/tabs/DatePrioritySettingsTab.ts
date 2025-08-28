@@ -1,6 +1,6 @@
 import { Setting } from "obsidian";
-import { t } from "../../translations/helper";
-import { TaskProgressBarSettingTab } from "../../setting";
+import { t } from "@/translations/helper";
+import { TaskProgressBarSettingTab } from "@/setting";
 
 export function renderDatePrioritySettingsTab(
 	settingTab: TaskProgressBarSettingTab,

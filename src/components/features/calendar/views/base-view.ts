@@ -1,6 +1,6 @@
 import { App, Component } from "obsidian";
-import { CalendarEvent } from '../../../../index';
-import TaskProgressBarPlugin from "../../../../index";
+import { CalendarEvent } from '@/components/features/calendar/index';
+import TaskProgressBarPlugin from "@/index";
 
 interface EventMap {
 	onEventClick: (ev: MouseEvent, event: CalendarEvent) => void;

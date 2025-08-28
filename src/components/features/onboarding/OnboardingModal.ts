@@ -1,11 +1,11 @@
 import { App, Modal, Setting, ButtonComponent, setIcon } from "obsidian";
-import type TaskProgressBarPlugin from "../../../index";
-import { t } from "../../../translations/helper";
+import type TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
 import {
 	OnboardingConfigManager,
 	OnboardingConfigMode,
 	OnboardingConfig,
-} from "../../managers/onboarding-manager";
+} from "@/managers/onboarding-manager";
 import { UserLevelSelector } from "./UserLevelSelector";
 import { ConfigPreview } from "./ConfigPreview";
 import { TaskCreationGuide } from "./TaskCreationGuide";

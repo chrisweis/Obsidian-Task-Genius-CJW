@@ -1,5 +1,5 @@
 import { Component, setIcon } from "obsidian";
-import { t } from "../../../translations/helper";
+import { t } from "@/translations/helper";
 
 export interface TableHeaderCallbacks {
 	onTreeModeToggle?: (enabled: boolean) => void;

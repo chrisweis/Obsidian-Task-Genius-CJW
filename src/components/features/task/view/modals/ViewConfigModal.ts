@@ -8,7 +8,7 @@ import {
 	moment,
 	setIcon,
 } from "obsidian";
-import { t } from '../../../../translations/helper';
+import { t } from '@/translations/helper';
 import {
 	CalendarSpecificConfig,
 	KanbanSpecificConfig,
@@ -24,15 +24,15 @@ import {
 	PropertyExistType,
 	DEFAULT_SETTINGS,
 	SortCriterion,
-} from '../../../../common/setting-definition';
-import TaskProgressBarPlugin from '../../../../index';
-import { FolderSuggest } from '../../../../ui/inputs/AutoComplete';
-import { attachIconMenu } from '../../../../ui/menus/IconMenu';
-import { ConfirmModal } from '../../../../ui/modals/ConfirmModal';
+} from '@/common/setting-definition';
+import TaskProgressBarPlugin from '@/index';
+import { FolderSuggest } from '@/components/ui/inputs/AutoComplete';
+import { attachIconMenu } from '@/components/ui/menus/IconMenu';
+import { ConfirmModal } from '@/components/ui/modals/ConfirmModal';
 import {
 	TaskFilterComponent,
 	RootFilterState,
-} from './task/filter/ViewTaskFilter";
+} from '@/components/features/task/filter/ViewTaskFilter';
 
 export class ViewConfigModal extends Modal {
 	private viewConfig: ViewConfig;

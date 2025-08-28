@@ -1,15 +1,15 @@
 import { App, Component, Menu, setIcon, Notice } from "obsidian";
-import TaskProgressBarPlugin from "../../../../index";
-import { t } from "../../../../translations/helper";
+import TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
 // Import necessary types from settings definition
 import {
 	ViewConfig,
 	ViewFilterRule,
 	ViewMode,
 	getViewSettingOrDefault,
-} from "../../../../common/setting-definition";
-import { TASK_SPECIFIC_VIEW_TYPE } from "../../pages/TaskSpecificView";
-import { ViewConfigModal } from "../ViewConfigModal";
+} from "@/common/setting-definition";
+import { TASK_SPECIFIC_VIEW_TYPE } from "@/pages/TaskSpecificView";
+import { ViewConfigModal } from "@/components/features/task/view/modals/ViewConfigModal";
 
 // Remove the enum if it exists, use ViewMode type directly
 // export type ViewMode = "inbox" | "forecast" | "projects" | "tags" | "review";

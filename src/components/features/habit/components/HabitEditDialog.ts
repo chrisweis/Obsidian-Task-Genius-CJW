@@ -16,11 +16,11 @@ import {
 	BaseMappingHabitData,
 	BaseScheduledHabitData,
 	ScheduledEvent,
-} from '../../../../types/habit-card';
-import TaskProgressBarPlugin from '../../../../index';
-import { t } from '../../../../translations/helper';
-import { attachIconMenu } from '../../../ui/menus/IconMenu';
-import "../styles/habit-edit-dialog.css";
+} from '@/types/habit-card';
+import TaskProgressBarPlugin from '@/index';
+import { t } from '@/translations/helper';
+import { attachIconMenu } from '@/components/ui/menus/IconMenu';
+import "@/styles/habit-edit-dialog.css";
 
 export class HabitEditDialog extends Modal {
 	plugin: TaskProgressBarPlugin;

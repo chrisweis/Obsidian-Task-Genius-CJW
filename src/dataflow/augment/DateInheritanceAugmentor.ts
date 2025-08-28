@@ -6,7 +6,7 @@
  */
 
 import { App, TFile, Vault, MetadataCache } from "obsidian";
-import { DateInheritanceService, DateResolutionContext, DateResolutionResult } from "../../services/date-inheritance-service";
+import { DateInheritanceService, DateResolutionContext, DateResolutionResult } from "@/services/date-inheritance-service";
 import { TimeComponent } from "../../types/time-parsing";
 import type { Task, EnhancedStandardTaskMetadata } from "../../types/task";
 

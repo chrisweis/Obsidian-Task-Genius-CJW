@@ -1,9 +1,9 @@
 import { Setting, Notice, setIcon } from "obsidian";
-import { ViewConfig, ViewFilterRule } from "../../common/setting-definition";
-import { t } from "../../translations/helper";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { ViewConfigModal } from "../ViewConfigModal";
-import { TaskFilterComponent } from '../../task/filter/ViewTaskFilter';
+import { ViewConfig, ViewFilterRule } from "@/common/setting-definition";
+import { t } from "@/translations/helper";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { ViewConfigModal } from "@/components/features/task/view/modals/ViewConfigModal";
+import { TaskFilterComponent } from '@/components/features/task/filter/ViewTaskFilter';
 
 export function renderViewSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

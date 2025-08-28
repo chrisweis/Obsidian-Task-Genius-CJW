@@ -126,58 +126,72 @@ const copyManifestPlugin = {
 	},
 };
 
-esbuild
-	.build({
-		banner: {
-			js: banner,
-		},
-		minify: prod ? true : false,
-		entryPoints: ["src/index.ts"],
-		plugins: [
-			inlineWorkerPlugin({ workerName: "Task Genius Indexer" }),
-			renamePluginWithDir,
-			cssSettingsPluginWithDir,
-			copyManifestPlugin,
-		],
-		bundle: true,
-		external: [
-			"obsidian",
-			"electron",
-			"codemirror",
-			"@codemirror/autocomplete",
-			"@codemirror/closebrackets",
-			"@codemirror/collab",
-			"@codemirror/commands",
-			"@codemirror/comment",
-			"@codemirror/fold",
-			"@codemirror/gutter",
-			"@codemirror/highlight",
-			"@codemirror/history",
-			"@codemirror/language",
-			"@codemirror/lint",
-			"@codemirror/matchbrackets",
-			"@codemirror/panel",
-			"@codemirror/rangeset",
-			"@codemirror/rectangular-selection",
-			"@codemirror/search",
-			"@codemirror/state",
-			"@codemirror/stream-parser",
-			"@codemirror/text",
-			"@codemirror/tooltip",
-			"@codemirror/view",
-			"@lezer/common",
-			"@lezer/lr",
-			"@lezer/highlight",
-			"obsidian-typings",
-			...builtins,
-		],
-		format: "cjs",
-		watch: !prod,
-		target: "es2018",
-		logLevel: "info",
-		sourcemap: prod ? false : "inline",
-		treeShaking: true,
-		outfile: path.join(outDir, "main.js"),
-		pure: prod ? ["console.log"] : [],
-	})
-	.catch(() => process.exit(1));
+const buildOptions = {
+	banner: {
+		js: banner,
+	},
+	minify: prod ? true : false,
+	entryPoints: ["src/index.ts"],
+	plugins: [
+		inlineWorkerPlugin({ workerName: "Task Genius Indexer" }),
+		renamePluginWithDir,
+		cssSettingsPluginWithDir,
+		copyManifestPlugin,
+	],
+	bundle: true,
+	alias: {
+		"@": path.resolve(process.cwd(), "src"),
+	},
+	external: [
+		"obsidian",
+		"electron",
+		"codemirror",
+		"@codemirror/autocomplete",
+		"@codemirror/closebrackets",
+		"@codemirror/collab",
+		"@codemirror/commands",
+		"@codemirror/comment",
+		"@codemirror/fold",
+		"@codemirror/gutter",
+		"@codemirror/highlight",
+		"@codemirror/history",
+		"@codemirror/language",
+		"@codemirror/lint",
+		"@codemirror/matchbrackets",
+		"@codemirror/panel",
+		"@codemirror/rangeset",
+		"@codemirror/rectangular-selection",
+		"@codemirror/search",
+		"@codemirror/state",
+		"@codemirror/stream-parser",
+		"@codemirror/text",
+		"@codemirror/tooltip",
+		"@codemirror/view",
+		"@lezer/common",
+		"@lezer/lr",
+		"@lezer/highlight",
+		"obsidian-typings",
+		...builtins,
+	],
+	format: "cjs",
+	target: "es2018",
+	logLevel: "info",
+	sourcemap: prod ? false : "inline",
+	treeShaking: true,
+	outfile: path.join(outDir, "main.js"),
+	pure: prod ? ["console.log"] : [],
+};
+
+if (prod) {
+	// Production build
+	esbuild.build(buildOptions).catch(() => process.exit(1));
+} else {
+	// Development build with watch
+	esbuild
+		.context(buildOptions)
+		.then(ctx => {
+			ctx.watch();
+			console.log("Watching for changes...");
+		})
+		.catch(() => process.exit(1));
+}

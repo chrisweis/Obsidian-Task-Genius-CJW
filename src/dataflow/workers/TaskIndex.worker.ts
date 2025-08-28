@@ -17,7 +17,7 @@ import { MarkdownTaskParser } from "../core/ConfigurableTaskParser";
 import { getConfig } from "../../common/task-parser-config";
 import { FileMetadataTaskParser } from "../../parsers/file-metadata-parser";
 import { CanvasParser } from "../core/CanvasParser";
-import { SupportedFileType } from "../../utils/file/file-type-detector";
+import { SupportedFileType } from "@/utils/file/file-type-detector";
 
 /**
  * Enhanced task parsing using configurable parser

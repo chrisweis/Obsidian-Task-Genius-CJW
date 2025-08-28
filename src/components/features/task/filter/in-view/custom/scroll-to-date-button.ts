@@ -1,5 +1,5 @@
 import { Component } from "obsidian";
-import { t } from "../../../translations/helper";
+import { t } from "@/translations/helper";
 export class ScrollToDateButton extends Component {
 	private containerEl: HTMLElement;
 	private scrollToDateCallback: (date: Date) => void;

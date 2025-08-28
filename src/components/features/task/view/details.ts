@@ -10,17 +10,17 @@ import {
 	Menu,
 	debounce,
 } from "obsidian";
-import { Task } from "../../../../types/task";
-import TaskProgressBarPlugin from "../../../../index";
-import { TaskProgressBarSettings } from "../../../../common/setting-definition";
-import "../../../../styles/task-details.css";
-import { t } from "../../../../translations/helper";
-import { clearAllMarks } from "../../../ui/renderers/MarkdownRenderer";
-import { StatusComponent } from "../../../ui/feedback/StatusIndicator";
-import { ContextSuggest, ProjectSuggest, TagSuggest } from "../../../ui/inputs/AutoComplete";
-import { FileTask } from "../../../../types/file-task";
-import { getEffectiveProject, isProjectReadonly } from "../../../../utils/task/task-operations";
-import { OnCompletionConfigurator } from "../onCompletion/OnCompletionConfigurator";
+import { Task } from "@/types/task";
+import TaskProgressBarPlugin from "@/index";
+import { TaskProgressBarSettings } from "@/common/setting-definition";
+import "@/styles/task-details.css";
+import { t } from "@/translations/helper";
+import { clearAllMarks } from "@/components/ui/renderers/MarkdownRenderer";
+import { StatusComponent } from "@/components/ui/feedback/StatusIndicator";
+import { ContextSuggest, ProjectSuggest, TagSuggest } from "@/components/ui/inputs/AutoComplete";
+import { FileTask } from "@/types/file-task";
+import { getEffectiveProject, isProjectReadonly } from "@/utils/task/task-operations";
+import { OnCompletionConfigurator } from "@/components/features/on-completion/OnCompletionConfigurator";
 
 function getStatus(task: Task, settings: TaskProgressBarSettings) {
 	const status = Object.keys(settings.taskStatuses).find((key) => {

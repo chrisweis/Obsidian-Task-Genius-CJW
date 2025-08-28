@@ -1,9 +1,9 @@
 import { Component, Notice, setIcon } from "obsidian";
-import { DailyHabitProps } from "../../../types/habit-card";
+import { DailyHabitProps } from "@/types/habit-card";
 import { HabitCard } from "./habitcard";
-import { t } from "../../../translations/helper";
-import TaskProgressBarPlugin from "../../../index";
-import { getTodayLocalDateString } from "../../../utils/date/date-formatter";
+import { t } from "@/translations/helper";
+import TaskProgressBarPlugin from "@/index";
+import { getTodayLocalDateString } from "@/utils/date/date-formatter";
 
 export class DailyHabitCard extends HabitCard {
 	constructor(

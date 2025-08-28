@@ -1,7 +1,7 @@
 import { setIcon, Setting } from "obsidian";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { t } from "../../translations/helper";
-import { OnboardingModal } from "../onboarding/OnboardingModal";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { t } from "@/translations/helper";
+import { OnboardingModal } from "@/components/features/onboarding/OnboardingModal";
 
 export function renderAboutSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

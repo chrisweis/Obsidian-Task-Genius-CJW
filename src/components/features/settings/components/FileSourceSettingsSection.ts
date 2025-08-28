@@ -6,9 +6,9 @@
  */
 
 import { Setting, Notice } from "obsidian";
-import type TaskProgressBarPlugin from "../../index";
-import type { FileSourceConfiguration } from "../../types/file-source";
-import { t } from "../../translations/helper";
+import type TaskProgressBarPlugin from "@/index";
+import type { FileSourceConfiguration } from "@/types/file-source";
+import { t } from "@/translations/helper";
 
 /**
  * Create File Task settings UI

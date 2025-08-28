@@ -1,9 +1,9 @@
 import { ButtonComponent, Component, Notice, setIcon } from "obsidian";
-import { CountHabitProps } from "../../../types/habit-card";
+import { CountHabitProps } from "@/types/habit-card";
 import { HabitCard } from "./habitcard";
-import { t } from "../../../translations/helper";
-import TaskProgressBarPlugin from "../../../index";
-import { getTodayLocalDateString } from "../../../utils/date/date-formatter";
+import { t } from "@/translations/helper";
+import TaskProgressBarPlugin from "@/index";
+import { getTodayLocalDateString } from "@/utils/date/date-formatter";
 
 export class CountHabitCard extends HabitCard {
 	constructor(

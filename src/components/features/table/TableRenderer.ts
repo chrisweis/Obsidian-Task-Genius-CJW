@@ -1,12 +1,12 @@
 import { Component, setIcon, Menu, App } from "obsidian";
 import { TableColumn, TableRow, TableCell } from "./TableTypes";
 import { TableSpecificConfig } from "../../../common/setting-definition";
-import { t } from "../../../translations/helper";
-import { DatePickerPopover } from "../../ui/date-picker/DatePickerPopover";
-import type TaskProgressBarPlugin from "../../../index";
-import { ContextSuggest, ProjectSuggest, TagSuggest } from "../../ui/inputs/AutoComplete";
-import { clearAllMarks } from "../../ui/renderers/MarkdownRenderer";
-import { getEffectiveProject, isProjectReadonly } from "../../../utils/task/task-operations";
+import { t } from "@/translations/helper";
+import { DatePickerPopover } from "@/components/ui/date-picker/DatePickerPopover";
+import type TaskProgressBarPlugin from "@/index";
+import { ContextSuggest, ProjectSuggest, TagSuggest } from "@/components/ui/inputs/AutoComplete";
+import { clearAllMarks } from "@/components/ui/renderers/MarkdownRenderer";
+import { getEffectiveProject, isProjectReadonly } from "@/utils/task/task-operations";
 
 // Cache for autocomplete data to avoid repeated expensive operations
 interface AutoCompleteCache {

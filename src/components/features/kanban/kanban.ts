@@ -6,23 +6,23 @@ import {
 	setIcon,
 	WorkspaceLeaf,
 } from "obsidian";
-import TaskProgressBarPlugin from "../../../index"; // Adjust path as needed
-import { Task } from "../../../types/task"; // Adjust path as needed
+import TaskProgressBarPlugin from "@/index"; // Adjust path as needed
+import { Task } from "@/types/task"; // Adjust path as needed
 import { KanbanColumnComponent } from "./kanban-column";
-// import { DragManager, DragMoveEvent, DragEndEvent } from "../../ui/behavior/DragManager";
+// import { DragManager, DragMoveEvent, DragEndEvent } from "@/components/ui/behavior/DragManager";
 import Sortable from "sortablejs";
-import "../../../styles/kanban/kanban.css";
-import { t } from "../../../translations/helper"; // Added import for t
+import "@/styles/kanban/kanban.css";
+import { t } from "@/translations/helper"; // Added import for t
 import {
 	FilterComponent,
 	buildFilterOptionsFromTasks,
-} from "../inview-filter/filter";
-import { ActiveFilter } from "../inview-filter/filter-type";
+} from "@/components/features/task/filter/in-view/filter";
+import { ActiveFilter } from "@/components/features/task/filter/in-view/filter-type";
 import {
 	KanbanSpecificConfig,
 	KanbanColumnConfig,
 } from "../../../common/setting-definition";
-import { getEffectiveProject, isProjectReadonly } from "../../../utils/task/task-operations";
+import { getEffectiveProject, isProjectReadonly } from "@/utils/task/task-operations";
 
 // CSS classes for drop indicators
 const DROP_INDICATOR_BEFORE_CLASS = "tg-kanban-card--drop-indicator-before";

@@ -1,7 +1,7 @@
 import { Component, debounce, setIcon } from "obsidian";
 import { FilterCategory, FilterDropdownOptions } from "./filter-type";
-import TaskProgressBarPlugin from "../../../../../index";
-import { t } from "../../../../../translations/helper";
+import TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
 
 export class FilterDropdown extends Component {
 	private options: FilterCategory[];

@@ -2,9 +2,9 @@ import { Setting } from "obsidian";
 import {
 	SortCriterion,
 	DEFAULT_SETTINGS,
-} from "../../common/setting-definition";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { t } from "../../translations/helper";
+} from "@/common/setting-definition";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { t } from "@/translations/helper";
 
 export function renderTaskHandlerSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

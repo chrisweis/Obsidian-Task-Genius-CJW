@@ -5,19 +5,19 @@ import {
 	ExtraButtonComponent,
 	Platform,
 } from "obsidian";
-import { Task } from "../../../../types/task";
-import { t } from "../../../../translations/helper";
-import "../../../../styles/project-view.css";
-import "../../../../styles/project-tree.css";
+import { Task } from "@/types/task";
+import { t } from "@/translations/helper";
+import "@/styles/project-view.css";
+import "@/styles/project-tree.css";
 import { TaskListRendererComponent } from "./TaskList";
-import TaskProgressBarPlugin from "../../../../index";
-import { sortTasks } from "../../commands/sortTaskCommands";
-import { getEffectiveProject } from "../../../../utils/task/task-operations";
-import { getInitialViewMode, saveViewMode } from "../../../../utils/ui/view-mode-utils";
+import TaskProgressBarPlugin from "@/index";
+import { sortTasks } from "@/commands/sortTaskCommands";
+import { getEffectiveProject } from "@/utils/task/task-operations";
+import { getInitialViewMode, saveViewMode } from "@/utils/ui/view-mode-utils";
 import { ProjectTreeComponent } from "./ProjectTreeComponent";
-import { buildProjectTree } from "../../core/project-tree-builder";
-import { TreeNode, ProjectNodeData } from "../../../../types/tree";
-import { filterTasksByProjectPaths } from "../../core/project-filter";
+import { buildProjectTree } from "@/core/project-tree-builder";
+import { TreeNode, ProjectNodeData } from "@/types/tree";
+import { filterTasksByProjectPaths } from "@/core/project-filter";
 
 interface SelectedProjects {
 	projects: string[];

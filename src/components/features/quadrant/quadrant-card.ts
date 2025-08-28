@@ -1,10 +1,10 @@
 import { App, Component, setIcon, Menu, MarkdownView } from "obsidian";
-import TaskProgressBarPlugin from "../../../index";
-import { Task } from "../../../types/task";
-import { createTaskCheckbox } from "../../features/task/view/details";
-import { MarkdownRendererComponent } from "../../ui/renderers/MarkdownRenderer";
-import { t } from "../../../translations/helper";
-import { sanitizePriorityForClass } from "../../../utils/task/priority-utils";
+import TaskProgressBarPlugin from "@/index";
+import { Task } from "@/types/task";
+import { createTaskCheckbox } from "@/components/features/task/view/details";
+import { MarkdownRendererComponent } from "@/components/ui/renderers/MarkdownRenderer";
+import { t } from "@/translations/helper";
+import { sanitizePriorityForClass } from "@/utils/task/priority-utils";
 
 export class QuadrantCardComponent extends Component {
 	plugin: TaskProgressBarPlugin;

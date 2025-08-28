@@ -1,6 +1,6 @@
 import { App, Component } from "obsidian";
-import { Task } from "../../../../types/task";
-import TaskProgressBarPlugin from "../../../../index";
+import { Task } from "@/types/task";
+import TaskProgressBarPlugin from "@/index";
 import { InlineEditor, InlineEditorOptions } from "./InlineEditor";
 
 /**

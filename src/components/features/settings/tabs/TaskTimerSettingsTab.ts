@@ -1,5 +1,5 @@
 import { Setting } from "obsidian";
-import { TaskProgressBarSettingTab } from "../../setting";
+import { TaskProgressBarSettingTab } from "@/setting";
 
 export function renderTaskTimerSettingTab(
 	settingTab: TaskProgressBarSettingTab,

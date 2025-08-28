@@ -6,8 +6,8 @@
  */
 
 import { Vault, MetadataCache } from "obsidian";
-import { ProjectConfigManager } from "../../managers/project-config-manager";
-import { ProjectDataCache, CachedProjectData } from "../../cache/project-data-cache";
+import { ProjectConfigManager } from "@/managers/project-config-manager";
+import { ProjectDataCache, CachedProjectData } from "@/cache/project-data-cache";
 import {
 	ProjectDataResponse,
 	WorkerResponse,

@@ -3,12 +3,12 @@
  */
 
 import { Setting, Notice, Platform, setIcon, requestUrl } from "obsidian";
-import { t } from "../../translations/helper";
-import TaskProgressBarPlugin from "../../index";
-import { McpServerManager } from "../../mcp/McpServerManager";
-import { AuthMiddleware } from "../../mcp/auth/AuthMiddleware";
-import { ConfirmModal } from "../ConfirmModal";
-import "../../styles/mcp-integration.css";
+import { t } from "@/translations/helper";
+import TaskProgressBarPlugin from "@/index";
+import { McpServerManager } from "@/mcp/McpServerManager";
+import { AuthMiddleware } from "@/mcp/auth/AuthMiddleware";
+import { ConfirmModal } from "@/components/ui/modals/ConfirmModal";
+import "@/styles/mcp-integration.css";
 
 function createConfigBlock(
 	container: HTMLElement,

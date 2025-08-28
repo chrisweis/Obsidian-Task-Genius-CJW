@@ -1,10 +1,10 @@
 import { App, setIcon } from "obsidian";
-import { Task } from "../../../../types/task";
-import { t } from "../../../../translations/helper";
-import "../../../../styles/tag-view.css";
-import "../../../../styles/view-two-column-base.css";
+import { Task } from "@/types/task";
+import { t } from "@/translations/helper";
+import "@/styles/tag-view.css";
+import "@/styles/view-two-column-base.css";
 import { TaskListRendererComponent } from "./TaskList";
-import TaskProgressBarPlugin from "../../../../index";
+import TaskProgressBarPlugin from "@/index";
 import { TwoColumnViewBase, TwoColumnViewConfig } from "./TwoColumnViewBase";
 
 // 用于存储标签节的数据结构

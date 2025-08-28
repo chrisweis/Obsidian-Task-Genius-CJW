@@ -1,10 +1,10 @@
 import { App, Component } from "obsidian";
-import { Task } from "../../../../types/task";
+import { Task } from "@/types/task";
 import { TaskListItemComponent } from "./listItem";
 import { TaskTreeItemComponent } from "./treeItem";
-import { tasksToTree } from "../../../../utils/ui/tree-view-utils";
-import { t } from "../../../../translations/helper";
-import TaskProgressBarPlugin from "../../../../index";
+import { tasksToTree } from "@/utils/ui/tree-view-utils";
+import { t } from "@/translations/helper";
+import TaskProgressBarPlugin from "@/index";
 
 export class TaskListRendererComponent extends Component {
 	private taskComponents: TaskListItemComponent[] = [];

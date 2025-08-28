@@ -1,10 +1,10 @@
 import { App, Component, debounce, moment } from "obsidian";
-import { CalendarEvent } from '../../../../index';
+import { CalendarEvent } from '@/components/features/calendar/index';
 import {
 	CalendarSpecificConfig,
 	getViewSettingOrDefault,
-} from "../../../../common/setting-definition"; // Import helper
-import TaskProgressBarPlugin from "../../../../index"; // Import plugin type for settings access
+} from "@/common/setting-definition"; // Import helper
+import TaskProgressBarPlugin from "@/index"; // Import plugin type for settings access
 import { CalendarViewComponent, CalendarViewOptions } from "./base-view"; // Import base class
 
 /**

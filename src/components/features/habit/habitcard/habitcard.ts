@@ -3,9 +3,9 @@ import {
 	DailyHabitProps,
 	HabitProps,
 	MappingHabitProps,
-} from "../../../types/habit-card";
-import TaskProgressBarPlugin from "../../../index";
-import { getTodayLocalDateString, getLocalDateString } from "../../../utils/date/date-formatter";
+} from "@/types/habit-card";
+import TaskProgressBarPlugin from "@/index";
+import { getTodayLocalDateString, getLocalDateString } from "@/utils/date/date-formatter";
 
 function getDatesInRange(startDate: string, endDate: string): string[] {
 	const dates = [];

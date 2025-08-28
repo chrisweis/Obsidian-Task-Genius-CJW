@@ -6,7 +6,7 @@
  */
 
 import type { App, TFile, EventRef, CachedMetadata } from "obsidian";
-import type { Task } from "../../types/task";
+import type { Task } from "@/types/task";
 import type {
   FileSourceConfiguration,
   FileSourceTaskMetadata,
@@ -16,12 +16,12 @@ import type {
   RecognitionStrategy,
   PathRecognitionConfig,
   TemplateRecognitionConfig
-} from "../../types/file-source";
+} from "@/types/file-source";
 
 import { Events, emit, Seq, on } from "../events/Events";
 import { FileSourceConfig } from "./FileSourceConfig";
 
-import { FileFilterManager } from "../../managers/file-filter-manager";
+import { FileFilterManager } from "@/managers/file-filter-manager";
 
 /**
  * FileSource - Independent event source for file-based tasks

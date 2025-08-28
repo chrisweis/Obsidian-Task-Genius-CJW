@@ -1,5 +1,5 @@
 import { Component } from "obsidian";
-import { TreeNode, TreeState } from "../../../types/tree";
+import { TreeNode, TreeState } from "@/types/tree";
 import { TreeItemRenderer } from "./TreeItemRenderer";
 
 /**

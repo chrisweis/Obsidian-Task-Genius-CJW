@@ -1,9 +1,9 @@
 import { App, Component, setIcon } from "obsidian";
-import TaskProgressBarPlugin from "../../../index";
-import { Task } from "../../../types/task";
-import { QuadrantDefinition } from './quadrant";
+import TaskProgressBarPlugin from "@/index";
+import { Task } from "@/types/task";
+import { QuadrantDefinition } from './quadrant';
 import { QuadrantCardComponent } from "./quadrant-card";
-import { t } from "../../../translations/helper";
+import { t } from "@/translations/helper";
 
 export class QuadrantColumnComponent extends Component {
 	plugin: TaskProgressBarPlugin;

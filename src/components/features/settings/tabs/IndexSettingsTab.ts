@@ -1,9 +1,9 @@
 import { Setting, Notice } from "obsidian";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { t } from "../../translations/helper";
-import { SingleFolderSuggest } from "../AutoComplete";
-import { ConfirmModal } from "../ConfirmModal";
-import { createFileSourceSettings } from "./FileSourceSettings";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { t } from "@/translations/helper";
+import { SingleFolderSuggest } from "@/components/ui/inputs/AutoComplete";
+import { ConfirmModal } from "@/components/ui/modals/ConfirmModal";
+import { createFileSourceSettings } from "../components/FileSourceSettingsSection";
 
 /**
  * Renders the Index Settings tab that consolidates all indexing-related settings

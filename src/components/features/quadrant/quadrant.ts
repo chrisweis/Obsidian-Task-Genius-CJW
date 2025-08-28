@@ -1,12 +1,12 @@
 import { App, Component, setIcon, Platform, DropdownComponent, Notice } from "obsidian";
-import TaskProgressBarPlugin from "../../../index";
-import { Task } from "../../../types/task";
+import TaskProgressBarPlugin from "@/index";
+import { Task } from "@/types/task";
 import { QuadrantColumnComponent } from "./quadrant-column";
 import Sortable from "sortablejs";
-import "../../../styles/quadrant/quadrant.css";
-import { t } from "../../../translations/helper";
-import { FilterComponent } from "../inview-filter/filter";
-import { ActiveFilter } from "../inview-filter/filter-type";
+import "@/styles/quadrant/quadrant.css";
+import { t } from "@/translations/helper";
+import { FilterComponent } from "@/components/features/task/filter/in-view/filter";
+import { ActiveFilter } from "@/components/features/task/filter/in-view/filter-type";
 
 export interface QuadrantSortOption {
 	field:

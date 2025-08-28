@@ -1,16 +1,17 @@
 import { App, Component, debounce, setIcon, Menu } from "obsidian";
-import { StandardTaskMetadata, Task } from "../../../../types/task";
-import TaskProgressBarPlugin from "../../../../index";
-import { ContextSuggest, ProjectSuggest, TagSuggest } from "../../../ui/inputs/AutoComplete";
-import { clearAllMarks } from "../../../ui/renderers/MarkdownRenderer";
+import { StandardTaskMetadata, Task } from "@/types/task";
+import TaskProgressBarPlugin from "@/index";
+import { ContextSuggest, ProjectSuggest, TagSuggest } from "@/components/ui/inputs/AutoComplete";
+import { clearAllMarks } from "@/components/ui/renderers/MarkdownRenderer";
 import {
 	createEmbeddableMarkdownEditor,
 	EmbeddableMarkdownEditor,
-} from "../../../../editor-extensions/core/markdown-editor";
-import "../../../../styles/inline-editor.css";
-import { getEffectiveProject, isProjectReadonly } from "../../../../utils/task/task-operations";
-import { t } from "../../../../translations/helper";
-import { sanitizePriorityForClass } from "../../../../utils/task/priority-utils";
+} from "@/editor-extensions/core/markdown-editor";
+import "@/styles/inline-editor.css";
+import { getEffectiveProject, isProjectReadonly } from "@/utils/task/task-operations";
+import { t } from "@/translations/helper";
+import { sanitizePriorityForClass } from "@/utils/task/priority-utils";
+import { OnCompletionModal } from "@/components/features/on-completion/OnCompletionModal";
 
 export interface InlineEditorOptions {
 	onTaskUpdate: (task: Task, updatedTask: Task) => Promise<void>;
@@ -704,9 +705,6 @@ export class InlineEditor extends Component {
 		container: HTMLElement,
 		currentValue?: string
 	): Promise<void> {
-		const { OnCompletionModal } = await import(
-			"../onCompletion/OnCompletionModal"
-		);
 
 		const modal = new OnCompletionModal(this.app, this.plugin, {
 			initialValue: currentValue || this.task.metadata.onCompletion || "",

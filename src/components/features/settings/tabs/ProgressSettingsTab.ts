@@ -1,8 +1,8 @@
 import { Setting, TextAreaComponent } from "obsidian";
-import { DEFAULT_SETTINGS } from "../../common/setting-definition";
-import { t } from "../../translations/helper";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { formatProgressText } from "../../editor-extensions/ui-widgets/progress-bar-widget";
+import { DEFAULT_SETTINGS } from "@/common/setting-definition";
+import { t } from "@/translations/helper";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { formatProgressText } from "@/editor-extensions/ui-widgets/progress-bar-widget";
 
 export function renderProgressSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

@@ -9,19 +9,19 @@ import {
 	Platform,
 	TFile,
 } from "obsidian";
-import { Task } from "../../../types/task";
-import { TimeComponent } from "../../../types/time-parsing";
-import { t } from "../../../translations/helper";
-import TaskProgressBarPlugin from "../../../index";
-import { QuickCaptureModal } from "../../features/quick-capture/modals/QuickCaptureModal";
+import { Task } from "@/types/task";
+import { TimeComponent } from "@/types/time-parsing";
+import { t } from "@/translations/helper";
+import TaskProgressBarPlugin from "@/index";
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal";
 import {
 	createEmbeddableMarkdownEditor,
 	EmbeddableMarkdownEditor,
 } from "../../../editor-extensions/core/markdown-editor";
-import { saveCapture } from "../../../utils/file/file-operations";
-import "../../../styles/timeline-sidebar.css";
-import { createTaskCheckbox } from "../../features/task/view/details";
-import { MarkdownRendererComponent } from "../../ui/renderers/MarkdownRenderer";
+import { saveCapture } from "@/utils/file/file-operations";
+import "@/styles/timeline-sidebar.css";
+import { createTaskCheckbox } from "@/components/features/task/view/details";
+import { MarkdownRendererComponent } from "@/components/ui/renderers/MarkdownRenderer";
 
 export const TIMELINE_SIDEBAR_VIEW_TYPE = "tg-timeline-sidebar-view";
 

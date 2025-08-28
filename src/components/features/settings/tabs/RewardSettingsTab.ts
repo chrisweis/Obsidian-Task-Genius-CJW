@@ -2,7 +2,7 @@ import { Setting, debounce, TextComponent, Notice } from "obsidian";
 import { OccurrenceLevel, RewardItem } from "src/common/setting-definition";
 import { TaskProgressBarSettingTab } from "src/setting";
 import { t } from "src/translations/manager";
-import { ImageSuggest } from "../AutoComplete";
+import { ImageSuggest } from "@/components/ui/inputs/AutoComplete";
 
 export function renderRewardSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

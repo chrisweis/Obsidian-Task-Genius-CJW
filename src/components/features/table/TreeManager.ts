@@ -1,9 +1,9 @@
 import { Component } from "obsidian";
-import { Task } from "../../../types/task";
+import { Task } from "@/types/task";
 import { TreeNode, TableRow, TableCell, TableColumn } from "./TableTypes";
-import { SortCriterion } from "../../../common/setting-definition";
-import { sortTasks } from "../../commands/sortTaskCommands";
-import { t } from "../../../translations/helper";
+import { SortCriterion } from "@/common/setting-definition";
+import { sortTasks } from "@/commands/sortTaskCommands";
+import { t } from "@/translations/helper";
 
 /**
  * Tree manager component responsible for handling hierarchical task display

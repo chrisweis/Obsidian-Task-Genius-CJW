@@ -5,9 +5,9 @@ import {
 	TFile,
 } from "obsidian";
 import { GanttTaskItem, PlacedGanttTaskItem, Timescale } from './gantt'; // 添加PlacedGanttTaskItem导入
-import { Task } from "../../../types/task";
-import { MarkdownRendererComponent } from "../../ui/renderers/MarkdownRenderer";
-import { sanitizePriorityForClass } from "../../../utils/task/priority-utils";
+import { Task } from "@/types/task";
+import { MarkdownRendererComponent } from "@/components/ui/renderers/MarkdownRenderer";
+import { sanitizePriorityForClass } from "@/utils/task/priority-utils";
 
 // Constants from GanttComponent (consider moving to a shared config/constants file)
 const ROW_HEIGHT = 24;

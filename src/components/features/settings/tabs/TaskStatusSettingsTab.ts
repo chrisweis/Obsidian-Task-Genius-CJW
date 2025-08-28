@@ -1,14 +1,13 @@
 import { Modal, setIcon, Setting } from "obsidian";
-import { t } from "../../translations/helper";
-import { allStatusCollections } from "../../common/task-status";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { getTasksAPI } from "../../utils";
+import { t } from "@/translations/helper";
+import { allStatusCollections } from "@/common/task-status";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { getTasksAPI } from "@/utils";
 import {
 	DEFAULT_SETTINGS,
 	TaskStatusConfig,
-} from "../../common/setting-definition";
-import * as taskStatusModule from "../../common/task-status";
-import { getStatusIcon } from "../../icon";
+} from "@/common/setting-definition";
+import * as taskStatusModule from "@/common/task-status";
 
 export function renderTaskStatusSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

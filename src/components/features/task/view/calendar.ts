@@ -1,6 +1,6 @@
 import { Component, setIcon } from "obsidian";
-import { Task } from "../../../../types/task";
-import { t } from "../../../../translations/helper";
+import { Task } from "@/types/task";
+import { t } from "@/translations/helper";
 
 export interface CalendarDay {
 	date: Date;

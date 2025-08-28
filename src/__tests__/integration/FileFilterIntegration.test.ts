@@ -5,7 +5,7 @@
  * from settings to actual task indexing behavior.
  */
 
-import { FileFilterManager } from '../../managers/file-filter-manager';
+import { FileFilterManager } from '@/managers/file-filter-manager';
 import { FilterMode, FileFilterSettings } from '../../common/setting-definition';
 
 // Mock TFile and TFolder for testing

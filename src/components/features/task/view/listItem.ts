@@ -1,15 +1,15 @@
 import { App, Component, Menu, setIcon } from "obsidian";
-import { Task } from "../../../../types/task";
-import { MarkdownRendererComponent } from "../../../ui/renderers/MarkdownRenderer";
-import "../../../../styles/task-list.css";
+import { Task } from "@/types/task";
+import { MarkdownRendererComponent } from "@/components/ui/renderers/MarkdownRenderer";
+import "@/styles/task-list.css";
 import { createTaskCheckbox } from "./details";
-import { getRelativeTimeString } from "../../../../utils/date/date-formatter";
-import { t } from "../../../../translations/helper";
-import TaskProgressBarPlugin from "../../../../index";
-import { TaskProgressBarSettings } from "../../../../common/setting-definition";
+import { getRelativeTimeString } from "@/utils/date/date-formatter";
+import { t } from "@/translations/helper";
+import TaskProgressBarPlugin from "@/index";
+import { TaskProgressBarSettings } from "@/common/setting-definition";
 import { InlineEditor, InlineEditorOptions } from "./InlineEditor";
 import { InlineEditorManager } from "./InlineEditorManager";
-import { sanitizePriorityForClass } from "../../../../utils/task/priority-utils";
+import { sanitizePriorityForClass } from "@/utils/task/priority-utils";
 
 export class TaskListItemComponent extends Component {
 	public element: HTMLElement;

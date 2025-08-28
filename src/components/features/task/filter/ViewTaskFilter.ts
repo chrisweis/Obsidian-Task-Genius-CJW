@@ -9,10 +9,10 @@ import {
 	setTooltip,
 } from "obsidian";
 import Sortable from "sortablejs";
-import { t } from "../../../../translations/helper"; // Adjusted path assuming helper.ts is in src/translations
-import "../../../../styles/global-filter.css";
+import { t } from "@/translations/helper"; // Adjusted path assuming helper.ts is in src/translations
+import "@/styles/global-filter.css";
 import { FilterConfigModal } from "./FilterConfigModal";
-import type TaskProgressBarPlugin from "../../../../index";
+import type TaskProgressBarPlugin from "@/index";
 
 // --- Interfaces (from focus.md and example HTML) ---
 // (Using 'any' for property types for now, will refine based on focus.md property list)

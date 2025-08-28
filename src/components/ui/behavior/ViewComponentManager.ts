@@ -1,17 +1,17 @@
 import { App, Component } from "obsidian";
-import { Task } from "../../../types/task";
-import TaskProgressBarPlugin from "../../../index";
+import { Task } from "@/types/task";
+import TaskProgressBarPlugin from "@/index";
 import {
 	ViewMode,
 	getViewSettingOrDefault,
-} from "../../../common/setting-definition";
-import { KanbanComponent } from "../../features/kanban/kanban";
-import { CalendarComponent, CalendarEvent } from "../../features/calendar";
-import { GanttComponent } from "../../features/gantt/gantt";
-import { TaskPropertyTwoColumnView } from "../../features/task/view/TaskPropertyTwoColumnView";
-import { ForecastComponent } from "../../features/task/view/forecast";
-import { TableViewAdapter } from "../../features/table/TableViewAdapter";
-import { QuadrantComponent } from "../../features/quadrant/quadrant";
+} from "@/common/setting-definition";
+import { KanbanComponent } from "@/components/features/kanban/kanban";
+import { CalendarComponent, CalendarEvent } from "@/components/features/calendar";
+import { GanttComponent } from "@/components/features/gantt/gantt";
+import { TaskPropertyTwoColumnView } from "@/components/features/task/view/TaskPropertyTwoColumnView";
+import { ForecastComponent } from "@/components/features/task/view/forecast";
+import { TableViewAdapter } from "@/components/features/table/TableViewAdapter";
+import { QuadrantComponent } from "@/components/features/quadrant/quadrant";
 
 // 定义视图组件的通用接口
 interface ViewComponentInterface {

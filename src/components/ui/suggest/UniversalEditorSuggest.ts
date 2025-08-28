@@ -8,10 +8,10 @@ import {
 	TFile,
 	setIcon,
 } from "obsidian";
-import TaskProgressBarPlugin from "../../../index";
-import { t } from "../../../translations/helper";
+import TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
 import { getSuggestOptionsByTrigger } from "./SpecialCharacterSuggests";
-import "../../../styles/universal-suggest.css";
+import "@/styles/universal-suggest.css";
 
 export interface SuggestOption {
 	id: string;

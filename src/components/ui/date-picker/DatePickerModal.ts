@@ -1,6 +1,6 @@
 import { App, Modal } from "obsidian";
 import { DatePickerComponent, DatePickerState } from "./DatePickerComponent";
-import type TaskProgressBarPlugin from "../../../index";
+import type TaskProgressBarPlugin from "@/index";
 
 export class DatePickerModal extends Modal {
 	public datePickerComponent: DatePickerComponent;

@@ -7,10 +7,10 @@ import {
 	FilterComponentOptions,
 } from "./filter-type";
 import "./filter.css";
-import { Task } from "../../../../../types/task";
-import TaskProgressBarPlugin from "../../../../../index";
-import { t } from "../../../../../translations/helper";
-import { PRIORITY_MAP } from "../../../../../common/default-symbol";
+import { Task } from "@/types/task";
+import TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
+import { PRIORITY_MAP } from "@/common/default-symbol";
 
 // Helper function to build filter categories and options from tasks
 export function buildFilterOptionsFromTasks(tasks: Task[]): FilterCategory[] {

@@ -1,10 +1,10 @@
 import { Component, App } from "obsidian";
 import { TableSpecificConfig } from "../../../common/setting-definition";
 import { EditorCallbacks } from "./TableTypes";
-import TaskProgressBarPlugin from "../../../index";
-import { t } from "../../../translations/helper";
-import { DatePickerPopover } from "../../ui/date-picker/DatePickerPopover";
-import { ContextSuggest, ProjectSuggest, TagSuggest } from "../../ui/inputs/AutoComplete";
+import TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
+import { DatePickerPopover } from "@/components/ui/date-picker/DatePickerPopover";
+import { ContextSuggest, ProjectSuggest, TagSuggest } from "@/components/ui/inputs/AutoComplete";
 
 /**
  * Table editor component responsible for inline cell editing

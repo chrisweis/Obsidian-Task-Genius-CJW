@@ -1,14 +1,13 @@
 import { Component, App } from "obsidian";
-import { TreeNode, ProjectNodeData } from "../../../../types/tree";
-import { TreeComponent } from "../../../ui/tree/TreeComponent";
-import { Task } from "../../../../types/task";
+import { TreeNode, ProjectNodeData } from "@/types/tree";
+import { TreeComponent } from "@/components/ui/tree/TreeComponent";
+import { Task } from "@/types/task";
 import { 
 	buildProjectTreeFromTasks, 
 	findNodeByPath, 
 	getAllDescendants
-} from "../../core/project-tree-builder";
-import { t } from "../../../../translations/helper";
-import TaskProgressBarPlugin from "../../../../index";
+} from "@/core/project-tree-builder";
+import TaskProgressBarPlugin from "@/index";
 
 /**
  * Project tree component for hierarchical project display

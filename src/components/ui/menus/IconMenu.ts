@@ -1,7 +1,7 @@
 import { debounce, getIconIds, Notice, setIcon } from "obsidian";
 
 import { ButtonComponent } from "obsidian";
-import TaskProgressBarPlugin from "../../../index";
+import TaskProgressBarPlugin from "@/index";
 
 export const attachIconMenu = (
 	btn: ButtonComponent,

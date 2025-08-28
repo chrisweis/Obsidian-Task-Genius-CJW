@@ -1,20 +1,20 @@
 import { Component, App, debounce } from "obsidian";
-import { Task } from "../../../types/task";
+import { Task } from "@/types/task";
 import {
 	TableSpecificConfig,
 	SortCriterion,
 } from "../../../common/setting-definition";
-import TaskProgressBarPlugin from "../../../index";
-import { t } from "../../../translations/helper";
+import TaskProgressBarPlugin from "@/index";
+import { t } from "@/translations/helper";
 import { TableColumn, TableRow, TableCell } from "./TableTypes";
 import { TableRenderer } from "./TableRenderer";
 import { TableEditor } from "./TableEditor";
 import { TreeManager } from "./TreeManager";
 import { VirtualScrollManager } from "./VirtualScrollManager";
 import { TableHeader, TableHeaderCallbacks } from "./TableHeader";
-import { sortTasks } from "../../commands/sortTaskCommands";
-import { isProjectReadonly } from "../../../utils/task/task-operations";
-import "../../../styles/table.css";
+import { sortTasks } from "@/commands/sortTaskCommands";
+import { isProjectReadonly } from "@/utils/task/task-operations";
+import "@/styles/table.css";
 
 export interface TableViewCallbacks {
 	onTaskSelected?: (task: Task | null) => void;

@@ -1,9 +1,9 @@
 import { Setting, Notice, setIcon, DropdownComponent } from "obsidian";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { t } from "../../translations/helper";
-import { FilterMode, FileFilterRule } from "../../common/setting-definition";
-import { FolderSuggest, SimpleFileSuggest as FileSuggest } from "../AutoComplete";
-import "../../styles/file-filter-settings.css";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { t } from "@/translations/helper";
+import { FilterMode, FileFilterRule } from "@/common/setting-definition";
+import { FolderSuggest, SimpleFileSuggest as FileSuggest } from "@/components/ui/inputs/AutoComplete";
+import "@/styles/file-filter-settings.css";
 
 export function renderFileFilterSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

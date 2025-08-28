@@ -22,7 +22,8 @@ import { Annotation } from "@codemirror/state";
 // @ts-ignore - This import is necessary but TypeScript can't find it
 import { syntaxTree, tokenClassNodeProp } from "@codemirror/language";
 import { t } from "../../translations/helper";
-import { DatePickerPopover, DatePickerModal } from "../../components/date-picker";
+import { DatePickerPopover } from "@/components/ui/date-picker/DatePickerPopover";
+import { DatePickerModal } from "@/components/ui/date-picker/DatePickerModal";
 export const dateChangeAnnotation = Annotation.define();
 
 class DatePickerWidget extends WidgetType {

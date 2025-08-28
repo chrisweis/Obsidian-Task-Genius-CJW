@@ -1,6 +1,6 @@
 import { Setting, Notice } from "obsidian";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { t } from "../../translations/helper";
+import { TaskProgressBarSettingTab } from "@/setting";
+import { t } from "@/translations/helper";
 
 export function renderTimelineSidebarSettingsTab(
 	settingTab: TaskProgressBarSettingTab,
