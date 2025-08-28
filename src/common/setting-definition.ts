@@ -599,6 +599,27 @@ export interface McpServerConfig {
 	logLevel: "debug" | "info" | "warn" | "error";
 }
 
+/** Notifications settings */
+export interface NotificationSettings {
+	enabled: boolean;
+	/** Send a single daily summary for today's tasks at specified time */
+	dailySummary: {
+		enabled: boolean;
+		time: string; // HH:mm (24h)
+	};
+	/** Notify at individual task due time (with optional lead) */
+	perTask: {
+		enabled: boolean;
+		leadMinutes: number; // minutes before due
+	};
+}
+
+/** Desktop integration settings */
+export interface DesktopIntegrationSettings {
+	/** Try to show a tray/status item (desktop only). Real system tray may not be available; plugin will fall back to status bar. */
+	enableTray: boolean;
+}
+
 /** Define the main settings structure */
 export interface TaskProgressBarSettings {
 	// General Settings (Example)
@@ -619,6 +640,10 @@ export interface TaskProgressBarSettings {
 	hideProgressBarFolders: string;
 	hideProgressBarMetadata: string;
 	showProgressBarBasedOnHeading: string;
+
+	// Desktop integration and notifications
+	notifications?: NotificationSettings;
+	desktopIntegration?: DesktopIntegrationSettings;
 
 	// Project Tree View Settings
 	projectViewDefaultMode: 'list' | 'tree';
@@ -779,6 +804,14 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	addProgressBarToNonTaskBullet: false,
 	addTaskProgressBarToHeading: false,
 	enableProgressbarInReadingMode: false,
+
+	// Desktop integration and notifications defaults
+	notifications: {
+		enabled: false,
+		dailySummary: { enabled: true, time: "09:00" },
+		perTask: { enabled: false, leadMinutes: 10 },
+	},
+	desktopIntegration: { enableTray: false },
 	countSubLevel: false,
 	displayMode: "bracketFraction",
 	customFormat: "[{{COMPLETED}}/{{TOTAL}}]",

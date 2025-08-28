@@ -15,3 +15,4 @@ export { renderDatePrioritySettingsTab } from "./tabs/DatePrioritySettingsTab";
 export { renderTimelineSidebarSettingsTab } from "./tabs/TimelineSidebarSettingsTab";
 export { renderIndexSettingsTab } from "./tabs/IndexSettingsTab";
 export { createFileSourceSettings } from "./components/FileSourceSettingsSection";
+export { renderNotificationsSettingsTab } from "./tabs/NotificationsSettingsTab";

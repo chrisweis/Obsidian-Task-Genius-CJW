@@ -101,6 +101,7 @@ import { IcsManager } from "./managers/ics-manager";
 import { ObsidianUriHandler } from "./utils/ObsidianUriHandler";
 import { VersionManager } from "./managers/version-manager";
 import { RebuildProgressManager } from "./managers/rebuild-progress-manager";
+import NotificationManager from "./managers/notification-manager";
 import { OnboardingConfigManager } from "./managers/onboarding-manager";
 import { OnCompletionManager } from "./managers/completion-manager";
 import { SettingsChangeDetector } from "./services/settings-change-detector";
@@ -114,6 +115,7 @@ import { McpServerManager } from "./mcp/McpServerManager";
 import { createDataflow, isDataflowEnabled } from "./dataflow/createDataflow";
 import type { DataflowOrchestrator } from "./dataflow/Orchestrator";
 import { WriteAPI } from "./dataflow/api/WriteAPI";
+import { Events } from "./dataflow/events/Events";
 import {
 	setPriorityAtCursor,
 	removePriorityAtCursor,
@@ -203,6 +205,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 	// Write API for dataflow architecture
 	writeAPI?: WriteAPI;
+
+	// Notification manager (desktop)
+	notificationManager?: NotificationManager;
 
 	rewardManager: RewardManager;
 
@@ -526,6 +531,18 @@ export default class TaskProgressBarPlugin extends Plugin {
 			if (Platform.isDesktopApp) {
 				this.mcpServerManager = new McpServerManager(this);
 				this.mcpServerManager.initialize();
+
+				// Initialize Notification Manager (desktop only)
+				this.notificationManager = new NotificationManager(this);
+				this.addChild(this.notificationManager);
+
+				// Subscribe to task cache updates to inform notifications
+				this.registerEvent(
+					this.app.workspace.on(
+						Events.TASK_CACHE_UPDATED as any,
+						() => this.notificationManager?.onTaskCacheUpdated()
+					)
+				);
 			}
 
 			// Check and show onboarding for first-time users
