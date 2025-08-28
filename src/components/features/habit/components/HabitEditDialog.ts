@@ -19,7 +19,7 @@ import {
 } from "../types/habit-card";
 import TaskProgressBarPlugin from "../index";
 import { t } from "../translations/helper";
-import { attachIconMenu } from "./IconMenu";
+import { attachIconMenu } from "./ui/menus/IconMenu";
 import "../styles/habit-edit-dialog.css";
 
 export class HabitEditDialog extends Modal {

@@ -1,5 +1,5 @@
 import { App, Editor, EditorPosition, EditorSuggestContext } from "obsidian";
-import { MinimalQuickCaptureSuggest } from "../components/MinimalQuickCaptureSuggest";
+import { MinimalQuickCaptureSuggest } from "../components/features/quick-capture/suggest/MinimalQuickCaptureSuggest";
 import TaskProgressBarPlugin from "../index";
 
 // Mock Obsidian modules

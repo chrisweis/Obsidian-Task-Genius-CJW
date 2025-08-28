@@ -1,7 +1,7 @@
 import { App, Editor, EditorPosition, TFile } from "obsidian";
-import { UniversalEditorSuggest, SuggestManager } from "../components/suggest";
+import { UniversalEditorSuggest, SuggestManager } from "../components/ui/suggest";
 import TaskProgressBarPlugin from "../index";
-import { getSuggestOptionsByTrigger } from "../components/suggest/SpecialCharacterSuggests";
+import { getSuggestOptionsByTrigger } from "../components/ui/suggest/SpecialCharacterSuggests";
 
 // Mock Obsidian modules
 jest.mock("obsidian", () => ({

@@ -1,1 +1,0 @@
-export * from '../features/task/view/modals/ViewConfigModal';

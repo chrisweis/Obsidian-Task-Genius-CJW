@@ -2,7 +2,7 @@ import { ExtraButtonComponent, Menu, setIcon } from "obsidian";
 import { Component } from "obsidian";
 import TaskProgressBarPlugin from "../../../index";
 import { Task } from "../../../types/task";
-import { createTaskCheckbox, getStatusText } from "../../task-view/details";
+import { createTaskCheckbox, getStatusText } from "../../features/task/view/details";
 import { t } from "../../../translations/helper";
 import { getStatusIcon } from "../../../icon";
 

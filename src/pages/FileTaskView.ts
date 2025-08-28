@@ -60,23 +60,23 @@ import {
 	DEFAULT_FILE_TASK_MAPPING,
 } from "../managers/file-task-manager";
 import TaskProgressBarPlugin from "../index";
-import { ForecastComponent } from "../components/task-view/forecast";
-import { TagsComponent } from "../components/task-view/tags";
-import { ProjectsComponent } from "../components/task-view/projects";
-import { ReviewComponent } from "../components/task-view/review";
-import { CalendarComponent } from "../components/calendar";
-import { KanbanComponent } from "../components/kanban/kanban";
-import { GanttComponent } from "../components/gantt/gantt";
-import { ViewComponentManager } from "../components/ViewComponentManager";
-import { Habit } from "../components/habit/habit";
+import { ForecastComponent } from "../components/features/task/view/forecast";
+import { TagsComponent } from "../components/features/task/view/tags";
+import { ProjectsComponent } from "../components/features/task/view/projects";
+import { ReviewComponent } from "../components/features/task/view/review";
+import { CalendarComponent } from "../components/features/calendar";
+import { KanbanComponent } from "../components/features/kanban/kanban";
+import { GanttComponent } from "../components/features/gantt/gantt";
+import { ViewComponentManager } from "../components/ui/behavior/ViewComponentManager";
+import { Habit } from "../components/features/habit/habit";
 
 // Import task view components
-import { ContentComponent } from "../components/task-view/content";
-import { SidebarComponent } from "../components/task-view/sidebar";
+import { ContentComponent } from "../components/features/task/view/content";
+import { SidebarComponent } from "../components/features/task/view/sidebar";
 import {
 	createTaskCheckbox,
 	TaskDetailsComponent,
-} from "../components/task-view/details";
+} from "../components/features/task/view/details";
 
 // Import required types and utilities
 import {
@@ -84,8 +84,8 @@ import {
 	TwoColumnSpecificConfig,
 } from "../common/setting-definition";
 import { filterTasks } from "../utils/task/task-filter-utils";
-import { TaskPropertyTwoColumnView } from "../components/task-view/TaskPropertyTwoColumnView";
-import { RootFilterState } from "../components/task-filter/ViewTaskFilter";
+import { TaskPropertyTwoColumnView } from "../components/features/task/view/TaskPropertyTwoColumnView";
+import { RootFilterState } from "../components/features/task/filter/ViewTaskFilter";
 import { t } from "../translations/helper";
 
 export class FileTaskView extends Component implements BasesView {

@@ -14,19 +14,19 @@ import {
 	// FrontmatterCache,
 } from "obsidian";
 import { Task } from "../types/task";
-import { SidebarComponent } from "../components/task-view/sidebar";
-import { ContentComponent } from "../components/task-view/content";
-import { ForecastComponent } from "../components/task-view/forecast";
-import { TagsComponent } from "../components/task-view/tags";
-import { ProjectsComponent } from "../components/task-view/projects";
-import { ReviewComponent } from "../components/task-view/review";
+import { SidebarComponent } from "../components/features/task/view/sidebar";
+import { ContentComponent } from "../components/features/task/view/content";
+import { ForecastComponent } from "../components/features/task/view/forecast";
+import { TagsComponent } from "../components/features/task/view/tags";
+import { ProjectsComponent } from "../components/features/task/view/projects";
+import { ReviewComponent } from "../components/features/task/view/review";
 import {
 	TaskDetailsComponent,
 	createTaskCheckbox,
-} from "../components/task-view/details";
+} from "../components/features/task/view/details";
 import "../styles/view.css";
 import TaskProgressBarPlugin from "../index";
-import { QuickCaptureModal } from "../components/QuickCaptureModal";
+import { QuickCaptureModal } from "../components/features/quick-capture/modals/QuickCaptureModal";
 import { t } from "../translations/helper";
 import {
 	getViewSettingOrDefault,
@@ -35,23 +35,23 @@ import {
 	TwoColumnSpecificConfig,
 } from "../common/setting-definition";
 import { filterTasks } from "../utils/task/task-filter-utils";
-import { CalendarComponent, CalendarEvent } from "../components/calendar";
-import { KanbanComponent } from "../components/kanban/kanban";
-import { GanttComponent } from "../components/gantt/gantt";
-import { TaskPropertyTwoColumnView } from "../components/task-view/TaskPropertyTwoColumnView";
-import { ViewComponentManager } from "../components/ViewComponentManager";
-import { Habit } from "../components/habit/habit";
-import { ConfirmModal } from "../components/ConfirmModal";
+import { CalendarComponent, CalendarEvent } from "../components/features/calendar";
+import { KanbanComponent } from "../components/features/kanban/kanban";
+import { GanttComponent } from "../components/features/gantt/gantt";
+import { TaskPropertyTwoColumnView } from "../components/features/task/view/TaskPropertyTwoColumnView";
+import { ViewComponentManager } from "../components/ui/behavior/ViewComponentManager";
+import { Habit } from "../components/features/habit/habit";
+import { ConfirmModal } from "../components/ui/modals/ConfirmModal";
 import {
 	ViewTaskFilterPopover,
 	ViewTaskFilterModal,
-} from "../components/task-filter";
+} from "../components/features/task/filter";
 import {
 	Filter,
 	FilterGroup,
 	RootFilterState,
-} from "../components/task-filter/ViewTaskFilter";
-import { FilterConfigModal } from "../components/task-filter/FilterConfigModal";
+} from "../components/features/task/filter/ViewTaskFilter";
+import { FilterConfigModal } from "../components/features/task/filter/FilterConfigModal";
 import { SavedFilterConfig } from "../common/setting-definition";
 import { isDataflowEnabled } from "../dataflow/createDataflow";
 

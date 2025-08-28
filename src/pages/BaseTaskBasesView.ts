@@ -14,7 +14,7 @@ import { Component, App, TFile } from "obsidian";
 import { Task } from "../types/task";
 import TaskProgressBarPlugin from "../index";
 import { ViewMode } from "../common/setting-definition";
-import { TaskDetailsComponent } from "../components/task-view/details";
+import { TaskDetailsComponent } from "../components/features/task/view/details";
 import { t } from "../translations/helper";
 
 // Import BasesView types

@@ -1,4 +1,4 @@
-import { clearAllMarks } from "../components/MarkdownRenderer";
+import { clearAllMarks } from "../components/ui/renderers/MarkdownRenderer";
 
 describe("Task Mark Cleanup", () => {
 	describe("clearAllMarks function", () => {

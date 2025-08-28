@@ -1,7 +1,7 @@
 import { Editor, MarkdownView, MarkdownFileInfo, Notice, Menu } from "obsidian";
 import TaskProgressBarPlugin from "../index";
-import { QuickWorkflowModal } from "../components/QuickWorkflowModal";
-import { WorkflowDefinitionModal } from "../components/WorkflowDefinitionModal";
+import { QuickWorkflowModal } from "../components/features/workflow/modals/QuickWorkflowModal";
+import { WorkflowDefinitionModal } from "../components/features/workflow/modals/WorkflowDefinitionModal";
 import {
 	analyzeTaskStructure,
 	convertTaskStructureToWorkflow,

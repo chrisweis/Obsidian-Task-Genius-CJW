@@ -5,7 +5,7 @@
 
 import { App, Menu } from "obsidian";
 import { BaseTaskBasesView } from "./BaseTaskBasesView";
-import { TagsComponent } from "../components/task-view/tags";
+import { TagsComponent } from "../components/features/task/view/tags";
 import TaskProgressBarPlugin from "../index";
 import { filterTasks } from "../utils/task/task-filter-utils";
 import { t } from "../translations/helper";

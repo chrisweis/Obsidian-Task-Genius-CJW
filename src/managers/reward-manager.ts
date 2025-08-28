@@ -1,7 +1,7 @@
 import TaskProgressBarPlugin from "../index";
 import { RewardItem, RewardSettings } from "../common/setting-definition";
 import { TFile, App, Notice, Component } from "obsidian";
-import { RewardModal } from "../components/RewardModal"; // We'll create this modal later
+import { RewardModal } from "../components/features/habit/modals/RewardModal"; // We'll create this modal later
 import {
 	parseAdvancedFilterQuery,
 	evaluateFilterNode,

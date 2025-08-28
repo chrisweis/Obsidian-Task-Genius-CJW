@@ -5,13 +5,13 @@ import {
 	ViewMode,
 	getViewSettingOrDefault,
 } from "../../../common/setting-definition";
-import { KanbanComponent } from "../../kanban/kanban";
-import { CalendarComponent, CalendarEvent } from "../../calendar";
-import { GanttComponent } from "../../gantt/gantt";
-import { TaskPropertyTwoColumnView } from "../../task-view/TaskPropertyTwoColumnView";
-import { ForecastComponent } from "../../task-view/forecast";
-import { TableViewAdapter } from "../../table/TableViewAdapter";
-import { QuadrantComponent } from "../../quadrant/quadrant";
+import { KanbanComponent } from "../../features/kanban/kanban";
+import { CalendarComponent, CalendarEvent } from "../../features/calendar";
+import { GanttComponent } from "../../features/gantt/gantt";
+import { TaskPropertyTwoColumnView } from "../../features/task/view/TaskPropertyTwoColumnView";
+import { ForecastComponent } from "../../features/task/view/forecast";
+import { TableViewAdapter } from "../../features/table/TableViewAdapter";
+import { QuadrantComponent } from "../../features/quadrant/quadrant";
 
 // 定义视图组件的通用接口
 interface ViewComponentInterface {

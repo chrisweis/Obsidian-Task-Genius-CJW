@@ -1,4 +1,4 @@
-import { QuickCaptureModal } from "../components/QuickCaptureModal";
+import { QuickCaptureModal } from "../components/features/quick-capture/modals/QuickCaptureModal";
 import { DEFAULT_TIME_PARSING_CONFIG } from "../services/time-parsing-service";
 import { App } from "obsidian";
 

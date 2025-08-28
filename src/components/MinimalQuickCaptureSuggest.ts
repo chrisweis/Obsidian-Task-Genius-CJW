@@ -1,1 +1,0 @@
-export * from '../features/quick-capture/suggest/MinimalQuickCaptureSuggest';

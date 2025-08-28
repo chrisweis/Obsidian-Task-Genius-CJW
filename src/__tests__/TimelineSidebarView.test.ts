@@ -1,5 +1,5 @@
 import { Task } from '../types/task';
-import { TimelineSidebarView } from '../components/timeline-sidebar/TimelineSidebarView';
+import { TimelineSidebarView } from '../components/features/timeline-sidebar/TimelineSidebarView';
 
 // Mock translations first
 jest.mock('../translations/helper', () => ({

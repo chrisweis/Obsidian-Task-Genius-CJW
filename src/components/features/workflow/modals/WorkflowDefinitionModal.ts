@@ -2,7 +2,7 @@ import { Modal, App, Setting } from "obsidian";
 import TaskProgressBarPlugin from "../index";
 import { WorkflowStage } from "../common/setting-definition";
 import { t } from "../translations/helper";
-import { StageEditModal } from "./StageEditModal";
+import { StageEditModal } from "./features/workflow/modals/StageEditModal";
 
 export class WorkflowDefinitionModal extends Modal {
 	workflow: any;

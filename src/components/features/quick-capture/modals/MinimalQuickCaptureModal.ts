@@ -15,12 +15,12 @@ import {
 import TaskProgressBarPlugin from "../index";
 import { saveCapture } from "../utils/file/file-operations";
 import { t } from "../translations/helper";
-import { MinimalQuickCaptureSuggest } from "./MinimalQuickCaptureSuggest";
-import { DatePickerPopover } from "./date-picker/DatePickerPopover";
-import { TagSuggest } from "./AutoComplete";
-import { SuggestManager, UniversalEditorSuggest } from "./suggest";
+import { MinimalQuickCaptureSuggest } from "./features/quick-capture/suggest/MinimalQuickCaptureSuggest";
+import { DatePickerPopover } from "./ui/date-picker/DatePickerPopover";
+import { TagSuggest } from "./ui/inputs/AutoComplete";
+import { SuggestManager, UniversalEditorSuggest } from "./ui/suggest";
 import { ConfigurableTaskParser } from "../dataflow/core/ConfigurableTaskParser";
-import { clearAllMarks } from "./MarkdownRenderer";
+import { clearAllMarks } from "./ui/renderers/MarkdownRenderer";
 
 interface TaskMetadata {
 	startDate?: Date;

@@ -26,13 +26,13 @@ import {
 	SortCriterion,
 } from "../common/setting-definition";
 import TaskProgressBarPlugin from "../index";
-import { FolderSuggest } from "./AutoComplete";
-import { attachIconMenu } from "./IconMenu";
-import { ConfirmModal } from "./ConfirmModal";
+import { FolderSuggest } from "./ui/inputs/AutoComplete";
+import { attachIconMenu } from "./ui/menus/IconMenu";
+import { ConfirmModal } from "./ui/modals/ConfirmModal";
 import {
 	TaskFilterComponent,
 	RootFilterState,
-} from "./task-filter/ViewTaskFilter";
+} from "./features/task/filter/ViewTaskFilter";
 
 export class ViewConfigModal extends Modal {
 	private viewConfig: ViewConfig;

@@ -1,2 +1,2 @@
-export * from './ConfirmModal';
-export * from './IframeModal';
+export * from './ui/modals/ConfirmModal';
+export * from './ui/modals/IframeModal';
