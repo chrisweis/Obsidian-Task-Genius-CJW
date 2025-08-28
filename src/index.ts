@@ -66,8 +66,8 @@ import {
 } from "./editor-extensions/core/task-filter-panel";
 import { Task } from "./types/task";
 import { QuickCaptureModal } from "./components/features/quick-capture/modals/QuickCaptureModal";
-import { MinimalQuickCaptureModal } from "./components/MinimalQuickCaptureModal";
-import { MinimalQuickCaptureSuggest } from "./components/MinimalQuickCaptureSuggest";
+import { MinimalQuickCaptureModal } from "./components/features/quick-capture/modals/MinimalQuickCaptureModal";
+import { MinimalQuickCaptureSuggest } from "./components/features/quick-capture/suggest/MinimalQuickCaptureSuggest";
 import { SuggestManager } from "./components/suggest";
 import { MarkdownView } from "obsidian";
 import { Notice } from "obsidian";
