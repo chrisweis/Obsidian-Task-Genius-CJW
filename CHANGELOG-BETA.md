@@ -4,6 +4,23 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.8](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.7...9.8.0-beta.8) (2025-08-28)
+
+### Refactors
+
+* **build:** migrate to TypeScript path aliases and update esbuild to v0.25.9 ([77dd5f5](https://github.com/Quorafind/Obsidian-Task-Genius/commit/77dd5f5da5513e65939d85914e58a3e69122012a))
+* complete component directory migration with all direct imports fixed ([798403e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/798403e5a48ae6c3d646b32112a8234aeef65e74))
+* **components:** add barrel exports for ui modules (phase 4) ([a009352](https://github.com/Quorafind/Obsidian-Task-Genius/commit/a0093526f763c95c0c1ce569604fa10e76cc5153))
+* **components:** add missing re-exports for backward compatibility (phase 5) ([a720293](https://github.com/Quorafind/Obsidian-Task-Genius/commit/a720293cb6becbf3eefe569bcaaafc3c3b42515a))
+* **components:** consolidate feature modules under src/components/features/* with transitional re-exports (phase 2) ([b9ace94](https://github.com/Quorafind/Obsidian-Task-Genius/commit/b9ace948c92f51adff0a2163444134dc50338d1c))
+* **components:** extract shared UI into src/components/ui/* with transitional re-exports (phase 1) ([88bcca4](https://github.com/Quorafind/Obsidian-Task-Genius/commit/88bcca4278699795f336e48fd311412c0bad78a1))
+* remove duplicate re-export files and update all imports to point directly to new locations ([a7667b1](https://github.com/Quorafind/Obsidian-Task-Genius/commit/a7667b155001fdb7a027365539afaf3b00c54d84))
+* **settings:** standardize settings under features/settings with tabs/components/core structure (phase 3) ([28efa41](https://github.com/Quorafind/Obsidian-Task-Genius/commit/28efa411459bc908ce2f626860c82a0149179b58))
+
+### Chores
+
+* remove temporary migration scripts ([e551a6b](https://github.com/Quorafind/Obsidian-Task-Genius/commit/e551a6b9eb49f2fcff6f2348f4feacc29e09681f))
+
 ## [9.8.0-beta.7](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.6...9.8.0-beta.7) (2025-08-28)
 
 ### Bug Fixes
