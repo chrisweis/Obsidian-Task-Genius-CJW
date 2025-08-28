@@ -233,6 +233,18 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		}, 100);
 	}
 
+	// Lightweight updater for notifications/tray changes to avoid reloading task caches
+	applyNotificationsUpdateLight() {
+		clearTimeout(this.applyDebounceTimer);
+		const plugin = this.plugin;
+		this.applyDebounceTimer = window.setTimeout(async () => {
+			await plugin.saveSettings();
+			// Only refresh notification-related UI; do not touch dataflow orchestrator
+			plugin.notificationManager?.reloadSettings();
+			// Minimal view updates are unnecessary here
+		}, 100);
+	}
+
 	// 创建搜索组件
 	private createSearchComponent() {
 		if (this.searchComponent) {
@@ -703,83 +715,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 	private displayGeneralSettings(containerEl: HTMLElement): void {
 		// Notifications and Desktop integration
-		const header = containerEl.createEl("h3", { text: t("Notifications & Desktop") });
-		header.style.marginTop = "0";
-
-		new Setting(containerEl)
-			.setName(t("Enable notifications"))
-			.setDesc(t("Desktop only: show reminders using system notifications"))
-			.addToggle((toggle) => {
-				toggle.setValue(!!this.plugin.settings.notifications?.enabled);
-				toggle.onChange(async (value) => {
-					this.plugin.settings.notifications = this.plugin.settings.notifications || {
-						enabled: false,
-						dailySummary: { enabled: true, time: "09:00" },
-						perTask: { enabled: false, leadMinutes: 10 },
-					};
-					this.plugin.settings.notifications.enabled = value;
-					this.applySettingsUpdate();
-				});
-			});
-
-		new Setting(containerEl)
-			.setName(t("Daily summary"))
-			.setDesc(t("Send one notification for today's due tasks at a specific time (HH:mm)"))
-			.addToggle((toggle) => {
-				const ns = this.plugin.settings.notifications;
-				toggle.setValue(!!ns?.dailySummary?.enabled);
-				toggle.onChange((value) => {
-					this.plugin.settings.notifications = this.plugin.settings.notifications || { enabled: false, dailySummary: { enabled: true, time: "09:00" }, perTask: { enabled: false, leadMinutes: 10 } };
-					this.plugin.settings.notifications.dailySummary = this.plugin.settings.notifications.dailySummary || { enabled: true, time: "09:00" };
-					this.plugin.settings.notifications.dailySummary.enabled = value;
-					this.applySettingsUpdate();
-				});
-			})
-			.addText((text) => {
-				const time = this.plugin.settings.notifications?.dailySummary?.time || "09:00";
-				text.setPlaceholder("09:00").setValue(time).onChange((val) => {
-					this.plugin.settings.notifications = this.plugin.settings.notifications || { enabled: false, dailySummary: { enabled: true, time: "09:00" }, perTask: { enabled: false, leadMinutes: 10 } };
-					this.plugin.settings.notifications.dailySummary = this.plugin.settings.notifications.dailySummary || { enabled: true, time: "09:00" };
-					this.plugin.settings.notifications.dailySummary.time = val || "09:00";
-					this.applySettingsUpdate();
-				});
-			});
-
-		new Setting(containerEl)
-			.setName(t("Per-task reminders"))
-			.setDesc(t("Notify shortly before each task's due time"))
-			.addToggle((toggle) => {
-				const ns = this.plugin.settings.notifications;
-				toggle.setValue(!!ns?.perTask?.enabled);
-				toggle.onChange((value) => {
-					this.plugin.settings.notifications = this.plugin.settings.notifications || { enabled: false, dailySummary: { enabled: true, time: "09:00" }, perTask: { enabled: false, leadMinutes: 10 } };
-					this.plugin.settings.notifications.perTask = this.plugin.settings.notifications.perTask || { enabled: false, leadMinutes: 10 };
-					this.plugin.settings.notifications.perTask.enabled = value;
-					this.applySettingsUpdate();
-				});
-			})
-			.addText((text) => {
-				const lead = String(this.plugin.settings.notifications?.perTask?.leadMinutes ?? 10);
-				text.setPlaceholder("10").setValue(lead).onChange((val) => {
-					const minutes = Math.max(0, parseInt(val || "0", 10) || 0);
-					this.plugin.settings.notifications = this.plugin.settings.notifications || { enabled: false, dailySummary: { enabled: true, time: "09:00" }, perTask: { enabled: false, leadMinutes: 10 } };
-					this.plugin.settings.notifications.perTask = this.plugin.settings.notifications.perTask || { enabled: false, leadMinutes: 10 };
-					this.plugin.settings.notifications.perTask.leadMinutes = minutes;
-					this.applySettingsUpdate();
-				});
-			});
-
-		new Setting(containerEl)
-			.setName(t("Enable tray (status bar)"))
-			.setDesc(t("Show a bell with today's due count in the status bar (desktop only)"))
-			.addToggle((toggle) => {
-				toggle.setValue(!!this.plugin.settings.desktopIntegration?.enableTray);
-				toggle.onChange((value) => {
-					this.plugin.settings.desktopIntegration = this.plugin.settings.desktopIntegration || { enableTray: false };
-					this.plugin.settings.desktopIntegration.enableTray = value;
-					this.applySettingsUpdate();
-				});
-			});
+		
 	}
 
 	private displayProgressBarSettings(containerEl: HTMLElement): void {

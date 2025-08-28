@@ -1,6 +1,7 @@
 import { Setting, Platform } from "obsidian";
 import { t } from "@/translations/helper";
 import { TaskProgressBarSettingTab } from "@/setting";
+import { DEFAULT_SETTINGS } from "@/common/setting-definition";
 
 export function renderNotificationsSettingsTab(
   settingTab: TaskProgressBarSettingTab,
@@ -28,13 +29,19 @@ export function renderNotificationsSettingsTab(
       toggle.setValue(!!settingTab.plugin.settings.notifications?.enabled);
       toggle.onChange((value) => {
         const s = settingTab.plugin.settings;
-        s.notifications = s.notifications || {
-          enabled: false,
-          dailySummary: { enabled: true, time: "09:00" },
-          perTask: { enabled: false, leadMinutes: 10 },
+        s.notifications = {
+          ...s.notifications,
+          enabled: value,
+          dailySummary: {
+            enabled: s.notifications?.dailySummary?.enabled ?? true,
+            time: s.notifications?.dailySummary?.time ?? "09:00",
+          },
+          perTask: {
+            enabled: s.notifications?.perTask?.enabled ?? false,
+            leadMinutes: s.notifications?.perTask?.leadMinutes ?? 10,
+          },
         };
-        s.notifications.enabled = value;
-        settingTab.applySettingsUpdate();
+        settingTab.applyNotificationsUpdateLight();
       });
     });
 
@@ -47,20 +54,28 @@ export function renderNotificationsSettingsTab(
       toggle.setValue(!!ns?.dailySummary?.enabled);
       toggle.onChange((value) => {
         const s = settingTab.plugin.settings;
-        s.notifications = s.notifications || { enabled: false, dailySummary: { enabled: true, time: "09:00" }, perTask: { enabled: false, leadMinutes: 10 } };
-        s.notifications.dailySummary = s.notifications.dailySummary || { enabled: true, time: "09:00" };
-        s.notifications.dailySummary.enabled = value;
-        settingTab.applySettingsUpdate();
+        s.notifications = {
+          ...s.notifications,
+          dailySummary: {
+            enabled: value,
+            time: s.notifications?.dailySummary?.time ?? "09:00",
+          },
+        } as any;
+        settingTab.applyNotificationsUpdateLight();
       });
     })
     .addText((text) => {
       const time = settingTab.plugin.settings.notifications?.dailySummary?.time || "09:00";
       text.setPlaceholder("09:00").setValue(time).onChange((val) => {
         const s = settingTab.plugin.settings;
-        s.notifications = s.notifications || { enabled: false, dailySummary: { enabled: true, time: "09:00" }, perTask: { enabled: false, leadMinutes: 10 } };
-        s.notifications.dailySummary = s.notifications.dailySummary || { enabled: true, time: "09:00" };
-        s.notifications.dailySummary.time = val || "09:00";
-        settingTab.applySettingsUpdate();
+        s.notifications = {
+          ...s.notifications,
+          dailySummary: {
+            enabled: s.notifications?.dailySummary?.enabled ?? true,
+            time: val || "09:00",
+          },
+        } as any;
+        settingTab.applyNotificationsUpdateLight();
       });
     })
     .addButton((btn) => {
@@ -79,10 +94,14 @@ export function renderNotificationsSettingsTab(
       toggle.setValue(!!ns?.perTask?.enabled);
       toggle.onChange((value) => {
         const s = settingTab.plugin.settings;
-        s.notifications = s.notifications || { enabled: false, dailySummary: { enabled: true, time: "09:00" }, perTask: { enabled: false, leadMinutes: 10 } };
-        s.notifications.perTask = s.notifications.perTask || { enabled: false, leadMinutes: 10 };
-        s.notifications.perTask.enabled = value;
-        settingTab.applySettingsUpdate();
+        s.notifications = {
+          ...s.notifications,
+          perTask: {
+            enabled: value,
+            leadMinutes: s.notifications?.perTask?.leadMinutes ?? 10,
+          },
+        } as any;
+        settingTab.applyNotificationsUpdateLight();
       });
     })
     .addText((text) => {
@@ -90,10 +109,14 @@ export function renderNotificationsSettingsTab(
       text.setPlaceholder("10").setValue(lead).onChange((val) => {
         const minutes = Math.max(0, parseInt(val || "0", 10) || 0);
         const s = settingTab.plugin.settings;
-        s.notifications = s.notifications || { enabled: false, dailySummary: { enabled: true, time: "09:00" }, perTask: { enabled: false, leadMinutes: 10 } };
-        s.notifications.perTask = s.notifications.perTask || { enabled: false, leadMinutes: 10 };
-        s.notifications.perTask.leadMinutes = minutes;
-        settingTab.applySettingsUpdate();
+        s.notifications = {
+          ...s.notifications,
+          perTask: {
+            enabled: s.notifications?.perTask?.enabled ?? false,
+            leadMinutes: minutes,
+          },
+        } as any;
+        settingTab.applyNotificationsUpdateLight();
       });
     })
     .addButton((btn) => {
@@ -103,19 +126,25 @@ export function renderNotificationsSettingsTab(
 
   // Tray / Quick access
   new Setting(containerEl)
-    .setName(t("Enable tray (status bar / system)"))
-    .setDesc(t("Show a bell with today's due count; on supported setups, creates a system tray icon"))
-    .addToggle((toggle) => {
-      toggle.setValue(!!settingTab.plugin.settings.desktopIntegration?.enableTray);
-      toggle.onChange((value) => {
-        const s = settingTab.plugin.settings;
-        s.desktopIntegration = s.desktopIntegration || { enableTray: false };
-        s.desktopIntegration.enableTray = value;
-        settingTab.applySettingsUpdate();
-      });
+    .setName(t("Tray indicator"))
+    .setDesc(t("Show a bell with count in system tray, status bar, or both"))
+    .addDropdown((dd) => {
+      const s = settingTab.plugin.settings;
+      s.desktopIntegration = s.desktopIntegration || { enableTray: false };
+      const mode = s.desktopIntegration.trayMode || "status";
+      dd.addOptions({ system: "System tray", status: "Status bar", both: "Both" })
+        .setValue(mode)
+        .onChange((v) => {
+          s.desktopIntegration = {
+            ...s.desktopIntegration,
+            trayMode: v as any,
+            enableTray: v !== "status",
+          };
+          settingTab.applyNotificationsUpdateLight();
+        });
     })
     .addButton((btn) => {
-      btn.setButtonText(t("Update tray"));
+      btn.setButtonText(t("Update now"));
       btn.onClick(async () => {
         await settingTab.plugin.notificationManager?.triggerDailySummary();
       });

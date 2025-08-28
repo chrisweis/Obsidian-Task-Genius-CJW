@@ -13,53 +13,89 @@ export class TrayMenuBuilder {
     } catch { return null; }
   }
 
-  private getVaultOpenURI(): string {
-    const vaultName = this.plugin.app.vault.getName();
-    return `obsidian://open?vault=${encodeURIComponent(vaultName)}`;
+  private isIcsTask(task: Task): boolean {
+    try {
+      if (typeof task.filePath === "string" && task.filePath.startsWith("ics://")) return true;
+      const srcType = (task as any)?.metadata?.source?.type ?? (task as any)?.source?.type;
+      return srcType === "ics";
+    } catch { return false; }
   }
 
   private async buildDueTasks(limit: number = 5): Promise<Task[]> {
     const df = this.plugin.dataflowOrchestrator as any;
     const queryAPI = df?.getQueryAPI?.();
     if (!queryAPI) return [];
-    const today = new Date(); today.setHours(0,0,0,0);
-    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
-    const tasks = await queryAPI.getTasksByDateRange({ from: today.getTime(), to: tomorrow.getTime(), field: "due" });
-    return (tasks as Task[]).filter(t => !t.completed).slice(0, limit);
+
+    // Get all tasks with due dates (including overdue), exclude ICS-derived items
+    const allTasks = (await queryAPI.getAllTasks()) as Task[];
+    const today = new Date(); today.setHours(23, 59, 59, 999); // End of today
+
+    // Filter: due today or overdue, not completed, not ICS
+    const dueTasks = allTasks.filter(t => {
+      if (t.completed || !t.metadata?.dueDate) return false;
+      if (this.isIcsTask(t) || (t as any)?.badge === true) return false;
+      return t.metadata.dueDate <= today.getTime();
+    });
+
+    // Sort by due date
+    dueTasks.sort((a, b) => (a.metadata?.dueDate || 0) - (b.metadata?.dueDate || 0));
+
+    return dueTasks.slice(0, limit);
   }
 
   async applyToTray(tray: any, actions: {
     openVault: () => void;
     openTaskView: () => void;
+    openTask: (task: Task) => Promise<void>;
     completeTask: (id: string) => Promise<void>;
     postponeTask: (task: Task, offsetMs: number) => Promise<void>;
+    setPriority: (task: Task, level: number) => Promise<void>;
+    pickCustomDate: (task: Task) => Promise<void>;
     sendDaily: () => Promise<void>;
   }): Promise<void> {
     const electron = this.getElectron();
     const Menu = electron?.Menu || electron?.remote?.Menu;
     if (!Menu || !tray) return;
-    const tasks = await this.buildDueTasks(5);
+    const tasks = await this.buildDueTasks(7);
     const template: any[] = [];
     template.push({ label: `Vault: ${this.plugin.app.vault.getName()}`, enabled: false });
     template.push({ label: "Open Vault", click: () => actions.openVault() });
     template.push({ label: "Open Task Genius", click: () => actions.openTaskView() });
     template.push({ label: "Send Daily Summary", click: () => actions.sendDaily() });
     template.push({ type: "separator" });
+
     for (const t of tasks) {
+      const taskLabel = t.content.length > 50 ? t.content.slice(0,50) + "…" : t.content;
       template.push({
-        label: t.content.length > 40 ? t.content.slice(0,40) + "…" : t.content,
+        label: taskLabel,
         submenu: [
-          { label: "Open", click: () => actions.openTaskView() },
+          { label: "Open", click: () => actions.openTask(t) },
           { label: "Complete", click: () => actions.completeTask(t.id) },
-          { label: "Snooze 10m", click: () => actions.postponeTask(t, 10*60_000) },
-          { label: "Snooze 1h", click: () => actions.postponeTask(t, 60*60_000) },
-          { label: "Snooze 1d", click: () => actions.postponeTask(t, 24*60*60_000) },
+          { type: "separator" },
+          { label: "Snooze 1d", click: () => actions.postponeTask(t, 1*24*60*60_000) },
+          { label: "Snooze 2d", click: () => actions.postponeTask(t, 2*24*60*60_000) },
+          { label: "Snooze 3d", click: () => actions.postponeTask(t, 3*24*60*60_000) },
+          { label: "Snooze 1w", click: () => actions.postponeTask(t, 7*24*60*60_000) },
+          { label: "Custom date…", click: () => actions.pickCustomDate(t) },
+          { type: "separator" },
+          {
+            label: "Priority",
+            submenu: [
+              { label: "🔺 Highest", click: () => actions.setPriority(t, 5) },
+              { label: "⏫ High", click: () => actions.setPriority(t, 4) },
+              { label: "🔼 Medium", click: () => actions.setPriority(t, 3) },
+              { label: "🔽 Low", click: () => actions.setPriority(t, 2) },
+              { label: "⏬️ Lowest", click: () => actions.setPriority(t, 1) },
+            ]
+          },
         ]
       });
     }
+
     if (tasks.length === 0) template.push({ label: "No tasks due today", enabled: false });
     template.push({ type: "separator" });
     template.push({ label: "Refresh", click: () => { /* handled by caller update */ } });
+
     const menu = Menu.buildFromTemplate(template);
     try { tray.setContextMenu(menu); } catch {}
   }

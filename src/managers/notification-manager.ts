@@ -1,4 +1,4 @@
-import { App, Component, Notice, Platform, TFile } from "obsidian";
+import { App, Component, Notice, Platform, TFile, Menu } from "obsidian";
 import TaskProgressBarPlugin from "../index";
 import type { Task } from "../types/task";
 import { TrayMenuBuilder } from "./tray-menu";
@@ -21,12 +21,22 @@ export class NotificationManager extends Component {
     // Initialize on load
     if (!Platform.isDesktopApp) return;
 
-    // Optional system tray (if Electron allows) or status bar fallback
-    if (this.plugin.settings.desktopIntegration?.enableTray) {
-      const trayOk = await this.createOrAdoptElectronTray();
-      if (!trayOk) {
-        this.createOrUpdateStatusBar();
+    const trayMode = this.plugin.settings.desktopIntegration?.trayMode || "status";
+
+    // System tray (if allowed)
+    if (trayMode === "system" || trayMode === "both") {
+      if (this.plugin.settings.desktopIntegration?.enableTray) {
+        const trayOk = await this.createOrAdoptElectronTray();
+        if (!trayOk && trayMode === "system") {
+          // Fallback to status bar if system tray not available
+          this.createOrUpdateStatusBar();
+        }
       }
+    }
+
+    // Status bar indicator
+    if (trayMode === "status" || trayMode === "both") {
+      this.createOrUpdateStatusBar();
     }
 
     this.setupDailySummary();
@@ -143,6 +153,26 @@ export class NotificationManager extends Component {
     }
   }
 
+  // Helper: identify ICS badge tasks to exclude from tray/status menus
+  private isIcsBadge(task: Task): boolean {
+    try {
+      const srcType = (task as any)?.metadata?.source?.type ?? (task as any)?.source?.type;
+      const isIcs = srcType === "ics";
+      const isBadge = ((task as any)?.badge === true) || ((task as any)?.icsEvent?.source?.showType === "badge");
+      return !!(isIcs && isBadge);
+    } catch { return false; }
+  }
+
+
+  // Helper: identify any ICS-derived task (to exclude from summaries/menus)
+  private isIcsTask(task: Task): boolean {
+    try {
+      if (typeof task.filePath === "string" && task.filePath.startsWith("ics://")) return true;
+      const srcType = (task as any)?.metadata?.source?.type ?? (task as any)?.source?.type;
+      return srcType === "ics";
+    } catch { return false; }
+  }
+
   private getDueTodayRange(): { from: number; to: number } {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -198,6 +228,7 @@ export class NotificationManager extends Component {
 
     for (const task of tasks) {
       if (task.completed) continue;
+      if (this.isIcsBadge(task)) continue; // skip ICS badges
       const due = task.metadata?.dueDate;
       if (!due) continue;
       const fireAt = due - leadMs;
@@ -215,9 +246,13 @@ export class NotificationManager extends Component {
     try {
       const queryAPI = this.getQueryAPI();
       if (!queryAPI) return;
-      const { from, to } = this.getDueTodayRange();
-      const todays = await queryAPI.getTasksByDateRange({ from, to, field: "due" });
-      const pending = (todays as Task[]).filter((t) => !t.completed);
+
+      // Count overdue + due today (exclude ICS badges)
+      const allTasks = (await queryAPI.getAllTasks()) as Task[];
+      const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
+      const pending = allTasks
+        .filter(t => !t.completed && t.metadata?.dueDate && t.metadata.dueDate <= todayEnd.getTime())
+        .filter(t => !this.isIcsBadge(t));
 
       // macOS 可以设置文字，Windows/Linux 更新 tooltip
       try {
@@ -225,15 +260,18 @@ export class NotificationManager extends Component {
           this.electronTray.setTitle(pending.length > 0 ? `🔔 ${pending.length}` : "🔔");
         }
       } catch {}
-      try { this.electronTray.setToolTip?.(pending.length > 0 ? `${pending.length} tasks due today` : "No tasks due today"); } catch {}
+      try { this.electronTray.setToolTip?.(pending.length > 0 ? `${pending.length} tasks due or overdue` : "No due today"); } catch {}
 
       // Build context menu via helper
       const builder = new TrayMenuBuilder(this.plugin);
       await builder.applyToTray(this.electronTray, {
         openVault: () => this.openVault(),
         openTaskView: () => { try { (this.plugin as any).activateTaskView?.(); } catch {} },
+        openTask: (task: Task) => this.openTask(task),
         completeTask: (id: string) => this.completeTask(id),
         postponeTask: (task: Task, offsetMs: number) => this.postponeTask(task, offsetMs),
+        setPriority: (task: Task, level: number) => this.setPriority(task, level),
+        pickCustomDate: (task: Task) => this.openDatePickerForTask(task),
         sendDaily: () => this.sendDailySummary(),
       });
     } catch (e) {
@@ -263,12 +301,17 @@ export class NotificationManager extends Component {
   }
 
   private async updateStatusBar(): Promise<void> {
-    if (!this.plugin.settings.desktopIntegration?.enableTray) return;
+    const trayMode = this.plugin.settings.desktopIntegration?.trayMode || "status";
+    if (!(trayMode === "status" || trayMode === "both")) return;
     const queryAPI = this.getQueryAPI();
     if (!queryAPI) return;
-    const { from, to } = this.getDueTodayRange();
-    const todays = await queryAPI.getTasksByDateRange({ from, to, field: "due" });
-    const pending = (todays as Task[]).filter((t) => !t.completed);
+
+    // Count overdue + upcoming (next 24h), exclude ICS badges
+    const allTasks = (await queryAPI.getAllTasks()) as Task[];
+    const horizon = Date.now() + 24 * 60 * 60 * 1000; // next 24h
+    const pending = allTasks
+      .filter(t => !t.completed && t.metadata?.dueDate && t.metadata.dueDate <= horizon)
+      .filter(t => !this.isIcsBadge(t));
 
     if (!this.statusBarItem) {
       this.createOrUpdateStatusBar();
@@ -278,14 +321,53 @@ export class NotificationManager extends Component {
       const btn = this.statusBarItem.createEl("span", { cls: "task-genius-tray" });
       btn.textContent = pending.length > 0 ? `🔔 ${pending.length}` : "🔔";
       btn.style.cursor = "pointer";
-      btn.onclick = async () => {
-        await this.sendDailySummary();
-        // Try to open Task Genius view
-        try {
-          (this.plugin as any).activateTaskView?.();
-        } catch {}
+      btn.onclick = async (ev) => {
+        // Build an Obsidian menu that mirrors system tray quick actions using internal submenu API
+        const menu = new Menu();
+        menu.addItem((i: any) => { i.setTitle("Open Task Genius").setIcon("task-genius").onClick(() => { try { (this.plugin as any).activateTaskView?.(); } catch {} }); });
+        menu.addItem((i: any) => { i.setTitle("Send Daily Summary").setIcon("send").onClick(() => this.sendDailySummary()); });
+        menu.addSeparator();
+
+        // Show top 7 tasks within horizon
+        const topTasks = pending.sort((a,b) => (a.metadata?.dueDate||0)-(b.metadata?.dueDate||0)).slice(0,7);
+        for (const t of topTasks) {
+          const label = t.content.length > 50 ? t.content.slice(0,50)+"…" : t.content;
+          menu.addItem((i: any) => {
+            i.setTitle(label).setIcon("circle-dot");
+            const submenu = i.setSubmenu?.();
+            if (submenu) {
+              submenu.addItem((ii: any) => ii.setTitle("Edit in file").setIcon("file-pen").onClick(() => this.openTask(t)));
+              submenu.addItem((ii: any) => ii.setTitle("Complete").setIcon("check").onClick(() => this.completeTask(t.id)));
+              submenu.addSeparator();
+              submenu.addItem((ii: any) => ii.setTitle("Snooze 1d").setIcon("calendar").onClick(() => this.postponeTask(t, 1*24*60*60_000)));
+              submenu.addItem((ii: any) => ii.setTitle("Snooze 2d").setIcon("calendar").onClick(() => this.postponeTask(t, 2*24*60*60_000)));
+              submenu.addItem((ii: any) => ii.setTitle("Snooze 3d").setIcon("calendar").onClick(() => this.postponeTask(t, 3*24*60*60_000)));
+              submenu.addItem((ii: any) => ii.setTitle("Snooze 1w").setIcon("calendar").onClick(() => this.postponeTask(t, 7*24*60*60_000)));
+              submenu.addItem((ii: any) => ii.setTitle("Custom date…").setIcon("calendar-plus").onClick(() => this.openDatePickerForTask(t)));
+              submenu.addSeparator();
+              submenu.addItem((ii: any) => {
+                ii.setTitle("Priority").setIcon("flag");
+                const p = ii.setSubmenu?.();
+                p?.addItem((pp: any) => pp.setTitle("🔺 Highest").onClick(() => this.setPriority(t,5)));
+                p?.addItem((pp: any) => pp.setTitle("⏫ High").onClick(() => this.setPriority(t,4)));
+                p?.addItem((pp: any) => pp.setTitle("🔼 Medium").onClick(() => this.setPriority(t,3)));
+                p?.addItem((pp: any) => pp.setTitle("🔽 Low").onClick(() => this.setPriority(t,2)));
+                p?.addItem((pp: any) => pp.setTitle("⏬️ Lowest").onClick(() => this.setPriority(t,1)));
+              });
+            }
+          });
+        }
+
+        if (topTasks.length === 0) {
+          menu.addItem((i: any) => i.setTitle("No due or upcoming").setDisabled(true));
+        }
+
+        menu.addSeparator();
+        menu.addItem((i: any) => i.setTitle("Refresh").setIcon("refresh-ccw").onClick(() => { this.updateStatusBar(); this.updateTray(); }));
+
+        menu.showAtMouseEvent(ev as any);
       };
-      btn.title = pending.length > 0 ? `${pending.length} tasks due today` : "No tasks due today";
+      btn.title = pending.length > 0 ? `${pending.length} tasks due or upcoming` : "No due or upcoming";
     }
   }
 
@@ -304,9 +386,15 @@ export class NotificationManager extends Component {
     const queryAPI = this.getQueryAPI();
     if (!queryAPI) return;
     try {
+      const all = (await queryAPI.getAllTasks()) as Task[];
       const { from, to } = this.getDueTodayRange();
-      const todays = await queryAPI.getTasksByDateRange({ from, to, field: "due" });
-      const pending = (todays as Task[]).filter((t) => !t.completed);
+      // include overdue + due today, exclude ICS
+      const pending = all.filter((t) => {
+        if (t.completed || !t.metadata?.dueDate) return false;
+        if (this.isIcsTask(t) || this.isIcsBadge(t)) return false;
+        const due = t.metadata.dueDate;
+        return due >= from && due <= to;
+      });
       if (!pending.length) {
         new Notice("No tasks due today", 2000);
         return;
@@ -354,10 +442,43 @@ export class NotificationManager extends Component {
     try { await this.plugin.writeAPI?.updateTaskStatus({ taskId, completed: true }); } catch {}
   }
 
+  private async setPriority(task: Task, level: number): Promise<void> {
+    try {
+      await this.plugin.writeAPI?.updateTask({
+        taskId: task.id,
+        updates: { metadata: { ...(task.metadata || { tags: [] as string[] }), priority: level } as any },
+      });
+    } catch {}
+  }
+
+  private async openDatePickerForTask(task: Task): Promise<void> {
+    try {
+      const { DatePickerModal } = await import("@/components/ui/date-picker/DatePickerModal");
+      const modal = new DatePickerModal(this.plugin.app as any, this.plugin, undefined, "📅");
+      modal.onDateSelected = async (dateStr) => {
+        if (!dateStr) return;
+        const m = (window as any).moment?.(dateStr) || (this.plugin.app as any).moment?.(dateStr);
+        const ts = m?.valueOf?.();
+        if (!ts) return;
+        await this.plugin.writeAPI?.updateTask({
+          taskId: task.id,
+          updates: { metadata: { ...(task.metadata || { tags: [] as string[] }), dueDate: ts } as any },
+        });
+      };
+      modal.open();
+    } catch {}
+  }
+
   private async postponeTask(task: Task, offsetMs: number): Promise<void> {
-    const base = task.metadata?.dueDate || Date.now();
+    // Snooze based on "now" rather than existing due
+    const base = Date.now();
     const newDue = base + offsetMs;
-    try { await this.plugin.writeAPI?.updateTask({ taskId: task.id, updates: { metadata: { dueDate: newDue } as any } }); } catch {}
+    try {
+      await this.plugin.writeAPI?.updateTask({
+        taskId: task.id,
+        updates: { metadata: { ...(task.metadata || { tags: [] as string[] }), dueDate: newDue } as any },
+      });
+    } catch {}
   }
 
   private tryElectronNotification(title: string, body: string): any | null {

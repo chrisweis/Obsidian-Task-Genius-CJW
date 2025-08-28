@@ -618,6 +618,8 @@ export interface NotificationSettings {
 export interface DesktopIntegrationSettings {
 	/** Try to show a tray/status item (desktop only). Real system tray may not be available; plugin will fall back to status bar. */
 	enableTray: boolean;
+	/** Where to show the tray indicator: system tray, Obsidian status bar, or both */
+	trayMode?: "system" | "status" | "both";
 }
 
 /** Define the main settings structure */
