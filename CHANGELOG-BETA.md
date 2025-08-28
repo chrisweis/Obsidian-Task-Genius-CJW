@@ -4,6 +4,16 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.7](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.6...9.8.0-beta.7) (2025-08-28)
+
+### Bug Fixes
+
+* **renderer:** remove priority emojis from markdown content regardless of position ([ba52d97](https://github.com/Quorafind/Obsidian-Task-Genius/commit/ba52d97fd41272a1323df05a942cd242ec40f4c3))
+
+### Styles
+
+* **task-list:** improve multi-line content layout flexibility ([bd56cd6](https://github.com/Quorafind/Obsidian-Task-Genius/commit/bd56cd66f2459102f06cdcebc86a9715a3b5b2a2))
+
 ## [9.8.0-beta.6](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.5...9.8.0-beta.6) (2025-08-27)
 
 ### Features
