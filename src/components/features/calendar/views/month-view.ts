@@ -1,5 +1,5 @@
 import { App, Component, debounce, moment } from "obsidian";
-import { CalendarEvent } from "../index";
+import { CalendarEvent } from '../../../../index';
 import { renderCalendarEvent } from "../rendering/event-renderer"; // Import the new renderer
 import {
 	CalendarSpecificConfig,

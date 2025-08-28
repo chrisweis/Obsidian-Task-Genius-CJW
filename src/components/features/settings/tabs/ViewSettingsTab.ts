@@ -3,7 +3,7 @@ import { ViewConfig, ViewFilterRule } from "../../common/setting-definition";
 import { t } from "../../translations/helper";
 import { TaskProgressBarSettingTab } from "../../setting";
 import { ViewConfigModal } from "../ViewConfigModal";
-import { TaskFilterComponent } from "../task-filter/ViewTaskFilter";
+import { TaskFilterComponent } from '../../task/filter/ViewTaskFilter';
 
 export function renderViewSettingsTab(
 	settingTab: TaskProgressBarSettingTab,

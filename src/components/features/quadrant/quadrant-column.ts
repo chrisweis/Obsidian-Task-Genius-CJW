@@ -1,7 +1,7 @@
 import { App, Component, setIcon } from "obsidian";
 import TaskProgressBarPlugin from "../../../index";
 import { Task } from "../../../types/task";
-import { QuadrantDefinition } from "./features/quadrant";
+import { QuadrantDefinition } from './quadrant";
 import { QuadrantCardComponent } from "./quadrant-card";
 import { t } from "../../../translations/helper";
 

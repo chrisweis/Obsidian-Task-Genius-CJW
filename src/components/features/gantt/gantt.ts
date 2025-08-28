@@ -17,9 +17,9 @@ import TaskProgressBarPlugin from "../../../index";
 import {
 	FilterComponent,
 	buildFilterOptionsFromTasks,
-} from "../inview-filter/filter";
-import { ActiveFilter, FilterCategory } from "../inview-filter/filter-type";
-import { ScrollToDateButton } from "../inview-filter/custom/scroll-to-date-button";
+} from "../task/filter/in-view/filter";
+import { ActiveFilter, FilterCategory } from "../task/filter/in-view/filter-type";
+import { ScrollToDateButton } from '../task/filter/in-view/custom/scroll-to-date-button";
 import { PRIORITY_MAP } from "../../../common/default-symbol";
 
 // Define the PRIORITY_MAP here as well, or import it if moved to a shared location

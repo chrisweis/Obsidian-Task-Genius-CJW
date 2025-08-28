@@ -17,7 +17,7 @@ jest.mock("../translations/helper", () => ({
 	t: mockT,
 }));
 
-import { SettingsIndexer } from "../components/settings/SettingsIndexer";
+import { SettingsIndexer } from '../components/features/settings/core/SettingsIndexer';
 import { SETTINGS_METADATA } from "../common/settings-metadata";
 
 describe("Settings Search Tests", () => {

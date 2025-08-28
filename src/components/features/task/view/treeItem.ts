@@ -1,11 +1,9 @@
 import { App, Component, setIcon, Menu } from "obsidian";
 import { Task } from "../../../../types/task";
-import { formatDate } from "../../../../utils/date/date-formatter";
 import "../../../../styles/tree-view.css";
 import { MarkdownRendererComponent } from "../../../ui/renderers/MarkdownRenderer";
 import { createTaskCheckbox } from "./details";
 import {
-	TaskProgressBarSettings,
 	getViewSettingOrDefault,
 	ViewMode,
 } from "../../../../common/setting-definition";

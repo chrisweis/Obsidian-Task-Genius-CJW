@@ -11,22 +11,22 @@ import {
 import {
 	createEmbeddableMarkdownEditor,
 	EmbeddableMarkdownEditor,
-} from "../editor-extensions/core/markdown-editor";
-import TaskProgressBarPlugin from "../index";
-import { saveCapture, processDateTemplates } from "../utils/file/file-operations";
+} from '../../../../editor-extensions/core/markdown-editor";
+import TaskProgressBarPlugin from '../../../../index';
+import { saveCapture, processDateTemplates } from '../../../../utils/file/file-operations";
 import { FileSuggest } from "../components/ui/inputs/AutoComplete";
-import { t } from "../translations/helper";
-import { MarkdownRendererComponent } from "./ui/renderers/MarkdownRenderer";
-import { StatusComponent } from "./ui/feedback/StatusIndicator";
-import { Task } from "../types/task";
-import { ContextSuggest, ProjectSuggest } from "./ui/inputs/AutoComplete";
+import { t } from '../../../../translations/helper';
+import { MarkdownRendererComponent } from '../../../ui/renderers/MarkdownRenderer";
+import { StatusComponent } from '../../../ui/feedback/StatusIndicator";
+import { Task } from '../../../../types/task";
+import { ContextSuggest, ProjectSuggest } from '../../../ui/inputs/AutoComplete";
 import {
 	TimeParsingService,
 	DEFAULT_TIME_PARSING_CONFIG,
 	ParsedTimeResult,
 	LineParseResult,
-} from "../services/time-parsing-service";
-import { SuggestManager, UniversalEditorSuggest } from "./ui/suggest";
+} from '../../../../services/time-parsing-service";
+import { SuggestManager, UniversalEditorSuggest } from '../../../ui/suggest";
 
 interface TaskMetadata {
 	startDate?: Date;

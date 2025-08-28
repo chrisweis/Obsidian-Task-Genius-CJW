@@ -65,7 +65,7 @@ import {
 	migrateOldFilterOptions,
 } from "./editor-extensions/core/task-filter-panel";
 import { Task } from "./types/task";
-import { QuickCaptureModal } from "./components/QuickCaptureModal";
+import { QuickCaptureModal } from "./components/features/quick-capture/modals/QuickCaptureModal";
 import { MinimalQuickCaptureModal } from "./components/MinimalQuickCaptureModal";
 import { MinimalQuickCaptureSuggest } from "./components/MinimalQuickCaptureSuggest";
 import { SuggestManager } from "./components/suggest";

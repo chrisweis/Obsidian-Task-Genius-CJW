@@ -1,5 +1,5 @@
 import { Component, App } from "obsidian";
-import { Timescale } from "./features/gantt"; // Assuming types are exported or moved
+import { Timescale } from './gantt'; // Assuming types are exported or moved
 import { DateHelper } from "../../../utils/date/date-helper"; // Assuming DateHelper exists
 
 // Interface for parameters needed by the header component

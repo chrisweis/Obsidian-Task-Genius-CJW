@@ -6,9 +6,9 @@ import {
 	ButtonComponent,
 	DropdownComponent,
 } from "obsidian";
-import TaskProgressBarPlugin from "../index";
-import { WorkflowDefinition, WorkflowStage } from "../common/setting-definition";
-import { t } from "../translations/helper";
+import TaskProgressBarPlugin from '../../../../index';
+import { WorkflowDefinition, WorkflowStage } from '../../../../common/setting-definition';
+import { t } from '../../../../translations/helper';
 
 /**
  * Quick workflow creation modal for streamlined workflow setup

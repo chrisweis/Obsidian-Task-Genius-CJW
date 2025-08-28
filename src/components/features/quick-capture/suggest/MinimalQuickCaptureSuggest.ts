@@ -10,9 +10,9 @@ import {
 } from "obsidian";
 import { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import TaskProgressBarPlugin from "../index";
-import { t } from "../translations/helper";
-import { getSuggestOptionsByTrigger } from "./ui/suggest/SpecialCharacterSuggests";
+import TaskProgressBarPlugin from '../../../../index';
+import { t } from '../../../../translations/helper';
+import { getSuggestOptionsByTrigger } from '../../../ui/suggest/SpecialCharacterSuggests";
 
 interface SuggestOption {
 	id: string;

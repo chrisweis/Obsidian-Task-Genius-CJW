@@ -6,7 +6,7 @@ import {
 	setIcon,
 } from "obsidian";
 import { Task } from "../../../../types/task";
-import { CalendarComponent, CalendarOptions } from "./features/calendar";
+import { CalendarComponent, CalendarOptions } from './calendar";
 import { TaskListItemComponent } from "./listItem";
 import { t } from "../../../../translations/helper";
 import "../../../../styles/forecast.css";

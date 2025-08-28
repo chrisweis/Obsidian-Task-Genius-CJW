@@ -1,7 +1,7 @@
 import { Component, setIcon } from "obsidian";
-import { WorkflowDefinition, WorkflowStage } from "../common/setting-definition";
-import TaskProgressBarPlugin from "../index";
-import { t } from "../translations/helper";
+import { WorkflowDefinition, WorkflowStage } from '../../../../common/setting-definition';
+import TaskProgressBarPlugin from '../../../../index';
+import { t } from '../../../../translations/helper';
 
 /**
  * Workflow progress indicator component for visualizing workflow completion

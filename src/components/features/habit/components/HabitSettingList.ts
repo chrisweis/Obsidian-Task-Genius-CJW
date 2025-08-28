@@ -6,10 +6,10 @@ import {
 	Notice,
 	setIcon,
 } from "obsidian";
-import { BaseHabitData } from "../types/habit-card";
-import TaskProgressBarPlugin from "../index";
-import { HabitEditDialog } from "./features/habit/components/HabitEditDialog";
-import { t } from "../translations/helper";
+import { BaseHabitData } from '../../../../types/habit-card';
+import TaskProgressBarPlugin from '../../../../index';
+import { HabitEditDialog } from './habit/components/HabitEditDialog";
+import { t } from '../../../../translations/helper';
 import "../styles/habit-list.css";
 
 export interface HabitSettings {

@@ -1,5 +1,5 @@
 import { App, Component, debounce, moment } from "obsidian";
-import { CalendarEvent } from "../index"; // Adjust path as needed
+import { CalendarEvent } from '../../../../index'; // Adjust path as needed
 import { EventLayout, determineEventColor } from "../algorithm"; // Adjust path as needed
 import {
 	clearAllMarks,

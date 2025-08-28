@@ -1,4 +1,4 @@
-import TaskProgressBarPlugin from "../index";
+import TaskProgressBarPlugin from '../../../../index';
 import {
 	Component,
 	debounce,
@@ -7,7 +7,7 @@ import {
 	TFile,
 } from "obsidian";
 import { shouldHideProgressBarInPreview } from "../utils";
-import { formatProgressText } from "../editor-extensions/ui-widgets/progress-bar-widget";
+import { formatProgressText } from '../../../../editor-extensions/ui-widgets/progress-bar-widget";
 import {
 	checkIfParentElementHasGoalFormat,
 	extractTaskAndGoalInfoReadMode,
