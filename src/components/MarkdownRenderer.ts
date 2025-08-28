@@ -90,15 +90,17 @@ export function clearAllMarks(markdown: string): string {
 	});
 
 	// Remove priority markers (Emoji and Taskpaper style)
+	// First remove priority emojis anywhere in the text (with optional variation selector)
 	cleanedMarkdown = cleanedMarkdown.replace(
-		/\s+(?:[🔺⏫🔼🔽⏬️⏬]|\[#[A-C]\])/gu,
+		/(?:🔺|⏫|🔼|🔽|⏬️?|\[#[A-E]\])/gu,
 		""
 	);
 
 	// Remove standalone exclamation marks (priority indicators)
-	cleanedMarkdown = cleanedMarkdown.replace(/\s+!\s*/g, " ");
-	cleanedMarkdown = cleanedMarkdown.replace(/^\s*!\s*/, "");
-	cleanedMarkdown = cleanedMarkdown.replace(/\s*!\s*$/, "");
+	// These might be used as priority indicators in some formats
+	cleanedMarkdown = cleanedMarkdown.replace(/\s+!+(?:\s|$)/g, " ");
+	cleanedMarkdown = cleanedMarkdown.replace(/^!+\s*/, "");
+	cleanedMarkdown = cleanedMarkdown.replace(/\s*!+$/, "");
 
 	// Remove non-date metadata fields (id, dependsOn, onCompletion)
 	cleanedMarkdown = cleanedMarkdown.replace(/🆔\s*[^\s]+/g, ""); // Remove id
