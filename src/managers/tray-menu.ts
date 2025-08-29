@@ -13,27 +13,30 @@ export class TrayMenuBuilder {
     } catch { return null; }
   }
 
-  private isIcsTask(task: Task): boolean {
+
+  private isIcsBadge(task: Task): boolean {
     try {
-      if (typeof task.filePath === "string" && task.filePath.startsWith("ics://")) return true;
       const srcType = (task as any)?.metadata?.source?.type ?? (task as any)?.source?.type;
-      return srcType === "ics";
+      const isIcs = srcType === "ics";
+      const isBadge = ((task as any)?.badge === true) || ((task as any)?.icsEvent?.source?.showType === "badge");
+      return !!(isIcs && isBadge);
     } catch { return false; }
   }
+
 
   private async buildDueTasks(limit: number = 5): Promise<Task[]> {
     const df = this.plugin.dataflowOrchestrator as any;
     const queryAPI = df?.getQueryAPI?.();
     if (!queryAPI) return [];
 
-    // Get all tasks with due dates (including overdue), exclude ICS-derived items
+    // Get all tasks with due dates (including overdue), exclude ICS badge only
     const allTasks = (await queryAPI.getAllTasks()) as Task[];
     const today = new Date(); today.setHours(23, 59, 59, 999); // End of today
 
-    // Filter: due today or overdue, not completed, not ICS
+    // Filter: due today or overdue, not completed, exclude ICS badge only
     const dueTasks = allTasks.filter(t => {
       if (t.completed || !t.metadata?.dueDate) return false;
-      if (this.isIcsTask(t) || (t as any)?.badge === true) return false;
+      if (this.isIcsBadge(t)) return false;
       return t.metadata.dueDate <= today.getTime();
     });
 

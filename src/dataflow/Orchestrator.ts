@@ -1182,8 +1182,12 @@ export class DataflowOrchestrator {
 		this.processingQueue.clear();
 
 		// Unsubscribe from events
+		// These are workspace events created by our custom Events.on() function
 		for (const ref of this.eventRefs) {
-			this.app.vault.offref(ref);
+			// Use workspace.offref for workspace events
+			if (this.app.workspace && typeof this.app.workspace.offref === 'function') {
+				this.app.workspace.offref(ref);
+			}
 		}
 		this.eventRefs = [];
 

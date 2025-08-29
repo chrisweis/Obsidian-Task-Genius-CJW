@@ -3,21 +3,21 @@ import { t } from "@/translations/helper";
 import { TaskProgressBarSettingTab } from "@/setting";
 import { DEFAULT_SETTINGS } from "@/common/setting-definition";
 
-export function renderNotificationsSettingsTab(
+export function renderDesktopIntegrationSettingsTab(
   settingTab: TaskProgressBarSettingTab,
   containerEl: HTMLElement
 ) {
   // Header
   new Setting(containerEl)
-    .setName(t("Notifications"))
-    .setDesc(t("Configure reminders and desktop tray/quick access"))
+    .setName(t("Desktop Integration"))
+    .setDesc(t("Configure system tray, notifications, and desktop features"))
     .setHeading();
 
   // Desktop only hint
   if (!Platform.isDesktopApp) {
     new Setting(containerEl)
       .setName(t("Desktop only"))
-      .setDesc(t("Notifications and tray are available on desktop"));
+      .setDesc(t("Desktop integration features are only available in the desktop app"));
     return;
   }
 
@@ -45,7 +45,8 @@ export function renderNotificationsSettingsTab(
       });
     });
 
-  // Daily summary
+  if(settingTab.plugin.settings.notifications?.enabled){
+    // Daily summary
   new Setting(containerEl)
     .setName(t("Daily summary"))
     .setDesc(t("Send one notification for today's due tasks at a specific time (HH:mm)"))
@@ -123,6 +124,7 @@ export function renderNotificationsSettingsTab(
       btn.setButtonText(t("Scan now"));
       btn.onClick(() => settingTab.plugin.notificationManager?.triggerImminentScan());
     });
+  }
 
   // Tray / Quick access
   new Setting(containerEl)

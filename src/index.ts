@@ -101,7 +101,7 @@ import { IcsManager } from "./managers/ics-manager";
 import { ObsidianUriHandler } from "./utils/ObsidianUriHandler";
 import { VersionManager } from "./managers/version-manager";
 import { RebuildProgressManager } from "./managers/rebuild-progress-manager";
-import NotificationManager from "./managers/notification-manager";
+import DesktopIntegrationManager from "./managers/DesktopIntegrationManager";
 import { OnboardingConfigManager } from "./managers/onboarding-manager";
 import { OnCompletionManager } from "./managers/completion-manager";
 import { SettingsChangeDetector } from "./services/settings-change-detector";
@@ -207,7 +207,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 	writeAPI?: WriteAPI;
 
 	// Notification manager (desktop)
-	notificationManager?: NotificationManager;
+	notificationManager?: DesktopIntegrationManager;
 
 	rewardManager: RewardManager;
 
@@ -533,7 +533,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 				this.mcpServerManager.initialize();
 
 				// Initialize Notification Manager (desktop only)
-				this.notificationManager = new NotificationManager(this);
+				this.notificationManager = new DesktopIntegrationManager(this);
 				this.addChild(this.notificationManager);
 
 				// Subscribe to task cache updates to inform notifications
@@ -1501,11 +1501,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 					error
 				);
 			});
-		}
-
-		// Clean up dataflow when plugin is unloaded
-		if (this.dataflowOrchestrator) {
-			// Dataflow cleanup is handled automatically
+			// Set to undefined to prevent any further access
+			this.dataflowOrchestrator = undefined;
 		}
 
 		// Clean up MCP server manager (desktop only)

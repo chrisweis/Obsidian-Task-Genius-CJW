@@ -5,8 +5,8 @@ import { TrayMenuBuilder } from "./tray-menu";
 import { getTaskGeniusIcon } from "../icon";
 import { t } from "@/translations/helper";
 
-/** Desktop notification manager based on dataflow QueryAPI */
-export class NotificationManager extends Component {
+/** Desktop integration manager for system tray, notifications, and desktop features */
+export class DesktopIntegrationManager extends Component {
   private tickInterval: number | null = null;
   private dailyTimeout: number | null = null;
   private midnightTimeout: number | null = null;
@@ -50,6 +50,7 @@ export class NotificationManager extends Component {
   }
 
   onunload(): void {
+    console.log('[TrayDebug] onunload called');
     if (this.tickInterval) window.clearInterval(this.tickInterval);
     if (this.dailyTimeout) window.clearTimeout(this.dailyTimeout);
     if (this.midnightTimeout) window.clearTimeout(this.midnightTimeout);
@@ -58,17 +59,46 @@ export class NotificationManager extends Component {
     this.midnightTimeout = null;
     this.notifiedKeys.clear();
     if (this.statusBarItem) {
+      console.log('[TrayDebug] Detaching status bar item');
       this.statusBarItem.detach();
       this.statusBarItem = null;
     }
-    try { this.electronTray?.destroy?.(); } catch {}
+    
+    // Clean up tray properly
+    const globalKey = "__tg_tray_singleton__";
+    const g: any = (window as any);
+    
+    if (this.electronTray) {
+      console.log('[TrayDebug] Cleaning up electron tray');
+      try {
+        // Remove all listeners first
+        this.electronTray.removeAllListeners?.();
+        
+        // Only destroy if we own this tray
+        if (g[globalKey]?.owner === this.trayOwnerToken) {
+          console.log('[TrayDebug] Destroying owned tray');
+          this.electronTray.destroy?.();
+          // Clear the global reference since we destroyed it
+          delete g[globalKey];
+        } else {
+          console.log('[TrayDebug] Not destroying tray - not owner');
+        }
+      } catch (e) {
+        console.error('[TrayDebug] Error cleaning up tray:', e);
+      }
+    }
     this.electronTray = null;
+    this.trayOwnerToken = undefined;
   }
 
   // Called when settings change
-  public reloadSettings(): void {
+  public async reloadSettings(): Promise<void> {
+    console.log('[TrayDebug] reloadSettings called');
     this.onunload();
-    this.onload();
+    // Add a small delay to ensure cleanup completes
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await this.onload();
+    console.log('[TrayDebug] reloadSettings completed');
   }
 
   // External nudge when task cache updates
@@ -109,39 +139,65 @@ export class NotificationManager extends Component {
 
   private async createOrAdoptElectronTray(): Promise<boolean> {
     try {
+      console.log('[TrayDebug] createOrAdoptElectronTray called');
       const electron = this.getElectron();
-      if (!electron) return false;
+      if (!electron) {
+        console.log('[TrayDebug] No electron available');
+        return false;
+      }
       const Tray = (electron as any).Tray || (electron as any).remote?.Tray;
       const nativeImage = (electron as any).nativeImage || (electron as any).remote?.nativeImage;
-      if (!Tray || !nativeImage) return false;
+      if (!Tray || !nativeImage) {
+        console.log('[TrayDebug] Tray or nativeImage not available');
+        return false;
+      }
 
       // Reuse existing tray if global singleton exists
       const globalKey = "__tg_tray_singleton__";
       const g: any = (window as any);
       if (g[globalKey]?.tray && g[globalKey]?.owner) {
-        // Adopt existing tray - don't recreate
-        this.electronTray = g[globalKey].tray;
-        this.trayOwnerToken = g[globalKey].owner;
-        try { await this.applyThemeToTray(nativeImage); this.subscribeNativeTheme(nativeImage); } catch {}
-        return true;
+        console.log('[TrayDebug] Checking existing tray...');
+        // Check if the tray is still valid (not destroyed)
+        try {
+          // Try to access a property to check if tray is alive
+          const isDestroyed = g[globalKey].tray.isDestroyed?.() ?? false;
+          if (isDestroyed) {
+            console.log('[TrayDebug] Existing tray is destroyed, cleaning up');
+            delete g[globalKey];
+          } else {
+            console.log('[TrayDebug] Adopting existing valid tray');
+            // Adopt existing tray - don't recreate
+            this.electronTray = g[globalKey].tray;
+            this.trayOwnerToken = g[globalKey].owner;
+            try { await this.applyThemeToTray(nativeImage); this.subscribeNativeTheme(nativeImage); } catch {}
+            return true;
+          }
+        } catch (e) {
+          console.log('[TrayDebug] Error checking tray validity:', e);
+          delete g[globalKey];
+        }
       }
 
       // Create a new tray and apply theme-based icon
+      console.log('[TrayDebug] Creating new tray');
       this.electronTray = new Tray(nativeImage.createEmpty());
       try { this.electronTray.setToolTip("Task Genius"); } catch {}
       try { await this.applyThemeToTray(nativeImage); this.subscribeNativeTheme(nativeImage); } catch {}
 
-      this.electronTray.on?.("click", async () => {
+      // Store click handler reference for cleanup
+      const clickHandler = async () => {
         await this.sendDailySummary();
         try { (this.plugin as any).activateTaskView?.(); } catch {}
-      });
+      };
+      this.electronTray.on?.("click", clickHandler);
 
       // Save globally so subsequent reloads reuse it
       const owner = Symbol("tg-tray-owner");
       // Ensure we don't leak multiple listeners on HMR/reloads
       try { g[globalKey]?.tray?.removeAllListeners?.(); } catch {}
-      g[globalKey] = { tray: this.electronTray, owner };
+      g[globalKey] = { tray: this.electronTray, owner, clickHandler };
       this.trayOwnerToken = owner;
+      console.log('[TrayDebug] New tray created and saved globally');
 
 
       // Done
@@ -168,6 +224,8 @@ export class NotificationManager extends Component {
   private async applyThemeToTray(nativeImage: any): Promise<void> {
     if (!this.electronTray) return;
     const isDark = this.isDarkTheme();
+
+    console.log(isDark, "theme")
     const color = isDark ? "#FFFFFF" : "#000000";
     const img = await this.buildTrayNativeImage(nativeImage, color);
     try { this.electronTray.setImage?.(img); } catch {}
@@ -177,8 +235,12 @@ export class NotificationManager extends Component {
     const nt = this.getNativeTheme();
     try {
       if (!nt) return;
-      const handler = () => { this.applyThemeToTray(nativeImage).catch(() => {}); };
+      // Remove existing listeners first to prevent duplicates
       nt.removeAllListeners?.("updated");
+      const handler = () => { 
+        console.log('[TrayDebug] Theme changed, updating tray icon');
+        this.applyThemeToTray(nativeImage).catch(() => {}); 
+      };
       nt.on?.("updated", handler);
     } catch {}
   }
@@ -624,5 +686,5 @@ export class NotificationManager extends Component {
   }
 }
 
-export default NotificationManager;
+export default DesktopIntegrationManager;
 

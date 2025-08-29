@@ -32,7 +32,7 @@ import {
 	renderTimelineSidebarSettingsTab,
 	renderIndexSettingsTab,
 	IcsSettingsComponent,
-	renderNotificationsSettingsTab,
+	renderDesktopIntegrationSettingsTab,
 } from "./components/features/settings";
 import { renderFileFilterSettingsTab } from "./components/features/settings/tabs/FileFilterSettingsTab";
 import { renderTimeParsingSettingsTab } from "./components/features/settings/tabs/TimeParsingSettingsTab";
@@ -177,9 +177,9 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			category: "integration",
 		},
 		{
-			id: "notifications",
-			name: t("Notifications"),
-			icon: "bell",
+			id: "desktop-integration",
+			name: t("Desktop Integration"),
+			icon: "monitor",
 			category: "integration",
 		},
 		{
@@ -226,7 +226,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			}
 
 			// Reload notification manager to apply changes immediately
-			plugin.notificationManager?.reloadSettings();
+			await plugin.notificationManager?.reloadSettings();
 
 			// Trigger view updates to reflect setting changes
 			await plugin.triggerViewUpdate();
@@ -240,7 +240,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		this.applyDebounceTimer = window.setTimeout(async () => {
 			await plugin.saveSettings();
 			// Only refresh notification-related UI; do not touch dataflow orchestrator
-			plugin.notificationManager?.reloadSettings();
+			await plugin.notificationManager?.reloadSettings();
 			// Minimal view updates are unnecessary here
 		}, 100);
 	}
@@ -699,7 +699,9 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					return `${base}/ics-support`;
 				case "mcp-integration":
 					return `${base}/mcp-integration`;
-					case "bases-support":
+				case "bases-support":
+						return `${base}/bases-support`;
+				case "desktop-integration":
 						return `${base}/bases-support`; 
 				case "beta-test":
 					return `${base}/getting-started`;
@@ -787,7 +789,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 	}
 
 	private displayNotificationsSettings(containerEl: HTMLElement): void {
-		renderNotificationsSettingsTab(this, containerEl);
+		renderDesktopIntegrationSettingsTab(this, containerEl);
 	}
 
 	private displayMcpSettings(containerEl: HTMLElement): void {
