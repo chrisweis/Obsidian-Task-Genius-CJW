@@ -252,7 +252,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		}
 		this.searchComponent = new SettingsSearchComponent(
 			this,
-			this.containerEl,
+			this.containerEl
 		);
 	}
 
@@ -345,7 +345,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					tab.name +
 						(tab.id === "about"
 							? " v" + this.plugin.manifest.version
-							: ""),
+							: "")
 				);
 
 				// Add click handler
@@ -378,7 +378,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 		// Show active section, hide others
 		const sections = this.containerEl.querySelectorAll(
-			".settings-tab-section",
+			".settings-tab-section"
 		);
 		sections.forEach((section) => {
 			if (section.getAttribute("data-tab-id") === tabId) {
@@ -392,10 +392,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 		// Handle tab container and header visibility based on selected tab
 		const tabsContainer = this.containerEl.querySelector(
-			".settings-tabs-categorized-container",
+			".settings-tabs-categorized-container"
 		);
 		const settingsHeader = this.containerEl.querySelector(
-			".task-genius-settings-header",
+			".task-genius-settings-header"
 		);
 
 		if (tabId === "general") {
@@ -425,7 +425,11 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 	/**
 	 * Navigate to a specific tab via URI
 	 */
-	public navigateToTab(tabId: string, section?: string, search?: string): void {
+	public navigateToTab(
+		tabId: string,
+		section?: string,
+		search?: string
+	): void {
 		// Set the current tab
 		this.currentTab = tabId;
 
@@ -454,20 +458,29 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		const headers = this.containerEl.querySelectorAll("h3, h4");
 		headers.forEach((header: HTMLElement) => {
 			const headerText = header.textContent?.toLowerCase();
-			if (headerText && headerText.includes(sectionId.replace("-", " "))) {
+			if (
+				headerText &&
+				headerText.includes(sectionId.replace("-", " "))
+			) {
 				header.scrollIntoView({ behavior: "smooth", block: "start" });
 			}
 		});
 
 		// Special handling for MCP sections
 		if (sectionId === "cursor" && this.currentTab === "mcp-integration") {
-			const cursorSection = this.containerEl.querySelector(".mcp-client-section");
+			const cursorSection = this.containerEl.querySelector(
+				".mcp-client-section"
+			);
 			if (cursorSection) {
-				const header = cursorSection.querySelector(".mcp-client-header");
+				const header =
+					cursorSection.querySelector(".mcp-client-header");
 				if (header && header.textContent?.includes("Cursor")) {
 					// Click to expand
 					(header as HTMLElement).click();
-					cursorSection.scrollIntoView({ behavior: "smooth", block: "start" });
+					cursorSection.scrollIntoView({
+						behavior: "smooth",
+						block: "start",
+					});
 				}
 			}
 		}
@@ -476,7 +489,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 	private createTabSection(tabId: string): HTMLElement {
 		// Get the sections container
 		const sectionsContainer = this.containerEl.querySelector(
-			".settings-tab-sections",
+			".settings-tab-sections"
 		);
 		if (!sectionsContainer) return this.containerEl;
 
@@ -503,24 +516,26 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			const howToBtn = new ButtonComponent(headerEl);
 			howToBtn.setClass("header-button");
 			howToBtn.setClass("how-to-button");
-			howToBtn
-				.onClick(() => {
-					const url = this.getHowToUseUrl(tabId);
-					try {
-						new IframeModal(this.app, url, `How to use — ${tabInfo?.name ?? tabId}`)
-							.open();
-					} catch (e) {
-						window.open(url);
-					}
-				});
+			howToBtn.onClick(() => {
+				const url = this.getHowToUseUrl(tabId);
+				try {
+					new IframeModal(
+						this.app,
+						url,
+						`How to use — ${tabInfo?.name ?? tabId}`
+					).open();
+				} catch (e) {
+					window.open(url);
+				}
+			});
 
-				const howToIconEl = howToBtn.buttonEl.createEl("span");
-				howToIconEl.addClass("header-button-icon");
-				setIcon(howToIconEl, "book");
+			const howToIconEl = howToBtn.buttonEl.createEl("span");
+			howToIconEl.addClass("header-button-icon");
+			setIcon(howToIconEl, "book");
 
-				const howToTextEl = howToBtn.buttonEl.createEl("span");
-				howToTextEl.addClass("header-button-text");
-				howToTextEl.setText(t("How to use"));
+			const howToTextEl = howToBtn.buttonEl.createEl("span");
+			howToTextEl.addClass("header-button-text");
+			howToTextEl.setText(t("How to use"));
 
 			// Right: Back to main settings
 			const backBtn = new ButtonComponent(headerEl)
@@ -630,8 +645,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		this.displayIcsSettings(icsSection);
 
 		// Notifications Tab
-		const notificationsSection = this.createTabSection("notifications");
-		this.displayNotificationsSettings(notificationsSection);
+		const notificationsSection = this.createTabSection(
+			"desktop-integration"
+		);
+		this.displayDesktopIntegrationSettings(notificationsSection);
 
 		// MCP Integration Tab (only on desktop)
 		if (Platform.isDesktopApp) {
@@ -640,7 +657,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		}
 
 		if (requireApiVersion("1.9.10")) {
-			const basesSection = this.createTabSection("bases-support")
+			const basesSection = this.createTabSection("bases-support");
 			this.displayBasesSettings(basesSection);
 		}
 
@@ -660,64 +677,62 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		this.switchToTab(this.currentTab);
 	}
 
-		private getHowToUseUrl(tabId: string): string {
-			const base = "https://taskgenius.md/docs";
-			switch (tabId) {
-				case "index":
-					return `${base}/task-view/indexer`;
-				case "view-settings":
-					return `${base}/task-view`;
-				case "file-filter":
-					return `${base}/file-filter`;
-				case "progress-bar":
-					return `${base}/progress-bars`;
-				case "task-status":
-					return `${base}/task-status`;
-				case "task-handler":
-					return `${base}/task-gutter`;
-				case "task-filter":
-					return `${base}/filtering`;
-				case "project":
-					return `${base}/project`;
-				case "date-priority":
-					return `${base}/date-priority`;
-				case "quick-capture":
-					return `${base}/quick-capture`;
-				case "task-timer":
-					return `${base}/task-timer`;
-				case "time-parsing":
-					return `${base}/time-parsing`;
-				case "workflow":
-					return `${base}/workflows`;
-				case "timeline-sidebar":
-					return `${base}/task-view/timeline-sidebar-view`;
-				case "reward":
-					return `${base}/reward`;
-				case "habit":
-					return `${base}/habit`;
-				case "ics-integration":
-					return `${base}/ics-support`;
-				case "mcp-integration":
-					return `${base}/mcp-integration`;
-				case "bases-support":
-						return `${base}/bases-support`;
-				case "desktop-integration":
-						return `${base}/bases-support`; 
-				case "beta-test":
-					return `${base}/getting-started`;
-				case "experimental":
-					return `${base}/getting-started`;
-				case "about":
-					return `${base}/getting-started`;
-				default:
-					return `${base}/getting-started`;
-			}
+	private getHowToUseUrl(tabId: string): string {
+		const base = "https://taskgenius.md/docs";
+		switch (tabId) {
+			case "index":
+				return `${base}/task-view/indexer`;
+			case "view-settings":
+				return `${base}/task-view`;
+			case "file-filter":
+				return `${base}/file-filter`;
+			case "progress-bar":
+				return `${base}/progress-bars`;
+			case "task-status":
+				return `${base}/task-status`;
+			case "task-handler":
+				return `${base}/task-gutter`;
+			case "task-filter":
+				return `${base}/filtering`;
+			case "project":
+				return `${base}/project`;
+			case "date-priority":
+				return `${base}/date-priority`;
+			case "quick-capture":
+				return `${base}/quick-capture`;
+			case "task-timer":
+				return `${base}/task-timer`;
+			case "time-parsing":
+				return `${base}/time-parsing`;
+			case "workflow":
+				return `${base}/workflows`;
+			case "timeline-sidebar":
+				return `${base}/task-view/timeline-sidebar-view`;
+			case "reward":
+				return `${base}/reward`;
+			case "habit":
+				return `${base}/habit`;
+			case "ics-integration":
+				return `${base}/ics-support`;
+			case "mcp-integration":
+				return `${base}/mcp-integration`;
+			case "bases-support":
+				return `${base}/bases-support`;
+			case "desktop-integration":
+				return `${base}/bases-support`;
+			case "beta-test":
+				return `${base}/getting-started`;
+			case "experimental":
+				return `${base}/getting-started`;
+			case "about":
+				return `${base}/getting-started`;
+			default:
+				return `${base}/getting-started`;
 		}
-
+	}
 
 	private displayGeneralSettings(containerEl: HTMLElement): void {
 		// Notifications and Desktop integration
-		
 	}
 
 	private displayProgressBarSettings(containerEl: HTMLElement): void {
@@ -783,18 +798,18 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			() => {
 				this.currentTab = "general";
 				this.display();
-			},
+			}
 		);
 		icsSettingsComponent.display();
 	}
 
-	private displayNotificationsSettings(containerEl: HTMLElement): void {
+	private displayDesktopIntegrationSettings(containerEl: HTMLElement): void {
 		renderDesktopIntegrationSettingsTab(this, containerEl);
 	}
 
 	private displayMcpSettings(containerEl: HTMLElement): void {
 		renderMcpIntegrationSettingsTab(containerEl, this.plugin, () =>
-			this.applySettingsUpdate(),
+			this.applySettingsUpdate()
 		);
 	}
 
@@ -842,14 +857,14 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		warningEl.addClass("experimental-warning");
 		warningEl.createEl("strong").setText("⚠️ Warning: ");
 		warningEl.appendText(
-			"These features are experimental and may not be stable. Use at your own risk.",
+			"These features are experimental and may not be stable. Use at your own risk."
 		);
 
 		// Future experimental features will be added here
 		const placeholderEl = experimentalSection.createDiv();
 		placeholderEl.addClass("experimental-placeholder");
 		placeholderEl.setText(
-			"No experimental features are currently available. Check back in future updates for new experimental functionality.",
+			"No experimental features are currently available. Check back in future updates for new experimental functionality."
 		);
 	}
 }

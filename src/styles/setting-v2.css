@@ -188,7 +188,6 @@
 	background: var(--background-primary-alt);
 }
 
-
 .task-genius-iframe-modal {
 	width: 90%;
 	max-width: 1400px;
@@ -202,12 +201,18 @@
 }
 
 .time-parsing-example {
-    padding: var(--size-2-2);
-    background-color: var(--background-secondary);
-    border-radius: var(--radius-s);
-    margin-top: var(--size-2-2);
-    margin-bottom: var(--size-2-2);
-    padding-left: var(--size-4-2);
-    padding-right: var(--size-4-2);
-    font-size: var(--font-ui-small);
+	padding: var(--size-2-2);
+	background-color: var(--background-secondary);
+	border-radius: var(--radius-s);
+	margin-top: var(--size-2-2);
+	margin-bottom: var(--size-2-2);
+	padding-left: var(--size-4-2);
+	padding-right: var(--size-4-2);
+	font-size: var(--font-ui-small);
+}
+
+.task-genius-settings .setting-item-control input[type="time"] {
+	border: 1px solid var(--background-modifier-border);
+	padding: var(--size-2-2);
+	border-radius: var(--radius-s);
 }
