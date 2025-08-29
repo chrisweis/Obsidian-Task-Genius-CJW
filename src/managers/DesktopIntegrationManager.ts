@@ -24,6 +24,20 @@ export class DesktopIntegrationManager extends Component {
 		// Initialize on load
 		if (!Platform.isDesktopApp) return;
 
+		// Minimal-change safeguard for hard reloads (window.location)
+		try {
+			const beforeUnloadCleanup = () => {
+				try {
+					this.electronTray?.removeAllListeners?.();
+					this.electronTray?.destroy?.();
+				} catch {}
+			};
+			// Register once per load; Obsidian reload will recreate manager
+			window.addEventListener("beforeunload", beforeUnloadCleanup, {
+				once: true,
+			});
+		} catch {}
+
 		const trayMode =
 			this.plugin.settings.desktopIntegration?.trayMode || "status";
 
@@ -148,11 +162,12 @@ export class DesktopIntegrationManager extends Component {
 				console.log("[TrayDebug] No electron available");
 				return false;
 			}
+			// Prefer creating tray in main process via remote when available
 			const Tray =
-				(electron as any).Tray || (electron as any).remote?.Tray;
+				(electron as any).remote?.Tray || (electron as any).Tray;
 			const nativeImage =
-				(electron as any).nativeImage ||
-				(electron as any).remote?.nativeImage;
+				(electron as any).remote?.nativeImage ||
+				(electron as any).nativeImage;
 			if (!Tray || !nativeImage) {
 				console.log("[TrayDebug] Tray or nativeImage not available");
 				return false;

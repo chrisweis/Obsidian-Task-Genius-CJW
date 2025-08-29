@@ -16,7 +16,10 @@ import {
 	appHasDailyNotesPluginLoaded,
 	getDailyNoteSettings,
 } from "obsidian-daily-notes-interface";
-import { saveCapture, processDateTemplates } from "@/utils/file/file-operations";
+import {
+	saveCapture,
+	processDateTemplates,
+} from "@/utils/file/file-operations";
 import { Events, emit } from "../events/Events";
 import { CanvasTaskUpdater } from "../../parsers/canvas-task-updater";
 
@@ -106,12 +109,14 @@ export class WriteAPI {
 					taskId: args.taskId,
 					updates: {
 						status: args.status,
-						completed: args.completed
-					}
+						completed: args.completed,
+					},
 				});
 			}
 
-			const file = this.vault.getAbstractFileByPath(task.filePath) as TFile;
+			const file = this.vault.getAbstractFileByPath(
+				task.filePath
+			) as TFile;
 			if (!file) {
 				return { success: false, error: "File not found" };
 			}
@@ -141,7 +146,9 @@ export class WriteAPI {
 				// Add completion date if completing
 				if (args.completed && !task.metadata.completedDate) {
 					const completionDate = moment().format("YYYY-MM-DD");
-					const useDataviewFormat = this.plugin.settings.preferMetadataFormat === "dataview";
+					const useDataviewFormat =
+						this.plugin.settings.preferMetadataFormat ===
+						"dataview";
 					const completionMeta = useDataviewFormat
 						? `[completion:: ${completionDate}]`
 						: `✅ ${completionDate}`;
@@ -152,14 +159,23 @@ export class WriteAPI {
 			lines[task.line] = taskLine;
 
 			// Notify about write operation
-			emit(this.app, Events.WRITE_OPERATION_START, { path: file.path, taskId: args.taskId });
+			emit(this.app, Events.WRITE_OPERATION_START, {
+				path: file.path,
+				taskId: args.taskId,
+			});
 			await this.vault.modify(file, lines.join("\n"));
-			emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: file.path, taskId: args.taskId });
+			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+				path: file.path,
+				taskId: args.taskId,
+			});
 
 			// Trigger task-completed event if task was just completed
 			if (args.completed === true && !task.completed) {
 				const updatedTask = { ...task, completed: true };
-				this.app.workspace.trigger("task-genius:task-completed", updatedTask);
+				this.app.workspace.trigger(
+					"task-genius:task-completed",
+					updatedTask
+				);
 			}
 
 			return { success: true };
@@ -172,9 +188,13 @@ export class WriteAPI {
 	/**
 	 * Update a task with new properties
 	 */
-	async updateTask(args: UpdateTaskArgs): Promise<{ success: boolean; task?: Task; error?: string }> {
+	async updateTask(
+		args: UpdateTaskArgs
+	): Promise<{ success: boolean; task?: Task; error?: string }> {
 		try {
-			const originalTask = await Promise.resolve(this.getTaskById(args.taskId));
+			const originalTask = await Promise.resolve(
+				this.getTaskById(args.taskId)
+			);
 			if (!originalTask) {
 				return { success: false, error: "Task not found" };
 			}
@@ -185,12 +205,20 @@ export class WriteAPI {
 			}
 
 			// Handle FileSource (file-level) tasks differently
-			const isFileSourceTask = (originalTask as any)?.metadata?.source === "file-source" || originalTask.id.startsWith("file-source:");
+			const isFileSourceTask =
+				(originalTask as any)?.metadata?.source === "file-source" ||
+				originalTask.id.startsWith("file-source:");
 			if (isFileSourceTask) {
-				return this.updateFileSourceTask(originalTask, args.updates, args.taskId);
+				return this.updateFileSourceTask(
+					originalTask,
+					args.updates,
+					args.taskId
+				);
 			}
 
-			const file = this.vault.getAbstractFileByPath(originalTask.filePath) as TFile;
+			const file = this.vault.getAbstractFileByPath(
+				originalTask.filePath
+			) as TFile;
 			if (!file) {
 				return { success: false, error: "File not found" };
 			}
@@ -217,11 +245,15 @@ export class WriteAPI {
 			// Update content if changed
 			if (args.updates.content !== undefined) {
 				// Extract the task prefix and metadata
-				const prefixMatch = taskLine.match(/^(\s*[-*+]\s*\[[^\]]*\]\s*)/);
+				const prefixMatch = taskLine.match(
+					/^(\s*[-*+]\s*\[[^\]]*\]\s*)/
+				);
 				if (prefixMatch) {
 					const prefix = prefixMatch[1];
 					// Find where metadata starts (look for emoji markers or dataview fields)
-					const metadataMatch = taskLine.match(/([\s]+(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁|\[[\w]+::|#|@|\+).*)?$/);
+					const metadataMatch = taskLine.match(
+						/([\s]+(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁|\[[\w]+::|#|@|\+).*)?$/
+					);
 					const metadata = metadataMatch ? metadataMatch[0] : "";
 					taskLine = `${prefix}${args.updates.content}${metadata}`;
 				}
@@ -230,28 +262,38 @@ export class WriteAPI {
 			// Update metadata if changed
 			if (args.updates.metadata) {
 				// Remove existing metadata and regenerate
-				const prefixMatch = taskLine.match(/^(\s*[-*+]\s*\[[^\]]*\]\s*[^🔺⏫🔼🔽⏬🛫⏳📅✅🔁\[#@+]*)/);
+				const prefixMatch = taskLine.match(
+					/^(\s*[-*+]\s*\[[^\]]*\]\s*[^🔺⏫🔼🔽⏬🛫⏳📅✅🔁\[#@+]*)/
+				);
 				if (prefixMatch) {
 					const taskPrefix = prefixMatch[0];
 					const newMetadata = this.generateMetadata({
 						...originalTask.metadata,
 						...args.updates.metadata,
 					});
-					taskLine = `${taskPrefix}${newMetadata ? ` ${newMetadata}` : ""}`;
+					taskLine = `${taskPrefix}${
+						newMetadata ? ` ${newMetadata}` : ""
+					}`;
 				}
 			}
 
 			lines[originalTask.line] = taskLine;
 
 			// Notify about write operation
-			emit(this.app, Events.WRITE_OPERATION_START, { path: file.path, taskId: args.taskId });
+			emit(this.app, Events.WRITE_OPERATION_START, {
+				path: file.path,
+				taskId: args.taskId,
+			});
 			await this.vault.modify(file, lines.join("\n"));
 
 			// Create the updated task object with the new content
 			const updatedTaskObj: Task = {
 				...originalTask,
 				...args.updates,
-				originalMarkdown: taskLine.replace(/^\s*[-*+]\s*\[[^\]]*\]\s*/, ""), // Remove checkbox prefix
+				originalMarkdown: taskLine.replace(
+					/^\s*[-*+]\s*\[[^\]]*\]\s*/,
+					""
+				), // Remove checkbox prefix
 			};
 
 			// Emit task updated event for direct update in dataflow
@@ -259,11 +301,17 @@ export class WriteAPI {
 
 			// Trigger task-completed event if task was just completed
 			if (args.updates.completed === true && !originalTask.completed) {
-				this.app.workspace.trigger("task-genius:task-completed", updatedTaskObj);
+				this.app.workspace.trigger(
+					"task-genius:task-completed",
+					updatedTaskObj
+				);
 			}
 
 			// Still emit write operation complete for compatibility
-			emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: file.path, taskId: args.taskId });
+			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+				path: file.path,
+				taskId: args.taskId,
+			});
 
 			return { success: true, task: updatedTaskObj };
 		} catch (error) {
@@ -272,303 +320,470 @@ export class WriteAPI {
 		}
 	}
 
+	/**
+	 * Update a FileSource (file-level) task. This updates frontmatter title, H1, or filename
+	 * depending on settings, instead of trying to edit a markdown checkbox line.
+	 */
+	private async updateFileSourceTask(
+		originalTask: Task,
+		updates: Partial<Task>,
+		taskId: string
+	): Promise<{ success: boolean; task?: Task; error?: string }> {
+		const file = this.vault.getAbstractFileByPath(
+			originalTask.filePath
+		) as TFile;
+		if (!file) {
+			return { success: false, error: "File not found" };
+		}
 
-		/**
-		 * Update a FileSource (file-level) task. This updates frontmatter title, H1, or filename
-		 * depending on settings, instead of trying to edit a markdown checkbox line.
-		 */
-		private async updateFileSourceTask(
-			originalTask: Task,
-			updates: Partial<Task>,
-			taskId: string
-		): Promise<{ success: boolean; task?: Task; error?: string }> {
-			const file = this.vault.getAbstractFileByPath(originalTask.filePath) as TFile;
-			if (!file) {
-				return { success: false, error: "File not found" };
-			}
+		let newFilePath = originalTask.filePath;
+		const cfg = this.plugin.settings?.fileSource?.fileTaskProperties;
+		const contentSource: "filename" | "title" | "h1" | "custom" =
+			cfg?.contentSource ?? "filename";
+		const preferFrontmatterTitle = cfg?.preferFrontmatterTitle ?? true;
+		const customContentField = (
+			this.plugin.settings?.fileSource?.fileTaskProperties as any
+		)?.customContentField as string | undefined;
 
-			let newFilePath = originalTask.filePath;
-			const cfg = this.plugin.settings?.fileSource?.fileTaskProperties;
-			const contentSource: "filename" | "title" | "h1" | "custom" = cfg?.contentSource ?? "filename";
-			const preferFrontmatterTitle = cfg?.preferFrontmatterTitle ?? true;
-			const customContentField = (this.plugin.settings?.fileSource?.fileTaskProperties as any)?.customContentField as string | undefined;
+		console.log("[WriteAPI][FileSource] updateFileSourceTask start", {
+			taskId,
+			contentSource,
+			preferFrontmatterTitle,
+			customContentField,
+			updates,
+		});
 
+		// Apply frontmatter updates for non-content fields (status, completed, metadata)
+		try {
+			const md = (updates.metadata ?? {}) as any;
+			const hasFrontmatterUpdates =
+				updates.status !== undefined ||
+				updates.completed !== undefined ||
+				md.priority !== undefined ||
+				md.tags !== undefined ||
+				md.project !== undefined ||
+				md.context !== undefined ||
+				md.area !== undefined ||
+				md.dueDate !== undefined ||
+				md.startDate !== undefined ||
+				md.scheduledDate !== undefined;
 
-				console.log("[WriteAPI][FileSource] updateFileSourceTask start", {
+			if (hasFrontmatterUpdates) {
+				// Announce start of a write operation for frontmatter updates
+				emit(this.app, Events.WRITE_OPERATION_START, {
+					path: file.path,
 					taskId,
+				});
+
+				const formatDate = (val: any): any => {
+					if (val === undefined || val === null) return val;
+					if (typeof val === "number") {
+						// Write as YYYY-MM-DD for frontmatter consistency
+						return new Date(val).toISOString().split("T")[0];
+					}
+					if (val instanceof Date) {
+						return val.toISOString().split("T")[0];
+					}
+					return val; // assume already a string
+				};
+
+				await this.app.fileManager.processFrontMatter(file, (fm) => {
+					// Top-level status/completed
+					if (updates.status !== undefined) {
+						// If status mapping is enabled, prefer writing human-readable metadata value;
+						// otherwise write the raw symbol.
+						const fsMapping =
+							this.plugin.settings?.fileSource?.statusMapping;
+						let statusToWrite: string = updates.status as any;
+						if (fsMapping?.enabled) {
+							// Try explicit symbol->metadata mapping first
+							const mapped =
+								fsMapping.symbolToMetadata?.[statusToWrite];
+							if (mapped) {
+								statusToWrite = mapped;
+								console.log(
+									"[WriteAPI][FileSource] mapped via symbolToMetadata",
+									{ mapped }
+								);
+							} else {
+								console.log(
+									"[WriteAPI][FileSource] fallback mapping from taskStatuses",
+									this.plugin.settings?.taskStatuses
+								);
+								// Derive from Task Status settings as a fallback
+								const taskStatuses = (this.plugin.settings
+									?.taskStatuses || {}) as Record<
+									string,
+									string
+								>;
+								const listByType = Object.entries(
+									taskStatuses
+								).map(([type, symbols]) => ({
+									type,
+									symbols: String(symbols),
+								}));
+								for (const entry of listByType) {
+									const parts = entry.symbols
+										.split("|")
+										.filter(Boolean);
+									for (const sym of parts) {
+										if (
+											sym === statusToWrite ||
+											(sym.length > 1 &&
+												sym.includes(statusToWrite))
+										) {
+											// Map types to canonical metadata values
+											const typeToMetadata: Record<
+												string,
+												string
+											> = {
+												completed: "completed",
+												inProgress: "in-progress",
+												planned: "planned",
+												abandoned: "cancelled",
+												notStarted: "not-started",
+											};
+											const md =
+												typeToMetadata[entry.type];
+											if (md) {
+												statusToWrite = md;
+												console.log(
+													"[WriteAPI][FileSource] mapped via taskStatuses",
+													{ type: entry.type, md }
+												);
+											}
+											break;
+										}
+									}
+									if (
+										statusToWrite !==
+										(updates.status as any)
+									)
+										break;
+								}
+							}
+						}
+						(fm as any).status = statusToWrite;
+					}
+					if (updates.completed !== undefined) {
+						(fm as any).completed = updates.completed;
+					}
+
+					// Metadata fields
+					if (md.priority !== undefined) {
+						(fm as any).priority = md.priority;
+						console.log(
+							"[WriteAPI][FileSource] wrote fm.priority",
+							{ priority: md.priority }
+						);
+					}
+					if (
+						md.tags !== undefined &&
+						Array.isArray(md.tags) &&
+						md.tags.length > 0
+					) {
+						(fm as any).tags = Array.isArray(md.tags)
+							? md.tags
+							: typeof md.tags === "string"
+							? [md.tags]
+							: md.tags;
+						console.log("[WriteAPI][FileSource] wrote fm.tags", {
+							tags: (fm as any).tags,
+						});
+					}
+					if (md.project !== undefined) {
+						(fm as any).project = md.project;
+						console.log("[WriteAPI][FileSource] wrote fm.project", {
+							project: md.project,
+						});
+					}
+					if (md.context !== undefined) {
+						(fm as any).context = md.context;
+						console.log("[WriteAPI][FileSource] wrote fm.context", {
+							context: md.context,
+						});
+					}
+					if (md.area !== undefined) {
+						(fm as any).area = md.area;
+						console.log("[WriteAPI][FileSource] wrote fm.area", {
+							area: md.area,
+						});
+					}
+					if (md.dueDate !== undefined) {
+						(fm as any).dueDate = formatDate(md.dueDate);
+						console.log("[WriteAPI][FileSource] wrote fm.dueDate", {
+							dueDate: (fm as any).dueDate,
+						});
+					}
+					if (md.startDate !== undefined) {
+						(fm as any).startDate = formatDate(md.startDate);
+						console.log(
+							"[WriteAPI。][FileSource] wrote fm.startDate",
+							{ startDate: (fm as any).startDate }
+						);
+					}
+					if (md.scheduledDate !== undefined) {
+						(fm as any).scheduledDate = formatDate(
+							md.scheduledDate
+						);
+						console.log(
+							"[WriteAPI][FileSource] wrote fm.scheduledDate",
+							{ scheduledDate: (fm as any).scheduledDate }
+						);
+					}
+				});
+
+				// Announce completion of frontmatter write operation
+				emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+					path: file.path,
+					taskId,
+				});
+			}
+		} catch (error) {
+			console.error(
+				"WriteAPI: Error updating file-source task frontmatter:",
+				error
+			);
+			return { success: false, error: String(error) };
+		}
+
+		// Handle content/title change
+		const shouldWriteContent = typeof updates.content === "string";
+		console.log("[WriteAPI][FileSource] content change gate", {
+			originalContent: originalTask.content,
+			updatesContent: updates.content,
+			shouldWriteContent,
+		});
+		if (shouldWriteContent) {
+			try {
+				// Announce start of a write operation
+				emit(this.app, Events.WRITE_OPERATION_START, {
+					path: file.path,
+					taskId,
+				});
+
+				console.log("[WriteAPI][FileSource] content branch", {
 					contentSource,
 					preferFrontmatterTitle,
 					customContentField,
-					updates
 				});
-
-
-				// Apply frontmatter updates for non-content fields (status, completed, metadata)
-				try {
-					const md = (updates.metadata ?? {}) as any;
-					const hasFrontmatterUpdates = (
-						updates.status !== undefined ||
-						updates.completed !== undefined ||
-						md.priority !== undefined ||
-						md.tags !== undefined ||
-						md.project !== undefined ||
-						md.context !== undefined ||
-						md.area !== undefined ||
-						md.dueDate !== undefined ||
-						md.startDate !== undefined ||
-						md.scheduledDate !== undefined
-					);
-
-					if (hasFrontmatterUpdates) {
-						// Announce start of a write operation for frontmatter updates
-						emit(this.app, Events.WRITE_OPERATION_START, { path: file.path, taskId });
-
-						const formatDate = (val: any): any => {
-							if (val === undefined || val === null) return val;
-							if (typeof val === "number") {
-								// Write as YYYY-MM-DD for frontmatter consistency
-								return new Date(val).toISOString().split("T")[0];
-							}
-							if (val instanceof Date) {
-								return val.toISOString().split("T")[0];
-							}
-							return val; // assume already a string
-						};
- 
-						await this.app.fileManager.processFrontMatter(file, (fm) => {
-							// Top-level status/completed
-							if (updates.status !== undefined) {
-								// If status mapping is enabled, prefer writing human-readable metadata value;
-								// otherwise write the raw symbol.
-								const fsMapping = this.plugin.settings?.fileSource?.statusMapping;
-								let statusToWrite: string = updates.status as any;
-								if (fsMapping?.enabled) {
-									// Try explicit symbol->metadata mapping first
-									const mapped = fsMapping.symbolToMetadata?.[statusToWrite];
-									if (mapped) {
-										statusToWrite = mapped;
-										console.log("[WriteAPI][FileSource] mapped via symbolToMetadata", { mapped });
-									} else {
-										console.log("[WriteAPI][FileSource] fallback mapping from taskStatuses", this.plugin.settings?.taskStatuses);
-										// Derive from Task Status settings as a fallback
-										const taskStatuses = (this.plugin.settings?.taskStatuses || {}) as Record<string, string>;
-										const listByType = Object.entries(taskStatuses).map(([type, symbols]) => ({ type, symbols: String(symbols) }));
-										for (const entry of listByType) {
-											const parts = entry.symbols.split("|").filter(Boolean);
-											for (const sym of parts) {
-												if (sym === statusToWrite || (sym.length > 1 && sym.includes(statusToWrite))) {
-													// Map types to canonical metadata values
-													const typeToMetadata: Record<string, string> = {
-														completed: "completed",
-														inProgress: "in-progress",
-														planned: "planned",
-														abandoned: "cancelled",
-														notStarted: "not-started",
-													};
-													const md = typeToMetadata[entry.type];
-													if (md) {
-														statusToWrite = md;
-														console.log("[WriteAPI][FileSource] mapped via taskStatuses", { type: entry.type, md });
-													}
-													break;
-												}
-											}
-											if (statusToWrite !== (updates.status as any)) break;
-										}
-									}
+				switch (contentSource) {
+					case "title": {
+						if (preferFrontmatterTitle) {
+							await this.app.fileManager.processFrontMatter(
+								file,
+								(fm) => {
+									(fm as any).title = updates.content;
 								}
-								(fm as any).status = statusToWrite;
-							}
-							if (updates.completed !== undefined) {
-								(fm as any).completed = updates.completed;
-							}
-
-							// Metadata fields
-							if (md.priority !== undefined) {
-								(fm as any).priority = md.priority;
-								console.log("[WriteAPI][FileSource] wrote fm.priority", { priority: md.priority });
-							}
-							if (md.tags !== undefined && Array.isArray(md.tags) && md.tags.length > 0) {
-								(fm as any).tags = Array.isArray(md.tags)
-									? md.tags
-									: (typeof md.tags === "string" ? [md.tags] : md.tags);
-								console.log("[WriteAPI][FileSource] wrote fm.tags", { tags: (fm as any).tags });
-							}
-							if (md.project !== undefined) {
-								(fm as any).project = md.project;
-								console.log("[WriteAPI][FileSource] wrote fm.project", { project: md.project });
-							}
-							if (md.context !== undefined) {
-								(fm as any).context = md.context;
-								console.log("[WriteAPI][FileSource] wrote fm.context", { context: md.context });
-							}
-							if (md.area !== undefined) {
-								(fm as any).area = md.area;
-								console.log("[WriteAPI][FileSource] wrote fm.area", { area: md.area });
-							}
-							if (md.dueDate !== undefined) {
-								(fm as any).dueDate = formatDate(md.dueDate);
-								console.log("[WriteAPI][FileSource] wrote fm.dueDate", { dueDate: (fm as any).dueDate });
-							}
-							if (md.startDate !== undefined) {
-								(fm as any).startDate = formatDate(md.startDate);
-								console.log("[WriteAPI。][FileSource] wrote fm.startDate", { startDate: (fm as any).startDate });
-							}
-							if (md.scheduledDate !== undefined) {
-								(fm as any).scheduledDate = formatDate(md.scheduledDate);
-								console.log("[WriteAPI][FileSource] wrote fm.scheduledDate", { scheduledDate: (fm as any).scheduledDate });
-							}
-						});
-
-						// Announce completion of frontmatter write operation
-						emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: file.path, taskId });
+							);
+							console.log(
+								"[WriteAPI][FileSource] wrote fm.title (branch: title)",
+								{ title: updates.content }
+							);
+							const cacheAfter =
+								this.app.metadataCache.getFileCache(file);
+							console.log(
+								"[WriteAPI][FileSource] cache fm.title after write (branch: title)",
+								{ title: cacheAfter?.frontmatter?.title }
+							);
+						} else {
+							newFilePath = await this.renameFile(
+								file,
+								updates.content!
+							);
+							console.log(
+								"[WriteAPI][FileSource] renamed file (branch: title)",
+								{ newFilePath }
+							);
+						}
+						break;
 					}
-				} catch (error) {
-					console.error("WriteAPI: Error updating file-source task frontmatter:", error);
-					return { success: false, error: String(error) };
+					case "h1": {
+						await this.updateH1Heading(file, updates.content!);
+						break;
+					}
+					case "custom": {
+						if (customContentField) {
+							await this.app.fileManager.processFrontMatter(
+								file,
+								(fm) => {
+									(fm as any)[customContentField] =
+										updates.content;
+								}
+							);
+							console.log(
+								"[WriteAPI][FileSource] wrote fm[customContentField] (branch: custom)",
+								{
+									field: customContentField,
+									value: updates.content,
+								}
+							);
+							const cacheAfter =
+								this.app.metadataCache.getFileCache(file);
+							console.log(
+								"[WriteAPI][FileSource] cache fm[customContentField] after write (branch: custom)",
+								{
+									field: customContentField,
+									value: cacheAfter?.frontmatter?.[
+										customContentField
+									],
+								}
+							);
+						} else if (preferFrontmatterTitle) {
+							await this.app.fileManager.processFrontMatter(
+								file,
+								(fm) => {
+									(fm as any).title = updates.content;
+								}
+							);
+							console.log(
+								"[WriteAPI][FileSource] wrote fm.title (branch: custom fallback)",
+								{ title: updates.content }
+							);
+							const cacheAfter2 =
+								this.app.metadataCache.getFileCache(file);
+							console.log(
+								"[WriteAPI][FileSource] cache fm.title after write (branch: custom fallback)",
+								{ title: cacheAfter2?.frontmatter?.title }
+							);
+						} else {
+							newFilePath = await this.renameFile(
+								file,
+								updates.content!
+							);
+							console.log(
+								"[WriteAPI][FileSource] renamed file (branch: custom fallback)",
+								{ newFilePath }
+							);
+						}
+						break;
+					}
+					case "filename":
+					default: {
+						if (preferFrontmatterTitle) {
+							await this.app.fileManager.processFrontMatter(
+								file,
+								(fm) => {
+									(fm as any).title = updates.content;
+								}
+							);
+							console.log(
+								"[WriteAPI][FileSource] wrote fm.title (branch: filename/default)",
+								{ title: updates.content }
+							);
+							const cacheAfter =
+								this.app.metadataCache.getFileCache(file);
+							console.log(
+								"[WriteAPI][FileSource] cache fm.title after write (branch: filename/default)",
+								{ title: cacheAfter?.frontmatter?.title }
+							);
+						} else {
+							newFilePath = await this.renameFile(
+								file,
+								updates.content!
+							);
+							console.log(
+								"[WriteAPI][FileSource] renamed file (branch: filename/default)",
+								{ newFilePath }
+							);
+						}
+						break;
+					}
 				}
 
-			// Handle content/title change
-			const shouldWriteContent = typeof updates.content === "string";
-			console.log("[WriteAPI][FileSource] content change gate", {
-				originalContent: originalTask.content,
-				updatesContent: updates.content,
-				shouldWriteContent
-			});
-			if (shouldWriteContent) {
-				try {
-					// Announce start of a write operation
-					emit(this.app, Events.WRITE_OPERATION_START, { path: file.path, taskId });
-
-					console.log("[WriteAPI][FileSource] content branch", { contentSource, preferFrontmatterTitle, customContentField });
-					switch (contentSource) {
-						case "title": {
-							if (preferFrontmatterTitle) {
-								await this.app.fileManager.processFrontMatter(file, (fm) => {
-									(fm as any).title = updates.content;
-								});
-								console.log("[WriteAPI][FileSource] wrote fm.title (branch: title)", { title: updates.content });
-								const cacheAfter = this.app.metadataCache.getFileCache(file);
-								console.log("[WriteAPI][FileSource] cache fm.title after write (branch: title)", { title: cacheAfter?.frontmatter?.title });
-							} else {
-								newFilePath = await this.renameFile(file, updates.content!);
-								console.log("[WriteAPI][FileSource] renamed file (branch: title)", { newFilePath });
-							}
-							break;
-						}
-						case "h1": {
-							await this.updateH1Heading(file, updates.content!);
-							break;
-						}
-						case "custom": {
-							if (customContentField) {
-								await this.app.fileManager.processFrontMatter(file, (fm) => {
-									(fm as any)[customContentField] = updates.content;
-								});
-								console.log("[WriteAPI][FileSource] wrote fm[customContentField] (branch: custom)", { field: customContentField, value: updates.content });
-								const cacheAfter = this.app.metadataCache.getFileCache(file);
-								console.log("[WriteAPI][FileSource] cache fm[customContentField] after write (branch: custom)", { field: customContentField, value: cacheAfter?.frontmatter?.[customContentField] });
-							} else if (preferFrontmatterTitle) {
-								await this.app.fileManager.processFrontMatter(file, (fm) => {
-									(fm as any).title = updates.content;
-								});
-								console.log("[WriteAPI][FileSource] wrote fm.title (branch: custom fallback)", { title: updates.content });
-								const cacheAfter2 = this.app.metadataCache.getFileCache(file);
-								console.log("[WriteAPI][FileSource] cache fm.title after write (branch: custom fallback)", { title: cacheAfter2?.frontmatter?.title });
-							} else {
-								newFilePath = await this.renameFile(file, updates.content!);
-								console.log("[WriteAPI][FileSource] renamed file (branch: custom fallback)", { newFilePath });
-							}
-							break;
-						}
-						case "filename":
-						default: {
-							if (preferFrontmatterTitle) {
-								await this.app.fileManager.processFrontMatter(file, (fm) => {
-									(fm as any).title = updates.content;
-								});
-								console.log("[WriteAPI][FileSource] wrote fm.title (branch: filename/default)", { title: updates.content });
-								const cacheAfter = this.app.metadataCache.getFileCache(file);
-								console.log("[WriteAPI][FileSource] cache fm.title after write (branch: filename/default)", { title: cacheAfter?.frontmatter?.title });
-							} else {
-								newFilePath = await this.renameFile(file, updates.content!);
-								console.log("[WriteAPI][FileSource] renamed file (branch: filename/default)", { newFilePath });
-							}
-							break;
-						}
-					}
-
-					// Announce completion of write operation
-					emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: newFilePath, taskId });
-				} catch (error) {
-					console.error("WriteAPI: Error updating file-source task content:", error);
-					return { success: false, error: String(error) };
-				}
+				// Announce completion of write operation
+				emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+					path: newFilePath,
+					taskId,
+				});
+			} catch (error) {
+				console.error(
+					"WriteAPI: Error updating file-source task content:",
+					error
+				);
+				return { success: false, error: String(error) };
 			}
+		}
 
-			// Build the updated task object
-			const updatedTaskObj: Task = {
-				...originalTask,
-				...updates,
-				filePath: newFilePath,
-				// Keep id in sync with FileSource convention when path changes
-				id: (originalTask.id.startsWith("file-source:") && newFilePath !== originalTask.filePath)
+		// Build the updated task object
+		const updatedTaskObj: Task = {
+			...originalTask,
+			...updates,
+			filePath: newFilePath,
+			// Keep id in sync with FileSource convention when path changes
+			id:
+				originalTask.id.startsWith("file-source:") &&
+				newFilePath !== originalTask.filePath
 					? `file-source:${newFilePath}`
 					: originalTask.id,
-				originalMarkdown: `[${updates.content ?? originalTask.content}](${newFilePath})`,
-			};
+			originalMarkdown: `[${
+				updates.content ?? originalTask.content
+			}](${newFilePath})`,
+		};
 
-			// Emit file-task update so repository updates fileTasks map directly
-			emit(this.app, Events.FILE_TASK_UPDATED, { task: updatedTaskObj });
+		// Emit file-task update so repository updates fileTasks map directly
+		emit(this.app, Events.FILE_TASK_UPDATED, { task: updatedTaskObj });
 
-			return { success: true, task: updatedTaskObj };
-		}
+		return { success: true, task: updatedTaskObj };
+	}
 
-		private async updateH1Heading(file: TFile, newHeading: string): Promise<void> {
-			const content = await this.vault.read(file);
-			const lines = content.split("\n");
-			// Find first H1 after optional frontmatter
-			let h1Index = -1;
-			for (let i = 0; i < lines.length; i++) {
-				if (lines[i].startsWith("# ")) { h1Index = i; break; }
+	private async updateH1Heading(
+		file: TFile,
+		newHeading: string
+	): Promise<void> {
+		const content = await this.vault.read(file);
+		const lines = content.split("\n");
+		// Find first H1 after optional frontmatter
+		let h1Index = -1;
+		for (let i = 0; i < lines.length; i++) {
+			if (lines[i].startsWith("# ")) {
+				h1Index = i;
+				break;
 			}
-			if (h1Index >= 0) {
-				lines[h1Index] = `# ${newHeading}`;
-			} else {
-				let insertIndex = 0;
-				if (content.startsWith("---")) {
-					const fmEnd = content.indexOf("\n---\n", 3);
-					if (fmEnd >= 0) {
-						const fmLines = content.substring(0, fmEnd + 5).split("\n").length - 1;
-						insertIndex = fmLines;
-					}
+		}
+		if (h1Index >= 0) {
+			lines[h1Index] = `# ${newHeading}`;
+		} else {
+			let insertIndex = 0;
+			if (content.startsWith("---")) {
+				const fmEnd = content.indexOf("\n---\n", 3);
+				if (fmEnd >= 0) {
+					const fmLines =
+						content.substring(0, fmEnd + 5).split("\n").length - 1;
+					insertIndex = fmLines;
 				}
-				lines.splice(insertIndex, 0, `# ${newHeading}`, "");
 			}
-			await this.vault.modify(file, lines.join("\n"));
+			lines.splice(insertIndex, 0, `# ${newHeading}`, "");
 		}
+		await this.vault.modify(file, lines.join("\n"));
+	}
 
-		private async renameFile(file: TFile, newTitle: string): Promise<string> {
-			const currentPath = file.path;
-			const lastSlash = currentPath.lastIndexOf("/");
-			const directory = lastSlash > 0 ? currentPath.substring(0, lastSlash) : "";
-			const extension = currentPath.substring(currentPath.lastIndexOf("."));
-			const sanitized = this.sanitizeFileName(newTitle);
-			const newPath = directory ? `${directory}/${sanitized}${extension}` : `${sanitized}${extension}`;
-			if (newPath !== currentPath) {
-				await this.vault.rename(file, newPath);
-			}
-			return newPath;
+	private async renameFile(file: TFile, newTitle: string): Promise<string> {
+		const currentPath = file.path;
+		const lastSlash = currentPath.lastIndexOf("/");
+		const directory =
+			lastSlash > 0 ? currentPath.substring(0, lastSlash) : "";
+		const extension = currentPath.substring(currentPath.lastIndexOf("."));
+		const sanitized = this.sanitizeFileName(newTitle);
+		const newPath = directory
+			? `${directory}/${sanitized}${extension}`
+			: `${sanitized}${extension}`;
+		if (newPath !== currentPath) {
+			await this.vault.rename(file, newPath);
 		}
+		return newPath;
+	}
 
-		private sanitizeFileName(name: string): string {
-			return name.replace(/[<>:"/\\|?*]/g, "_");
-		}
+	private sanitizeFileName(name: string): string {
+		return name.replace(/[<>:"/\\|?*]/g, "_");
+	}
 
 	/**
 	 * Create a new task
 	 */
-	async createTask(args: CreateTaskArgs): Promise<{ success: boolean; task?: Task; error?: string }> {
+	async createTask(
+		args: CreateTaskArgs
+	): Promise<{ success: boolean; task?: Task; error?: string }> {
 		try {
 			let filePath = args.filePath;
 
@@ -577,7 +792,10 @@ export class WriteAPI {
 				if (activeFile) {
 					filePath = activeFile.path;
 				} else {
-					return { success: false, error: "No filePath provided and no active file" };
+					return {
+						success: false,
+						error: "No filePath provided and no active file",
+					};
 				}
 			}
 
@@ -589,17 +807,25 @@ export class WriteAPI {
 				project: args.project,
 				context: args.context,
 				priority: args.priority,
-				startDate: args.startDate ? moment(args.startDate).valueOf() : undefined,
-				dueDate: args.dueDate ? moment(args.dueDate).valueOf() : undefined,
+				startDate: args.startDate
+					? moment(args.startDate).valueOf()
+					: undefined,
+				dueDate: args.dueDate
+					? moment(args.dueDate).valueOf()
+					: undefined,
 				completed: args.completed,
-				completedDate: args.completedDate ? moment(args.completedDate).valueOf() : undefined,
+				completedDate: args.completedDate
+					? moment(args.completedDate).valueOf()
+					: undefined,
 			});
 			if (metadata) {
 				taskContent += ` ${metadata}`;
 			}
 
 			// Ensure file exists
-			let file = this.vault.getAbstractFileByPath(filePath) as TFile | null;
+			let file = this.vault.getAbstractFileByPath(
+				filePath
+			) as TFile | null;
 			if (!file) {
 				// Create directory structure if needed
 				const parts = filePath.split("/");
@@ -621,9 +847,13 @@ export class WriteAPI {
 					: (content ? content + "\n" : "") + taskContent;
 
 				// Notify about write operation
-				emit(this.app, Events.WRITE_OPERATION_START, { path: file.path });
+				emit(this.app, Events.WRITE_OPERATION_START, {
+					path: file.path,
+				});
 				await this.vault.modify(file, newContent);
-				emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: file.path });
+				emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+					path: file.path,
+				});
 			}
 
 			return { success: true };
@@ -636,7 +866,9 @@ export class WriteAPI {
 	/**
 	 * Delete a task
 	 */
-	async deleteTask(args: DeleteTaskArgs): Promise<{ success: boolean; error?: string }> {
+	async deleteTask(
+		args: DeleteTaskArgs
+	): Promise<{ success: boolean; error?: string }> {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
@@ -648,7 +880,9 @@ export class WriteAPI {
 				return this.deleteCanvasTask(args);
 			}
 
-			const file = this.vault.getAbstractFileByPath(task.filePath) as TFile;
+			const file = this.vault.getAbstractFileByPath(
+				task.filePath
+			) as TFile;
 			if (!file) {
 				return { success: false, error: "File not found" };
 			}
@@ -660,9 +894,15 @@ export class WriteAPI {
 				lines.splice(task.line, 1);
 
 				// Notify about write operation
-				emit(this.app, Events.WRITE_OPERATION_START, { path: file.path, taskId: args.taskId });
+				emit(this.app, Events.WRITE_OPERATION_START, {
+					path: file.path,
+					taskId: args.taskId,
+				});
 				await this.vault.modify(file, lines.join("\n"));
-				emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: file.path, taskId: args.taskId });
+				emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+					path: file.path,
+					taskId: args.taskId,
+				});
 				return { success: true };
 			}
 
@@ -680,7 +920,10 @@ export class WriteAPI {
 		taskIds: string[];
 		status?: string;
 		completed?: boolean;
-	}): Promise<{ updated: string[]; failed: Array<{ id: string; error: string }> }> {
+	}): Promise<{
+		updated: string[];
+		failed: Array<{ id: string; error: string }>;
+	}> {
 		const updated: string[] = [];
 		const failed: Array<{ id: string; error: string }> = [];
 
@@ -694,7 +937,10 @@ export class WriteAPI {
 			if (result.success) {
 				updated.push(taskId);
 			} else {
-				failed.push({ id: taskId, error: result.error || "Unknown error" });
+				failed.push({
+					id: taskId,
+					error: result.error || "Unknown error",
+				});
 			}
 		}
 
@@ -707,7 +953,10 @@ export class WriteAPI {
 	async postponeTasks(args: {
 		taskIds: string[];
 		newDate: string;
-	}): Promise<{ updated: string[]; failed: Array<{ id: string; error: string }> }> {
+	}): Promise<{
+		updated: string[];
+		failed: Array<{ id: string; error: string }>;
+	}> {
 		const updated: string[] = [];
 		const failed: Array<{ id: string; error: string }> = [];
 
@@ -715,7 +964,10 @@ export class WriteAPI {
 		if (newDateMs === null) {
 			return {
 				updated: [],
-				failed: args.taskIds.map(id => ({ id, error: "Invalid date format" })),
+				failed: args.taskIds.map((id) => ({
+					id,
+					error: "Invalid date format",
+				})),
 			};
 		}
 
@@ -732,7 +984,10 @@ export class WriteAPI {
 			if (result.success) {
 				updated.push(taskId);
 			} else {
-				failed.push({ id: taskId, error: result.error || "Unknown error" });
+				failed.push({
+					id: taskId,
+					error: result.error || "Unknown error",
+				});
 			}
 		}
 
@@ -742,21 +997,28 @@ export class WriteAPI {
 	/**
 	 * Batch update text in tasks
 	 */
-	async batchUpdateText(args: BatchUpdateTextArgs): Promise<{ tasks: Task[] }> {
+	async batchUpdateText(
+		args: BatchUpdateTextArgs
+	): Promise<{ tasks: Task[] }> {
 		const updatedTasks: Task[] = [];
 
 		for (const taskId of args.taskIds) {
 			const task = await Promise.resolve(this.getTaskById(taskId));
 			if (!task) continue;
 
-			const newContent = task.content.replace(args.findText, args.replaceText);
+			const newContent = task.content.replace(
+				args.findText,
+				args.replaceText
+			);
 			const result = await this.updateTask({
 				taskId,
 				updates: { content: newContent },
 			});
 
 			if (result.success) {
-				const updatedTask = await Promise.resolve(this.getTaskById(taskId));
+				const updatedTask = await Promise.resolve(
+					this.getTaskById(taskId)
+				);
 				if (updatedTask) {
 					updatedTasks.push(updatedTask);
 				}
@@ -769,8 +1031,12 @@ export class WriteAPI {
 	/**
 	 * Batch create subtasks
 	 */
-	async batchCreateSubtasks(args: BatchCreateSubtasksArgs): Promise<{ tasks: Task[] }> {
-		const parentTask = await Promise.resolve(this.getTaskById(args.parentTaskId));
+	async batchCreateSubtasks(
+		args: BatchCreateSubtasksArgs
+	): Promise<{ tasks: Task[] }> {
+		const parentTask = await Promise.resolve(
+			this.getTaskById(args.parentTaskId)
+		);
 		if (!parentTask) {
 			return { tasks: [] };
 		}
@@ -795,7 +1061,9 @@ export class WriteAPI {
 	/**
 	 * Create a task in today's daily note
 	 */
-	async createTaskInDailyNote(args: CreateTaskArgs & { heading?: string }): Promise<{ success: boolean; task?: Task; error?: string }> {
+	async createTaskInDailyNote(
+		args: CreateTaskArgs & { heading?: string }
+	): Promise<{ success: boolean; task?: Task; error?: string }> {
 		try {
 			// Try using Daily Notes plugin if available
 			let dailyNoteFile: TFile | null = null;
@@ -823,7 +1091,9 @@ export class WriteAPI {
 					}
 				}
 				const dateStr = moment().format(format);
-				const path = folder ? `${folder}/${dateStr}.md` : `${dateStr}.md`;
+				const path = folder
+					? `${folder}/${dateStr}.md`
+					: `${dateStr}.md`;
 
 				// Ensure folders
 				const parts = path.split("/");
@@ -837,7 +1107,9 @@ export class WriteAPI {
 				}
 
 				// Create file if not exists
-				let file = this.vault.getAbstractFileByPath(path) as TFile | null;
+				let file = this.vault.getAbstractFileByPath(
+					path
+				) as TFile | null;
 				if (!file) {
 					file = await this.vault.create(path, "");
 				}
@@ -852,10 +1124,16 @@ export class WriteAPI {
 				project: args.project,
 				context: args.context,
 				priority: args.priority,
-				startDate: args.startDate ? moment(args.startDate).valueOf() : undefined,
-				dueDate: args.dueDate ? moment(args.dueDate).valueOf() : undefined,
+				startDate: args.startDate
+					? moment(args.startDate).valueOf()
+					: undefined,
+				dueDate: args.dueDate
+					? moment(args.dueDate).valueOf()
+					: undefined,
 				completed: args.completed,
-				completedDate: args.completedDate ? moment(args.completedDate).valueOf() : undefined,
+				completedDate: args.completedDate
+					? moment(args.completedDate).valueOf()
+					: undefined,
 			});
 			if (metadata) {
 				taskContent += ` ${metadata}`;
@@ -867,32 +1145,53 @@ export class WriteAPI {
 			let newContent = current;
 
 			if (args.parent) {
-				newContent = this.insertSubtask(current, args.parent, taskContent);
+				newContent = this.insertSubtask(
+					current,
+					args.parent,
+					taskContent
+				);
 			} else {
 				// Use heading from Quick Capture settings if available
-				const fallbackHeading = args.heading || this.plugin.settings.quickCapture?.targetHeading?.trim();
+				const fallbackHeading =
+					args.heading ||
+					this.plugin.settings.quickCapture?.targetHeading?.trim();
 				if (fallbackHeading) {
 					const headingRegex = new RegExp(
-						`^#{1,6}\\s+${fallbackHeading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`,
+						`^#{1,6}\\s+${fallbackHeading.replace(
+							/[.*+?^${}()|[\]\\]/g,
+							"\\$&"
+						)}\\s*$`,
 						"m"
 					);
 					if (headingRegex.test(current)) {
-						newContent = current.replace(headingRegex, `$&\n\n${taskContent}`);
+						newContent = current.replace(
+							headingRegex,
+							`$&\n\n${taskContent}`
+						);
 					} else {
-						newContent = `${current}${current.endsWith("\n") ? "" : "\n"}\n## ${fallbackHeading}\n\n${taskContent}`;
+						newContent = `${current}${
+							current.endsWith("\n") ? "" : "\n"
+						}\n## ${fallbackHeading}\n\n${taskContent}`;
 					}
 				} else {
-					newContent = current ? `${current}\n${taskContent}` : taskContent;
+					newContent = current
+						? `${current}\n${taskContent}`
+						: taskContent;
 				}
 			}
 
 			// Notify about write operation
 			emit(this.app, Events.WRITE_OPERATION_START, { path: file.path });
 			await this.vault.modify(file, newContent);
-			emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: file.path });
+			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+				path: file.path,
+			});
 			return { success: true };
 		} catch (error) {
-			console.error("WriteAPI: Error creating task in daily note:", error);
+			console.error(
+				"WriteAPI: Error creating task in daily note:",
+				error
+			);
 			return { success: false, error: String(error) };
 		}
 	}
@@ -926,10 +1225,16 @@ export class WriteAPI {
 				project: args.project,
 				context: args.context,
 				priority: args.priority,
-				startDate: args.startDate ? moment(args.startDate).valueOf() : undefined,
-				dueDate: args.dueDate ? moment(args.dueDate).valueOf() : undefined,
+				startDate: args.startDate
+					? moment(args.startDate).valueOf()
+					: undefined,
+				dueDate: args.dueDate
+					? moment(args.dueDate).valueOf()
+					: undefined,
 				completed: args.completed,
-				completedDate: args.completedDate ? moment(args.completedDate).valueOf() : undefined,
+				completedDate: args.completedDate
+					? moment(args.completedDate).valueOf()
+					: undefined,
 			});
 			if (metadata) {
 				line += ` ${metadata}`;
@@ -938,10 +1243,17 @@ export class WriteAPI {
 			// Compute target filePath
 			let filePath: string;
 			if (qc.targetType === "daily-note" && qc.dailyNoteSettings) {
-				const dateStr = moment().format(qc.dailyNoteSettings.format || "YYYY-MM-DD");
-				filePath = (qc.dailyNoteSettings.folder ? `${qc.dailyNoteSettings.folder.replace(/\/$/, "")}/` : "") + `${dateStr}.md`;
+				const dateStr = moment().format(
+					qc.dailyNoteSettings.format || "YYYY-MM-DD"
+				);
+				filePath =
+					(qc.dailyNoteSettings.folder
+						? `${qc.dailyNoteSettings.folder.replace(/\/$/, "")}/`
+						: "") + `${dateStr}.md`;
 			} else {
-				filePath = processDateTemplates(qc.targetFile || "Quick Capture.md");
+				filePath = processDateTemplates(
+					qc.targetFile || "Quick Capture.md"
+				);
 			}
 
 			// Save using shared saver
@@ -955,7 +1267,10 @@ export class WriteAPI {
 
 			return { filePath, success: true };
 		} catch (error) {
-			console.error("WriteAPI: Error adding project task to quick capture:", error);
+			console.error(
+				"WriteAPI: Error adding project task to quick capture:",
+				error
+			);
 			return { filePath: "", success: false };
 		}
 	}
@@ -976,7 +1291,8 @@ export class WriteAPI {
 		completedDate?: number;
 	}): string {
 		const metadata: string[] = [];
-		const useDataviewFormat = this.plugin.settings.preferMetadataFormat === "dataview";
+		const useDataviewFormat =
+			this.plugin.settings.preferMetadataFormat === "dataview";
 
 		// Tags
 		if (args.tags?.length) {
@@ -984,19 +1300,24 @@ export class WriteAPI {
 				metadata.push(`[tags:: ${args.tags.join(", ")}]`);
 			} else {
 				// Ensure tags don't already have # prefix before adding one
-				metadata.push(...args.tags.map(tag =>
-					tag.startsWith("#") ? tag : `#${tag}`
-				));
+				metadata.push(
+					...args.tags.map((tag) =>
+						tag.startsWith("#") ? tag : `#${tag}`
+					)
+				);
 			}
 		}
 
 		// Project
 		if (args.project) {
 			if (useDataviewFormat) {
-				const projectPrefix = this.plugin.settings.projectTagPrefix?.dataview || "project";
+				const projectPrefix =
+					this.plugin.settings.projectTagPrefix?.dataview ||
+					"project";
 				metadata.push(`[${projectPrefix}:: ${args.project}]`);
 			} else {
-				const projectPrefix = this.plugin.settings.projectTagPrefix?.tasks || "project";
+				const projectPrefix =
+					this.plugin.settings.projectTagPrefix?.tasks || "project";
 				metadata.push(`#${projectPrefix}/${args.project}`);
 			}
 		}
@@ -1004,36 +1325,64 @@ export class WriteAPI {
 		// Context
 		if (args.context) {
 			if (useDataviewFormat) {
-				const contextPrefix = this.plugin.settings.contextTagPrefix?.dataview || "context";
+				const contextPrefix =
+					this.plugin.settings.contextTagPrefix?.dataview ||
+					"context";
 				metadata.push(`[${contextPrefix}:: ${args.context}]`);
 			} else {
-				const contextPrefix = this.plugin.settings.contextTagPrefix?.tasks || "@";
+				const contextPrefix =
+					this.plugin.settings.contextTagPrefix?.tasks || "@";
 				metadata.push(`${contextPrefix}${args.context}`);
 			}
 		}
 
 		// Priority
 		// Only add priority if it's a valid number between 1-5
-		if (typeof args.priority === 'number' && args.priority >= 1 && args.priority <= 5) {
+		if (
+			typeof args.priority === "number" &&
+			args.priority >= 1 &&
+			args.priority <= 5
+		) {
 			if (useDataviewFormat) {
 				let priorityValue: string;
 				switch (args.priority) {
-					case 5: priorityValue = "highest"; break;
-					case 4: priorityValue = "high"; break;
-					case 3: priorityValue = "medium"; break;
-					case 2: priorityValue = "low"; break;
-					case 1: priorityValue = "lowest"; break;
-					default: priorityValue = String(args.priority);
+					case 5:
+						priorityValue = "highest";
+						break;
+					case 4:
+						priorityValue = "high";
+						break;
+					case 3:
+						priorityValue = "medium";
+						break;
+					case 2:
+						priorityValue = "low";
+						break;
+					case 1:
+						priorityValue = "lowest";
+						break;
+					default:
+						priorityValue = String(args.priority);
 				}
 				metadata.push(`[priority:: ${priorityValue}]`);
 			} else {
 				let priorityMarker = "";
 				switch (args.priority) {
-					case 5: priorityMarker = "🔺"; break;
-					case 4: priorityMarker = "⏫"; break;
-					case 3: priorityMarker = "🔼"; break;
-					case 2: priorityMarker = "🔽"; break;
-					case 1: priorityMarker = "⏬"; break;
+					case 5:
+						priorityMarker = "🔺";
+						break;
+					case 4:
+						priorityMarker = "⏫";
+						break;
+					case 3:
+						priorityMarker = "🔼";
+						break;
+					case 2:
+						priorityMarker = "🔽";
+						break;
+					case 1:
+						priorityMarker = "⏬";
+						break;
 				}
 				if (priorityMarker) metadata.push(priorityMarker);
 			}
@@ -1052,9 +1401,7 @@ export class WriteAPI {
 		if (args.startDate) {
 			const dateStr = moment(args.startDate).format("YYYY-MM-DD");
 			metadata.push(
-				useDataviewFormat
-					? `[start:: ${dateStr}]`
-					: `🛫 ${dateStr}`
+				useDataviewFormat ? `[start:: ${dateStr}]` : `🛫 ${dateStr}`
 			);
 		}
 
@@ -1062,9 +1409,7 @@ export class WriteAPI {
 		if (args.scheduledDate) {
 			const dateStr = moment(args.scheduledDate).format("YYYY-MM-DD");
 			metadata.push(
-				useDataviewFormat
-					? `[scheduled:: ${dateStr}]`
-					: `⏳ ${dateStr}`
+				useDataviewFormat ? `[scheduled:: ${dateStr}]` : `⏳ ${dateStr}`
 			);
 		}
 
@@ -1072,9 +1417,7 @@ export class WriteAPI {
 		if (args.dueDate) {
 			const dateStr = moment(args.dueDate).format("YYYY-MM-DD");
 			metadata.push(
-				useDataviewFormat
-					? `[due:: ${dateStr}]`
-					: `📅 ${dateStr}`
+				useDataviewFormat ? `[due:: ${dateStr}]` : `📅 ${dateStr}`
 			);
 		}
 
@@ -1094,14 +1437,22 @@ export class WriteAPI {
 	/**
 	 * Insert a subtask under a parent task
 	 */
-	private insertSubtask(content: string, parentTaskId: string, subtaskContent: string): string {
+	private insertSubtask(
+		content: string,
+		parentTaskId: string,
+		subtaskContent: string
+	): string {
 		const lines = content.split("\n");
 		const parentTask = this.findTaskLineById(lines, parentTaskId);
 
 		if (parentTask) {
 			const indent = this.getIndent(lines[parentTask.line]);
 			const subtaskIndent = indent + "\t";
-			lines.splice(parentTask.line + 1, 0, subtaskIndent + subtaskContent.trim());
+			lines.splice(
+				parentTask.line + 1,
+				0,
+				subtaskIndent + subtaskContent.trim()
+			);
 		}
 
 		return lines.join("\n");
@@ -1110,7 +1461,10 @@ export class WriteAPI {
 	/**
 	 * Find task line by ID
 	 */
-	private findTaskLineById(lines: string[], taskId: string): { line: number } | null {
+	private findTaskLineById(
+		lines: string[],
+		taskId: string
+	): { line: number } | null {
 		for (let i = 0; i < lines.length; i++) {
 			if (lines[i].includes(taskId)) {
 				return { line: i };
@@ -1144,10 +1498,18 @@ export class WriteAPI {
 		const base = new Date();
 
 		switch (unit) {
-			case "d": base.setDate(base.getDate() + n); break;
-			case "w": base.setDate(base.getDate() + n * 7); break;
-			case "m": base.setMonth(base.getMonth() + n); break;
-			case "y": base.setFullYear(base.getFullYear() + n); break;
+			case "d":
+				base.setDate(base.getDate() + n);
+				break;
+			case "w":
+				base.setDate(base.getDate() + n * 7);
+				break;
+			case "m":
+				base.setMonth(base.getMonth() + n);
+				break;
+			case "y":
+				base.setFullYear(base.getFullYear() + n);
+				break;
 		}
 
 		// Normalize to local midnight
@@ -1160,9 +1522,13 @@ export class WriteAPI {
 	/**
 	 * Update a Canvas task
 	 */
-	async updateCanvasTask(args: UpdateTaskArgs): Promise<{ success: boolean; task?: Task; error?: string }> {
+	async updateCanvasTask(
+		args: UpdateTaskArgs
+	): Promise<{ success: boolean; task?: Task; error?: string }> {
 		try {
-			const originalTask = await Promise.resolve(this.getTaskById(args.taskId));
+			const originalTask = await Promise.resolve(
+				this.getTaskById(args.taskId)
+			);
 			if (!originalTask) {
 				return { success: false, error: "Task not found" };
 			}
@@ -1172,8 +1538,15 @@ export class WriteAPI {
 				return { success: false, error: "Task is not a Canvas task" };
 			}
 
-			// Create updated task object
-			const updatedTask = { ...originalTask, ...args.updates } as Task<CanvasTaskMetadata>;
+			// Create updated task object (deep-merge metadata to preserve unchanged fields)
+			const updatedTask = {
+				...originalTask,
+				...args.updates,
+				metadata: {
+					...originalTask.metadata,
+					...(args.updates as any).metadata,
+				},
+			} as Task<CanvasTaskMetadata>;
 
 			// Use CanvasTaskUpdater to update the task
 			const result = await this.canvasTaskUpdater.updateCanvasTask(
@@ -1186,8 +1559,14 @@ export class WriteAPI {
 				emit(this.app, Events.TASK_UPDATED, { task: updatedTask });
 
 				// Trigger task-completed event if task was just completed
-				if (args.updates.completed === true && !originalTask.completed) {
-					this.app.workspace.trigger("task-genius:task-completed", updatedTask);
+				if (
+					args.updates.completed === true &&
+					!originalTask.completed
+				) {
+					this.app.workspace.trigger(
+						"task-genius:task-completed",
+						updatedTask
+					);
 				}
 
 				return { success: true, task: updatedTask };
@@ -1203,7 +1582,9 @@ export class WriteAPI {
 	/**
 	 * Delete a Canvas task
 	 */
-	async deleteCanvasTask(args: DeleteTaskArgs): Promise<{ success: boolean; error?: string }> {
+	async deleteCanvasTask(
+		args: DeleteTaskArgs
+	): Promise<{ success: boolean; error?: string }> {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {

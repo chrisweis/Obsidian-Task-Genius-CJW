@@ -96,17 +96,23 @@ export class CanvasTaskUpdater {
 			// Write the updated Canvas content back to the file
 			const updatedContent = JSON.stringify(canvasData, null, 2);
 			console.log("updatedContent", updatedContent);
-			
+
 			// Notify about write operation to trigger data flow update
 			if (this.plugin.app) {
-				emit(this.plugin.app, Events.WRITE_OPERATION_START, { path: file.path, taskId: task.id });
+				emit(this.plugin.app, Events.WRITE_OPERATION_START, {
+					path: file.path,
+					taskId: task.id,
+				});
 			}
-			
+
 			await this.vault.modify(file, updatedContent);
-			
+
 			// Notify write operation complete
 			if (this.plugin.app) {
-				emit(this.plugin.app, Events.WRITE_OPERATION_COMPLETE, { path: file.path, taskId: task.id });
+				emit(this.plugin.app, Events.WRITE_OPERATION_COMPLETE, {
+					path: file.path,
+					taskId: task.id,
+				});
 			}
 
 			return {
@@ -486,11 +492,23 @@ export class CanvasTaskUpdater {
 			}
 		}
 
-		if (updatedTask.metadata.dependsOn) {
+		// 4.5 Depends On (only if non-empty)
+		const dependsValue: any = (updatedTask.metadata as any).dependsOn;
+		let dependsList: string[] | undefined;
+		if (Array.isArray(dependsValue)) {
+			dependsList = dependsValue.filter(
+				(v) => typeof v === "string" && v.trim().length > 0
+			);
+		} else if (typeof dependsValue === "string") {
+			dependsList = dependsValue
+				.split(",")
+				.map((s) => s.trim())
+				.filter((s) => s.length > 0);
+		}
+		if (dependsList && dependsList.length > 0) {
+			const joined = dependsList.join(", ");
 			metadata.push(
-				useDataviewFormat
-					? `[dependsOn:: ${updatedTask.metadata.dependsOn}]`
-					: `⛔ ${updatedTask.metadata.dependsOn}`
+				useDataviewFormat ? `[dependsOn:: ${joined}]` : `⛔ ${joined}`
 			);
 		}
 
