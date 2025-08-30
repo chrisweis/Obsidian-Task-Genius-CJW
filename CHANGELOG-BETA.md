@@ -4,6 +4,16 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.10](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.9...9.8.0-beta.10) (2025-08-30)
+
+### Features
+
+* **settings:** improve heading filter UI and fix matching logic ([1e20055](https://github.com/Quorafind/Obsidian-Task-Genius/commit/1e2005590360a8ee78037a2a46a5eb3152feb6a0))
+
+### Styles
+
+* fix indentation and improve configuration passing ([fbb9417](https://github.com/Quorafind/Obsidian-Task-Genius/commit/fbb9417f63397e71163e60be0c1fed4636ac6136))
+
 ## [9.8.0-beta.9](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.8...9.8.0-beta.9) (2025-08-30)
 
 ### Features
