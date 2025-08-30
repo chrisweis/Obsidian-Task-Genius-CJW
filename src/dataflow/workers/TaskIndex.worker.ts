@@ -55,24 +55,62 @@ function parseTasksWithConfigurableParser(
 
 		// Apply heading filters if specified
 		return tasks.filter((task) => {
+			// Parse comma-separated heading filters and normalize them
+			// Remove leading # symbols since task.metadata.heading contains only the text
+			const ignoreHeadings = settings.ignoreHeading
+				? settings.ignoreHeading.split(',').map(h => {
+					// Trim and remove leading # symbols
+					const trimmed = h.trim();
+					return trimmed.replace(/^#+\s*/, '');
+				}).filter(h => h)
+				: [];
+			
+			const focusHeadings = settings.focusHeading
+				? settings.focusHeading.split(',').map(h => {
+					// Trim and remove leading # symbols
+					const trimmed = h.trim();
+					return trimmed.replace(/^#+\s*/, '');
+				}).filter(h => h)
+				: [];
+
 			// Filter by ignore heading
-			if (settings.ignoreHeading && task.metadata.heading) {
-				const headings = Array.isArray(task.metadata.heading)
+			if (ignoreHeadings.length > 0) {
+				// If task has no heading and we have ignore headings, let it pass
+				if (!task.metadata.heading) {
+					return true;
+				}
+				
+				const taskHeadings = Array.isArray(task.metadata.heading)
 					? task.metadata.heading
 					: [task.metadata.heading];
 
-				if (headings.some((h) => h.includes(settings.ignoreHeading))) {
+				// Check if any task heading matches any ignore heading
+				if (taskHeadings.some((taskHeading) => 
+					ignoreHeadings.some((ignoreHeading) => 
+						taskHeading.toLowerCase().includes(ignoreHeading.toLowerCase())
+					)
+				)) {
 					return false;
 				}
 			}
 
 			// Filter by focus heading
-			if (settings.focusHeading && task.metadata.heading) {
-				const headings = Array.isArray(task.metadata.heading)
+			if (focusHeadings.length > 0) {
+				// If task has no heading and we have focus headings, exclude it
+				if (!task.metadata.heading) {
+					return false;
+				}
+				
+				const taskHeadings = Array.isArray(task.metadata.heading)
 					? task.metadata.heading
 					: [task.metadata.heading];
 
-				if (!headings.some((h) => h.includes(settings.focusHeading))) {
+				// Check if any task heading matches any focus heading
+				if (!taskHeadings.some((taskHeading) => 
+					focusHeadings.some((focusHeading) => 
+						taskHeading.toLowerCase().includes(focusHeading.toLowerCase())
+					)
+				)) {
 					return false;
 				}
 			}

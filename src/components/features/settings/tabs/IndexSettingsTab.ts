@@ -3,6 +3,7 @@ import { TaskProgressBarSettingTab } from "@/setting";
 import { t } from "@/translations/helper";
 import { SingleFolderSuggest } from "@/components/ui/inputs/AutoComplete";
 import { ConfirmModal } from "@/components/ui/modals/ConfirmModal";
+import { ListConfigModal } from "@/components/ui/modals/ListConfigModal";
 import { createFileSourceSettings } from "../components/FileSourceSettingsSection";
 
 /**
@@ -11,15 +12,15 @@ import { createFileSourceSettings } from "../components/FileSourceSettingsSectio
  */
 export function renderIndexSettingsTab(
 	settingTab: TaskProgressBarSettingTab,
-	containerEl: HTMLElement,
+	containerEl: HTMLElement
 ) {
 	// Main heading
 	new Setting(containerEl)
 		.setName(t("Index & Task Source Configuration"))
 		.setDesc(
 			t(
-				"Configure how Task Genius discovers and indexes tasks from various sources including inline tasks, file metadata, and projects.",
-			),
+				"Configure how Task Genius discovers and indexes tasks from various sources including inline tasks, file metadata, and projects."
+			)
 		)
 		.setHeading();
 
@@ -32,12 +33,14 @@ export function renderIndexSettingsTab(
 			toggle.setValue(settingTab.plugin.settings.enableIndexer ?? true);
 			toggle.onChange(async (value) => {
 				settingTab.plugin.settings.enableIndexer = value;
-								settingTab.applySettingsUpdate();
+				settingTab.applySettingsUpdate();
 				settingTab.display(); // Refresh settings display
 
 				// Show restart notice
 				new Notice(
-					t("Please restart Obsidian for the Indexer change to take effect."),
+					t(
+						"Please restart Obsidian for the Indexer change to take effect."
+					),
 					8000
 				);
 			});
@@ -55,8 +58,8 @@ export function renderIndexSettingsTab(
 		.setName(t("Prefer metadata format of task"))
 		.setDesc(
 			t(
-				"You can choose dataview format or tasks format, that will influence both index and save format.",
-			),
+				"You can choose dataview format or tasks format, that will influence both index and save format."
+			)
 		)
 		.addDropdown((dropdown) => {
 			dropdown
@@ -80,13 +83,13 @@ export function renderIndexSettingsTab(
 		.setName(t("Enable custom date formats"))
 		.setDesc(
 			t(
-				"Enable custom date format patterns for parsing dates. When enabled, the parser will try your custom formats before falling back to default formats.",
-			),
+				"Enable custom date format patterns for parsing dates. When enabled, the parser will try your custom formats before falling back to default formats."
+			)
 		)
 		.addToggle((toggle) => {
 			toggle
 				.setValue(
-					settingTab.plugin.settings.enableCustomDateFormats ?? false,
+					settingTab.plugin.settings.enableCustomDateFormats ?? false
 				)
 				.onChange((value) => {
 					settingTab.plugin.settings.enableCustomDateFormats = value;
@@ -109,7 +112,7 @@ export function renderIndexSettingsTab(
 
 		dateFormatsContainer.createEl("p", {
 			text: t(
-				"Add custom date format patterns. Date patterns: yyyy (4-digit year), yy (2-digit year), MM (2-digit month), M (1-2 digit month), dd (2-digit day), d (1-2 digit day), MMM (short month name), MMMM (full month name). Time patterns: HH (2-digit hour), mm (2-digit minute), ss (2-digit second). Use single quotes for literals (e.g., 'T' for ISO format).",
+				"Add custom date format patterns. Date patterns: yyyy (4-digit year), yy (2-digit year), MM (2-digit month), M (1-2 digit month), dd (2-digit day), d (1-2 digit day), MMM (short month name), MMMM (full month name). Time patterns: HH (2-digit hour), mm (2-digit minute), ss (2-digit second). Use single quotes for literals (e.g., 'T' for ISO format)."
 			),
 			cls: "setting-item-description",
 		});
@@ -137,7 +140,7 @@ export function renderIndexSettingsTab(
 					value: format,
 					cls: "task-genius-format-input",
 					placeholder: t(
-						"Enter date format (e.g., yyyy-MM-dd or yyyyMMdd_HHmmss)",
+						"Enter date format (e.g., yyyy-MM-dd or yyyyMMdd_HHmmss)"
 					),
 				});
 
@@ -161,7 +164,7 @@ export function renderIndexSettingsTab(
 				deleteBtn.addEventListener("click", () => {
 					settingTab.plugin.settings.customDateFormats!.splice(
 						index,
-						1,
+						1
 					);
 					settingTab.applySettingsUpdate();
 					renderFormatList();
@@ -184,7 +187,7 @@ export function renderIndexSettingsTab(
 
 				// Focus on the new input
 				const inputs = formatListContainer.querySelectorAll(
-					".task-genius-format-input",
+					".task-genius-format-input"
 				);
 				const lastInput = inputs[inputs.length - 1] as HTMLInputElement;
 				if (lastInput) {
@@ -245,18 +248,18 @@ export function renderIndexSettingsTab(
 		.setDesc(
 			isDataviewFormat
 				? t(
-						"Customize the prefix used for project tags in dataview format (e.g., 'project' for [project:: myproject]). Changes require reindexing.",
-					)
+						"Customize the prefix used for project tags in dataview format (e.g., 'project' for [project:: myproject]). Changes require reindexing."
+				  )
 				: t(
-						"Customize the prefix used for project tags (e.g., 'project' for #project/myproject). Changes require reindexing.",
-					),
+						"Customize the prefix used for project tags (e.g., 'project' for #project/myproject). Changes require reindexing."
+				  )
 		)
 		.addText((text) => {
 			text.setPlaceholder("project")
 				.setValue(
 					settingTab.plugin.settings.projectTagPrefix[
 						settingTab.plugin.settings.preferMetadataFormat
-					],
+					]
 				)
 				.onChange(async (value) => {
 					settingTab.plugin.settings.projectTagPrefix[
@@ -272,18 +275,18 @@ export function renderIndexSettingsTab(
 		.setDesc(
 			isDataviewFormat
 				? t(
-						"Customize the prefix used for context tags in dataview format (e.g., 'context' for [context:: home]). Changes require reindexing.",
-					)
+						"Customize the prefix used for context tags in dataview format (e.g., 'context' for [context:: home]). Changes require reindexing."
+				  )
 				: t(
-						"Customize the prefix used for context tags (e.g., '@home' for @home). Changes require reindexing.",
-					),
+						"Customize the prefix used for context tags (e.g., '@home' for @home). Changes require reindexing."
+				  )
 		)
 		.addText((text) => {
 			text.setPlaceholder("context")
 				.setValue(
 					settingTab.plugin.settings.contextTagPrefix[
 						settingTab.plugin.settings.preferMetadataFormat
-					],
+					]
 				)
 				.onChange(async (value) => {
 					settingTab.plugin.settings.contextTagPrefix[
@@ -297,14 +300,55 @@ export function renderIndexSettingsTab(
 		.setName(t("Ignore all tasks behind heading"))
 		.setDesc(
 			t(
-				"Enter the heading to ignore, e.g. '## Project', '## Inbox', separated by comma",
-			),
+				"Configure headings to ignore. Tasks under these headings will be excluded from indexing."
+			)
 		)
-		.addText((text) => {
-			text.setValue(settingTab.plugin.settings.ignoreHeading);
-			text.onChange((value) => {
-				settingTab.plugin.settings.ignoreHeading = value;
-				settingTab.applySettingsUpdate();
+		.addButton((button) => {
+			const getIgnoreHeadings = () => {
+				const value = settingTab.plugin.settings.ignoreHeading || "";
+				return value
+					.split(",")
+					.map((h) => h.trim())
+					.filter((h) => h);
+			};
+
+			const updateButtonText = () => {
+				const headings = getIgnoreHeadings();
+				if (headings.length === 0) {
+					button.setButtonText(t("Configure Ignore Headings"));
+				} else {
+					button.setButtonText(
+						t("{{count}} heading(s) configured", {
+							interpolation: {
+								count: headings.length.toString(),
+							},
+						})
+					);
+				}
+			};
+
+			updateButtonText();
+			button.onClick(() => {
+				new ListConfigModal(settingTab.plugin, {
+					title: t("Configure Ignore Headings"),
+					description: t(
+						"Add headings to ignore. Tasks under these headings will be excluded from indexing. Examples: '## Project', '## Inbox', '# Archive'"
+					),
+					placeholder: t("Enter heading (e.g., ## Inbox)"),
+					values: getIgnoreHeadings(),
+					onSave: (values) => {
+						settingTab.plugin.settings.ignoreHeading =
+							values.join(", ");
+						settingTab.applySettingsUpdate();
+						updateButtonText();
+						new Notice(
+							t(
+								"Heading filters updated. Rebuild the task index to apply to existing tasks."
+							),
+							6000
+						);
+					},
+				}).open();
 			});
 		});
 
@@ -312,14 +356,55 @@ export function renderIndexSettingsTab(
 		.setName(t("Focus all tasks behind heading"))
 		.setDesc(
 			t(
-				"Enter the heading to focus, e.g. '## Project', '## Inbox', separated by comma",
-			),
+				"Configure headings to focus on. Only tasks under these headings will be included in indexing."
+			)
 		)
-		.addText((text) => {
-			text.setValue(settingTab.plugin.settings.focusHeading);
-			text.onChange((value) => {
-				settingTab.plugin.settings.focusHeading = value;
-				settingTab.applySettingsUpdate();
+		.addButton((button) => {
+			const getFocusHeadings = () => {
+				const value = settingTab.plugin.settings.focusHeading || "";
+				return value
+					.split(",")
+					.map((h) => h.trim())
+					.filter((h) => h);
+			};
+
+			const updateButtonText = () => {
+				const headings = getFocusHeadings();
+				if (headings.length === 0) {
+					button.setButtonText(t("Configure Focus Headings"));
+				} else {
+					button.setButtonText(
+						t("{{count}} heading(s) configured", {
+							interpolation: {
+								count: headings.length.toString(),
+							},
+						})
+					);
+				}
+			};
+
+			updateButtonText();
+			button.onClick(() => {
+				new ListConfigModal(settingTab.plugin, {
+					title: t("Configure Focus Headings"),
+					description: t(
+						"Add headings to focus on. Only tasks under these headings will be included in indexing. Examples: '## Project', '## Inbox', '# Tasks'"
+					),
+					placeholder: t("Enter heading (e.g., ## Tasks)"),
+					values: getFocusHeadings(),
+					onSave: (values) => {
+						settingTab.plugin.settings.focusHeading =
+							values.join(", ");
+						settingTab.applySettingsUpdate();
+						updateButtonText();
+						new Notice(
+							t(
+								"Heading filters updated. Rebuild the task index to apply to existing tasks."
+							),
+							6000
+						);
+					},
+				}).open();
 			});
 		});
 
@@ -327,8 +412,8 @@ export function renderIndexSettingsTab(
 		.setName(t("Use daily note path as date"))
 		.setDesc(
 			t(
-				"If enabled, the daily note path will be used as the date for tasks.",
-			),
+				"If enabled, the daily note path will be used as the date for tasks."
+			)
 		)
 		.addToggle((toggle) => {
 			toggle.setValue(settingTab.plugin.settings.useDailyNotePathAsDate);
@@ -346,12 +431,12 @@ export function renderIndexSettingsTab(
 		const descFragment = document.createDocumentFragment();
 		descFragment.createEl("div", {
 			text: t(
-				"Task Genius will use moment.js and also this format to parse the daily note path.",
+				"Task Genius will use moment.js and also this format to parse the daily note path."
 			),
 		});
 		descFragment.createEl("div", {
 			text: t(
-				"You need to set `yyyy` instead of `YYYY` in the format string. And `dd` instead of `DD`.",
+				"You need to set `yyyy` instead of `YYYY` in the format string. And `dd` instead of `DD`."
 			),
 		});
 		new Setting(containerEl)
@@ -372,7 +457,7 @@ export function renderIndexSettingsTab(
 				new SingleFolderSuggest(
 					settingTab.app,
 					text.inputEl,
-					settingTab.plugin,
+					settingTab.plugin
 				);
 				text.setValue(settingTab.plugin.settings.dailyNotePath);
 				text.onChange((value) => {
@@ -385,8 +470,8 @@ export function renderIndexSettingsTab(
 			.setName(t("Use as date type"))
 			.setDesc(
 				t(
-					"You can choose due, start, or scheduled as the date type for tasks.",
-				),
+					"You can choose due, start, or scheduled as the date type for tasks."
+				)
 			)
 			.addDropdown((dropdown) => {
 				dropdown
@@ -410,7 +495,9 @@ export function renderIndexSettingsTab(
 	new Setting(containerEl)
 		.setName(t("File Task Configuration"))
 		.setDesc(
-			t("Configure how files can be recognized and treated as tasks with various strategies."),
+			t(
+				"Configure how files can be recognized and treated as tasks with various strategies."
+			)
 		)
 		.setHeading();
 
@@ -428,14 +515,14 @@ export function renderIndexSettingsTab(
 		.setName(t("Enable worker processing"))
 		.setDesc(
 			t(
-				"Use background worker for file parsing to improve performance. Recommended for large vaults.",
-			), 
+				"Use background worker for file parsing to improve performance. Recommended for large vaults."
+			)
 		)
 		.addToggle((toggle) => {
 			// Use the new fileSource.performance.enableWorkerProcessing setting
 			toggle.setValue(
 				settingTab.plugin.settings.fileSource?.performance
-					?.enableWorkerProcessing ?? true,
+					?.enableWorkerProcessing ?? true
 			);
 			toggle.onChange((value) => {
 				// Ensure fileSource and performance objects exist
@@ -446,25 +533,27 @@ export function renderIndexSettingsTab(
 						performance: {
 							enableWorkerProcessing: true,
 							enableCaching: true,
-							cacheTTL: 300000
-						}
+							cacheTTL: 300000,
+						},
 					} as any;
 				}
 				if (!settingTab.plugin.settings.fileSource.performance) {
 					settingTab.plugin.settings.fileSource.performance = {
 						enableWorkerProcessing: true,
 						enableCaching: true,
-						cacheTTL: 300000
+						cacheTTL: 300000,
 					};
 				}
 				// Update the setting
-				settingTab.plugin.settings.fileSource.performance.enableWorkerProcessing = value;
-				
+				settingTab.plugin.settings.fileSource.performance.enableWorkerProcessing =
+					value;
+
 				// Also update the legacy fileParsingConfig for backward compatibility
 				if (settingTab.plugin.settings.fileParsingConfig) {
-					settingTab.plugin.settings.fileParsingConfig.enableWorkerProcessing = value;
+					settingTab.plugin.settings.fileParsingConfig.enableWorkerProcessing =
+						value;
 				}
-				
+
 				settingTab.applySettingsUpdate();
 			});
 		});
@@ -481,8 +570,8 @@ export function renderIndexSettingsTab(
 		.setName(t("Rebuild index"))
 		.setDesc(
 			t(
-				"Force a complete rebuild of the task index. Use this if you notice missing or incorrect tasks.",
-			),
+				"Force a complete rebuild of the task index. Use this if you notice missing or incorrect tasks."
+			)
 		)
 		.setClass("mod-warning")
 		.addButton((button) => {
@@ -490,7 +579,7 @@ export function renderIndexSettingsTab(
 				new ConfirmModal(settingTab.plugin, {
 					title: t("Reindex"),
 					message: t(
-						"Are you sure you want to force reindex all tasks?",
+						"Are you sure you want to force reindex all tasks?"
 					),
 					confirmText: t("Reindex"),
 					cancelText: t("Cancel"),
@@ -498,9 +587,7 @@ export function renderIndexSettingsTab(
 						if (!confirmed) return;
 						try {
 							new Notice(
-								t(
-									"Clearing task cache and rebuilding index...",
-								),
+								t("Clearing task cache and rebuilding index...")
 							);
 							if (settingTab.plugin.dataflowOrchestrator) {
 								await settingTab.plugin.dataflowOrchestrator.rebuild();
@@ -509,7 +596,7 @@ export function renderIndexSettingsTab(
 						} catch (error) {
 							console.error(
 								"Failed to force reindex tasks:",
-								error,
+								error
 							);
 							new Notice(t("Failed to force reindex tasks"));
 						}

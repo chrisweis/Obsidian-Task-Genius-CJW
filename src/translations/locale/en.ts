@@ -2003,7 +2003,19 @@ const translations = {
   "FileSource Configuration": "FileSource Configuration",
   "Go to FileSource Settings": "Go to FileSource Settings",
   "Note: This setting will be deprecated in favor of the unified FileSource system.": "Note: This setting will be deprecated in favor of the unified FileSource system.",
-  "Note: FileSource settings have been moved to a dedicated tab for better organization and to avoid duplication with file metadata parsing.": "Note: FileSource settings have been moved to a dedicated tab for better organization and to avoid duplication with file metadata parsing."
+  "Note: FileSource settings have been moved to a dedicated tab for better organization and to avoid duplication with file metadata parsing.": "Note: FileSource settings have been moved to a dedicated tab for better organization and to avoid duplication with file metadata parsing.",
+  "Configure Ignore Headings": "Configure Ignore Headings",
+  "Configure Focus Headings": "Configure Focus Headings", 
+  "{{count}} heading(s) configured": "{{count}} heading(s) configured",
+  "Add headings to ignore. Tasks under these headings will be excluded from indexing. Examples: '## Project', '## Inbox', '# Archive'": "Add headings to ignore. Tasks under these headings will be excluded from indexing. Examples: '## Project', '## Inbox', '# Archive'",
+  "Add headings to focus on. Only tasks under these headings will be included in indexing. Examples: '## Project', '## Inbox', '# Tasks'": "Add headings to focus on. Only tasks under these headings will be included in indexing. Examples: '## Project', '## Inbox', '# Tasks'",
+  "Enter heading (e.g., ## Inbox)": "Enter heading (e.g., ## Inbox)",
+  "Enter heading (e.g., ## Tasks)": "Enter heading (e.g., ## Tasks)",
+  "No items configured. Click 'Add Item' to get started.": "No items configured. Click 'Add Item' to get started.",
+  "Enter value": "Enter value",
+  "Delete item": "Delete item",
+  "Delete this item": "Delete this item",
+  "Add Item": "Add Item"
 };
 
 export default translations;
