@@ -991,6 +991,8 @@ export class TaskWorkerManager extends Component {
 		customDateFormats?: string[];
 		fileMetadataInheritance?: any;
 		projectConfig?: any;
+		ignoreHeading?: string;
+		focusHeading?: string;
 	}>): void {
 		// Update the settings
 		if (this.options.settings) {

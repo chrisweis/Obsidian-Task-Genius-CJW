@@ -1686,7 +1686,13 @@ export default class TaskProgressBarPlugin extends Plugin {
 		if (taskViewLeaves.length > 0) {
 			for (const leaf of taskViewLeaves) {
 				if (leaf.view instanceof TaskView) {
-					leaf.view.tasks = this.preloadedTasks;
+					// Avoid overwriting existing tasks with empty preloadedTasks during settings updates
+					if (
+						Array.isArray(this.preloadedTasks) &&
+						this.preloadedTasks.length > 0
+					) {
+						leaf.view.tasks = this.preloadedTasks;
+					}
 					leaf.view.triggerViewUpdate();
 				}
 			}

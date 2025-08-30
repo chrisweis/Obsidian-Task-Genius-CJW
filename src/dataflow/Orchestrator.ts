@@ -38,8 +38,8 @@ export class DataflowOrchestrator {
 	private obsidianSource: ObsidianSource;
 	public icsSource: IcsSource;
 
-		// Central file filter manager
-		private fileFilterManager?: FileFilterManager;
+	// Central file filter manager
+	private fileFilterManager?: FileFilterManager;
 
 	private fileSource: FileSource | null = null;
 
@@ -80,7 +80,26 @@ export class DataflowOrchestrator {
 		this.storage = this.repository.getStorage();
 
 		// Initialize worker orchestrator with settings
-		const taskWorkerManager = new TaskWorkerManager(vault, metadataCache);
+		const taskWorkerManager = new TaskWorkerManager(vault, metadataCache, {
+			settings: {
+				preferMetadataFormat:
+					this.plugin.settings.preferMetadataFormat || "tasks",
+				useDailyNotePathAsDate:
+					this.plugin.settings.useDailyNotePathAsDate || false,
+				dailyNoteFormat:
+					this.plugin.settings.dailyNoteFormat || "yyyy-MM-dd",
+				useAsDateType: this.plugin.settings.useAsDateType || "due",
+				dailyNotePath: this.plugin.settings.dailyNotePath || "",
+				ignoreHeading: this.plugin.settings.ignoreHeading || "",
+				focusHeading: this.plugin.settings.focusHeading || "",
+				fileParsingConfig: undefined,
+				fileMetadataInheritance:
+					this.plugin.settings.fileMetadataInheritance,
+				enableCustomDateFormats:
+					this.plugin.settings.enableCustomDateFormats,
+				customDateFormats: this.plugin.settings.customDateFormats,
+			},
+		});
 		const projectWorkerManager = new ProjectDataWorkerManager({
 			vault,
 			metadataCache,
@@ -89,7 +108,8 @@ export class DataflowOrchestrator {
 
 		// Get worker processing setting from fileSource or fileParsingConfig
 		const enableWorkerProcessing =
-			this.plugin.settings?.fileSource?.performance?.enableWorkerProcessing ??
+			this.plugin.settings?.fileSource?.performance
+				?.enableWorkerProcessing ??
 			this.plugin.settings?.fileParsingConfig?.enableWorkerProcessing ??
 			true;
 
@@ -107,28 +127,29 @@ export class DataflowOrchestrator {
 
 		// Initialize TimeParsingService with plugin settings
 		this.timeParsingService = new TimeParsingService(
-			this.plugin.settings?.timeParsing || {
-				enabled: true,
-				supportedLanguages: ["en", "zh"],
-				dateKeywords: {
-					start: ["start", "begin", "from"],
-					due: ["due", "deadline", "by", "until"],
-					scheduled: ["scheduled", "on", "at"],
-				},
-				removeOriginalText: true,
-				perLineProcessing: true,
-				realTimeReplacement: true,
-				timePatterns: {
-					singleTime: [],
-					timeRange: [],
-					rangeSeparators: ["-", "~", "～"],
-				},
-				timeDefaults: {
-					preferredFormat: "24h",
-					defaultPeriod: "AM",
-					midnightCrossing: "next-day",
-				},
-			} as EnhancedTimeParsingConfig
+			this.plugin.settings?.timeParsing ||
+				({
+					enabled: true,
+					supportedLanguages: ["en", "zh"],
+					dateKeywords: {
+						start: ["start", "begin", "from"],
+						due: ["due", "deadline", "by", "until"],
+						scheduled: ["scheduled", "on", "at"],
+					},
+					removeOriginalText: true,
+					perLineProcessing: true,
+					realTimeReplacement: true,
+					timePatterns: {
+						singleTime: [],
+						timeRange: [],
+						rangeSeparators: ["-", "~", "～"],
+					},
+					timeDefaults: {
+						preferredFormat: "24h",
+						defaultPeriod: "AM",
+						midnightCrossing: "next-day",
+					},
+				} as EnhancedTimeParsingConfig)
 		);
 
 		// Initialize FileSource (conditionally based on settings)
@@ -140,13 +161,17 @@ export class DataflowOrchestrator {
 			);
 			// Keep FileSource status mapping in sync with Task Status settings
 			try {
-				this.fileSource.syncStatusMappingFromSettings(this.plugin.settings.taskStatuses);
+				this.fileSource.syncStatusMappingFromSettings(
+					this.plugin.settings.taskStatuses
+				);
 			} catch (e) {
-				console.warn("[DataflowOrchestrator] Failed to sync FileSource status mapping on init", e);
+				console.warn(
+					"[DataflowOrchestrator] Failed to sync FileSource status mapping on init",
+					e
+				);
 			}
 		}
 	}
-
 
 	/**
 	 * Initialize the orchestrator (load persisted data)
@@ -157,14 +182,18 @@ export class DataflowOrchestrator {
 
 		try {
 			// Initialize QueryAPI and Repository
-			console.log("[DataflowOrchestrator] Initializing QueryAPI and Repository...");
+			console.log(
+				"[DataflowOrchestrator] Initializing QueryAPI and Repository..."
+			);
 
 			// Initialize FileFilterManager from settings
 			const ffSettings = this.plugin.settings?.fileFilter;
 			if (ffSettings) {
 				this.fileFilterManager = new FileFilterManager(ffSettings);
 				// Provide to repository's indexer for inline filtering
-				(this.repository as any).setFileFilterManager?.(this.fileFilterManager);
+				(this.repository as any).setFileFilterManager?.(
+					this.fileFilterManager
+				);
 			}
 			await this.queryAPI.initialize();
 
@@ -522,6 +551,9 @@ export class DataflowOrchestrator {
 								fileMetadataInheritance:
 									this.plugin.settings
 										.fileMetadataInheritance,
+								ignoreHeading:
+									this.plugin.settings.ignoreHeading,
+								focusHeading: this.plugin.settings.focusHeading,
 							});
 						}
 					} catch (e) {
@@ -601,7 +633,9 @@ export class DataflowOrchestrator {
 			true;
 
 		if (this.workerOrchestrator) {
-			this.workerOrchestrator.setWorkerProcessingEnabled(enableWorkerProcessing);
+			this.workerOrchestrator.setWorkerProcessingEnabled(
+				enableWorkerProcessing
+			);
 		}
 
 		// Update TimeParsingService configuration
@@ -621,10 +655,15 @@ export class DataflowOrchestrator {
 			// Sync status mapping from Task Status settings on creation
 			try {
 				if (settings?.taskStatuses) {
-					this.fileSource.syncStatusMappingFromSettings(settings.taskStatuses);
+					this.fileSource.syncStatusMappingFromSettings(
+						settings.taskStatuses
+					);
 				}
 			} catch (e) {
-				console.warn("[DataflowOrchestrator] Failed to sync FileSource status mapping on settings create", e);
+				console.warn(
+					"[DataflowOrchestrator] Failed to sync FileSource status mapping on settings create",
+					e
+				);
 			}
 		} else if (!settings?.fileSource?.enabled && this.fileSource) {
 			// Disable FileSource if it exists but is disabled
@@ -638,16 +677,47 @@ export class DataflowOrchestrator {
 		// Always try syncing status mapping when settings update and FileSource is active
 		if (this.fileSource && settings?.taskStatuses) {
 			try {
-				this.fileSource.syncStatusMappingFromSettings(settings.taskStatuses);
+				this.fileSource.syncStatusMappingFromSettings(
+					settings.taskStatuses
+				);
 			} catch (e) {
-				console.warn("[DataflowOrchestrator] Failed to sync FileSource status mapping on settings update", e);
+				console.warn(
+					"[DataflowOrchestrator] Failed to sync FileSource status mapping on settings update",
+					e
+				);
 			}
+		}
+
+		// Sync parser-related settings to TaskWorkerManager so new parses respect changes
+		try {
+			const taskWorkerManager = this.workerOrchestrator?.[
+				"taskWorkerManager"
+			] as
+				| import("./workers/TaskWorkerManager").TaskWorkerManager
+				| undefined;
+			if (taskWorkerManager) {
+				taskWorkerManager.updateSettings({
+					preferMetadataFormat: settings.preferMetadataFormat,
+					customDateFormats: settings.customDateFormats,
+					fileMetadataInheritance: settings.fileMetadataInheritance,
+					projectConfig: settings.projectConfig,
+					ignoreHeading: settings.ignoreHeading,
+					focusHeading: settings.focusHeading,
+				});
+			}
+		} catch (e) {
+			console.warn(
+				"[DataflowOrchestrator] Failed to sync parser settings to TaskWorkerManager on settings update",
+				e
+			);
 		}
 
 		// Update FileFilterManager
 		if (settings?.fileFilter) {
 			if (!this.fileFilterManager) {
-				this.fileFilterManager = new FileFilterManager(settings.fileFilter);
+				this.fileFilterManager = new FileFilterManager(
+					settings.fileFilter
+				);
 			} else {
 				this.fileFilterManager.updateConfig(settings.fileFilter);
 			}
@@ -663,7 +733,7 @@ export class DataflowOrchestrator {
 
 		return {
 			enabled: this.workerOrchestrator.isWorkerProcessingEnabled(),
-			metrics: this.workerOrchestrator.getMetrics()
+			metrics: this.workerOrchestrator.getMetrics(),
 		};
 	}
 
@@ -686,44 +756,47 @@ export class DataflowOrchestrator {
 			const fileMetadata = fileCache?.frontmatter || {};
 
 			// Create parser with plugin settings
-			const parser = new ConfigurableTaskParser({
-				parseMetadata: true,
-				parseTags: true,
-				parseComments: true,
-				parseHeadings: true,
-				metadataParseMode: MetadataParseMode.Both, // Parse both emoji and dataview metadata
-				maxIndentSize: 8,
-				maxParseIterations: 4000,
-				maxMetadataIterations: 400,
-				maxTagLength: 100,
-				maxEmojiValueLength: 200,
-				maxStackOperations: 4000,
-				maxStackSize: 1000,
-				customDateFormats: this.plugin.settings.customDateFormats,
-				statusMapping: this.plugin.settings.statusMapping || {},
-				emojiMapping: this.plugin.settings.emojiMapping || {
-					"📅": "dueDate",
-					"🛫": "startDate",
-					"⏳": "scheduledDate",
-					"✅": "completedDate",
-					"❌": "cancelledDate",
-					"➕": "createdDate",
-					"🔁": "recurrence",
-					"🏁": "onCompletion",
-					"⛔": "dependsOn",
-					"🆔": "id",
-					"🔺": "priority",
-					"⏫": "priority",
-					"🔼": "priority",
-					"🔽": "priority",
-					"⏬": "priority",
+			const parser = new ConfigurableTaskParser(
+				{
+					parseMetadata: true,
+					parseTags: true,
+					parseComments: true,
+					parseHeadings: true,
+					metadataParseMode: MetadataParseMode.Both, // Parse both emoji and dataview metadata
+					maxIndentSize: 8,
+					maxParseIterations: 4000,
+					maxMetadataIterations: 400,
+					maxTagLength: 100,
+					maxEmojiValueLength: 200,
+					maxStackOperations: 4000,
+					maxStackSize: 1000,
+					customDateFormats: this.plugin.settings.customDateFormats,
+					statusMapping: this.plugin.settings.statusMapping || {},
+					emojiMapping: this.plugin.settings.emojiMapping || {
+						"📅": "dueDate",
+						"🛫": "startDate",
+						"⏳": "scheduledDate",
+						"✅": "completedDate",
+						"❌": "cancelledDate",
+						"➕": "createdDate",
+						"🔁": "recurrence",
+						"🏁": "onCompletion",
+						"⛔": "dependsOn",
+						"🆔": "id",
+						"🔺": "priority",
+						"⏫": "priority",
+						"🔼": "priority",
+						"🔽": "priority",
+						"⏬": "priority",
+					},
+					specialTagPrefixes:
+						this.plugin.settings.specialTagPrefixes || {},
+					fileMetadataInheritance:
+						this.plugin.settings.fileMetadataInheritance,
+					projectConfig: this.plugin.settings.projectConfig,
 				},
-				specialTagPrefixes:
-					this.plugin.settings.specialTagPrefixes || {},
-				fileMetadataInheritance:
-					this.plugin.settings.fileMetadataInheritance,
-				projectConfig: this.plugin.settings.projectConfig,
-			}, this.timeParsingService);
+				this.timeParsingService
+			);
 
 			// Parse tasks using ConfigurableTaskParser with tgProject
 			const markdownTasks = parser.parseLegacy(
@@ -740,7 +813,10 @@ export class DataflowOrchestrator {
 			tasks.push(...fileMetaTasks);
 		} else if (extension === "canvas") {
 			// Parse canvas tasks using the static method
-			const canvasTasks = await CanvasParser.parseCanvas(this.plugin, file);
+			const canvasTasks = await CanvasParser.parseCanvas(
+				this.plugin,
+				file
+			);
 			tasks.push(...canvasTasks);
 		}
 
@@ -781,6 +857,8 @@ export class DataflowOrchestrator {
 						fileMetadataInheritance:
 							this.plugin.settings.fileMetadataInheritance,
 						projectConfig: this.plugin.settings.projectConfig,
+						ignoreHeading: this.plugin.settings.ignoreHeading,
+						focusHeading: this.plugin.settings.focusHeading,
 					});
 				}
 
@@ -977,12 +1055,16 @@ export class DataflowOrchestrator {
 					const projectData = await this.projectResolver.get(
 						filePath
 					);
-						// Apply file filter scope: skip inline parsing when scope === 'file'
-						const shouldParseInline = !this.fileFilterManager || this.fileFilterManager.shouldIncludePath(filePath, "inline");
-					const rawTasks = shouldParseInline ? await this.parseFile(
-						file,
-						projectData.tgProject
-					) : [];
+					// Apply file filter scope: skip inline parsing when scope === 'file'
+					const shouldParseInline =
+						!this.fileFilterManager ||
+						this.fileFilterManager.shouldIncludePath(
+							filePath,
+							"inline"
+						);
+					const rawTasks = shouldParseInline
+						? await this.parseFile(file, projectData.tgProject)
+						: [];
 
 					// Store raw tasks with mtime
 					await this.storage.storeRaw(
@@ -1113,7 +1195,6 @@ export class DataflowOrchestrator {
 		this.projectResolver.updateOptions(options);
 	}
 
-
 	/**
 	 * Get the query API for external access
 	 */
@@ -1185,7 +1266,10 @@ export class DataflowOrchestrator {
 		// These are workspace events created by our custom Events.on() function
 		for (const ref of this.eventRefs) {
 			// Use workspace.offref for workspace events
-			if (this.app.workspace && typeof this.app.workspace.offref === 'function') {
+			if (
+				this.app.workspace &&
+				typeof this.app.workspace.offref === "function"
+			) {
 				this.app.workspace.offref(ref);
 			}
 		}
