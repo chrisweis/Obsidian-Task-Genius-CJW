@@ -258,7 +258,10 @@ export default class TaskProgressBarPlugin extends Plugin {
 	onCompletionManager?: OnCompletionManager;
 
 	async onload() {
+		console.time("[TPB] onload");
+		console.time("[TPB] loadSettings");
 		await this.loadSettings();
+		console.timeEnd("[TPB] loadSettings");
 
 		if (
 			requireApiVersion("1.9.10") &&
@@ -303,6 +306,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 				});
 			}
 
+			console.time("[TPB] registerViewsAndCommands");
 			// Register the TaskView
 			this.registerView(
 				TASK_VIEW_TYPE,
@@ -365,7 +369,6 @@ export default class TaskProgressBarPlugin extends Plugin {
 			addIcon("abandoned", getStatusIcon("abandoned"));
 			addIcon("notStarted", getStatusIcon("notStarted"));
 
-
 			// Add a ribbon icon for opening the TaskView
 			this.addRibbonIcon(
 				"task-genius",
@@ -375,12 +378,12 @@ export default class TaskProgressBarPlugin extends Plugin {
 				}
 			);
 
+			console.timeEnd("[TPB] registerViewsAndCommands");
 			// Initialize dataflow orchestrator (primary architecture)
 			try {
-				console.log(
-					"[Plugin] Initializing Dataflow architecture..."
-				);
+				console.log("[Plugin] Initializing Dataflow architecture...");
 				// Wait for dataflow initialization to complete before proceeding
+				console.time("[TPB] createDataflow");
 				this.dataflowOrchestrator = await createDataflow(
 					this.app,
 					this.app.vault,
@@ -390,6 +393,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 						// ProjectConfigManagerOptions is narrower; pass only known properties
 					}
 				);
+				console.timeEnd("[TPB] createDataflow");
 				console.log(
 					"[Plugin] Dataflow orchestrator initialized successfully"
 				);
@@ -399,13 +403,15 @@ export default class TaskProgressBarPlugin extends Plugin {
 					error
 				);
 				// Fatal error - cannot continue without dataflow
-				new Notice(t("Failed to initialize task system. Please restart Obsidian."));
+				new Notice(
+					t(
+						"Failed to initialize task system. Please restart Obsidian."
+					)
+				);
 			}
 
 			// Initialize WriteAPI (always, as dataflow is now primary)
-			const getTaskById = async (
-				id: string
-			): Promise<Task | null> => {
+			const getTaskById = async (id: string): Promise<Task | null> => {
 				try {
 					if (!this.dataflowOrchestrator) {
 						return null;
@@ -415,10 +421,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 					const task = await repository.getTaskById(id);
 					return task || null;
 				} catch (e) {
-					console.warn(
-						"Failed to get task from dataflow",
-						e
-					);
+					console.warn("Failed to get task from dataflow", e);
 					return null;
 				}
 			};
@@ -446,8 +449,12 @@ export default class TaskProgressBarPlugin extends Plugin {
 			]);
 		}
 
+		console.time("[TPB] registerCommands");
 		this.registerCommands();
+		console.timeEnd("[TPB] registerCommands");
+		console.time("[TPB] registerEditorExt");
 		this.registerEditorExt();
+		console.timeEnd("[TPB] registerEditorExt");
 
 		this.settingTab = new TaskProgressBarSettingTab(this.app, this);
 		this.addSettingTab(this.settingTab);
@@ -523,6 +530,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 		);
 
 		this.app.workspace.onLayoutReady(() => {
+			console.time("[TPB] onLayoutReady");
 			// Initialize Task Genius Icon Manager
 			this.taskGeniusIconManager = new TaskGeniusIconManager(this);
 			this.addChild(this.taskGeniusIconManager);
@@ -618,9 +626,11 @@ export default class TaskProgressBarPlugin extends Plugin {
 					});
 				}, 1000);
 			}
+			console.timeEnd("[TPB] onLayoutReady");
 		});
 
 		// Migrate old presets to use the new filterMode setting
+		console.time("[TPB] migratePresetTaskFilters");
 		if (
 			this.settings.taskFilter &&
 			this.settings.taskFilter.presetTaskFilters
@@ -637,6 +647,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 					}
 				);
 			await this.saveSettings();
+			console.timeEnd("[TPB] migratePresetTaskFilters");
 		}
 
 		// Add command for quick capture with metadata
@@ -675,6 +686,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 				}
 			},
 		});
+
+		console.timeEnd("[TPB] onload");
 	}
 
 	registerCommands() {
@@ -1710,7 +1723,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		try {
 			// Validate version storage integrity first
-			const diagnosticInfo = await this.versionManager.getDiagnosticInfo();
+			const diagnosticInfo =
+				await this.versionManager.getDiagnosticInfo();
 
 			if (!diagnosticInfo.canWrite) {
 				throw new Error(
@@ -1718,16 +1732,24 @@ export default class TaskProgressBarPlugin extends Plugin {
 				);
 			}
 
-			if (!diagnosticInfo.versionValid && diagnosticInfo.previousVersion) {
-				console.warn("Invalid version data detected, attempting recovery");
+			if (
+				!diagnosticInfo.versionValid &&
+				diagnosticInfo.previousVersion
+			) {
+				console.warn(
+					"Invalid version data detected, attempting recovery"
+				);
 				await this.versionManager.recoverFromCorruptedVersion();
 			}
 
 			// Check for version changes
-			const versionResult = await this.versionManager.checkVersionChange();
+			const versionResult =
+				await this.versionManager.checkVersionChange();
 
 			if (versionResult.requiresRebuild) {
-				console.log(`Task Genius (Dataflow): ${versionResult.rebuildReason}`);
+				console.log(
+					`Task Genius (Dataflow): ${versionResult.rebuildReason}`
+				);
 
 				// Get all supported files for progress tracking
 				const allFiles = this.app.vault
@@ -1751,7 +1773,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 				const queryAPI = this.dataflowOrchestrator.getQueryAPI();
 				const allTasks = await queryAPI.getAllTasks();
 				const finalTaskCount = allTasks.length;
-				
+
 				// Mark rebuild as complete
 				this.rebuildProgressManager.completeRebuild(finalTaskCount);
 
@@ -1759,16 +1781,22 @@ export default class TaskProgressBarPlugin extends Plugin {
 				await this.versionManager.markVersionProcessed();
 			} else {
 				// No rebuild needed, dataflow already initialized during creation
-				console.log("Task Genius (Dataflow): No rebuild needed, using existing cache");
+				console.log(
+					"Task Genius (Dataflow): No rebuild needed, using existing cache"
+				);
 			}
 		} catch (error) {
-			console.error("Error during dataflow initialization with version check:", error);
-			
+			console.error(
+				"Error during dataflow initialization with version check:",
+				error
+			);
+
 			// Trigger emergency rebuild for dataflow
 			try {
-				const emergencyResult = await this.versionManager.handleEmergencyRebuild(
-					`Dataflow initialization failed: ${error.message}`
-				);
+				const emergencyResult =
+					await this.versionManager.handleEmergencyRebuild(
+						`Dataflow initialization failed: ${error.message}`
+					);
 
 				// Get all supported files for progress tracking
 				const allFiles = this.app.vault
@@ -1792,16 +1820,21 @@ export default class TaskProgressBarPlugin extends Plugin {
 				const queryAPI = this.dataflowOrchestrator.getQueryAPI();
 				const allTasks = await queryAPI.getAllTasks();
 				const finalTaskCount = allTasks.length;
-				
+
 				// Mark emergency rebuild as complete
 				this.rebuildProgressManager.completeRebuild(finalTaskCount);
 
 				// Store current version
 				await this.versionManager.markVersionProcessed();
 
-				console.log("Emergency dataflow rebuild completed successfully");
+				console.log(
+					"Emergency dataflow rebuild completed successfully"
+				);
 			} catch (emergencyError) {
-				console.error("Emergency dataflow rebuild failed:", emergencyError);
+				console.error(
+					"Emergency dataflow rebuild failed:",
+					emergencyError
+				);
 				throw emergencyError;
 			}
 		}
@@ -1814,7 +1847,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 	 */
 	private async initializeTaskManagerWithVersionCheck(): Promise<void> {
 		// This method is deprecated and should not be called
-		console.warn("initializeTaskManagerWithVersionCheck is deprecated and should not be used");
+		console.warn(
+			"initializeTaskManagerWithVersionCheck is deprecated and should not be used"
+		);
 		return Promise.resolve();
 	}
 }

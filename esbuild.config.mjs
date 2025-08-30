@@ -6,11 +6,11 @@ import path from "path";
 
 import inlineWorkerPlugin from "esbuild-plugin-inline-worker";
 
-
 // Respect release-it dry-run: skip writing build artifacts entirely
-const __D_RY__ = process.env.RELEASE_IT_DRY_RUN === '1' || process.env.RELEASE_IT === '1';
+const __D_RY__ =
+	process.env.RELEASE_IT_DRY_RUN === "1" || process.env.RELEASE_IT === "1";
 if (__D_RY__) {
-	console.log('[dry-run] skip esbuild production build');
+	console.log("[dry-run] skip esbuild production build");
 	process.exit(0);
 }
 
@@ -119,7 +119,10 @@ const copyManifestPlugin = {
 	setup(build) {
 		build.onEnd(() => {
 			if (prod) {
-				fs.copyFileSync("manifest.json", path.join(outDir, "manifest.json"));
+				fs.copyFileSync(
+					"manifest.json",
+					path.join(outDir, "manifest.json")
+				);
 				console.log("Copied manifest.json to", outDir);
 			}
 		});
@@ -179,7 +182,9 @@ const buildOptions = {
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
 	outfile: path.join(outDir, "main.js"),
-	pure: prod ? ["console.log"] : [],
+	pure: prod
+		? ["console.log", "console.time", "console.timeEnd", "console.info"]
+		: [],
 };
 
 if (prod) {
@@ -189,7 +194,7 @@ if (prod) {
 	// Development build with watch
 	esbuild
 		.context(buildOptions)
-		.then(ctx => {
+		.then((ctx) => {
 			ctx.watch();
 			console.log("Watching for changes...");
 		})

@@ -36,6 +36,7 @@ export class TaskRendererComponent extends Component {
 	private app: App;
 	private taskGroupEl: SVGGElement;
 	private params: TaskRendererParams | null = null;
+	private eventListeners: Array<{ element: Element; type: string; handler: EventListener }> = [];
 
 	constructor(app: App, taskGroupEl: SVGGElement) {
 		super();
@@ -49,10 +50,27 @@ export class TaskRendererComponent extends Component {
 
 	onunload() {
 		console.log("TaskRendererComponent unloaded.");
-		this.taskGroupEl.empty(); // Clear the task group
-		// Note: MarkdownRenderer components associated with tasks
-		// should be managed and unloaded by the parent (GanttComponent)
-		// or handled differently if static rendering is sufficient.
+		
+		// Clean up all event listeners
+		this.cleanupEventListeners();
+		
+		// Clear the task group SVG elements
+		this.taskGroupEl.empty();
+		
+		// Note: Child components added via addChild() are automatically
+		// unloaded by Obsidian's Component system
+	}
+
+	private cleanupEventListeners() {
+		for (const { element, type, handler } of this.eventListeners) {
+			element.removeEventListener(type, handler);
+		}
+		this.eventListeners = [];
+	}
+
+	private addEventListener(element: Element, type: string, handler: EventListener) {
+		element.addEventListener(type, handler);
+		this.eventListeners.push({ element, type, handler });
 	}
 
 	updateParams(newParams: TaskRendererParams) {
@@ -81,7 +99,9 @@ export class TaskRendererComponent extends Component {
 			)
 		);
 
-		this.taskGroupEl.empty(); // Clear previous tasks
+		// Clean up previous render's resources before re-rendering
+		this.cleanupEventListeners();
+		this.taskGroupEl.empty(); // Clear previous tasks and their components
 
 		const { preparedTasks, parentComponent } = this.params;
 
@@ -93,12 +113,11 @@ export class TaskRendererComponent extends Component {
 
 	private renderSingleTask(
 		preparedTask: PlacedGanttTaskItem,
-		parentComponent: Component
+		_parentComponent: Component
 	) {
 		if (!this.params) return;
 
 		const {
-			app,
 			handleTaskClick,
 			handleTaskContextMenu,
 			showTaskLabels,
@@ -113,11 +132,11 @@ export class TaskRendererComponent extends Component {
 			cls: "gantt-task-item",
 		});
 		group.setAttribute("data-task-id", task.id);
-		// Add listener for clicking task
-		group.addEventListener("click", () => handleTaskClick(task));
-		group.addEventListener("contextmenu", (event) =>
-			handleTaskContextMenu(event, task)
-		);
+		// Add listener for clicking task (using our tracked addEventListener)
+		const clickHandler = () => handleTaskClick(task);
+		const contextMenuHandler = (event: Event) => handleTaskContextMenu(event as MouseEvent, task);
+		this.addEventListener(group, "click", clickHandler);
+		this.addEventListener(group, "contextmenu", contextMenuHandler);
 
 		const barHeight = rowHeight * taskBarHeightRatio;
 		const barY = preparedTask.y - barHeight / 2;
@@ -276,14 +295,13 @@ export class TaskRendererComponent extends Component {
 
 						console.log("sourcePath", sourcePath);
 
-						const markdownRenderer = this.addChild(
-							new MarkdownRendererComponent(
-								this.app,
-								labelDiv as HTMLElement,
-								sourcePath,
-								true
-							)
+						const markdownRenderer = new MarkdownRendererComponent(
+							this.app,
+							labelDiv as HTMLElement,
+							sourcePath,
+							true
 						);
+						this.addChild(markdownRenderer);
 						markdownRenderer.update(task.content);
 					} else {
 						// Fallback to simple text

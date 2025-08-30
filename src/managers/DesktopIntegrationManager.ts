@@ -7,7 +7,6 @@ import { t } from "@/translations/helper";
 
 /** Desktop integration manager for system tray, notifications, and desktop features */
 export class DesktopIntegrationManager extends Component {
-	private tickInterval: number | null = null;
 	private dailyTimeout: number | null = null;
 	private midnightTimeout: number | null = null;
 	private notifiedKeys: Set<string> = new Set();
@@ -15,6 +14,8 @@ export class DesktopIntegrationManager extends Component {
 	private electronTray: any | null = null;
 	private trayOwnerToken?: symbol;
 	private nativeThemeHandler?: () => void;
+	private beforeUnloadHandler?: () => void;
+	private trayClickHandler?: () => void;
 
 	constructor(private plugin: TaskProgressBarPlugin) {
 		super();
@@ -26,29 +27,51 @@ export class DesktopIntegrationManager extends Component {
 
 		// Minimal-change safeguard for hard reloads (window.location)
 		try {
-			const beforeUnloadCleanup = () => {
+			this.beforeUnloadHandler = () => {
 				try {
 					this.electronTray?.removeAllListeners?.();
-					this.electronTray?.destroy?.();
+					const g: any = window as any;
+					const globalKey = "__tg_tray_singleton__";
+					// Only destroy the tray if we own it
+					if (g[globalKey]?.owner === this.trayOwnerToken) {
+						this.electronTray?.destroy?.();
+						delete g[globalKey];
+					}
 				} catch {}
 			};
-			// Register once per load; Obsidian reload will recreate manager
-			window.addEventListener("beforeunload", beforeUnloadCleanup, {
-				once: true,
+
+			this.registerDomEvent(
+				window,
+				"beforeunload",
+				this.beforeUnloadHandler
+			);
+
+			this.register(() => {
+				if (this.beforeUnloadHandler) {
+					window.removeEventListener(
+						"beforeunload",
+						this.beforeUnloadHandler
+					);
+					this.beforeUnloadHandler = undefined;
+				}
 			});
 		} catch {}
 
 		const trayMode =
 			this.plugin.settings.desktopIntegration?.trayMode || "status";
 
-		// System tray (if allowed)
+		// System tray (if allowed) — defer to avoid blocking plugin load
 		if (trayMode === "system" || trayMode === "both") {
 			if (this.plugin.settings.desktopIntegration?.enableTray) {
-				const trayOk = await this.createOrAdoptElectronTray();
-				if (!trayOk && trayMode === "system") {
-					// Fallback to status bar if system tray not available
-					this.createOrUpdateStatusBar();
-				}
+				setTimeout(async () => {
+					const trayOk = await this.createOrAdoptElectronTray();
+					if (!trayOk && trayMode === "system") {
+						// Fallback to status bar if system tray not available
+						this.createOrUpdateStatusBar();
+					}
+					// Ensure tray reflects current state after creation
+					this.updateTray().catch(() => {});
+				}, 0);
 			}
 		}
 
@@ -67,10 +90,9 @@ export class DesktopIntegrationManager extends Component {
 
 	onunload(): void {
 		console.log("[TrayDebug] onunload called");
-		if (this.tickInterval) window.clearInterval(this.tickInterval);
 		if (this.dailyTimeout) window.clearTimeout(this.dailyTimeout);
 		if (this.midnightTimeout) window.clearTimeout(this.midnightTimeout);
-		this.tickInterval = null;
+
 		this.dailyTimeout = null;
 		this.midnightTimeout = null;
 		this.notifiedKeys.clear();
@@ -78,6 +100,15 @@ export class DesktopIntegrationManager extends Component {
 			console.log("[TrayDebug] Detaching status bar item");
 			this.statusBarItem.detach();
 			this.statusBarItem = null;
+		}
+
+		// Remove beforeunload window listener if registered
+		if (this.beforeUnloadHandler) {
+			window.removeEventListener(
+				"beforeunload",
+				this.beforeUnloadHandler
+			);
+			this.beforeUnloadHandler = undefined;
 		}
 
 		// Clean up tray properly
@@ -98,6 +129,20 @@ export class DesktopIntegrationManager extends Component {
 					delete g[globalKey];
 				} else {
 					console.log("[TrayDebug] Not destroying tray - not owner");
+					// If we don't own it, replace context menu with an empty one to drop closures referencing this instance
+					try {
+						const electron = this.getElectron();
+						const Menu = electron?.Menu || electron?.remote?.Menu;
+						if (Menu && this.electronTray?.setContextMenu) {
+							this.electronTray.setContextMenu(
+								Menu.buildFromTemplate([])
+							);
+						}
+					} catch {}
+					// Also clear any stored global click handler reference
+					if (g[globalKey]) {
+						g[globalKey].clickHandler = undefined;
+					}
 				}
 			} catch (e) {
 				console.error("[TrayDebug] Error cleaning up tray:", e);
@@ -194,6 +239,18 @@ export class DesktopIntegrationManager extends Component {
 						this.electronTray = g[globalKey].tray;
 						this.trayOwnerToken = g[globalKey].owner;
 						try {
+							// Ensure no stale listeners from previous instance remain
+							this.electronTray.removeAllListeners?.();
+							// Attach a fresh click handler bound to this instance
+							const clickHandler = async () => {
+								await this.sendDailySummary();
+								try {
+									(this.plugin as any).activateTaskView?.();
+								} catch {}
+							};
+							this.electronTray.on?.("click", clickHandler);
+							// Replace global click handler reference to avoid pinning old plugin instance
+							g[globalKey].clickHandler = clickHandler;
 							await this.applyThemeToTray(nativeImage);
 							this.subscribeNativeTheme(nativeImage);
 						} catch {}
@@ -217,13 +274,14 @@ export class DesktopIntegrationManager extends Component {
 			} catch {}
 
 			// Store click handler reference for cleanup
-			const clickHandler = async () => {
+			this.trayClickHandler = async () => {
 				await this.sendDailySummary();
 				try {
 					(this.plugin as any).activateTaskView?.();
 				} catch {}
 			};
-			this.electronTray.on?.("click", clickHandler);
+			this.electronTray.removeAllListeners?.();
+			this.electronTray.on?.("click", this.trayClickHandler);
 
 			// Save globally so subsequent reloads reuse it
 			const owner = Symbol("tg-tray-owner");
@@ -231,7 +289,11 @@ export class DesktopIntegrationManager extends Component {
 			try {
 				g[globalKey]?.tray?.removeAllListeners?.();
 			} catch {}
-			g[globalKey] = { tray: this.electronTray, owner, clickHandler };
+			g[globalKey] = {
+				tray: this.electronTray,
+				owner,
+				clickHandler: this.trayClickHandler,
+			};
 			this.trayOwnerToken = owner;
 			console.log("[TrayDebug] New tray created and saved globally");
 
@@ -430,9 +492,11 @@ export class DesktopIntegrationManager extends Component {
 		this.scanAndNotifyPerTask().catch(() => {});
 
 		// Then every minute
-		this.tickInterval = window.setInterval(() => {
-			this.scanAndNotifyPerTask().catch(() => {});
-		}, 60_000);
+		this.registerInterval(
+			window.setInterval(() => {
+				this.scanAndNotifyPerTask().catch(() => {});
+			}, 60_000)
+		);
 
 		// Reset notified keys at midnight
 		this.scheduleMidnightReset();
