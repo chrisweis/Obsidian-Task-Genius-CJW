@@ -4,6 +4,25 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.9](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.8...9.8.0-beta.9) (2025-08-30)
+
+### Features
+
+* **notifications:** add desktop notifications and tray menu integration ([06b162a](https://github.com/Quorafind/Obsidian-Task-Genius/commit/06b162a628bf4fce4c0d4982b8a08eab4b744247))
+* **notifications:** add flexible tray modes and improve task filtering ([9d65bd5](https://github.com/Quorafind/Obsidian-Task-Genius/commit/9d65bd566d54a0d88820de4e2766d6c1f6f2ce21))
+* **settings:** improve input fields with native HTML5 types ([e617890](https://github.com/Quorafind/Obsidian-Task-Genius/commit/e617890ae1f4999c7920b01b0ff6aa9e4e7ab738))
+* **tray:** add theme-aware Task Genius icon for system tray ([6faded9](https://github.com/Quorafind/Obsidian-Task-Genius/commit/6faded94847bff8386838e787b443da788ef7672))
+
+### Bug Fixes
+
+* **dataflow:** correct event cleanup in DataflowOrchestrator ([0401a63](https://github.com/Quorafind/Obsidian-Task-Genius/commit/0401a634e10fb57071cca2979406c9beef4a0a16))
+* resolve memory leaks by adding proper cleanup handlers ([2d85f38](https://github.com/Quorafind/Obsidian-Task-Genius/commit/2d85f38750377619c473a5dd32c1c90e41d824c4))
+* **tray:** add cleanup handler for hard reloads and improve electron API access ([29e000c](https://github.com/Quorafind/Obsidian-Task-Genius/commit/29e000c334905a3104c40d390ede1656dd156f56))
+
+### Styles
+
+* apply code formatting and linting updates ([d43186f](https://github.com/Quorafind/Obsidian-Task-Genius/commit/d43186fef7a595248773a70d3fc28d56518f71e8))
+
 ## [9.8.0-beta.8](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.7...9.8.0-beta.8) (2025-08-28)
 
 ### Refactors
