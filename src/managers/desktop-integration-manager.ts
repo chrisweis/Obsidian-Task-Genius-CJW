@@ -31,7 +31,8 @@ export class DesktopIntegrationManager extends Component {
 				try {
 					this.electronTray?.removeAllListeners?.();
 					const g: any = window as any;
-					const globalKey = "__tg_tray_singleton__";
+					const globalKey =
+						"__tg_tray_singleton__" + this.plugin.app.appId;
 					// Only destroy the tray if we own it
 					if (g[globalKey]?.owner === this.trayOwnerToken) {
 						this.electronTray?.destroy?.();
@@ -112,7 +113,7 @@ export class DesktopIntegrationManager extends Component {
 		}
 
 		// Clean up tray properly
-		const globalKey = "__tg_tray_singleton__";
+		const globalKey = "__tg_tray_singleton__" + this.plugin.app.appId;
 		const g: any = window as any;
 
 		if (this.electronTray) {
@@ -219,7 +220,7 @@ export class DesktopIntegrationManager extends Component {
 			}
 
 			// Reuse existing tray if global singleton exists
-			const globalKey = "__tg_tray_singleton__";
+			const globalKey = "__tg_tray_singleton__" + this.plugin.app.appId;
 			const g: any = window as any;
 			if (g[globalKey]?.tray && g[globalKey]?.owner) {
 				console.log("[TrayDebug] Checking existing tray...");

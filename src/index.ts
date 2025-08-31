@@ -101,7 +101,7 @@ import { IcsManager } from "./managers/ics-manager";
 import { ObsidianUriHandler } from "./utils/ObsidianUriHandler";
 import { VersionManager } from "./managers/version-manager";
 import { RebuildProgressManager } from "./managers/rebuild-progress-manager";
-import DesktopIntegrationManager from "./managers/DesktopIntegrationManager";
+import DesktopIntegrationManager from "./managers/desktop-integration-manager";
 import { OnboardingConfigManager } from "./managers/onboarding-manager";
 import { OnCompletionManager } from "./managers/completion-manager";
 import { SettingsChangeDetector } from "./services/settings-change-detector";
