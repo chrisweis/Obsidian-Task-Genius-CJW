@@ -4,6 +4,12 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.11](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/compare/9.8.0-beta.10...9.8.0-beta.11) (2025-08-31)
+
+### Bug Fixes
+
+* **tray:** improve icon visibility and window focus behavior ([a5aedad](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/a5aedadf4470c479562d9b2047dabd2ef7355496))
+
 ## [9.8.0-beta.10](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.9...9.8.0-beta.10) (2025-08-30)
 
 ### Features
