@@ -321,11 +321,7 @@ export class DesktopIntegrationManager extends Component {
 
 	private isDarkTheme(): boolean {
 		const nt = this.getNativeTheme();
-		console.log(
-			"global-theme",
-			nt,
-			window.matchMedia("(prefers-color-scheme: dark)").matches
-		);
+
 		if (nt && typeof nt.shouldUseDarkColors === "boolean")
 			return nt.shouldUseDarkColors;
 		try {

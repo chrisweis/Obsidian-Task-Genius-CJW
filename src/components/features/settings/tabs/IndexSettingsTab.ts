@@ -99,105 +99,56 @@ export function renderIndexSettingsTab(
 		});
 
 	if (settingTab.plugin.settings.enableCustomDateFormats) {
-		// Container for custom date formats
-		const dateFormatsContainer = containerEl.createDiv({
-			cls: "task-genius-date-formats-container",
-		});
+		new Setting(containerEl)
+			.setName(t("Custom date formats"))
+			.setDesc(
+				t(
+					"Configure custom date format patterns. Date patterns: yyyy (4-digit year), yy (2-digit year), MM (2-digit month), M (1-2 digit month), dd (2-digit day), d (1-2 digit day), MMM (short month name), MMMM (full month name). Time patterns: HH (2-digit hour), mm (2-digit minute), ss (2-digit second). Use single quotes for literals (e.g., 'T' for ISO format)."
+				)
+			)
+			.addButton((button) => {
+				const getCustomFormats = () => {
+					return settingTab.plugin.settings.customDateFormats ?? [];
+				};
 
-		// Header with description
-		dateFormatsContainer.createEl("h3", {
-			text: t("Custom date formats"),
-			cls: "task-genius-formats-header",
-		});
+				const updateButtonText = () => {
+					const formats = getCustomFormats();
+					if (formats.length === 0) {
+						button.setButtonText(t("Configure Date Formats"));
+					} else {
+						button.setButtonText(
+							t("{{count}} format(s) configured", {
+								interpolation: {
+									count: formats.length.toString(),
+								},
+							})
+						);
+					}
+				};
 
-		dateFormatsContainer.createEl("p", {
-			text: t(
-				"Add custom date format patterns. Date patterns: yyyy (4-digit year), yy (2-digit year), MM (2-digit month), M (1-2 digit month), dd (2-digit day), d (1-2 digit day), MMM (short month name), MMMM (full month name). Time patterns: HH (2-digit hour), mm (2-digit minute), ss (2-digit second). Use single quotes for literals (e.g., 'T' for ISO format)."
-			),
-			cls: "setting-item-description",
-		});
-
-		// Container for format list
-		const formatListContainer = dateFormatsContainer.createDiv({
-			cls: "task-genius-format-list",
-		});
-
-		// Function to render the format list
-		const renderFormatList = () => {
-			formatListContainer.empty();
-
-			const formats = settingTab.plugin.settings.customDateFormats ?? [];
-
-			// Render existing formats
-			formats.forEach((format, index) => {
-				const formatItem = formatListContainer.createDiv({
-					cls: "task-genius-format-item",
-				});
-
-				// Format input
-				const formatInput = formatItem.createEl("input", {
-					type: "text",
-					value: format,
-					cls: "task-genius-format-input",
-					placeholder: t(
-						"Enter date format (e.g., yyyy-MM-dd or yyyyMMdd_HHmmss)"
-					),
-				});
-
-				formatInput.addEventListener("input", (e) => {
-					const target = e.target as HTMLInputElement;
-					settingTab.plugin.settings.customDateFormats![index] =
-						target.value.trim();
-					settingTab.applySettingsUpdate();
-				});
-
-				// Delete button
-				const deleteBtn = formatItem.createEl("button", {
-					cls: "task-genius-format-delete-btn",
-					text: "×",
-					attr: {
-						"aria-label": t("Delete format"),
-						title: t("Delete this format"),
-					},
-				});
-
-				deleteBtn.addEventListener("click", () => {
-					settingTab.plugin.settings.customDateFormats!.splice(
-						index,
-						1
-					);
-					settingTab.applySettingsUpdate();
-					renderFormatList();
+				updateButtonText();
+				button.onClick(() => {
+					new ListConfigModal(settingTab.plugin, {
+						title: t("Configure Custom Date Formats"),
+						description: t(
+							"Add custom date format patterns. Date patterns: yyyy (4-digit year), yy (2-digit year), MM (2-digit month), M (1-2 digit month), dd (2-digit day), d (1-2 digit day), MMM (short month name), MMMM (full month name). Time patterns: HH (2-digit hour), mm (2-digit minute), ss (2-digit second). Use single quotes for literals (e.g., 'T' for ISO format)."
+						),
+						placeholder: t("Enter date format (e.g., yyyy-MM-dd or yyyyMMdd_HHmmss)"),
+						values: getCustomFormats(),
+						onSave: (values) => {
+							settingTab.plugin.settings.customDateFormats = values;
+							settingTab.applySettingsUpdate();
+							updateButtonText();
+							new Notice(
+								t(
+									"Date formats updated. The parser will now recognize these custom formats."
+								),
+								6000
+							);
+						},
+					}).open();
 				});
 			});
-
-			// Add new format button
-			const addFormatBtn = formatListContainer.createEl("button", {
-				cls: "task-genius-add-format-btn",
-				text: t("+ Add Date Format"),
-			});
-
-			addFormatBtn.addEventListener("click", () => {
-				if (!settingTab.plugin.settings.customDateFormats) {
-					settingTab.plugin.settings.customDateFormats = [];
-				}
-				settingTab.plugin.settings.customDateFormats.push("");
-				settingTab.applySettingsUpdate();
-				renderFormatList();
-
-				// Focus on the new input
-				const inputs = formatListContainer.querySelectorAll(
-					".task-genius-format-input"
-				);
-				const lastInput = inputs[inputs.length - 1] as HTMLInputElement;
-				if (lastInput) {
-					lastInput.focus();
-				}
-			});
-		};
-
-		// Initial render
-		renderFormatList();
 
 		// Add example dates section
 		const examplesContainer = containerEl.createDiv({
@@ -501,7 +452,11 @@ export function renderIndexSettingsTab(
 		)
 		.setHeading();
 
-	createFileSourceSettings(containerEl, settingTab.plugin);
+	const fileSourceContainerEl = containerEl.createDiv(
+		"file-source-container"
+	);
+
+	createFileSourceSettings(fileSourceContainerEl, settingTab.plugin);
 
 	// ========================================
 	// SECTION 3: Performance Settings

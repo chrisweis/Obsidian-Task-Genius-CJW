@@ -6,6 +6,7 @@ import {
 	Setting,
 	Platform,
 	requireApiVersion,
+	debounce,
 } from "obsidian";
 import TaskProgressBarPlugin from ".";
 
@@ -44,7 +45,8 @@ import { renderBasesSettingsTab } from "./components/features/settings/tabs/Base
 
 export class TaskProgressBarSettingTab extends PluginSettingTab {
 	plugin: TaskProgressBarPlugin;
-	private applyDebounceTimer: number = 0;
+	private debouncedApplySettings: () => void;
+	private debouncedApplyNotifications: () => void;
 	private searchComponent: SettingsSearchComponent | null = null;
 
 	// Tabs management
@@ -212,37 +214,49 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 	constructor(app: App, plugin: TaskProgressBarPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+		
+		// Initialize debounced functions
+		this.debouncedApplySettings = debounce(
+			async () => {
+				await plugin.saveSettings();
+
+				// Update dataflow orchestrator with new settings
+				if (plugin.dataflowOrchestrator) {
+					// Call async updateSettings and await to ensure incremental reindex completes
+					await plugin.dataflowOrchestrator.updateSettings(
+						plugin.settings
+					);
+				}
+
+				// Reload notification manager to apply changes immediately
+				await plugin.notificationManager?.reloadSettings();
+
+				// Trigger view updates to reflect setting changes
+				await plugin.triggerViewUpdate();
+			},
+			100,
+			true
+		);
+		
+		this.debouncedApplyNotifications = debounce(
+			async () => {
+				await plugin.saveSettings();
+				// Only refresh notification-related UI; do not touch dataflow orchestrator
+				await plugin.notificationManager?.reloadSettings();
+				// Minimal view updates are unnecessary here
+			},
+			100,
+			true
+		);
 	}
 
 	applySettingsUpdate() {
-		clearTimeout(this.applyDebounceTimer);
-		const plugin = this.plugin;
-		this.applyDebounceTimer = window.setTimeout(async () => {
-			await plugin.saveSettings();
-
-			// Update dataflow orchestrator with new settings
-			if (plugin.dataflowOrchestrator) {
-				plugin.dataflowOrchestrator.updateSettings(plugin.settings);
-			}
-
-			// Reload notification manager to apply changes immediately
-			await plugin.notificationManager?.reloadSettings();
-
-			// Trigger view updates to reflect setting changes
-			await plugin.triggerViewUpdate();
-		}, 100);
+		this.debouncedApplySettings();
 	}
 
 	// Lightweight updater for notifications/tray changes to avoid reloading task caches
 	applyNotificationsUpdateLight() {
-		clearTimeout(this.applyDebounceTimer);
-		const plugin = this.plugin;
-		this.applyDebounceTimer = window.setTimeout(async () => {
-			await plugin.saveSettings();
-			// Only refresh notification-related UI; do not touch dataflow orchestrator
-			await plugin.notificationManager?.reloadSettings();
-			// Minimal view updates are unnecessary here
-		}, 100);
+		this.debouncedApplyNotifications();
 	}
 
 	// 创建搜索组件

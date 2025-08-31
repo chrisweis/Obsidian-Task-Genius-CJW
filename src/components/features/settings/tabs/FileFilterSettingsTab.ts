@@ -1,8 +1,11 @@
-import { Setting, Notice, setIcon, DropdownComponent } from "obsidian";
+import { Setting, Notice, setIcon, DropdownComponent, debounce } from "obsidian";
 import { TaskProgressBarSettingTab } from "@/setting";
 import { t } from "@/translations/helper";
 import { FilterMode, FileFilterRule } from "@/common/setting-definition";
-import { FolderSuggest, SimpleFileSuggest as FileSuggest } from "@/components/ui/inputs/AutoComplete";
+import {
+	FolderSuggest,
+	SimpleFileSuggest as FileSuggest,
+} from "@/components/ui/inputs/AutoComplete";
 import "@/styles/file-filter-settings.css";
 
 export function renderFileFilterSettingsTab(
@@ -23,20 +26,11 @@ export function renderFileFilterSettingsTab(
 				.setValue(settingTab.plugin.settings.fileFilter.enabled)
 				.onChange(async (value) => {
 					settingTab.plugin.settings.fileFilter.enabled = value;
-					await settingTab.plugin.saveSettings();
-
-					// Trigger dataflow rebuild if enabled
-					if (settingTab.plugin.dataflowOrchestrator) {
-						settingTab.plugin.dataflowOrchestrator.rebuild();
-					}
-
-					// Update statistics immediately
-					debouncedUpdateStats();
-
-					// Refresh the settings display to show/hide relevant options
-					setTimeout(() => {
-						settingTab.display();
-					}, 100);
+					// Apply settings via orchestrator (incremental) to avoid full rebuilds
+					settingTab.applySettingsUpdate();
+					// Refresh the settings display immediately to show/hide relevant options
+					containerEl.empty();
+					renderFileFilterSettingsTab(settingTab, containerEl);
 				})
 		);
 
@@ -57,15 +51,14 @@ export function renderFileFilterSettingsTab(
 				.setValue(settingTab.plugin.settings.fileFilter.mode)
 				.onChange(async (value: FilterMode) => {
 					settingTab.plugin.settings.fileFilter.mode = value;
-					await settingTab.plugin.saveSettings();
+					debouncedApplySettingsUpdate();
 					// File filter configuration is now handled by dataflow
 					debouncedUpdateStats();
 				})
 		);
 
-		// Filter scope selection has been deprecated; use per-rule scope instead
-		// This block intentionally left as a no-op to maintain layout spacing.
-
+	// Filter scope selection has been deprecated; use per-rule scope instead
+	// This block intentionally left as a no-op to maintain layout spacing.
 
 	// Filter rules section
 	new Setting(containerEl)
@@ -103,7 +96,7 @@ export function renderFileFilterSettingsTab(
 				.setValue(rule.type)
 				.onChange(async (value: "file" | "folder" | "pattern") => {
 					rule.type = value;
-					await settingTab.plugin.saveSettings();
+					debouncedApplySettingsUpdate();
 					// File filter configuration is now handled by dataflow
 					debouncedUpdateStats();
 					// Re-render rules to update suggest components
@@ -111,7 +104,9 @@ export function renderFileFilterSettingsTab(
 				});
 
 			// Rule scope dropdown (per-rule)
-			const scopeContainer = ruleContainer.createDiv({ cls: "file-filter-rule-scope" });
+			const scopeContainer = ruleContainer.createDiv({
+				cls: "file-filter-rule-scope",
+			});
 			scopeContainer.createEl("label", { text: t("Scope:") });
 			new DropdownComponent(scopeContainer)
 				.addOption("both", t("Both"))
@@ -120,7 +115,7 @@ export function renderFileFilterSettingsTab(
 				.setValue((rule as any).scope || "both")
 				.onChange(async (value: "both" | "inline" | "file") => {
 					(rule as any).scope = value;
-					await settingTab.plugin.saveSettings();
+					debouncedApplySettingsUpdate();
 					debouncedUpdateStats();
 				});
 
@@ -150,22 +145,18 @@ export function renderFileFilterSettingsTab(
 					"single"
 				);
 			} else if (rule.type === "file") {
-				new FileSuggest(
-					pathInput,
-					settingTab.plugin,
-					(file) => {
-						rule.path = file.path;
-						pathInput.value = file.path;
-						settingTab.plugin.saveSettings();
-						// File filter configuration is now handled by dataflow
-						debouncedUpdateStats();
-					}
-				);
+				new FileSuggest(pathInput, settingTab.plugin, (file) => {
+					rule.path = file.path;
+					pathInput.value = file.path;
+					debouncedApplySettingsUpdate();
+					// File filter configuration is now handled by dataflow
+					debouncedUpdateStats();
+				});
 			}
 
 			pathInput.addEventListener("input", async () => {
 				rule.path = pathInput.value;
-				await settingTab.plugin.saveSettings();
+				debouncedApplySettingsUpdate();
 				// File filter configuration is now handled by dataflow
 				debouncedUpdateStats();
 			});
@@ -183,7 +174,7 @@ export function renderFileFilterSettingsTab(
 
 			enabledCheckbox.addEventListener("change", async () => {
 				rule.enabled = enabledCheckbox.checked;
-				await settingTab.plugin.saveSettings();
+				debouncedApplySettingsUpdate();
 				// File filter configuration is now handled by dataflow
 				debouncedUpdateStats();
 			});
@@ -197,7 +188,7 @@ export function renderFileFilterSettingsTab(
 
 			deleteButton.addEventListener("click", async () => {
 				settingTab.plugin.settings.fileFilter.rules.splice(index, 1);
-				await settingTab.plugin.saveSettings();
+				debouncedApplySettingsUpdate();
 				// File filter configuration is now handled by dataflow
 				renderRules();
 				debouncedUpdateStats();
@@ -220,7 +211,7 @@ export function renderFileFilterSettingsTab(
 					enabled: true,
 				};
 				settingTab.plugin.settings.fileFilter.rules.push(newRule);
-				await settingTab.plugin.saveSettings();
+				debouncedApplySettingsUpdate();
 				// File filter configuration is now handled by dataflow
 				renderRules();
 				debouncedUpdateStats();
@@ -234,7 +225,7 @@ export function renderFileFilterSettingsTab(
 					enabled: true,
 				};
 				settingTab.plugin.settings.fileFilter.rules.push(newRule);
-				await settingTab.plugin.saveSettings();
+				debouncedApplySettingsUpdate();
 				// File filter configuration is now handled by dataflow
 				renderRules();
 				debouncedUpdateStats();
@@ -248,7 +239,7 @@ export function renderFileFilterSettingsTab(
 					enabled: true,
 				};
 				settingTab.plugin.settings.fileFilter.rules.push(newRule);
-				await settingTab.plugin.saveSettings();
+				debouncedApplySettingsUpdate();
 				// File filter configuration is now handled by dataflow
 				renderRules();
 				debouncedUpdateStats();
@@ -256,7 +247,6 @@ export function renderFileFilterSettingsTab(
 		);
 
 	// Manual refresh button for statistics
-
 
 	new Setting(containerEl)
 		.setName(t("Refresh Statistics"))
@@ -280,68 +270,75 @@ export function renderFileFilterSettingsTab(
 		cls: "file-filter-stats",
 	});
 
+	// Debounced apply of settings update to avoid heavy rebuilds on rapid edits
+	const debouncedApplySettingsUpdate = debounce(
+		() => settingTab.applySettingsUpdate(),
+		300,
+		true
+	);
+
 	// Create debounced version of updateStats to avoid excessive calls
-	let updateStatsTimeout: NodeJS.Timeout | null = null;
-	const debouncedUpdateStats = () => {
-		if (updateStatsTimeout) {
-			clearTimeout(updateStatsTimeout);
-		}
-		updateStatsTimeout = setTimeout(() => {
-			updateStats();
-		}, 200);
-	};
+	const debouncedUpdateStats = debounce(
+		() => updateStats(),
+		200,
+		true
+	);
 
 	const updateStats = () => {
 		try {
 			// TODO: Get file filter stats from dataflow when available
 			const stats = {
-				rulesCount: settingTab.plugin.settings.fileFilter.rules.filter(r => r.enabled).length,
+				rulesCount: settingTab.plugin.settings.fileFilter.rules.filter(
+					(r) => r.enabled
+				).length,
 				cacheSize: 0,
 				processedFiles: 0,
-				filteredFiles: 0
+				filteredFiles: 0,
 			};
 
-				// Clear existing content
-				statsContainer.empty();
+			// Clear existing content
+			statsContainer.empty();
 
-				// Active Rules stat
-				const activeRulesStat = statsContainer.createDiv({
-					cls: "file-filter-stat",
-				});
-				activeRulesStat.createEl("span", {
-					cls: "stat-label",
-					text: `${t("Active Rules")}:`,
-				});
-				activeRulesStat.createEl("span", {
-					cls: "stat-value",
-					text: stats.rulesCount.toString(),
-				});
+			// Active Rules stat
+			const activeRulesStat = statsContainer.createDiv({
+				cls: "file-filter-stat",
+			});
+			activeRulesStat.createEl("span", {
+				cls: "stat-label",
+				text: `${t("Active Rules")}:`,
+			});
+			activeRulesStat.createEl("span", {
+				cls: "stat-value",
+				text: stats.rulesCount.toString(),
+			});
 
-				// Cache Size stat
-				const cacheSizeStat = statsContainer.createDiv({
-					cls: "file-filter-stat",
-				});
-				cacheSizeStat.createEl("span", {
-					cls: "stat-label",
-					text: `${t("Cache Size")}:`,
-				});
-				cacheSizeStat.createEl("span", {
-					cls: "stat-value",
-					text: stats.cacheSize.toString(),
-				});
+			// Cache Size stat
+			const cacheSizeStat = statsContainer.createDiv({
+				cls: "file-filter-stat",
+			});
+			cacheSizeStat.createEl("span", {
+				cls: "stat-label",
+				text: `${t("Cache Size")}:`,
+			});
+			cacheSizeStat.createEl("span", {
+				cls: "stat-value",
+				text: stats.cacheSize.toString(),
+			});
 
-				// Status stat
-				const statusStat = statsContainer.createDiv({
-					cls: "file-filter-stat",
-				});
-				statusStat.createEl("span", {
-					cls: "stat-label",
-					text: `${t("Status")}:`,
-				});
-				statusStat.createEl("span", {
-					cls: "stat-value",
-					text: settingTab.plugin.settings.fileFilter.enabled ? t("Enabled") : t("Disabled"),
-				});
+			// Status stat
+			const statusStat = statsContainer.createDiv({
+				cls: "file-filter-stat",
+			});
+			statusStat.createEl("span", {
+				cls: "stat-label",
+				text: `${t("Status")}:`,
+			});
+			statusStat.createEl("span", {
+				cls: "stat-value",
+				text: settingTab.plugin.settings.fileFilter.enabled
+					? t("Enabled")
+					: t("Disabled"),
+			});
 		} catch (error) {
 			console.error("Error updating filter statistics:", error);
 			statsContainer.empty();

@@ -1,4 +1,4 @@
-import { Component, setIcon } from "obsidian";
+import { Component, setIcon, debounce } from "obsidian";
 import { SettingsIndexer } from "@/components/features/settings/core/SettingsIndexer";
 import { SearchResult } from "@/types/SettingsSearch";
 import { t } from "@/translations/helper";
@@ -18,15 +18,25 @@ export class SettingsSearchComponent extends Component {
 	private clearButton: HTMLElement;
 	private currentResults: SearchResult[] = [];
 	private selectedIndex = -1;
-	private debounceTimer = 0;
+	private debouncedSearch: (query: string) => void;
 	private isVisible = false;
 	private blurTimeoutId = 0;
 
-	constructor(settingTab: TaskProgressBarSettingTab, containerEl: HTMLElement) {
+	constructor(
+		settingTab: TaskProgressBarSettingTab,
+		containerEl: HTMLElement
+	) {
 		super();
 		this.settingTab = settingTab;
 		this.indexer = new SettingsIndexer(containerEl);
 		this.containerEl = containerEl;
+
+		// Initialize debounced search function
+		this.debouncedSearch = debounce(
+			(query: string) => this.performSearch(query),
+			100,
+			true
+		);
 
 		this.createSearchUI();
 		this.setupEventListeners();
@@ -91,9 +101,13 @@ export class SettingsSearchComponent extends Component {
 		});
 
 		// 键盘事件
-		this.registerDomEvent(this.searchInputEl, "keydown", (e: KeyboardEvent) => {
-			this.handleKeyDown(e);
-		});
+		this.registerDomEvent(
+			this.searchInputEl,
+			"keydown",
+			(e: KeyboardEvent) => {
+				this.handleKeyDown(e);
+			}
+		);
 
 		// 焦点事件
 		this.registerDomEvent(this.searchInputEl, "focus", () => {
@@ -128,10 +142,7 @@ export class SettingsSearchComponent extends Component {
 		this.clearButton.style.display = query.length > 0 ? "block" : "none";
 
 		// 防抖搜索 - 减少延迟以提升响应速度
-		clearTimeout(this.debounceTimer);
-		this.debounceTimer = window.setTimeout(() => {
-			this.performSearch(query);
-		}, 100);
+		this.debouncedSearch(query);
 	}
 
 	/**
@@ -148,7 +159,9 @@ export class SettingsSearchComponent extends Component {
 
 		// 最少输入1个字符开始搜索，提升响应性
 		if (query.length < 1) {
-			console.log(`[SettingsSearch] Query too short (${query.length} chars), skipping search`);
+			console.log(
+				`[SettingsSearch] Query too short (${query.length} chars), skipping search`
+			);
 			return;
 		}
 
@@ -156,9 +169,15 @@ export class SettingsSearchComponent extends Component {
 		this.currentResults = this.indexer.search(query, 12);
 		this.selectedIndex = -1;
 
-		console.log(`[SettingsSearch] Found ${this.currentResults.length} results:`);
+		console.log(
+			`[SettingsSearch] Found ${this.currentResults.length} results:`
+		);
 		this.currentResults.forEach((result, index) => {
-			console.log(`  ${index + 1}. ${result.item.name} (${result.matchType}, score: ${result.score})`);
+			console.log(
+				`  ${index + 1}. ${result.item.name} (${
+					result.matchType
+				}, score: ${result.score})`
+			);
 		});
 
 		if (this.currentResults.length > 0) {
@@ -196,13 +215,18 @@ export class SettingsSearchComponent extends Component {
 
 			const categoryEl = metaEl.createSpan();
 			categoryEl.addClass("tg-settings-search-result-category");
-			categoryEl.textContent = this.getCategoryDisplayName(result.item.category);
+			categoryEl.textContent = this.getCategoryDisplayName(
+				result.item.category
+			);
 
 			// 描述（如果有）
-			if (result.item.description && result.matchType === 'description') {
+			if (result.item.description && result.matchType === "description") {
 				const descEl = resultEl.createDiv();
 				descEl.addClass("tg-settings-search-result-desc");
-				descEl.textContent = this.truncateText(result.item.description, 80);
+				descEl.textContent = this.truncateText(
+					result.item.description,
+					80
+				);
 			}
 
 			// 使用 registerDomEvent 注册点击事件
@@ -250,7 +274,10 @@ export class SettingsSearchComponent extends Component {
 				break;
 			case "Enter":
 				e.preventDefault();
-				if (this.selectedIndex >= 0 && this.currentResults[this.selectedIndex]) {
+				if (
+					this.selectedIndex >= 0 &&
+					this.currentResults[this.selectedIndex]
+				) {
 					this.selectResult(this.currentResults[this.selectedIndex]);
 				}
 				break;
@@ -277,7 +304,9 @@ export class SettingsSearchComponent extends Component {
 	 */
 	private setSelectedIndex(index: number): void {
 		// 移除之前的选中状态
-		const previousSelected = this.resultsContainerEl.querySelector(".tg-settings-search-result-selected");
+		const previousSelected = this.resultsContainerEl.querySelector(
+			".tg-settings-search-result-selected"
+		);
 		if (previousSelected) {
 			previousSelected.removeClass("tg-settings-search-result-selected");
 		}
@@ -286,10 +315,12 @@ export class SettingsSearchComponent extends Component {
 
 		// 添加新的选中状态
 		if (index >= 0) {
-			const selectedEl = this.resultsContainerEl.querySelector(`[data-index="${index}"]`);
+			const selectedEl = this.resultsContainerEl.querySelector(
+				`[data-index="${index}"]`
+			);
 			if (selectedEl) {
 				selectedEl.addClass("tg-settings-search-result-selected");
-				selectedEl.scrollIntoView({block: "nearest"});
+				selectedEl.scrollIntoView({ block: "nearest" });
 			}
 		}
 	}
@@ -325,13 +356,15 @@ export class SettingsSearchComponent extends Component {
 	 */
 	private scrollToSetting(settingId: string): void {
 		// 查找具有对应ID的设置项元素
-		const settingElement = this.containerEl.querySelector(`[data-setting-id="${settingId}"]`);
+		const settingElement = this.containerEl.querySelector(
+			`[data-setting-id="${settingId}"]`
+		);
 
 		if (settingElement) {
 			// 滚动到设置项
 			settingElement.scrollIntoView({
 				behavior: "smooth",
-				block: "center"
+				block: "center",
 			});
 
 			// 添加临时高亮效果
@@ -384,7 +417,7 @@ export class SettingsSearchComponent extends Component {
 			gamification: t("Gamification"),
 			integration: t("Integration"),
 			advanced: t("Advanced"),
-			info: t("Information")
+			info: t("Information"),
 		};
 
 		return categoryNames[category] || category;
@@ -406,7 +439,6 @@ export class SettingsSearchComponent extends Component {
 	 */
 	onunload(): void {
 		// 清理定时器
-		clearTimeout(this.debounceTimer);
 		clearTimeout(this.blurTimeoutId);
 
 		// 清空容器
