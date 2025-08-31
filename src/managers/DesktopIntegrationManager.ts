@@ -320,6 +320,11 @@ export class DesktopIntegrationManager extends Component {
 
 	private isDarkTheme(): boolean {
 		const nt = this.getNativeTheme();
+		console.log(
+			"global-theme",
+			nt,
+			window.matchMedia("(prefers-color-scheme: dark)").matches
+		);
 		if (nt && typeof nt.shouldUseDarkColors === "boolean")
 			return nt.shouldUseDarkColors;
 		try {
@@ -330,12 +335,16 @@ export class DesktopIntegrationManager extends Component {
 	}
 
 	private async applyThemeToTray(nativeImage: any): Promise<void> {
+		console.log(this.electronTray, "tray");
 		if (!this.electronTray) return;
-		const isDark = this.isDarkTheme();
 
-		console.log(isDark, "theme");
-		const color = isDark ? "#FFFFFF" : "#000000";
-		const img = await this.buildTrayNativeImage(nativeImage, color);
+		// For macOS, always use black and let Template Image handle theme
+		// For Windows/Linux, manually set color based on theme
+		const useTemplateImage = Platform.isMacOS;
+		const img = await this.buildTrayNativeImage(
+			nativeImage,
+			useTemplateImage
+		);
 		try {
 			this.electronTray.setImage?.(img);
 		} catch {}
@@ -381,7 +390,7 @@ export class DesktopIntegrationManager extends Component {
 
 	private async buildTrayNativeImage(
 		nativeImage: any,
-		color?: string
+		useTemplateImage: boolean = false
 	): Promise<any> {
 		try {
 			const size = Platform.isMacOS ? 14 : 24;
@@ -391,11 +400,21 @@ export class DesktopIntegrationManager extends Component {
 			const ctx = canvas.getContext("2d");
 			if (!ctx) return nativeImage.createEmpty();
 
-			// Get the actual color to use - default to current theme color
-			const actualColor = color || this.getCurrentThemeColor();
+			// For Template Images (macOS), always use black
+			// For regular images (Windows/Linux), use neutral gray
+			let actualColor: string;
+			if (useTemplateImage) {
+				// Template images should be pure black - macOS will handle inversion
+				actualColor = "#000000";
+			} else {
+				// For Windows/Linux, use a neutral gray that works on any background
+				// #666666 provides good contrast on both light and dark backgrounds
+				actualColor = "#c7c7c7ff";
+			}
 
-			// Use Task Genius icon for all platforms with theme-aware color
+			// Use Task Genius icon with appropriate color
 			const svg = this.generateThemedTaskGeniusIcon(actualColor);
+
 			const img = new Image();
 			const blob = new Blob([svg], { type: "image/svg+xml" });
 			const url = URL.createObjectURL(blob);
@@ -410,9 +429,10 @@ export class DesktopIntegrationManager extends Component {
 			const dataUrl = canvas.toDataURL("image/png");
 			const ni = nativeImage.createFromDataURL(dataUrl);
 
-			// Set as template image on macOS for automatic theme adaptation
+			// Set as template image if requested (macOS)
 			try {
-				if (Platform.isMacOS && ni.setTemplateImage) {
+				if (useTemplateImage && ni.setTemplateImage) {
+					console.log("[TrayDebug] Setting as template image");
 					ni.setTemplateImage(true);
 				}
 			} catch {}
@@ -438,6 +458,7 @@ export class DesktopIntegrationManager extends Component {
 		// Get the original Task Genius icon and replace currentColor with the theme color
 		const originalSvg = getTaskGeniusIcon();
 		// Replace all instances of currentColor with the dynamic color
+
 		return originalSvg.replace(/currentColor/g, color);
 	}
 
@@ -905,6 +926,10 @@ export class DesktopIntegrationManager extends Component {
 	}
 
 	private openVault(): void {
+		// Try to focus the window directly first
+		this.focusObsidianWindow();
+
+		// Also try the URI approach as fallback
 		const url = this.getVaultOpenURI();
 		try {
 			window.open(url, "_blank");
@@ -1028,29 +1053,68 @@ export class DesktopIntegrationManager extends Component {
 	}
 
 	private async openTask(task: Task): Promise<void> {
-		const file = this.plugin.app.vault.getAbstractFileByPath(
+		// First, bring the window to front
+		this.focusObsidianWindow();
+
+		const file = this.plugin.app.vault.getFileByPath(
 			task.filePath
 		) as TFile | null;
 		if (!file) return;
-		const leaf = this.plugin.app.workspace.getLeaf(true);
+
+		// Open file in current tab (false) or new tab based on preference
+		const leaf = this.plugin.app.workspace.getLeaf(false);
 		await leaf.openFile(file);
+
+		if (!(file instanceof TFile)) return;
+
+		await leaf.openFile(file, {
+			eState: {
+				line: task.line,
+			},
+		});
+	}
+
+	private focusObsidianWindow(): void {
 		try {
-			// Reveal line if available
-			const view = this.plugin.app.workspace.getActiveViewOfType(
-				(window as any).MarkdownView
-			);
-			const editor = (view as any)?.editor;
-			if (editor && typeof task.line === "number") {
-				editor.setCursor({ line: Math.max(0, task.line - 1), ch: 0 });
-				editor.scrollIntoView(
-					{
-						from: { line: Math.max(0, task.line - 1), ch: 0 },
-						to: { line: Math.max(0, task.line - 1), ch: 0 },
-					},
-					true
-				);
+			const electron = this.getElectron();
+			if (!electron) return;
+
+			// Get the current BrowserWindow
+			const BrowserWindow =
+				electron.remote?.BrowserWindow || electron.BrowserWindow;
+			const getCurrentWindow =
+				electron.remote?.getCurrentWindow ||
+				(() => {
+					// Fallback: try to get window from webContents
+					const webContents =
+						electron.remote?.getCurrentWebContents?.() ||
+						electron.webContents?.getFocusedWebContents?.();
+					return webContents
+						? BrowserWindow?.fromWebContents?.(webContents)
+						: null;
+				});
+
+			const win = getCurrentWindow?.();
+			if (win) {
+				// Show window if minimized
+				if (win.isMinimized?.()) {
+					win.restore?.();
+				}
+				// Bring window to front
+				win.show?.();
+				win.focus?.();
+
+				// On Windows, sometimes need extra steps to bring to front
+				if (Platform.isWin) {
+					win.setAlwaysOnTop?.(true);
+					setTimeout(() => {
+						win.setAlwaysOnTop?.(false);
+					}, 100);
+				}
 			}
-		} catch {}
+		} catch (e) {
+			console.log("[TrayDebug] Could not focus window:", e);
+		}
 	}
 }
 
