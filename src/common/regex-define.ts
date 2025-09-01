@@ -1,5 +1,5 @@
 // Task identification
-const TASK_REGEX = /^(([\s>]*)?(-|\d+\.|\*|\+)\s\[(.)\])\s*(.*)$/m;
+const TASK_REGEX = /^(([\s>]*)?(-|\d+\.|\*|\+)\s\[([^\[\]]{1})\])\s+(.*)$/m;
 
 // --- Emoji/Tasks Style Regexes ---
 const EMOJI_START_DATE_REGEX = /🛫\s*(\d{4}-\d{2}-\d{2})/;

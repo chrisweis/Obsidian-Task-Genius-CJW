@@ -18,7 +18,7 @@ import "@/styles/task-gutter.css";
 import { getConfig } from "@/common/task-parser-config";
 import { TaskParserConfig } from "@/types/TaskParserConfig";
 
-const taskRegex = /^(([\s>]*)?(-|\d+\.|\*|\+)\s\[(.)\])\s+(.*)$/m;
+const taskRegex = /^(([\s>]*)?(-|\d+\.|\*|\+)\s\[([^\[\]]{1})\])\s+(.*)$/m;
 
 // Task icon marker
 class TaskGutterMarker extends GutterMarker {
@@ -113,7 +113,7 @@ const showTaskDetails = (
 		if (plugin.writeAPI) {
 			await plugin.writeAPI.updateTask({
 				taskId: updatedTask.id,
-				updates: updatedTask
+				updates: updatedTask,
 			});
 		}
 	};
@@ -147,7 +147,10 @@ const getTaskFromLine = (
 ): Task | null => {
 	try {
 		// Try to get the task from dataflow index first
-		if (plugin.dataflowOrchestrator && plugin.settings.projectConfig?.enableEnhancedProject) {
+		if (
+			plugin.dataflowOrchestrator &&
+			plugin.settings.projectConfig?.enableEnhancedProject
+		) {
 			try {
 				// Try to find the task by ID in the existing index
 				const taskId = `${filePath}-L${lineNum}`;
@@ -164,18 +167,25 @@ const getTaskFromLine = (
 		// Fallback to direct parser
 		if (!taskParser) {
 			taskParser = new MarkdownTaskParser(
-				getConfig(plugin.settings.preferMetadataFormat, plugin) as TaskParserConfig
+				getConfig(
+					plugin.settings.preferMetadataFormat,
+					plugin
+				) as TaskParserConfig
 			);
 		}
 
 		const task = taskParser.parseTask(line, filePath, lineNum);
-		
+
 		// If we have a task and enhanced project is enabled, ensure the ID matches what Dataflow expects
-		if (task && plugin.dataflowOrchestrator && plugin.settings.projectConfig?.enableEnhancedProject) {
+		if (
+			task &&
+			plugin.dataflowOrchestrator &&
+			plugin.settings.projectConfig?.enableEnhancedProject
+		) {
 			// Ensure the task ID matches the format used by Dataflow
 			task.id = `${filePath}-L${lineNum}`;
 		}
-		
+
 		return task;
 	} catch (error) {
 		console.error("Error parsing task:", error);
