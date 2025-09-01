@@ -86,10 +86,6 @@ export class TrayMenuBuilder {
 			label: "Open Task Genius",
 			click: () => actions.openTaskView(),
 		});
-		template.push({
-			label: "Send Daily Summary",
-			click: () => actions.sendDaily(),
-		});
 		template.push({ type: "separator" });
 
 		for (const t of tasks) {

@@ -869,6 +869,21 @@ export default class TaskProgressBarPlugin extends Plugin {
 			});
 		}
 
+		// Habit commands
+		this.addCommand({
+			id: "reindex-habits",
+			name: t("Reindex habits"),
+			callback: async () => {
+				try {
+					await this.habitManager?.initializeHabits();
+					new Notice(t("Habit index refreshed"));
+				} catch (e) {
+					console.error("Failed to reindex habits", e);
+					new Notice(t("Failed to refresh habit index"));
+				}
+			},
+		});
+
 		// Add priority keyboard shortcuts commands
 		if (this.settings.enablePriorityKeyboardShortcuts) {
 			// Emoji priority commands
@@ -1771,6 +1786,13 @@ export default class TaskProgressBarPlugin extends Plugin {
 					allFiles.length,
 					versionResult.rebuildReason
 				);
+
+				// After dataflow rebuild, refresh habits to keep in sync
+				try {
+					await this.habitManager?.initializeHabits();
+				} catch (e) {
+					console.warn("Failed to refresh habits after rebuild", e);
+				}
 
 				// Trigger dataflow rebuild
 				await this.dataflowOrchestrator.rebuild();

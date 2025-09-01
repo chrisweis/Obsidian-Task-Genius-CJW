@@ -704,11 +704,6 @@ export class DesktopIntegrationManager extends Component {
 							} catch {}
 						});
 				});
-				menu.addItem((i: any) => {
-					i.setTitle("Send Daily Summary")
-						.setIcon("send")
-						.onClick(() => this.sendDailySummary());
-				});
 				menu.addSeparator();
 
 				// Show top 7 tasks within horizon

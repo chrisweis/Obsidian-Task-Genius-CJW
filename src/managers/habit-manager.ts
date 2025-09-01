@@ -30,6 +30,16 @@ import {
 	getDailyNoteSettings,
 } from "obsidian-daily-notes-interface";
 
+// Helpers for habit processing
+const hasValue = (v: any): boolean => v !== undefined && v !== null && v !== "";
+const slugify = (s: string): string =>
+	(s ?? "")
+		.toString()
+		.trim()
+		.toLowerCase()
+		.replace(/[^\w\s-]/g, "")
+		.replace(/\s+/g, "-");
+
 export class HabitManager extends Component {
 	private plugin: TaskProgressBarPlugin;
 	habits: HabitProps[] = [];
@@ -78,7 +88,9 @@ export class HabitManager extends Component {
 						name: dailyHabit.name,
 						description: dailyHabit.description,
 						icon: dailyHabit.icon,
-						property: dailyHabit.property,
+						property: hasValue(dailyHabit.property)
+							? dailyHabit.property
+							: slugify(dailyHabit.name),
 						type: dailyHabit.type,
 						completionText: dailyHabit.completionText,
 						completions: {},
@@ -92,7 +104,9 @@ export class HabitManager extends Component {
 						name: countHabit.name,
 						description: countHabit.description,
 						icon: countHabit.icon,
-						property: countHabit.property,
+						property: hasValue(countHabit.property)
+							? countHabit.property
+							: slugify(countHabit.name),
 						type: countHabit.type,
 						min: countHabit.min,
 						max: countHabit.max,
@@ -123,7 +137,9 @@ export class HabitManager extends Component {
 						name: mappingHabit.name,
 						description: mappingHabit.description,
 						icon: mappingHabit.icon,
-						property: mappingHabit.property,
+						property: hasValue(mappingHabit.property)
+							? mappingHabit.property
+							: slugify(mappingHabit.name),
 						type: mappingHabit.type,
 						mapping: mappingHabit.mapping,
 						completions: {},
@@ -184,18 +200,16 @@ export class HabitManager extends Component {
 							] of Object.entries(eventMap)) {
 								if (
 									propertyKey &&
-									frontmatter[propertyKey as string] !==
-										undefined &&
-									frontmatter[propertyKey as string] !== ""
+									hasValue(frontmatter[propertyKey as string])
 								) {
 									const value =
 										frontmatter[propertyKey as string];
-									// 只有当值不为空字符串时才添加到completions
-									if (value && value !== "") {
+									// 只有当值不为空时才添加到completions
+									if (hasValue(value)) {
 										// Store the raw value or format it as needed
 										scheduledHabit.completions[date][
 											eventName
-										] = value;
+										] = value as any;
 									}
 								}
 							}
@@ -207,8 +221,7 @@ export class HabitManager extends Component {
 
 							if (
 								habit.property &&
-								frontmatter[habit.property] !== undefined &&
-								frontmatter[habit.property] !== ""
+								hasValue(frontmatter[habit.property])
 							) {
 								const value = frontmatter[habit.property];
 								// If completionText is defined, check if value matches it
@@ -237,9 +250,7 @@ export class HabitManager extends Component {
 							const countHabit = habit as CountHabitProps;
 							if (
 								countHabit.property &&
-								frontmatter[countHabit.property] !==
-									undefined &&
-								frontmatter[countHabit.property] !== ""
+								hasValue(frontmatter[countHabit.property])
 							) {
 								const value = frontmatter[countHabit.property];
 								// For count habits, try to parse as number
@@ -255,9 +266,7 @@ export class HabitManager extends Component {
 							const mappingHabit = habit as MappingHabitProps;
 							if (
 								mappingHabit.property &&
-								frontmatter[mappingHabit.property] !==
-									undefined &&
-								frontmatter[mappingHabit.property] !== ""
+								hasValue(frontmatter[mappingHabit.property])
 							) {
 								const value =
 									frontmatter[mappingHabit.property];
@@ -305,23 +314,22 @@ export class HabitManager extends Component {
 					)) {
 						if (
 							propertyKey &&
-							cache.frontmatter?.[propertyKey as string] !==
-								undefined &&
-							cache.frontmatter?.[propertyKey as string] !== ""
+							hasValue(cache.frontmatter?.[propertyKey as string])
 						) {
 							const newValue =
-								cache.frontmatter[propertyKey as string] ?? "";
+								cache.frontmatter?.[propertyKey as string] ??
+								"";
 							if (
-								newValue !== "" &&
+								hasValue(newValue) &&
 								scheduledHabit.completions[dateStr][
 									eventName
 								] !== newValue
 							) {
 								scheduledHabit.completions[dateStr][eventName] =
-									newValue;
+									newValue as any;
 								eventChanged = true;
 							} else if (
-								newValue === "" &&
+								!hasValue(newValue) &&
 								scheduledHabit.completions[dateStr]?.[
 									eventName
 								] !== undefined
@@ -370,7 +378,7 @@ export class HabitManager extends Component {
 							}
 						} else {
 							// Default behavior: any non-empty value means completed
-							const newValue = value ? 1 : 0;
+							const newValue = hasValue(value) ? 1 : 0;
 							if (dailyHabit.completions[dateStr] !== newValue) {
 								dailyHabit.completions[dateStr] = newValue;
 								habitsChanged = true;
