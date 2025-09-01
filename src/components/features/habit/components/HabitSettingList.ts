@@ -6,10 +6,10 @@ import {
 	Notice,
 	setIcon,
 } from "obsidian";
-import { BaseHabitData } from '@/types/habit-card';
-import TaskProgressBarPlugin from '@/index';
-import { HabitEditDialog } from '@/components/features/habit/components/HabitEditDialog';
-import { t } from '@/translations/helper';
+import { BaseHabitData } from "@/types/habit-card";
+import TaskProgressBarPlugin from "@/index";
+import { HabitEditDialog } from "@/components/features/habit/components/HabitEditDialog";
+import { t } from "@/translations/helper";
 import "@/styles/habit-list.css";
 
 export interface HabitSettings {
@@ -160,6 +160,8 @@ export class HabitList {
 
 				// 保存设置并刷新显示
 				this.plugin.saveSettings();
+				// 重新初始化习惯索引，通知视图刷新
+				void this.plugin.habitManager?.initializeHabits();
 				this.render();
 				new Notice(habitData ? t("Habit updated") : t("Habit added"));
 			}
@@ -212,6 +214,8 @@ export class HabitList {
 						if (index > -1) {
 							habits.splice(index, 1);
 							this.plugin.saveSettings();
+							// 重新初始化习惯索引，通知视图刷新
+							void this.plugin.habitManager?.initializeHabits();
 							this.render();
 							new Notice(t("Habit deleted"));
 						}

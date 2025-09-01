@@ -5,7 +5,10 @@ import {
 	MappingHabitProps,
 } from "@/types/habit-card";
 import TaskProgressBarPlugin from "@/index";
-import { getTodayLocalDateString, getLocalDateString } from "@/utils/date/date-formatter";
+import {
+	getTodayLocalDateString,
+	getLocalDateString,
+} from "@/utils/date/date-formatter";
 
 function getDatesInRange(startDate: string, endDate: string): string[] {
 	const dates = [];
@@ -71,7 +74,8 @@ export class HabitCard extends Component {
 			`Progress: ${value} out of ${max}`
 		);
 
-		if (value === max) {
+		// Mark as filled when reaching or exceeding the goal
+		if (value >= max) {
 			progressContainer.toggleClass("filled", true);
 		} else {
 			progressContainer.toggleClass("filled", false);

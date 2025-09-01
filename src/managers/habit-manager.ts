@@ -29,6 +29,7 @@ import {
 	appHasDailyNotesPluginLoaded,
 	getDailyNoteSettings,
 } from "obsidian-daily-notes-interface";
+import { Events, on } from "../dataflow/events/Events";
 
 // Helpers for habit processing
 const hasValue = (v: any): boolean => v !== undefined && v !== null && v !== "";
@@ -51,16 +52,56 @@ export class HabitManager extends Component {
 
 	async onload() {
 		await this.initializeHabits();
-		this.registerEvent(
-			this.plugin.app.metadataCache.on(
-				"changed",
-				(file: TFile, _data: string, cache: CachedMetadata) => {
-					if (this.isDailyNote(file)) {
-						this.updateHabitCompletions(file, cache);
+
+		const useDataflow = (this.plugin as any).settings?.enableIndexer;
+		if (useDataflow) {
+			// Use dataflow's unified TASK_CACHE_UPDATED event (post-index) to track changes
+			this.registerEvent(
+				on(
+					this.plugin.app,
+					Events.TASK_CACHE_UPDATED,
+					async (payload: any) => {
+						try {
+							const changed =
+								(payload?.changedFiles as string[]) || [];
+							if (!changed.length) return;
+							for (const p of changed) {
+								// Skip non-file markers like 'ics:events'
+								if (!p || p.includes(":")) continue;
+								const f =
+									this.plugin.app.vault.getAbstractFileByPath(
+										p
+									) as TFile;
+								if (!f) continue;
+								if (!this.isDailyNote(f)) continue;
+								const c =
+									this.plugin.app.metadataCache.getFileCache(
+										f
+									);
+								if (c) this.updateHabitCompletions(f, c);
+							}
+						} catch (e) {
+							console.warn(
+								"[HabitManager] Failed to handle TASK_CACHE_UPDATED for habits",
+								e
+							);
+						}
 					}
-				}
-			)
-		);
+				)
+			);
+		} else {
+			// Fallback for legacy mode without dataflow
+			this.registerEvent(
+				this.plugin.app.metadataCache.on(
+					"changed",
+					(file: TFile, _data: string, cache: CachedMetadata) => {
+						if (this.isDailyNote(file)) {
+							this.updateHabitCompletions(file, cache);
+						}
+					}
+				)
+			);
+		}
 	}
 
 	async initializeHabits(): Promise<void> {
