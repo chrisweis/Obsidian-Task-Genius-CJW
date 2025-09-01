@@ -4,6 +4,22 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.12](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/compare/9.8.0-beta.11...9.8.0-beta.12) (2025-09-01)
+
+### Features
+
+* **habits:** improve habit property handling and add reindex command ([40bb407](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/40bb407f5da981aa6d366fa7f87b3cabb3d986ea))
+
+### Bug Fixes
+
+* **habits:** improve habit sync and progress visualization ([d18267c](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/d18267c09549c9d2a16010e2bfbcfb45e84c81d9))
+* improve task regex to prevent matching nested brackets in status ([26cd602](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/26cd6028b889da23bdcb3a85f44c24ed3ba1d039))
+
+### Refactors
+
+* rename DesktopIntegrationManager file to kebab-case and add multi-instance support ([bd4623f](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/bd4623f409182d13049ff150314bf3d605d6e9a7))
+* **settings:** replace custom list UI with ListConfigModal and use native debounce ([a6d94a5](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/a6d94a5d7e9daad3cfe36de3a03ce238858ec00f))
+
 ## [9.8.0-beta.11](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/compare/9.8.0-beta.10...9.8.0-beta.11) (2025-08-31)
 
 ### Bug Fixes
