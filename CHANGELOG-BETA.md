@@ -4,6 +4,17 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.13](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/compare/9.8.0-beta.12...9.8.0-beta.13) (2025-09-02)
+
+### Features
+
+* **parser:** add case-insensitive tag prefix matching ([6e20a7a](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/6e20a7a87947a7f47b2e8f7a51d0891e7071f049))
+
+### Bug Fixes
+
+* **dates:** apply timezone handling to InlineEditor and TaskPropertyTwoColumnView ([77d21e4](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/77d21e461160d67dac08437d40abd73f8dda92d8))
+* **dates:** correct timezone handling for date display in task views ([f1a3c10](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/f1a3c10bcbf29e035bb7a6d8da14436c3039689a)), closes [#419](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/issues/419)
+
 ## [9.8.0-beta.12](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/compare/9.8.0-beta.11...9.8.0-beta.12) (2025-09-01)
 
 ### Features
