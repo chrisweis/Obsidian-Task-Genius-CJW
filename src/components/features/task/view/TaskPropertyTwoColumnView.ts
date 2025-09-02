@@ -1,4 +1,5 @@
 import { App, setIcon } from "obsidian";
+import { timestampToLocalDateString } from "@/utils/date/date-display-helper";
 import { Task } from "@/types/task";
 import { TwoColumnViewBase, TwoColumnViewConfig } from "./TwoColumnViewBase";
 import { t } from "@/translations/helper";
@@ -151,11 +152,7 @@ export class TaskPropertyTwoColumnView extends TwoColumnViewBase<string> {
 	 * Format date as YYYY-MM-DD
 	 */
 	private formatDate(timestamp: number): string {
-		const date = new Date(timestamp);
-		return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-			2,
-			"0"
-		)}-${String(date.getDate()).padStart(2, "0")}`;
+		return timestampToLocalDateString(timestamp);
 	}
 
 	/**

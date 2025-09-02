@@ -1,17 +1,25 @@
 import { App, Component, debounce, setIcon, Menu } from "obsidian";
 import { StandardTaskMetadata, Task } from "@/types/task";
 import TaskProgressBarPlugin from "@/index";
-import { ContextSuggest, ProjectSuggest, TagSuggest } from "@/components/ui/inputs/AutoComplete";
+import {
+	ContextSuggest,
+	ProjectSuggest,
+	TagSuggest,
+} from "@/components/ui/inputs/AutoComplete";
 import { clearAllMarks } from "@/components/ui/renderers/MarkdownRenderer";
 import {
 	createEmbeddableMarkdownEditor,
 	EmbeddableMarkdownEditor,
 } from "@/editor-extensions/core/markdown-editor";
 import "@/styles/inline-editor.css";
-import { getEffectiveProject, isProjectReadonly } from "@/utils/task/task-operations";
+import {
+	getEffectiveProject,
+	isProjectReadonly,
+} from "@/utils/task/task-operations";
 import { t } from "@/translations/helper";
 import { sanitizePriorityForClass } from "@/utils/task/priority-utils";
 import { OnCompletionModal } from "@/components/features/on-completion/OnCompletionModal";
+import { localDateStringToTimestamp } from "@/utils/date/date-display-helper";
 
 export interface InlineEditorOptions {
 	onTaskUpdate: (task: Task, updatedTask: Task) => Promise<void>;
@@ -543,12 +551,9 @@ export class InlineEditor extends Component {
 
 		const updateDate = (value: string) => {
 			if (value) {
-				const [year, month, day] = value.split("-").map(Number);
-				this.task.metadata[fieldType] = new Date(
-					year,
-					month - 1,
-					day
-				).getTime();
+				// Store dates consistently at UTC noon
+				const ts = localDateStringToTimestamp(value);
+				this.task.metadata[fieldType] = ts;
 			} else {
 				this.task.metadata[fieldType] = undefined;
 			}
@@ -705,7 +710,6 @@ export class InlineEditor extends Component {
 		container: HTMLElement,
 		currentValue?: string
 	): Promise<void> {
-
 		const modal = new OnCompletionModal(this.app, this.plugin, {
 			initialValue: currentValue || this.task.metadata.onCompletion || "",
 			onSave: (value) => {
@@ -838,8 +842,16 @@ export class InlineEditor extends Component {
 		(input as any)._updateCallback = updateCallback;
 
 		// For date inputs, only save on blur or Enter key, not on input change
-		const isDateField = fieldType && ['dueDate', 'startDate', 'scheduledDate', 'cancelledDate', 'completedDate'].includes(fieldType);
-		
+		const isDateField =
+			fieldType &&
+			[
+				"dueDate",
+				"startDate",
+				"scheduledDate",
+				"cancelledDate",
+				"completedDate",
+			].includes(fieldType);
+
 		if (isDateField) {
 			// For date inputs, update the value but don't trigger save on input
 			this.registerDomEvent(input, "input", (e: Event) => {
@@ -852,9 +864,13 @@ export class InlineEditor extends Component {
 			});
 		} else {
 			// For non-date inputs, use the regular handler that includes debounced save
-			this.registerDomEvent(input, "input", this.boundHandlers.handleInput);
+			this.registerDomEvent(
+				input,
+				"input",
+				this.boundHandlers.handleInput
+			);
 		}
-		
+
 		this.registerDomEvent(input, "blur", this.boundHandlers.handleBlur);
 		this.registerDomEvent(
 			input,
@@ -1075,7 +1091,12 @@ export class InlineEditor extends Component {
 
 		this.isSaving = true;
 		try {
-			console.log("[InlineEditor] Calling onTaskUpdate:", this.originalTask.content, "->", this.task.content);
+			console.log(
+				"[InlineEditor] Calling onTaskUpdate:",
+				this.originalTask.content,
+				"->",
+				this.task.content
+			);
 			await this.options.onTaskUpdate(this.originalTask, this.task);
 			this.originalTask = {
 				...this.task,
@@ -1361,8 +1382,12 @@ export class InlineEditor extends Component {
 					targetEl.textContent = "!".repeat(
 						this.task.metadata.priority
 					);
-					const sanitizedPriority = sanitizePriorityForClass(this.task.metadata.priority);
-				targetEl.className = sanitizedPriority ? `task-priority priority-${sanitizedPriority}` : "task-priority";
+					const sanitizedPriority = sanitizePriorityForClass(
+						this.task.metadata.priority
+					);
+					targetEl.className = sanitizedPriority
+						? `task-priority priority-${sanitizedPriority}`
+						: "task-priority";
 				}
 				break;
 			case "onCompletion":
