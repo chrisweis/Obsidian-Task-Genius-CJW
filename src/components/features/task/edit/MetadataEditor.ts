@@ -14,11 +14,22 @@ import {
 import { Task } from "@/types/task";
 import TaskProgressBarPlugin from "@/index";
 import { t } from "@/translations/helper";
-import { ProjectSuggest, TagSuggest, ContextSuggest } from "@/components/ui/inputs/AutoComplete";
+import {
+	ProjectSuggest,
+	TagSuggest,
+	ContextSuggest,
+} from "@/components/ui/inputs/AutoComplete";
 import { StatusComponent } from "@/components/ui/feedback/StatusIndicator";
-import { format } from "date-fns";
-import { getEffectiveProject, isProjectReadonly } from "@/utils/task/task-operations";
+// import { format } from "date-fns";
+import {
+	getEffectiveProject,
+	isProjectReadonly,
+} from "@/utils/task/task-operations";
 import { OnCompletionConfigurator } from "@/components/features/on-completion/OnCompletionConfigurator";
+import {
+	timestampToLocalDateString,
+	localDateStringToTimestamp,
+} from "@/utils/date/date-display-helper";
 
 export interface MetadataChangeEvent {
 	field: string;
@@ -248,8 +259,10 @@ export class TaskMetadataEditor extends Component {
 	private getDateString(dateValue: string | number | undefined): string {
 		if (dateValue === undefined) return "";
 		if (typeof dateValue === "number") {
-			return format(new Date(dateValue), "yyyy-MM-dd");
+			// For numeric timestamps, prefer helper for correct display across timezones
+			return timestampToLocalDateString(dateValue);
 		}
+		// Already a YYYY-MM-DD string
 		return dateValue;
 	}
 
@@ -337,25 +350,32 @@ export class TaskMetadataEditor extends Component {
 		});
 
 		if (value) {
-			// Date format conversion using UTC to avoid timezone issues
-			try {
-				const date = new Date(value);
-				const year = date.getUTCFullYear();
-				const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-				const day = String(date.getUTCDate()).padStart(2, "0");
-				dateInput.value = `${year}-${month}-${day}`;
-			} catch (e) {
-				console.error(`Cannot parse date: ${value}`, e);
+			// If already a YYYY-MM-DD string, use directly; else use helper for timestamp
+			const isDateString =
+				typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+			if (isDateString) {
+				dateInput.value = value as string;
+			} else {
+				try {
+					const asNum =
+						typeof value === "number" ? value : Number(value);
+					dateInput.value = timestampToLocalDateString(
+						Number.isFinite(asNum) ? (asNum as number) : undefined
+					);
+				} catch (e) {
+					console.error(`Cannot parse date: ${value}`, e);
+				}
 			}
 		}
 
 		this.registerDomEvent(dateInput, "change", () => {
 			const dateValue = dateInput.value;
 			if (dateValue) {
-				// Create date at noon UTC to avoid timezone edge cases
-				const [year, month, day] = dateValue.split("-").map(Number);
-				const timestamp = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).getTime();
-				this.notifyMetadataChange(field, timestamp);
+				// Use helper to convert local date string to UTC noon timestamp
+				const timestamp = localDateStringToTimestamp(dateValue);
+				if (timestamp !== undefined) {
+					this.notifyMetadataChange(field, timestamp);
+				}
 			} else {
 				this.notifyMetadataChange(field, undefined);
 			}

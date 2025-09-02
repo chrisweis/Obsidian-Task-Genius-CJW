@@ -21,6 +21,7 @@ import { ContextSuggest, ProjectSuggest, TagSuggest } from "@/components/ui/inpu
 import { FileTask } from "@/types/file-task";
 import { getEffectiveProject, isProjectReadonly } from "@/utils/task/task-operations";
 import { OnCompletionConfigurator } from "@/components/features/on-completion/OnCompletionConfigurator";
+import { timestampToLocalDateString, localDateStringToTimestamp } from "@/utils/date/date-display-helper";
 
 function getStatus(task: Task, settings: TaskProgressBarSettings) {
 	const status = Object.keys(settings.taskStatuses).find((key) => {
@@ -460,12 +461,8 @@ export class TaskDetailsComponent extends Component {
 			cls: "date-input",
 		});
 		if (task.metadata.dueDate) {
-			// Use local date components to avoid off-by-one due to timezone
-			const date = new Date(task.metadata.dueDate);
-			const year = date.getFullYear();
-			const month = String(date.getMonth() + 1).padStart(2, "0");
-			const day = String(date.getDate()).padStart(2, "0");
-			dueDateInput.value = `${year}-${month}-${day}`;
+			// Use helper to correctly display UTC noon timestamp as local date
+			dueDateInput.value = timestampToLocalDateString(task.metadata.dueDate);
 		}		// Start date
 		const startDateField = this.createFormField(
 			this.editFormEl,
@@ -476,12 +473,8 @@ export class TaskDetailsComponent extends Component {
 			cls: "date-input",
 		});
 		if (task.metadata.startDate) {
-			// Use UTC methods to avoid timezone issues
-			const date = new Date(task.metadata.startDate);
-			const year = date.getUTCFullYear();
-			const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-			const day = String(date.getUTCDate()).padStart(2, "0");
-			startDateInput.value = `${year}-${month}-${day}`;
+			// Use helper to correctly display UTC noon timestamp as local date
+			startDateInput.value = timestampToLocalDateString(task.metadata.startDate);
 		}
 
 		// Scheduled date
@@ -494,12 +487,8 @@ export class TaskDetailsComponent extends Component {
 			cls: "date-input",
 		});
 		if (task.metadata.scheduledDate) {
-			// Use UTC methods to avoid timezone issues
-			const date = new Date(task.metadata.scheduledDate);
-			const year = date.getUTCFullYear();
-			const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-			const day = String(date.getUTCDate()).padStart(2, "0");
-			scheduledDateInput.value = `${year}-${month}-${day}`;
+			// Use helper to correctly display UTC noon timestamp as local date
+			scheduledDateInput.value = timestampToLocalDateString(task.metadata.scheduledDate);
 		}
 
 		// Cancelled date
@@ -512,12 +501,8 @@ export class TaskDetailsComponent extends Component {
 			cls: "date-input",
 		});
 		if (task.metadata.cancelledDate) {
-			// Use UTC methods to avoid timezone issues
-			const date = new Date(task.metadata.cancelledDate);
-			const year = date.getUTCFullYear();
-			const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-			const day = String(date.getUTCDate()).padStart(2, "0");
-			cancelledDateInput.value = `${year}-${month}-${day}`;
+			// Use helper to correctly display UTC noon timestamp as local date
+			cancelledDateInput.value = timestampToLocalDateString(task.metadata.cancelledDate);
 		}
 
 		// On completion action
@@ -570,9 +555,8 @@ export class TaskDetailsComponent extends Component {
 			// Parse dates and check if they've changed
 			const dueDateValue = dueDateInput.value;
 			if (dueDateValue) {
-				// Create date at noon UTC to avoid timezone edge cases
-				const [year, month, day] = dueDateValue.split("-").map(Number);
-				const newDueDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).getTime();
+				// Use helper to convert local date string to UTC noon timestamp
+				const newDueDate = localDateStringToTimestamp(dueDateValue);
 				// Only update if the date has changed or is different from the original
 				if (task.metadata.dueDate !== newDueDate) {
 					metadata.dueDate = newDueDate;
@@ -589,11 +573,8 @@ export class TaskDetailsComponent extends Component {
 
 			const startDateValue = startDateInput.value;
 			if (startDateValue) {
-				// Create date at noon UTC to avoid timezone edge cases
-				const [year, month, day] = startDateValue
-					.split("-")
-					.map(Number);
-				const newStartDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).getTime();
+				// Use helper to convert local date string to UTC noon timestamp
+				const newStartDate = localDateStringToTimestamp(startDateValue);
 				// Only update if the date has changed or is different from the original
 				if (task.metadata.startDate !== newStartDate) {
 					metadata.startDate = newStartDate;
@@ -610,13 +591,8 @@ export class TaskDetailsComponent extends Component {
 
 			const scheduledDateValue = scheduledDateInput.value;
 			if (scheduledDateValue) {
-				// Create date at noon UTC to avoid timezone edge cases
-				const [year, month, day] = scheduledDateValue
-					.split("-")
-					.map(Number);
-				const newScheduledDate = new Date(
-					Date.UTC(year, month - 1, day, 12, 0, 0)
-				).getTime();
+				// Use helper to convert local date string to UTC noon timestamp
+				const newScheduledDate = localDateStringToTimestamp(scheduledDateValue);
 				// Only update if the date has changed or is different from the original
 				if (task.metadata.scheduledDate !== newScheduledDate) {
 					metadata.scheduledDate = newScheduledDate;
@@ -633,13 +609,8 @@ export class TaskDetailsComponent extends Component {
 
 			const cancelledDateValue = cancelledDateInput.value;
 			if (cancelledDateValue) {
-				// Create date at noon UTC to avoid timezone edge cases
-				const [year, month, day] = cancelledDateValue
-					.split("-")
-					.map(Number);
-				const newCancelledDate = new Date(
-					Date.UTC(year, month - 1, day, 12, 0, 0)
-				).getTime();
+				// Use helper to convert local date string to UTC noon timestamp
+				const newCancelledDate = localDateStringToTimestamp(cancelledDateValue);
 				// Only update if the date has changed or is different from the original
 				if (task.metadata.cancelledDate !== newCancelledDate) {
 					metadata.cancelledDate = newCancelledDate;
