@@ -5,7 +5,10 @@
 import { CachedMetadata, FileStats, ListItemCache } from "obsidian";
 import { Task } from "../../types/task";
 import { MetadataFormat } from "@/utils/task/task-operations";
-import { FileParsingConfiguration, FileMetadataInheritanceConfig } from "@/common/setting-definition";
+import {
+	FileParsingConfiguration,
+	FileMetadataInheritanceConfig,
+} from "@/common/setting-definition";
 
 /**
  * Command to parse tasks from a file
@@ -38,6 +41,10 @@ export interface ParseTasksCommand {
 		ignoreHeading: string;
 		focusHeading: string;
 		fileParsingConfig?: FileParsingConfiguration;
+		// Tag prefix configurations (optional)
+		projectTagPrefix?: Record<MetadataFormat, string>;
+		contextTagPrefix?: Record<MetadataFormat, string>;
+		areaTagPrefix?: Record<MetadataFormat, string>;
 	};
 }
 
@@ -73,6 +80,10 @@ export interface BatchIndexCommand {
 		ignoreHeading: string;
 		focusHeading: string;
 		fileParsingConfig?: FileParsingConfiguration;
+		// Tag prefix configurations (optional)
+		projectTagPrefix?: Record<MetadataFormat, string>;
+		contextTagPrefix?: Record<MetadataFormat, string>;
+		areaTagPrefix?: Record<MetadataFormat, string>;
 	};
 }
 
@@ -179,7 +190,7 @@ export type TaskWorkerSettings = {
 	projectTagPrefix?: Record<MetadataFormat, string>;
 	contextTagPrefix?: Record<MetadataFormat, string>;
 	areaTagPrefix?: Record<MetadataFormat, string>;
-	
+
 	// Custom date format settings
 	enableCustomDateFormats?: boolean;
 	customDateFormats?: string[];
@@ -227,7 +238,7 @@ export type TaskWorkerSettings = {
 
 	// File parsing configuration for metadata and tag-based task extraction
 	fileParsingConfig?: FileParsingConfiguration;
-	
+
 	// File metadata inheritance configuration
 	fileMetadataInheritance?: FileMetadataInheritanceConfig;
 };

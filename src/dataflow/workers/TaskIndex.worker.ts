@@ -33,6 +33,39 @@ function parseTasksWithConfigurableParser(
 		const mockPlugin = { settings };
 		const config = getConfig(settings.preferMetadataFormat, mockPlugin);
 
+		// Debug: show incoming prefixes and effective specialTagPrefixes keys
+		try {
+			console.debug("[TPB][Worker] incoming prefixes", {
+				preferMetadataFormat: settings.preferMetadataFormat,
+				projectTagPrefix: settings.projectTagPrefix,
+				contextTagPrefix: settings.contextTagPrefix,
+				areaTagPrefix: settings.areaTagPrefix,
+			});
+			console.debug(
+				"[TPB][Worker] specialTagPrefixes keys (before)",
+				Object.keys(config.specialTagPrefixes || {})
+			);
+		} catch {}
+
+		// Ensure case-insensitive prefixes by duplicating lower-case keys
+		if (config.specialTagPrefixes) {
+			const lowerDup: Record<string, string> = {};
+			for (const k of Object.keys(config.specialTagPrefixes)) {
+				lowerDup[String(k).toLowerCase()] =
+					config.specialTagPrefixes[k];
+			}
+			config.specialTagPrefixes = {
+				...config.specialTagPrefixes,
+				...lowerDup,
+			};
+			try {
+				console.debug(
+					"[TPB][Worker] specialTagPrefixes keys (after)",
+					Object.keys(config.specialTagPrefixes)
+				);
+			} catch {}
+		}
+
 		// Add project configuration to parser config
 		if (
 			settings.projectConfig &&
@@ -49,8 +82,8 @@ function parseTasksWithConfigurableParser(
 			content,
 			filePath,
 			fileMetadata,
-			undefined,  // No project config in worker
-			undefined   // No tgProject in worker
+			undefined, // No project config in worker
+			undefined // No tgProject in worker
 		);
 
 		// Apply heading filters if specified
@@ -58,19 +91,25 @@ function parseTasksWithConfigurableParser(
 			// Parse comma-separated heading filters and normalize them
 			// Remove leading # symbols since task.metadata.heading contains only the text
 			const ignoreHeadings = settings.ignoreHeading
-				? settings.ignoreHeading.split(',').map(h => {
-					// Trim and remove leading # symbols
-					const trimmed = h.trim();
-					return trimmed.replace(/^#+\s*/, '');
-				}).filter(h => h)
+				? settings.ignoreHeading
+						.split(",")
+						.map((h) => {
+							// Trim and remove leading # symbols
+							const trimmed = h.trim();
+							return trimmed.replace(/^#+\s*/, "");
+						})
+						.filter((h) => h)
 				: [];
-			
+
 			const focusHeadings = settings.focusHeading
-				? settings.focusHeading.split(',').map(h => {
-					// Trim and remove leading # symbols
-					const trimmed = h.trim();
-					return trimmed.replace(/^#+\s*/, '');
-				}).filter(h => h)
+				? settings.focusHeading
+						.split(",")
+						.map((h) => {
+							// Trim and remove leading # symbols
+							const trimmed = h.trim();
+							return trimmed.replace(/^#+\s*/, "");
+						})
+						.filter((h) => h)
 				: [];
 
 			// Filter by ignore heading
@@ -79,17 +118,21 @@ function parseTasksWithConfigurableParser(
 				if (!task.metadata.heading) {
 					return true;
 				}
-				
+
 				const taskHeadings = Array.isArray(task.metadata.heading)
 					? task.metadata.heading
 					: [task.metadata.heading];
 
 				// Check if any task heading matches any ignore heading
-				if (taskHeadings.some((taskHeading) => 
-					ignoreHeadings.some((ignoreHeading) => 
-						taskHeading.toLowerCase().includes(ignoreHeading.toLowerCase())
+				if (
+					taskHeadings.some((taskHeading) =>
+						ignoreHeadings.some((ignoreHeading) =>
+							taskHeading
+								.toLowerCase()
+								.includes(ignoreHeading.toLowerCase())
+						)
 					)
-				)) {
+				) {
 					return false;
 				}
 			}
@@ -100,17 +143,21 @@ function parseTasksWithConfigurableParser(
 				if (!task.metadata.heading) {
 					return false;
 				}
-				
+
 				const taskHeadings = Array.isArray(task.metadata.heading)
 					? task.metadata.heading
 					: [task.metadata.heading];
 
 				// Check if any task heading matches any focus heading
-				if (!taskHeadings.some((taskHeading) => 
-					focusHeadings.some((focusHeading) => 
-						taskHeading.toLowerCase().includes(focusHeading.toLowerCase())
+				if (
+					!taskHeadings.some((taskHeading) =>
+						focusHeadings.some((focusHeading) =>
+							taskHeading
+								.toLowerCase()
+								.includes(focusHeading.toLowerCase())
+						)
 					)
-				)) {
+				) {
 					return false;
 				}
 			}

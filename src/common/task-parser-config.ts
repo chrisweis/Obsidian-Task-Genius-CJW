@@ -1,4 +1,8 @@
-import { MetadataParseMode, TaskParserConfig } from "../types/TaskParserConfig";
+import {
+	MetadataParseMode,
+	TaskParserConfig,
+	createDefaultParserConfig,
+} from "../types/TaskParserConfig";
 import { MetadataFormat } from "../utils/task/task-operations";
 import type TaskProgressBarPlugin from "../index";
 
@@ -94,10 +98,10 @@ export const getConfig = (
 
 		// File Metadata Inheritance
 		fileMetadataInheritance: plugin?.settings?.fileMetadataInheritance,
-		
+
 		// Custom date formats for parsing
-		customDateFormats: plugin?.settings?.enableCustomDateFormats 
-			? plugin?.settings?.customDateFormats 
+		customDateFormats: plugin?.settings?.enableCustomDateFormats
+			? plugin?.settings?.customDateFormats
 			: undefined,
 	};
 

@@ -54,6 +54,10 @@ export interface WorkerPoolOptions {
 		fileMetadataInheritance?: FileMetadataInheritanceConfig;
 		enableCustomDateFormats?: boolean;
 		customDateFormats?: string[];
+		// Tag prefix configurations (optional)
+		projectTagPrefix?: Record<string, string>;
+		contextTagPrefix?: Record<string, string>;
+		areaTagPrefix?: Record<string, string>;
 	};
 }
 
@@ -191,12 +195,18 @@ export class TaskWorkerManager extends Component {
 	/**
 	 * Set file parsing configuration
 	 */
-	public setFileParsingConfig(config: FileParsingConfiguration, projectDetectionMethods?: any[]): void {
+	public setFileParsingConfig(
+		config: FileParsingConfiguration,
+		projectDetectionMethods?: any[]
+	): void {
 		if (
 			config.enableFileMetadataParsing ||
 			config.enableTagBasedTaskParsing
 		) {
-			this.fileMetadataParser = new FileMetadataTaskParser(config, projectDetectionMethods);
+			this.fileMetadataParser = new FileMetadataTaskParser(
+				config,
+				projectDetectionMethods
+			);
 		} else {
 			this.fileMetadataParser = undefined;
 		}
@@ -986,14 +996,16 @@ export class TaskWorkerManager extends Component {
 	/**
 	 * Update worker settings dynamically
 	 */
-	public updateSettings(settings: Partial<{
-		preferMetadataFormat: "dataview" | "tasks";
-		customDateFormats?: string[];
-		fileMetadataInheritance?: any;
-		projectConfig?: any;
-		ignoreHeading?: string;
-		focusHeading?: string;
-	}>): void {
+	public updateSettings(
+		settings: Partial<{
+			preferMetadataFormat: "dataview" | "tasks";
+			customDateFormats?: string[];
+			fileMetadataInheritance?: any;
+			projectConfig?: any;
+			ignoreHeading?: string;
+			focusHeading?: string;
+		}>
+	): void {
 		// Update the settings
 		if (this.options.settings) {
 			Object.assign(this.options.settings, settings);

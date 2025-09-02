@@ -756,6 +756,33 @@ export class DataflowOrchestrator {
 			const fileMetadata = fileCache?.frontmatter || {};
 
 			// Create parser with plugin settings
+			const tasksProjectPrefix =
+				this.plugin.settings?.projectTagPrefix?.tasks || "project";
+			const tasksContextPrefix =
+				this.plugin.settings?.contextTagPrefix?.tasks || "@";
+			const tasksAreaPrefix =
+				this.plugin.settings?.areaTagPrefix?.tasks || "area";
+			const mergedSpecialTagPrefixes = {
+				// Configurable prefixes from settings (case-insensitive by duplicating lower-case keys)
+				[tasksProjectPrefix]: "project",
+				[tasksProjectPrefix.toLowerCase?.() ||
+				String(tasksProjectPrefix).toLowerCase()]: "project",
+				[tasksAreaPrefix]: "area",
+				[tasksAreaPrefix.toLowerCase?.() ||
+				String(tasksAreaPrefix).toLowerCase()]: "area",
+				[tasksContextPrefix]: "context",
+				[(tasksContextPrefix as string).toLowerCase?.() ||
+				String(tasksContextPrefix).toLowerCase()]: "context",
+				// Allow user to extend/override via explicit mapping
+				...(this.plugin.settings.specialTagPrefixes || {}),
+			};
+
+			// Debug: log effective specialTagPrefixes for verification
+			console.debug(
+				"[TPB] Parser specialTagPrefixes:",
+				mergedSpecialTagPrefixes
+			);
+
 			const parser = new ConfigurableTaskParser(
 				{
 					parseMetadata: true,
@@ -789,8 +816,7 @@ export class DataflowOrchestrator {
 						"🔽": "priority",
 						"⏬": "priority",
 					},
-					specialTagPrefixes:
-						this.plugin.settings.specialTagPrefixes || {},
+					specialTagPrefixes: mergedSpecialTagPrefixes,
 					fileMetadataInheritance:
 						this.plugin.settings.fileMetadataInheritance,
 					projectConfig: this.plugin.settings.projectConfig,
@@ -860,6 +886,22 @@ export class DataflowOrchestrator {
 						ignoreHeading: this.plugin.settings.ignoreHeading,
 						focusHeading: this.plugin.settings.focusHeading,
 					});
+
+					// Also persist tag prefixes into worker options for single-file path
+					(taskWorkerManager as any).options.settings = {
+						...((taskWorkerManager as any).options.settings || {}),
+						projectTagPrefix: this.plugin.settings.projectTagPrefix,
+						contextTagPrefix: this.plugin.settings.contextTagPrefix,
+						areaTagPrefix: this.plugin.settings.areaTagPrefix,
+					};
+
+					// Pass tag prefixes to worker options (persisted for future commands)
+					(taskWorkerManager as any).options.settings = {
+						...((taskWorkerManager as any).options.settings || {}),
+						projectTagPrefix: this.plugin.settings.projectTagPrefix,
+						contextTagPrefix: this.plugin.settings.contextTagPrefix,
+						areaTagPrefix: this.plugin.settings.areaTagPrefix,
+					};
 				}
 
 				// Parse all files in parallel using workers (raw parsing only, no project data)
