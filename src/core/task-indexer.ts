@@ -1065,6 +1065,29 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 	}
 
 	/**
+	 * Remove a single task by ID
+	 */
+	public removeTask(id: string): void {
+		const task = this.taskCache.tasks.get(id);
+		if (!task) return;
+
+		// Remove from all indexes
+		this.removeTaskFromIndexes(task);
+
+		// Remove from main task map
+		this.taskCache.tasks.delete(id);
+
+		// Remove from file index if it's the only task in that file
+		const fileTasks = this.taskCache.files.get(task.filePath);
+		if (fileTasks) {
+			fileTasks.delete(id);
+			if (fileTasks.size === 0) {
+				this.taskCache.files.delete(task.filePath);
+			}
+		}
+	}
+
+	/**
 	 * Create a new task - Not implemented (handled by external components)
 	 */
 	public async createTask(taskData: Partial<Task>): Promise<Task> {

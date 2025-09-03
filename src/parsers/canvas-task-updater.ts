@@ -683,7 +683,8 @@ export class CanvasTaskUpdater {
 	 * Delete a task from a Canvas file
 	 */
 	public async deleteCanvasTask(
-		task: Task<CanvasTaskMetadata>
+		task: Task<CanvasTaskMetadata>,
+		deleteChildren: boolean = false
 	): Promise<CanvasTaskUpdateResult> {
 		try {
 			// Get the Canvas file
@@ -727,7 +728,7 @@ export class CanvasTaskUpdater {
 			}
 
 			// Delete the task from the text node
-			const deleteResult = this.deleteTaskFromTextNode(textNode, task);
+			const deleteResult = this.deleteTaskFromTextNode(textNode, task, deleteChildren);
 
 			if (!deleteResult.success) {
 				return deleteResult;
@@ -921,21 +922,22 @@ export class CanvasTaskUpdater {
 	 */
 	private deleteTaskFromTextNode(
 		textNode: CanvasTextData,
-		task: Task
+		task: Task,
+		deleteChildren: boolean = false
 	): CanvasTaskUpdateResult {
 		try {
 			const lines = textNode.text.split("\n");
 			let taskFound = false;
 			let updatedLines = [...lines];
+			let taskIndex = -1;
 
-			// Find and remove the task line
+			// Find the task line
 			for (let i = 0; i < lines.length; i++) {
 				const line = lines[i];
 
 				// Check if this line contains the task to delete
 				if (this.isTaskLine(line) && this.lineMatchesTask(line, task)) {
-					// Remove the task line
-					updatedLines.splice(i, 1);
+					taskIndex = i;
 					taskFound = true;
 					break;
 				}
@@ -948,6 +950,38 @@ export class CanvasTaskUpdater {
 				};
 			}
 
+			const linesToDelete: number[] = [taskIndex];
+
+			if (deleteChildren) {
+				// Calculate parent indentation
+				const parentLine = lines[taskIndex];
+				const parentIndent = this.getIndentLevel(parentLine);
+
+				// Find all child tasks (lines with greater indentation following the parent)
+				for (let i = taskIndex + 1; i < lines.length; i++) {
+					const line = lines[i];
+					const currentIndent = this.getIndentLevel(line);
+
+					// Stop if we reach a task at the same or higher level
+					if (this.isTaskLine(line) && currentIndent <= parentIndent) {
+						break;
+					}
+
+					// Add child task to delete list
+					if (this.isTaskLine(line) && currentIndent > parentIndent) {
+						linesToDelete.push(i);
+					}
+				}
+			}
+
+			// Sort in reverse order to delete from bottom to top
+			linesToDelete.sort((a, b) => b - a);
+
+			// Remove all marked lines
+			for (const index of linesToDelete) {
+				updatedLines.splice(index, 1);
+			}
+
 			// Update the text node content
 			textNode.text = updatedLines.join("\n");
 
@@ -958,6 +992,14 @@ export class CanvasTaskUpdater {
 				error: `Error deleting task from text node: ${error.message}`,
 			};
 		}
+	}
+
+	/**
+	 * Get the indentation level of a line
+	 */
+	private getIndentLevel(line: string): number {
+		const match = line.match(/^(\s*)/);
+		return match ? match[1].length : 0;
 	}
 
 	/**

@@ -53,6 +53,7 @@ export interface UpdateTaskArgs {
  */
 export interface DeleteTaskArgs {
 	taskId: string;
+	deleteChildren?: boolean;
 }
 
 /**
@@ -864,6 +865,34 @@ export class WriteAPI {
 	}
 
 	/**
+	 * Get all descendant task IDs (children, grandchildren, etc.)
+	 */
+	private async getDescendantTaskIds(taskId: string): Promise<string[]> {
+		const descendants: string[] = [];
+		const toProcess: string[] = [taskId];
+		const processed = new Set<string>();
+
+		while (toProcess.length > 0) {
+			const currentId = toProcess.pop()!;
+			if (processed.has(currentId)) continue;
+			processed.add(currentId);
+
+			const task = await Promise.resolve(this.getTaskById(currentId));
+			if (!task || !task.metadata) continue;
+
+			const children = task.metadata.children || [];
+			for (const childId of children) {
+				if (!processed.has(childId)) {
+					descendants.push(childId);
+					toProcess.push(childId);
+				}
+			}
+		}
+
+		return descendants;
+	}
+
+	/**
 	 * Delete a task
 	 */
 	async deleteTask(
@@ -887,26 +916,57 @@ export class WriteAPI {
 				return { success: false, error: "File not found" };
 			}
 
+			// Collect all tasks to delete
+			const deletedTaskIds: string[] = [args.taskId];
+			const linesToDelete: number[] = [task.line];
+
+			if (args.deleteChildren) {
+				// Get all descendant tasks
+				const descendantIds = await this.getDescendantTaskIds(args.taskId);
+				deletedTaskIds.push(...descendantIds);
+
+				// Collect line numbers for all descendants in the same file
+				for (const descendantId of descendantIds) {
+					const descendantTask = await Promise.resolve(this.getTaskById(descendantId));
+					if (descendantTask && descendantTask.filePath === task.filePath) {
+						linesToDelete.push(descendantTask.line);
+					}
+				}
+			}
+
+			// Sort lines in descending order to delete from bottom to top
+			linesToDelete.sort((a, b) => b - a);
+
 			const content = await this.vault.read(file);
 			const lines = content.split("\n");
 
-			if (task.line >= 0 && task.line < lines.length) {
-				lines.splice(task.line, 1);
-
-				// Notify about write operation
-				emit(this.app, Events.WRITE_OPERATION_START, {
-					path: file.path,
-					taskId: args.taskId,
-				});
-				await this.vault.modify(file, lines.join("\n"));
-				emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
-					path: file.path,
-					taskId: args.taskId,
-				});
-				return { success: true };
+			// Delete all lines
+			for (const lineNum of linesToDelete) {
+				if (lineNum >= 0 && lineNum < lines.length) {
+					lines.splice(lineNum, 1);
+				}
 			}
 
-			return { success: false, error: "Invalid line number" };
+			// Notify about write operation
+			emit(this.app, Events.WRITE_OPERATION_START, {
+				path: file.path,
+				taskId: args.taskId,
+			});
+			await this.vault.modify(file, lines.join("\n"));
+			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+				path: file.path,
+				taskId: args.taskId,
+			});
+
+			// Emit TASK_DELETED event with all deleted task IDs
+			emit(this.app, Events.TASK_DELETED, {
+				taskId: args.taskId,
+				filePath: file.path,
+				deletedTaskIds,
+				mode: args.deleteChildren ? "subtree" : "single",
+			});
+
+			return { success: true };
 		} catch (error) {
 			console.error("WriteAPI: Error deleting task:", error);
 			return { success: false, error: String(error) };
@@ -1596,10 +1656,30 @@ export class WriteAPI {
 				return { success: false, error: "Task is not a Canvas task" };
 			}
 
-			// Use CanvasTaskUpdater to delete the task
+			// Collect all tasks to delete
+			const deletedTaskIds: string[] = [args.taskId];
+
+			if (args.deleteChildren) {
+				// Get all descendant tasks
+				const descendantIds = await this.getDescendantTaskIds(args.taskId);
+				deletedTaskIds.push(...descendantIds);
+			}
+
+			// Use CanvasTaskUpdater to delete the task(s)
 			const result = await this.canvasTaskUpdater.deleteCanvasTask(
-				task as Task<CanvasTaskMetadata>
+				task as Task<CanvasTaskMetadata>,
+				args.deleteChildren
 			);
+
+			if (result.success) {
+				// Emit TASK_DELETED event with all deleted task IDs
+				emit(this.app, Events.TASK_DELETED, {
+					taskId: args.taskId,
+					filePath: task.filePath,
+					deletedTaskIds,
+					mode: args.deleteChildren ? "subtree" : "single",
+				});
+			}
 
 			return result;
 		} catch (error) {

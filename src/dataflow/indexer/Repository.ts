@@ -195,6 +195,21 @@ export class Repository {
   }
 
   /**
+   * Remove a single task by ID
+   */
+  async removeTaskById(taskId: string): Promise<void> {
+    // Get the task to find its file path
+    const task = await this.indexer.getTaskById(taskId);
+    if (!task) return;
+
+    // Remove from indexer
+    await this.indexer.removeTask(taskId);
+
+    // Schedule persist for the task's file
+    this.schedulePersist(task.filePath);
+  }
+
+  /**
    * Update ICS events in the repository
    */
   async updateIcsEvents(events: Task[], sourceSeq?: number): Promise<void> {

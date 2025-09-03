@@ -417,6 +417,29 @@ export class DataflowOrchestrator {
 			})
 		);
 
+		// Listen for task deletion events
+		this.eventRefs.push(
+			on(this.app, Events.TASK_DELETED, async (payload: any) => {
+				const { taskId, filePath, deletedTaskIds, mode } = payload;
+				console.log(
+					`[DataflowOrchestrator] TASK_DELETED: ${taskId} in ${filePath}, mode: ${mode}, deleted: ${deletedTaskIds?.length || 1} tasks`
+				);
+				
+				// Remove deleted tasks from repository
+				if (deletedTaskIds && deletedTaskIds.length > 0) {
+					for (const id of deletedTaskIds) {
+						await this.repository.removeTaskById(id);
+					}
+				}
+				
+				// Process the file to update remaining tasks' line numbers
+				const file = this.vault.getAbstractFileByPath(filePath) as TFile;
+				if (file) {
+					await this.processFileImmediate(file, true);
+				}
+			})
+		);
+
 		// Listen for FileSource file task updates
 		if (this.fileSource) {
 			this.eventRefs.push(

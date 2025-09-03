@@ -35,7 +35,10 @@ import {
 	TwoColumnSpecificConfig,
 } from "../common/setting-definition";
 import { filterTasks } from "../utils/task/task-filter-utils";
-import { CalendarComponent, CalendarEvent } from "../components/features/calendar";
+import {
+	CalendarComponent,
+	CalendarEvent,
+} from "../components/features/calendar";
 import { KanbanComponent } from "../components/features/kanban/kanban";
 import { GanttComponent } from "../components/features/gantt/gantt";
 import { TaskPropertyTwoColumnView } from "../components/features/task/view/TaskPropertyTwoColumnView";
@@ -147,7 +150,10 @@ export class TaskView extends ItemView {
 		}, 150); // 150ms debounce delay
 
 		// 1. 首先注册事件监听器，确保不会错过任何更新
-		if (isDataflowEnabled(this.plugin) && this.plugin.dataflowOrchestrator) {
+		if (
+			isDataflowEnabled(this.plugin) &&
+			this.plugin.dataflowOrchestrator
+		) {
 			// Dataflow: 订阅统一事件
 			const { on, Events } = await import("../dataflow/events/Events");
 			this.registerEvent(
@@ -245,7 +251,9 @@ export class TaskView extends ItemView {
 			this.switchView(this.currentViewId);
 		} else {
 			// If no tasks loaded yet, wait for background sync before rendering
-			console.log("No cached tasks found, waiting for background sync...");
+			console.log(
+				"No cached tasks found, waiting for background sync..."
+			);
 			await this.loadTasksWithSyncInBackground();
 			this.switchView(this.currentViewId);
 		}
@@ -307,7 +315,10 @@ export class TaskView extends ItemView {
 						return true;
 					}
 
-					const existingLeaves = this.plugin.app.workspace.getLeavesOfType(TASK_VIEW_TYPE);
+					const existingLeaves =
+						this.plugin.app.workspace.getLeavesOfType(
+							TASK_VIEW_TYPE
+						);
 					if (existingLeaves.length > 0) {
 						// Focus the existing view
 						this.plugin.app.workspace.revealLeaf(existingLeaves[0]);
@@ -778,7 +789,9 @@ export class TaskView extends ItemView {
 								if (this.plugin.dataflowOrchestrator) {
 									await this.plugin.dataflowOrchestrator.rebuild();
 								} else {
-									throw new Error("Dataflow orchestrator not available");
+									throw new Error(
+										"Dataflow orchestrator not available"
+									);
 								}
 							} catch (error) {
 								console.error(
@@ -854,10 +867,21 @@ export class TaskView extends ItemView {
 		};
 	}
 
-	private switchView(viewId: ViewMode, project?: string | null, forceRefresh: boolean = false) {
+	private switchView(
+		viewId: ViewMode,
+		project?: string | null,
+		forceRefresh: boolean = false
+	) {
 		this.currentViewId = viewId;
-		console.log("[TaskView] Switching view to:", viewId, "Project:", project, "ForceRefresh:", forceRefresh);
-		
+		console.log(
+			"[TaskView] Switching view to:",
+			viewId,
+			"Project:",
+			project,
+			"ForceRefresh:",
+			forceRefresh
+		);
+
 		// Update sidebar to reflect current view
 		this.sidebarComponent.setViewMode(viewId);
 
@@ -977,15 +1001,27 @@ export class TaskView extends ItemView {
 				}
 
 				console.log("tasks", this.tasks);
-				
-				let filteredTasks = filterTasks(this.tasks, viewId, this.plugin, filterOptions);
-				
+
+				let filteredTasks = filterTasks(
+					this.tasks,
+					viewId,
+					this.plugin,
+					filterOptions
+				);
+
 				// Filter out badge tasks for forecast view - they should only appear in event view
 				if (viewId === "forecast") {
-					filteredTasks = filteredTasks.filter(task => !(task as any).badge);
+					filteredTasks = filteredTasks.filter(
+						(task) => !(task as any).badge
+					);
 				}
-				
-				console.log("[TaskView] Calling setTasks with", filteredTasks.length, "filtered tasks, forceRefresh:", forceRefresh);
+
+				console.log(
+					"[TaskView] Calling setTasks with",
+					filteredTasks.length,
+					"filtered tasks, forceRefresh:",
+					forceRefresh
+				);
 				targetComponent.setTasks(
 					filteredTasks,
 					this.tasks,
@@ -1044,12 +1080,14 @@ export class TaskView extends ItemView {
 						this.plugin,
 						filterOptions
 					);
-					
+
 					// Filter out badge tasks for forecast view - they should only appear in event view
 					if (component.getViewId() === "forecast") {
-						filteredTasks = filteredTasks.filter(task => !(task as any).badge);
+						filteredTasks = filteredTasks.filter(
+							(task) => !(task as any).badge
+						);
 					}
-					
+
 					component.setTasks(filteredTasks);
 				}
 			});
@@ -1065,12 +1103,14 @@ export class TaskView extends ItemView {
 
 		this.app.saveLocalStorage("task-genius:view-mode", viewId);
 		this.updateHeaderDisplay();
-		
+
 		// Only clear task selection if we're changing views, not when refreshing the same view
 		// This preserves the details panel when updating task status
 		if (this.currentSelectedTaskId) {
 			// Re-select the current task to maintain details panel visibility
-			const currentTask = this.tasks.find(t => t.id === this.currentSelectedTaskId);
+			const currentTask = this.tasks.find(
+				(t) => t.id === this.currentSelectedTaskId
+			);
 			if (currentTask) {
 				this.detailsComponent.showTaskDetails(currentTask);
 			} else {
@@ -1142,15 +1182,19 @@ export class TaskView extends ItemView {
 							const updatedTask = {
 								...task,
 								status: mark,
-								completed: mark.toLowerCase() === "x" ? true : false,
+								completed:
+									mark.toLowerCase() === "x" ? true : false,
 							};
-							
+
 							if (!task.completed && mark.toLowerCase() === "x") {
 								updatedTask.metadata.completedDate = Date.now();
-							} else if (task.completed && mark.toLowerCase() !== "x") {
+							} else if (
+								task.completed &&
+								mark.toLowerCase() !== "x"
+							) {
 								updatedTask.metadata.completedDate = undefined;
 							}
-							
+
 							await this.updateTask(task, updatedTask);
 						});
 					});
@@ -1169,6 +1213,14 @@ export class TaskView extends ItemView {
 				item.setIcon("pencil");
 				item.onClick(() => {
 					this.editTask(task);
+				});
+			})
+			.addSeparator()
+			.addItem((item) => {
+				item.setTitle(t("Delete Task"));
+				item.setIcon("trash");
+				item.onClick(() => {
+					this.confirmAndDeleteTask(event, task);
 				});
 			});
 
@@ -1206,16 +1258,25 @@ export class TaskView extends ItemView {
 	) {
 		// Only use dataflow - TaskManager is deprecated
 		if (!this.plugin.dataflowOrchestrator) {
-			console.warn("[TaskView] Dataflow orchestrator not available, waiting for initialization...");
+			console.warn(
+				"[TaskView] Dataflow orchestrator not available, waiting for initialization..."
+			);
 			this.tasks = [];
 		} else {
 			try {
-				console.log("[TaskView] Loading tasks from dataflow orchestrator...");
+				console.log(
+					"[TaskView] Loading tasks from dataflow orchestrator..."
+				);
 				const queryAPI = this.plugin.dataflowOrchestrator.getQueryAPI();
 				this.tasks = await queryAPI.getAllTasks();
-				console.log(`[TaskView] Loaded ${this.tasks.length} tasks from dataflow`);
+				console.log(
+					`[TaskView] Loaded ${this.tasks.length} tasks from dataflow`
+				);
 			} catch (error) {
-				console.error("[TaskView] Error loading tasks from dataflow:", error);
+				console.error(
+					"[TaskView] Error loading tasks from dataflow:",
+					error
+				);
 				this.tasks = [];
 			}
 		}
@@ -1225,24 +1286,32 @@ export class TaskView extends ItemView {
 		}
 	}
 
-
 	/**
 	 * Load tasks fast using cached data - for UI initialization
 	 */
 	private async loadTasksFast(skipViewUpdate: boolean = false) {
 		// Only use dataflow
 		if (!this.plugin.dataflowOrchestrator) {
-			console.warn("[TaskView] Dataflow orchestrator not available for fast load");
+			console.warn(
+				"[TaskView] Dataflow orchestrator not available for fast load"
+			);
 			this.tasks = [];
 		} else {
 			try {
-				console.log("[TaskView] Loading tasks fast from dataflow orchestrator...");
+				console.log(
+					"[TaskView] Loading tasks fast from dataflow orchestrator..."
+				);
 				const queryAPI = this.plugin.dataflowOrchestrator.getQueryAPI();
 				// For fast loading, use regular getAllTasks (it should be cached)
 				this.tasks = await queryAPI.getAllTasks();
-				console.log(`[TaskView] Loaded ${this.tasks.length} tasks (fast from dataflow)`);
+				console.log(
+					`[TaskView] Loaded ${this.tasks.length} tasks (fast from dataflow)`
+				);
 			} catch (error) {
-				console.error("[TaskView] Error loading tasks fast from dataflow:", error);
+				console.error(
+					"[TaskView] Error loading tasks fast from dataflow:",
+					error
+				);
 				this.tasks = [];
 			}
 		}
@@ -1266,7 +1335,9 @@ export class TaskView extends ItemView {
 			const tasks = await queryAPI.getAllTasks();
 			if (tasks.length !== this.tasks.length || tasks.length === 0) {
 				this.tasks = tasks;
-				console.log(`TaskView updated with ${this.tasks.length} tasks (dataflow sync)`);
+				console.log(
+					`TaskView updated with ${this.tasks.length} tasks (dataflow sync)`
+				);
 				// Don't trigger view update here as it will be handled by events
 			}
 		} catch (error) {
@@ -1330,9 +1401,12 @@ export class TaskView extends ItemView {
 	/**
 	 * Extract only the fields that have changed between two tasks
 	 */
-	private extractChangedFields(originalTask: Task, updatedTask: Task): Partial<Task> {
+	private extractChangedFields(
+		originalTask: Task,
+		updatedTask: Task
+	): Partial<Task> {
 		const changes: Partial<Task> = {};
-		
+
 		// Check top-level fields
 		if (originalTask.content !== updatedTask.content) {
 			changes.content = updatedTask.content;
@@ -1343,22 +1417,35 @@ export class TaskView extends ItemView {
 		if (originalTask.status !== updatedTask.status) {
 			changes.status = updatedTask.status;
 		}
-		
+
 		// Check metadata fields
 		const metadataChanges: Partial<typeof originalTask.metadata> = {};
 		let hasMetadataChanges = false;
-		
+
 		// Compare each metadata field
-		const metadataFields = ['priority', 'project', 'tags', 'context', 'dueDate', 'startDate', 'scheduledDate', 'completedDate', 'recurrence'];
+		const metadataFields = [
+			"priority",
+			"project",
+			"tags",
+			"context",
+			"dueDate",
+			"startDate",
+			"scheduledDate",
+			"completedDate",
+			"recurrence",
+		];
 		for (const field of metadataFields) {
 			const originalValue = (originalTask.metadata as any)?.[field];
 			const updatedValue = (updatedTask.metadata as any)?.[field];
-			
+
 			// Handle arrays specially (tags)
-			if (field === 'tags') {
+			if (field === "tags") {
 				const origTags = originalValue || [];
 				const updTags = updatedValue || [];
-				if (origTags.length !== updTags.length || !origTags.every((t: string, i: number) => t === updTags[i])) {
+				if (
+					origTags.length !== updTags.length ||
+					!origTags.every((t: string, i: number) => t === updTags[i])
+				) {
 					metadataChanges.tags = updTags;
 					hasMetadataChanges = true;
 				}
@@ -1367,12 +1454,12 @@ export class TaskView extends ItemView {
 				hasMetadataChanges = true;
 			}
 		}
-		
+
 		// Only include metadata if there are changes
 		if (hasMetadataChanges) {
 			changes.metadata = metadataChanges as any;
 		}
-		
+
 		return changes;
 	}
 
@@ -1394,14 +1481,17 @@ export class TaskView extends ItemView {
 
 		try {
 			// Extract only the changed fields
-			const updates = this.extractChangedFields(originalTask, updatedTask);
+			const updates = this.extractChangedFields(
+				originalTask,
+				updatedTask
+			);
 			console.log("Extracted changes:", updates);
-			
+
 			// Always use WriteAPI with only the changed fields
 			// Use originalTask.id to ensure we're updating the correct task
 			const writeResult = await this.plugin.writeAPI.updateTask({
 				taskId: originalTask.id,
-				updates: updates
+				updates: updates,
 			});
 			if (!writeResult.success) {
 				throw new Error(writeResult.error || "Failed to update task");
@@ -1411,7 +1501,9 @@ export class TaskView extends ItemView {
 				updatedTask = writeResult.task;
 			}
 
-			console.log(`Task ${updatedTask.id} updated successfully via handleTaskUpdate.`);
+			console.log(
+				`Task ${updatedTask.id} updated successfully via handleTaskUpdate.`
+			);
 
 			// Update local task list immediately
 			const index = this.tasks.findIndex((t) => t.id === originalTask.id);
@@ -1456,14 +1548,17 @@ export class TaskView extends ItemView {
 		}
 		try {
 			// Extract only the changed fields
-			const updates = this.extractChangedFields(originalTask, updatedTask);
+			const updates = this.extractChangedFields(
+				originalTask,
+				updatedTask
+			);
 			console.log("Extracted changes:", updates);
-			
+
 			// Always use WriteAPI with only the changed fields
 			// Use originalTask.id to ensure we're updating the correct task
 			const writeResult = await this.plugin.writeAPI.updateTask({
 				taskId: originalTask.id,
-				updates: updates
+				updates: updates,
 			});
 			if (!writeResult.success) {
 				throw new Error(writeResult.error || "Failed to update task");
@@ -1516,6 +1611,114 @@ export class TaskView extends ItemView {
 				line: task.line,
 			},
 		});
+	}
+
+	private async confirmAndDeleteTask(event: MouseEvent, task: Task) {
+		// Check if the task has children
+		const hasChildren =
+			task.metadata &&
+			task.metadata.children &&
+			task.metadata.children.length > 0;
+
+		if (hasChildren) {
+			// Show confirmation dialog with options for tasks with children
+			const childrenCount = task.metadata.children.length;
+			// Create a custom modal for three-button scenario
+			const menu = new Menu();
+			menu.addItem((item) => {
+				item.setTitle(t("Delete task only"));
+				item.setIcon("trash");
+				item.onClick(() => {
+					this.deleteTask(task, false);
+				});
+			});
+			menu.addItem((item) => {
+				item.setTitle(t("Delete task and all subtasks"));
+				item.setIcon("trash-2");
+				item.onClick(() => {
+					this.deleteTask(task, true);
+				});
+			});
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item.setTitle(t("Cancel"));
+				item.onClick(() => {
+					// Do nothing
+				});
+			});
+
+			// Show menu at current mouse position
+			menu.showAtMouseEvent(event);
+		} else {
+			// No children, use simple confirmation
+			const modal = new ConfirmModal(this.plugin, {
+				title: t("Delete Task"),
+				message: t("Are you sure you want to delete this task?"),
+				confirmText: t("Delete"),
+				cancelText: t("Cancel"),
+				onConfirm: (confirmed) => {
+					if (confirmed) {
+						this.deleteTask(task, false);
+					}
+				},
+			});
+			modal.open();
+		}
+	}
+
+	private async deleteTask(task: Task, deleteChildren: boolean) {
+		if (!this.plugin.writeAPI) {
+			console.error("WriteAPI not available for deleteTask");
+			new Notice(t("Failed to delete task"));
+			return;
+		}
+
+		try {
+			const result = await this.plugin.writeAPI.deleteTask({
+				taskId: task.id,
+				deleteChildren: deleteChildren,
+			});
+
+			if (result.success) {
+				new Notice(t("Task deleted"));
+
+				// Remove task from local list
+				const index = this.tasks.findIndex((t) => t.id === task.id);
+				if (index !== -1) {
+					this.tasks = [...this.tasks];
+					this.tasks.splice(index, 1);
+
+					// If deleteChildren, also remove children from local list
+					if (deleteChildren && task.metadata?.children) {
+						for (const childId of task.metadata.children) {
+							const childIndex = this.tasks.findIndex(
+								(t) => t.id === childId
+							);
+							if (childIndex !== -1) {
+								this.tasks.splice(childIndex, 1);
+							}
+						}
+					}
+				}
+
+				// Clear selection if deleted task was selected
+				if (this.currentSelectedTaskId === task.id) {
+					this.handleTaskSelection(null);
+				}
+
+				// Refresh current view
+				this.switchView(this.currentViewId, undefined, true);
+			} else {
+				new Notice(
+					t("Failed to delete task") +
+						": " +
+						(result.error || "Unknown error")
+				);
+			}
+		} catch (error) {
+			console.error("Error deleting task:", error);
+			new Notice(t("Failed to delete task") + ": " + error.message);
+		}
 	}
 
 	async onClose() {
