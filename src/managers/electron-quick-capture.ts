@@ -808,13 +808,30 @@ export class ElectronQuickCapture {
 			</div>
 
 			<div class="metadata-item">
+				<label>Start Date</label>
+				<div class="date-input-wrapper">
+					<input type="date" id="start-date-picker" class="date-picker">
+					<input type="text" id="start-date-text" placeholder="today, tomorrow" class="date-text" style="display:none">
+					<button type="button" class="date-toggle" data-date-type="start" title="Toggle input type">🛫</button>
+				</div>
+			</div>
+
+			<div class="metadata-item">
 				<label>Due Date</label>
 				<div class="date-input-wrapper">
 					<input type="date" id="due-date-picker" class="date-picker">
 					<input type="text" id="due-date-text" placeholder="tomorrow, next week" class="date-text" style="display:none">
-					<button type="button" class="date-toggle" title="Toggle input type">📅</button>
+					<button type="button" class="date-toggle" data-date-type="due" title="Toggle input type">📅</button>
 				</div>
-				<div class="help-text">Click 📅 to switch between calendar and text input</div>
+			</div>
+
+			<div class="metadata-item">
+				<label>Scheduled Date</label>
+				<div class="date-input-wrapper">
+					<input type="date" id="scheduled-date-picker" class="date-picker">
+					<input type="text" id="scheduled-date-text" placeholder="next monday" class="date-text" style="display:none">
+					<button type="button" class="date-toggle" data-date-type="scheduled" title="Toggle input type">⏳</button>
+				</div>
 			</div>
 
 			<div class="metadata-item">
@@ -850,7 +867,11 @@ export class ElectronQuickCapture {
 		// Use a bridge approach for IPC communication
 		let selectedPriority = null;
 		let bridge = null;
-		let dateInputMode = 'picker'; // 'picker' or 'text'
+		let dateInputModes = {
+			start: 'picker',
+			due: 'picker',
+			scheduled: 'picker'
+		}; // Track mode for each date field
 
 		// Set up communication bridge
 		try {
@@ -932,32 +953,39 @@ export class ElectronQuickCapture {
 			// Load suggestions
 			loadSuggestions();
 
-			// Date input toggle
-			const toggleBtn = document.querySelector('.date-toggle');
-			if (toggleBtn) {
-				toggleBtn.addEventListener('click', toggleDateInput);
-			}
-
-			// Handle date picker changes
-			const datePicker = document.getElementById('due-date-picker');
-			const dateText = document.getElementById('due-date-text');
-			if (datePicker) {
-				datePicker.addEventListener('change', (e) => {
-					// Sync to text field
-					if (dateText) dateText.value = e.target.value;
-				});
-			}
-			
-			// Handle natural language date input
-			if (dateText) {
-				dateText.addEventListener('blur', (e) => {
-					const parsed = parseNaturalDate(e.target.value);
-					if (parsed && parsed !== e.target.value) {
-						e.target.value = parsed;
-						if (datePicker) datePicker.value = parsed;
+			// Date input toggles
+			document.querySelectorAll('.date-toggle').forEach(btn => {
+				btn.addEventListener('click', (e) => {
+					const dateType = e.target.dataset.dateType;
+					if (dateType) {
+						toggleDateInput(dateType);
 					}
 				});
-			}
+			});
+
+			// Handle date picker changes for all date fields
+			['start', 'due', 'scheduled'].forEach(dateType => {
+				const picker = document.getElementById(dateType + '-date-picker');
+				const text = document.getElementById(dateType + '-date-text');
+				
+				if (picker) {
+					picker.addEventListener('change', (e) => {
+						// Sync to text field
+						if (text) text.value = e.target.value;
+					});
+				}
+				
+				// Handle natural language date input
+				if (text) {
+					text.addEventListener('blur', (e) => {
+						const parsed = parseNaturalDate(e.target.value);
+						if (parsed && parsed !== e.target.value) {
+							e.target.value = parsed;
+							if (picker) picker.value = parsed;
+						}
+					});
+				}
+			})
 
 			// Handle priority buttons
 			document.querySelectorAll('.priority-btn').forEach(btn => {
@@ -1012,21 +1040,23 @@ export class ElectronQuickCapture {
 			});
 		});
 
-		// Toggle date input between picker and text
-		function toggleDateInput() {
-			const picker = document.getElementById('due-date-picker');
-			const text = document.getElementById('due-date-text');
+		// Toggle date input between picker and text for specific date type
+		function toggleDateInput(dateType) {
+			const picker = document.getElementById(dateType + '-date-picker');
+			const text = document.getElementById(dateType + '-date-text');
 			
-			if (dateInputMode === 'picker') {
+			if (!picker || !text) return;
+			
+			if (dateInputModes[dateType] === 'picker') {
 				picker.style.display = 'none';
 				text.style.display = 'block';
 				text.focus();
-				dateInputMode = 'text';
+				dateInputModes[dateType] = 'text';
 			} else {
 				text.style.display = 'none';
 				picker.style.display = 'block';
 				picker.focus();
-				dateInputMode = 'picker';
+				dateInputModes[dateType] = 'picker';
 			}
 		}
 
@@ -1107,13 +1137,17 @@ export class ElectronQuickCapture {
 				return;
 			}
 
-			// Get date value from either picker or text input
-			let dueDate = document.getElementById('due-date-picker').value || 
-						  document.getElementById('due-date-text').value;
-			// Parse natural language if needed
-			if (dueDate) {
-				dueDate = parseNaturalDate(dueDate);
+			// Get date values from either picker or text input for each date type
+			function getDateValue(dateType) {
+				const pickerValue = document.getElementById(dateType + '-date-picker').value;
+				const textValue = document.getElementById(dateType + '-date-text').value;
+				const dateValue = pickerValue || textValue;
+				return dateValue ? parseNaturalDate(dateValue) : '';
 			}
+
+			const startDate = getDateValue('start');
+			const dueDate = getDateValue('due');
+			const scheduledDate = getDateValue('scheduled');
 
 			// Get tags and split by comma
 			const tagsInput = document.getElementById('tags').value.trim();
@@ -1126,7 +1160,9 @@ export class ElectronQuickCapture {
 				content: processedContent,
 				project: document.getElementById('project').value.trim(),
 				context: document.getElementById('context').value.trim(),
+				startDate: startDate ? startDate.trim() : '',
 				dueDate: dueDate ? dueDate.trim() : '',
+				scheduledDate: scheduledDate ? scheduledDate.trim() : '',
 				priority: selectedPriority,
 				tags: tags
 			};
