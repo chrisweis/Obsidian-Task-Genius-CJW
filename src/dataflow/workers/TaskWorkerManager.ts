@@ -1004,6 +1004,9 @@ export class TaskWorkerManager extends Component {
 			projectConfig?: any;
 			ignoreHeading?: string;
 			focusHeading?: string;
+			projectTagPrefix?: any;
+			contextTagPrefix?: any;
+			areaTagPrefix?: any;
 		}>
 	): void {
 		// Update the settings

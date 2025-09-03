@@ -18,6 +18,7 @@ import { FileFilterManager } from "../managers/file-filter-manager";
 
 // Parser imports
 import { CanvasParser } from "./core/CanvasParser";
+import { getConfig } from "../common/task-parser-config";
 import { parseFileMeta } from "./parsers/FileMetaEntry";
 import { ConfigurableTaskParser } from "./core/ConfigurableTaskParser";
 import { MetadataParseMode } from "../types/TaskParserConfig";
@@ -98,6 +99,10 @@ export class DataflowOrchestrator {
 				enableCustomDateFormats:
 					this.plugin.settings.enableCustomDateFormats,
 				customDateFormats: this.plugin.settings.customDateFormats,
+				// Include tag prefixes for custom dataview field support
+				projectTagPrefix: this.plugin.settings.projectTagPrefix,
+				contextTagPrefix: this.plugin.settings.contextTagPrefix,
+				areaTagPrefix: this.plugin.settings.areaTagPrefix,
 			},
 		});
 		const projectWorkerManager = new ProjectDataWorkerManager({
@@ -554,6 +559,10 @@ export class DataflowOrchestrator {
 								ignoreHeading:
 									this.plugin.settings.ignoreHeading,
 								focusHeading: this.plugin.settings.focusHeading,
+								// Include tag prefixes for custom dataview field support
+								projectTagPrefix: this.plugin.settings.projectTagPrefix,
+								contextTagPrefix: this.plugin.settings.contextTagPrefix,
+								areaTagPrefix: this.plugin.settings.areaTagPrefix,
 							});
 						}
 					} catch (e) {
@@ -703,6 +712,10 @@ export class DataflowOrchestrator {
 					projectConfig: settings.projectConfig,
 					ignoreHeading: settings.ignoreHeading,
 					focusHeading: settings.focusHeading,
+					// Include tag prefixes for custom dataview field support
+					projectTagPrefix: settings.projectTagPrefix,
+					contextTagPrefix: settings.contextTagPrefix,
+					areaTagPrefix: settings.areaTagPrefix,
 				});
 			}
 		} catch (e) {
@@ -755,74 +768,29 @@ export class DataflowOrchestrator {
 			const fileCache = this.metadataCache.getFileCache(file);
 			const fileMetadata = fileCache?.frontmatter || {};
 
-			// Create parser with plugin settings
-			const tasksProjectPrefix =
-				this.plugin.settings?.projectTagPrefix?.tasks || "project";
-			const tasksContextPrefix =
-				this.plugin.settings?.contextTagPrefix?.tasks || "@";
-			const tasksAreaPrefix =
-				this.plugin.settings?.areaTagPrefix?.tasks || "area";
-			const mergedSpecialTagPrefixes = {
-				// Configurable prefixes from settings (case-insensitive by duplicating lower-case keys)
-				[tasksProjectPrefix]: "project",
-				[tasksProjectPrefix.toLowerCase?.() ||
-				String(tasksProjectPrefix).toLowerCase()]: "project",
-				[tasksAreaPrefix]: "area",
-				[tasksAreaPrefix.toLowerCase?.() ||
-				String(tasksAreaPrefix).toLowerCase()]: "area",
-				[tasksContextPrefix]: "context",
-				[(tasksContextPrefix as string).toLowerCase?.() ||
-				String(tasksContextPrefix).toLowerCase()]: "context",
-				// Allow user to extend/override via explicit mapping
-				...(this.plugin.settings.specialTagPrefixes || {}),
-			};
+			// Create parser with plugin settings using consistent config generation
+			const parserConfig = getConfig(
+				this.plugin.settings.preferMetadataFormat || "tasks",
+				this.plugin
+			);
 
 			// Debug: log effective specialTagPrefixes for verification
 			console.debug(
 				"[TPB] Parser specialTagPrefixes:",
-				mergedSpecialTagPrefixes
+				parserConfig.specialTagPrefixes
 			);
 
 			const parser = new ConfigurableTaskParser(
-				{
-					parseMetadata: true,
-					parseTags: true,
-					parseComments: true,
-					parseHeadings: true,
-					metadataParseMode: MetadataParseMode.Both, // Parse both emoji and dataview metadata
-					maxIndentSize: 8,
-					maxParseIterations: 4000,
-					maxMetadataIterations: 400,
-					maxTagLength: 100,
-					maxEmojiValueLength: 200,
-					maxStackOperations: 4000,
-					maxStackSize: 1000,
-					customDateFormats: this.plugin.settings.customDateFormats,
-					statusMapping: this.plugin.settings.statusMapping || {},
-					emojiMapping: this.plugin.settings.emojiMapping || {
-						"📅": "dueDate",
-						"🛫": "startDate",
-						"⏳": "scheduledDate",
-						"✅": "completedDate",
-						"❌": "cancelledDate",
-						"➕": "createdDate",
-						"🔁": "recurrence",
-						"🏁": "onCompletion",
-						"⛔": "dependsOn",
-						"🆔": "id",
-						"🔺": "priority",
-						"⏫": "priority",
-						"🔼": "priority",
-						"🔽": "priority",
-						"⏬": "priority",
-					},
-					specialTagPrefixes: mergedSpecialTagPrefixes,
-					fileMetadataInheritance:
-						this.plugin.settings.fileMetadataInheritance,
-					projectConfig: this.plugin.settings.projectConfig,
-				},
+				parserConfig,
 				this.timeParsingService
 			);
+
+			// Legacy code for reference (now replaced by getConfig)
+			/*const tasksProjectPrefix =
+				this.plugin.settings?.projectTagPrefix?.tasks || "project";
+			const tasksContextPrefix =
+				this.plugin.settings?.contextTagPrefix?.tasks || "@";
+			*/
 
 			// Parse tasks using ConfigurableTaskParser with tgProject
 			const markdownTasks = parser.parseLegacy(
@@ -885,23 +853,11 @@ export class DataflowOrchestrator {
 						projectConfig: this.plugin.settings.projectConfig,
 						ignoreHeading: this.plugin.settings.ignoreHeading,
 						focusHeading: this.plugin.settings.focusHeading,
+						// Include tag prefixes for custom dataview field support
+						projectTagPrefix: this.plugin.settings.projectTagPrefix,
+						contextTagPrefix: this.plugin.settings.contextTagPrefix,
+						areaTagPrefix: this.plugin.settings.areaTagPrefix,
 					});
-
-					// Also persist tag prefixes into worker options for single-file path
-					(taskWorkerManager as any).options.settings = {
-						...((taskWorkerManager as any).options.settings || {}),
-						projectTagPrefix: this.plugin.settings.projectTagPrefix,
-						contextTagPrefix: this.plugin.settings.contextTagPrefix,
-						areaTagPrefix: this.plugin.settings.areaTagPrefix,
-					};
-
-					// Pass tag prefixes to worker options (persisted for future commands)
-					(taskWorkerManager as any).options.settings = {
-						...((taskWorkerManager as any).options.settings || {}),
-						projectTagPrefix: this.plugin.settings.projectTagPrefix,
-						contextTagPrefix: this.plugin.settings.contextTagPrefix,
-						areaTagPrefix: this.plugin.settings.areaTagPrefix,
-					};
 				}
 
 				// Parse all files in parallel using workers (raw parsing only, no project data)

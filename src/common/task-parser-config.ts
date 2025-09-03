@@ -76,11 +76,26 @@ export const getConfig = (
 		},
 
 		// Special tag prefixes for project/context/area (now configurable)
-		specialTagPrefixes: {
-			[projectPrefix]: "project",
-			[areaPrefix]: "area",
-			[contextPrefix]: "context",
-		},
+		// Only include the configured prefixes, avoid default fallbacks to prevent conflicts
+		specialTagPrefixes: (() => {
+			const prefixes: Record<string, string> = {};
+			
+			// Only add configured prefixes, with case-insensitive support
+			if (projectPrefix) {
+				prefixes[projectPrefix] = "project";
+				prefixes[String(projectPrefix).toLowerCase()] = "project";
+			}
+			if (areaPrefix) {
+				prefixes[areaPrefix] = "area";
+				prefixes[String(areaPrefix).toLowerCase()] = "area";
+			}
+			if (contextPrefix) {
+				prefixes[contextPrefix] = "context";
+				prefixes[String(contextPrefix).toLowerCase()] = "context";
+			}
+			
+			return prefixes;
+		})(),
 
 		// Performance and parsing limits
 		maxParseIterations: 4000,

@@ -47,12 +47,15 @@ function parseTasksWithConfigurableParser(
 			);
 		} catch {}
 
-		// Ensure case-insensitive prefixes by duplicating lower-case keys
+		// Ensure case-insensitive prefixes by duplicating lower-case keys (avoid duplicates)
 		if (config.specialTagPrefixes) {
 			const lowerDup: Record<string, string> = {};
 			for (const k of Object.keys(config.specialTagPrefixes)) {
-				lowerDup[String(k).toLowerCase()] =
-					config.specialTagPrefixes[k];
+				const lowerKey = String(k).toLowerCase();
+				// Only add lowercase version if it doesn't already exist and is different from original
+				if (lowerKey !== k && !config.specialTagPrefixes[lowerKey]) {
+					lowerDup[lowerKey] = config.specialTagPrefixes[k];
+				}
 			}
 			config.specialTagPrefixes = {
 				...config.specialTagPrefixes,

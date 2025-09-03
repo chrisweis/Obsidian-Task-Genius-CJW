@@ -755,9 +755,33 @@ export class MarkdownTaskParser {
 		const mappedKey = dataviewKeyMapping[key.toLowerCase()];
 		if (mappedKey) {
 			key = mappedKey;
+		} else {
+			// Check if the key matches any configured special tag prefixes
+			// specialTagPrefixes format: { "prefixName": "metadataKey" }
+			// We need to reverse lookup: find prefix that maps to standard metadata keys
+			const lowerKey = key.toLowerCase();
+			for (const [prefix, metadataType] of Object.entries(this.config.specialTagPrefixes || {})) {
+				if (prefix.toLowerCase() === lowerKey) {
+					key = metadataType; // Map to the target metadata field (project, context, area)
+					break;
+				}
+			}
 		}
 
 		if (key && value) {
+			// Debug: Log dataview metadata extraction for configured prefixes
+			const isConfiguredPrefix = Object.keys(this.config.specialTagPrefixes || {}).some(
+				prefix => prefix.toLowerCase() === parts[0].trim().toLowerCase()
+			);
+			if (isConfiguredPrefix) {
+				console.debug("[TPB] Dataview metadata with configured prefix", {
+					originalKey: parts[0].trim(),
+					mappedKey: key,
+					value,
+					specialTagPrefixes: Object.keys(this.config.specialTagPrefixes || {}),
+				});
+			}
+			
 			const before = content.substring(0, start);
 			const after = content.substring(end + 1);
 			return [key, value, before + after];
