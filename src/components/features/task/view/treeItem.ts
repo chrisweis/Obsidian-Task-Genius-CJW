@@ -3,16 +3,14 @@ import { Task } from "@/types/task";
 import "@/styles/tree-view.css";
 import { MarkdownRendererComponent } from "@/components/ui/renderers/MarkdownRenderer";
 import { createTaskCheckbox } from "./details";
-import {
-	getViewSettingOrDefault,
-	ViewMode,
-} from "@/common/setting-definition";
+import { getViewSettingOrDefault, ViewMode } from "@/common/setting-definition";
 import { getRelativeTimeString } from "@/utils/date/date-formatter";
 import { t } from "@/translations/helper";
 import TaskProgressBarPlugin from "@/index";
 import { InlineEditor, InlineEditorOptions } from "./InlineEditor";
 import { InlineEditorManager } from "./InlineEditorManager";
 import { sanitizePriorityForClass } from "@/utils/task/priority-utils";
+import { sortTasks } from "@/commands/sortTaskCommands";
 
 export class TaskTreeItemComponent extends Component {
 	public element: HTMLElement;
@@ -291,7 +289,9 @@ export class TaskTreeItemComponent extends Component {
 
 		// Priority indicator if available
 		if (this.task.metadata.priority) {
-			const sanitizedPriority = sanitizePriorityForClass(this.task.metadata.priority);
+			const sanitizedPriority = sanitizePriorityForClass(
+				this.task.metadata.priority
+			);
 			const classes = ["task-priority"];
 			if (sanitizedPriority) {
 				classes.push(`priority-${sanitizedPriority}`);
@@ -847,24 +847,38 @@ export class TaskTreeItemComponent extends Component {
 		// Check if dynamic metadata positioning is enabled
 		if (!this.plugin.settings.enableDynamicMetadataPositioning) {
 			// If disabled, always use multi-line (traditional) layout
-			this.contentMetadataContainer.toggleClass("multi-line-content", true);
-			this.contentMetadataContainer.toggleClass("single-line-content", false);
+			this.contentMetadataContainer.toggleClass(
+				"multi-line-content",
+				true
+			);
+			this.contentMetadataContainer.toggleClass(
+				"single-line-content",
+				false
+			);
 			return;
 		}
 
 		// Get the line height of the content element
 		const computedStyle = window.getComputedStyle(this.contentEl);
-		const lineHeight = parseFloat(computedStyle.lineHeight) || parseFloat(computedStyle.fontSize) * 1.4;
-		
+		const lineHeight =
+			parseFloat(computedStyle.lineHeight) ||
+			parseFloat(computedStyle.fontSize) * 1.4;
+
 		// Get actual content height
 		const contentHeight = this.contentEl.scrollHeight;
-		
+
 		// Check if content is multi-line (with some tolerance)
 		const isMultiLine = contentHeight > lineHeight * 1.2;
-		
+
 		// Apply appropriate layout class using Obsidian's toggleClass method
-		this.contentMetadataContainer.toggleClass("multi-line-content", isMultiLine);
-		this.contentMetadataContainer.toggleClass("single-line-content", !isMultiLine);
+		this.contentMetadataContainer.toggleClass(
+			"multi-line-content",
+			isMultiLine
+		);
+		this.contentMetadataContainer.toggleClass(
+			"single-line-content",
+			!isMultiLine
+		);
 	}
 
 	/**
@@ -927,12 +941,44 @@ export class TaskTreeItemComponent extends Component {
 				);
 			});
 		}
-		// Stable sort children with lowest-priority tie-breakers: filePath -> line
-		tasksToRender = [...tasksToRender].sort((a, b) => {
-			const fp = (a.filePath || "").localeCompare(b.filePath || "");
-			if (fp !== 0) return fp;
-			return (a.line ?? 0) - (b.line ?? 0);
-		});
+		// Sort children using the same criteria as list view (fallback to sensible defaults)
+		const childSortCriteria = viewConfig.sortCriteria;
+		if (childSortCriteria && childSortCriteria.length > 0) {
+			tasksToRender = sortTasks(
+				[...tasksToRender],
+				childSortCriteria,
+				this.plugin.settings
+			);
+		} else {
+			// Default sorting: incomplete first, then priority (high->low), due date (earlier->later), content; tie-break by filePath->line
+			tasksToRender = [...tasksToRender].sort((a, b) => {
+				const completedA = a.completed;
+				const completedB = b.completed;
+				if (completedA !== completedB) return completedA ? 1 : -1;
+
+				const prioA = a.metadata.priority ?? 0;
+				const prioB = b.metadata.priority ?? 0;
+				if (prioA !== prioB) return prioB - prioA;
+
+				const dueA = a.metadata.dueDate ?? Infinity;
+				const dueB = b.metadata.dueDate ?? Infinity;
+				if (dueA !== dueB) return dueA - dueB;
+
+				const collator = new Intl.Collator(undefined, {
+					usage: "sort",
+					sensitivity: "base",
+					numeric: true,
+				});
+				const contentCmp = collator.compare(
+					a.content ?? "",
+					b.content ?? ""
+				);
+				if (contentCmp !== 0) return contentCmp;
+				const fp = (a.filePath || "").localeCompare(b.filePath || "");
+				if (fp !== 0) return fp;
+				return (a.line ?? 0) - (b.line ?? 0);
+			});
+		}
 
 		// Render each filtered child task
 		tasksToRender.forEach((childTask) => {
@@ -1076,16 +1122,23 @@ export class TaskTreeItemComponent extends Component {
 		}
 
 		// If content or originalMarkdown changed, update the markdown display
-		if (oldTask.originalMarkdown !== task.originalMarkdown || oldTask.content !== task.content) {
+		if (
+			oldTask.originalMarkdown !== task.originalMarkdown ||
+			oldTask.content !== task.content
+		) {
 			// Re-render the markdown content
 			this.contentEl.empty();
 			this.renderMarkdown();
 		}
-		
+
 		// Check if metadata changed and need full refresh
-		if (JSON.stringify(oldTask.metadata) !== JSON.stringify(task.metadata)) {
+		if (
+			JSON.stringify(oldTask.metadata) !== JSON.stringify(task.metadata)
+		) {
 			// Re-render metadata
-			const metadataEl = this.parentContainer.querySelector('.task-metadata') as HTMLElement;
+			const metadataEl = this.parentContainer.querySelector(
+				".task-metadata"
+			) as HTMLElement;
 			if (metadataEl) {
 				this.renderMetadata(metadataEl);
 			}
