@@ -67,6 +67,7 @@ export class TrayMenuBuilder {
 			setPriority: (task: Task, level: number) => Promise<void>;
 			pickCustomDate: (task: Task) => Promise<void>;
 			sendDaily: () => Promise<void>;
+			quickCapture: () => Promise<void>;
 		}
 	): Promise<void> {
 		const electron = this.getElectron();
@@ -85,6 +86,12 @@ export class TrayMenuBuilder {
 		template.push({
 			label: "Open Task Genius",
 			click: () => actions.openTaskView(),
+		});
+		template.push({ type: "separator" });
+		template.push({
+			label: "Quick Capture...",
+			accelerator: "CmdOrCtrl+Shift+Q",
+			click: () => actions.quickCapture(),
 		});
 		template.push({ type: "separator" });
 

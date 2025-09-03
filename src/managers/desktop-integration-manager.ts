@@ -4,6 +4,7 @@ import type { Task } from "../types/task";
 import { TrayMenuBuilder } from "./tray-menu";
 import { getTaskGeniusIcon } from "../icon";
 import { t } from "@/translations/helper";
+import { ElectronQuickCapture } from "./electron-quick-capture";
 
 /** Desktop integration manager for system tray, notifications, and desktop features */
 export class DesktopIntegrationManager extends Component {
@@ -16,6 +17,7 @@ export class DesktopIntegrationManager extends Component {
 	private nativeThemeHandler?: () => void;
 	private beforeUnloadHandler?: () => void;
 	private trayClickHandler?: () => void;
+	private electronQuickCapture?: ElectronQuickCapture;
 
 	constructor(private plugin: TaskProgressBarPlugin) {
 		super();
@@ -24,6 +26,9 @@ export class DesktopIntegrationManager extends Component {
 	async onload() {
 		// Initialize on load
 		if (!Platform.isDesktopApp) return;
+
+		// Initialize quick capture manager
+		this.electronQuickCapture = new ElectronQuickCapture(this.plugin);
 
 		// Minimal-change safeguard for hard reloads (window.location)
 		try {
@@ -151,6 +156,12 @@ export class DesktopIntegrationManager extends Component {
 		}
 		this.electronTray = null;
 		this.trayOwnerToken = undefined;
+
+		// Clean up quick capture
+		if (this.electronQuickCapture) {
+			this.electronQuickCapture.destroy();
+			this.electronQuickCapture = undefined;
+		}
 	}
 
 	// Called when settings change
@@ -631,6 +642,7 @@ export class DesktopIntegrationManager extends Component {
 				pickCustomDate: (task: Task) =>
 					this.openDatePickerForTask(task),
 				sendDaily: () => this.sendDailySummary(),
+				quickCapture: () => this.openQuickCaptureWindow(),
 			});
 		} catch (e) {
 			console.warn("Failed to update tray:", e);
@@ -702,6 +714,14 @@ export class DesktopIntegrationManager extends Component {
 							try {
 								(this.plugin as any).activateTaskView?.();
 							} catch {}
+						});
+				});
+				menu.addSeparator();
+				menu.addItem((i: any) => {
+					i.setTitle("Quick Capture...")
+						.setIcon("plus-circle")
+						.onClick(() => {
+							this.openQuickCaptureWindow();
 						});
 				});
 				menu.addSeparator();
@@ -1064,6 +1084,20 @@ export class DesktopIntegrationManager extends Component {
 				line: task.line,
 			},
 		});
+	}
+
+	private async openQuickCaptureWindow(): Promise<void> {
+		if (!this.electronQuickCapture) {
+			new Notice(t("Quick capture not available"));
+			return;
+		}
+
+		try {
+			await this.electronQuickCapture.openCaptureWindow();
+		} catch (error) {
+			console.error("Failed to open quick capture:", error);
+			new Notice(t("Failed to open quick capture window"));
+		}
 	}
 
 	private focusObsidianWindow(): void {
