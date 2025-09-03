@@ -100,7 +100,7 @@
 }
 
 .project-list-item.selected {
-	background-color: var(--background-modifier-active);
+	background-color: var(--background-secondary);
 }
 
 .project-icon {
@@ -126,6 +126,31 @@
 	background-color: var(--background-modifier-border);
 	border-radius: 10px;
 	padding: 1px 6px;
+	white-space: nowrap;
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Progress count styling when showing completed/total */
+.project-count.partially-completed {
+	color: var(--text-success);
+}
+
+.project-count.all-completed {
+	color: var(--text-on-accent);
+	font-weight: 600;
+}
+
+.project-count.has-progress {
+	border-radius: var(--radius-s);
+}
+
+/* Selected state overrides */
+.project-list-item.selected .project-count {
+	color: var(--text-on-accent);
+}
+
+.project-list-item.selected .project-count.all-completed {
+	background-color: rgba(255, 255, 255, 0.3);
 }
 
 .projects-task-header {

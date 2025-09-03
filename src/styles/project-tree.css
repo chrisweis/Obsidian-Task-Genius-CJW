@@ -127,11 +127,35 @@
 .project-tree-item-count-direct {
 	background-color: var(--background-modifier-active);
 	color: var(--text-normal);
+	white-space: nowrap;
+	transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .project-tree-item-count-total {
 	background-color: var(--background-modifier-border);
 	color: var(--text-muted);
+	white-space: nowrap;
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Progress count styling for tree view */
+.project-tree-item-count-direct.partially-completed,
+.project-tree-item-count-total.partially-completed {
+	color: var(--text-success);
+}
+
+.project-tree-item-count-direct.all-completed,
+.project-tree-item-count-total.all-completed {
+	background-color: var(--interactive-success);
+	color: var(--text-on-accent);
+	font-weight: 600;
+}
+
+/* Selected state for count badges in tree */
+.project-tree-item.is-selected .project-tree-item-count-direct.all-completed,
+.project-tree-item.is-selected .project-tree-item-count-total.all-completed {
+	background-color: var(--interactive-success);
+	opacity: 0.9;
 }
 
 /* Children Container */

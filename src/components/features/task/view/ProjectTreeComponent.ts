@@ -54,20 +54,60 @@ export class ProjectTreeComponent extends Component {
 						cls: "project-tree-item-counts"
 					});
 					
+					// Calculate completed count for this node
+					const calculateCompletedCount = (taskIds: Set<string>) => {
+						let completed = 0;
+						taskIds.forEach(taskId => {
+							const task = this.allTasks.find(t => t.id === taskId);
+							if (task && this.isTaskCompleted(task)) {
+								completed++;
+							}
+						});
+						return completed;
+					};
+					
 					// Direct task count
 					if (node.data.directTaskCount > 0) {
-						countsEl.createSpan({
+						const directCompleted = calculateCompletedCount(node.data.directTaskIds);
+						const directCountEl = countsEl.createSpan({
 							cls: "project-tree-item-count-direct",
-							text: node.data.directTaskCount.toString()
 						});
+						
+						if (this.plugin.settings.addProgressBarToProjectsView) {
+							directCountEl.setText(`${directCompleted}/${node.data.directTaskCount}`);
+							directCountEl.dataset.completed = directCompleted.toString();
+							directCountEl.dataset.total = node.data.directTaskCount.toString();
+							
+							if (directCompleted === node.data.directTaskCount) {
+								directCountEl.classList.add("all-completed");
+							} else if (directCompleted > 0) {
+								directCountEl.classList.add("partially-completed");
+							}
+						} else {
+							directCountEl.setText(node.data.directTaskCount.toString());
+						}
 					}
 					
 					// Total task count (if has children)
 					if (node.children.length > 0 && node.data.totalTaskCount > node.data.directTaskCount) {
-						countsEl.createSpan({
+						const totalCompleted = calculateCompletedCount(node.data.allTaskIds);
+						const totalCountEl = countsEl.createSpan({
 							cls: "project-tree-item-count-total",
-							text: node.data.totalTaskCount.toString()
 						});
+						
+						if (this.plugin.settings.addProgressBarToProjectsView) {
+							totalCountEl.setText(`${totalCompleted}/${node.data.totalTaskCount}`);
+							totalCountEl.dataset.completed = totalCompleted.toString();
+							totalCountEl.dataset.total = node.data.totalTaskCount.toString();
+							
+							if (totalCompleted === node.data.totalTaskCount) {
+								totalCountEl.classList.add("all-completed");
+							} else if (totalCompleted > 0) {
+								totalCountEl.classList.add("partially-completed");
+							}
+						} else {
+							totalCountEl.setText(node.data.totalTaskCount.toString());
+						}
 					}
 				},
 				
@@ -128,6 +168,44 @@ export class ProjectTreeComponent extends Component {
 		this.treeComponent.setTree(tree);
 	}
 	
+	/**
+	 * Check if a task is completed based on plugin settings
+	 */
+	private isTaskCompleted(task: Task): boolean {
+		// If task is marked as completed in the task object
+		if (task.completed) {
+			return true;
+		}
+
+		const mark = task.status;
+		if (!mark) {
+			return false;
+		}
+
+		// Priority 1: If useOnlyCountMarks is enabled
+		if (this.plugin?.settings.useOnlyCountMarks) {
+			const onlyCountMarks =
+				this.plugin?.settings.onlyCountTaskMarks?.split("|") || [];
+			return onlyCountMarks.includes(mark);
+		}
+
+		// Priority 2: If the mark is in excludeTaskMarks, don't count it
+		if (
+			this.plugin?.settings.excludeTaskMarks &&
+			this.plugin.settings.excludeTaskMarks.includes(mark)
+		) {
+			return false;
+		}
+
+		// Priority 3: Check against the task statuses
+		const completedMarks =
+			this.plugin?.settings.taskStatuses?.completed?.split("|") || [
+				"x",
+				"X",
+			];
+		return completedMarks.includes(mark);
+	}
+
 	/**
 	 * Get tasks for current selection (includes child nodes)
 	 */

@@ -385,8 +385,20 @@ export class ProjectsComponent extends Component {
 
 			// Render each project
 			sortedProjects.forEach((project) => {
-				// Get task count for this project
-				const taskCount = this.allProjectsMap.get(project)?.size || 0;
+				// Get tasks for this project
+				const projectTaskIds = this.allProjectsMap.get(project);
+				const taskCount = projectTaskIds?.size || 0;
+				
+				// Calculate completed tasks for this project
+				let completedCount = 0;
+				if (projectTaskIds) {
+					projectTaskIds.forEach(taskId => {
+						const task = this.allTasksMap.get(taskId);
+						if (task && this.getTaskStatus(task) === "completed") {
+							completedCount++;
+						}
+					});
+				}
 
 				// Create project item
 				const projectItem = this.projectsListEl.createDiv({
@@ -405,11 +417,29 @@ export class ProjectsComponent extends Component {
 				});
 				projectNameEl.setText(project);
 
-				// Task count badge
+				// Task count badge with progress
 				const countEl = projectItem.createDiv({
 					cls: "project-count",
 				});
-				countEl.setText(taskCount.toString());
+				
+				// Show completed/total format
+				if (this.plugin.settings.addProgressBarToProjectsView && taskCount > 0) {
+					countEl.setText(`${completedCount}/${taskCount}`);
+					// Add data attributes for styling
+					countEl.dataset.completed = completedCount.toString();
+					countEl.dataset.total = taskCount.toString();
+
+					countEl.toggleClass("has-progress", true)
+					
+					// Add completion class for visual feedback
+					if (completedCount === taskCount) {
+						countEl.classList.add("all-completed");
+					} else if (completedCount > 0) {
+						countEl.classList.add("partially-completed");
+					}
+				} else {
+					countEl.setText(taskCount.toString());
+				}
 
 				// Store project name as data attribute
 				projectItem.dataset.project = project;
