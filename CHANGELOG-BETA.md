@@ -4,6 +4,12 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.14](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.13...9.8.0-beta.14) (2025-09-03)
+
+### Bug Fixes
+
+* **parser:** respect custom project/context/area prefixes in task parsing ([527cb36](https://github.com/Quorafind/Obsidian-Task-Genius/commit/527cb36243c99c0d7bab3da5ee446f075502a8d0)), closes [#422](https://github.com/Quorafind/Obsidian-Task-Genius/issues/422)
+
 ## [9.8.0-beta.13](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/compare/9.8.0-beta.12...9.8.0-beta.13) (2025-09-02)
 
 ### Features
