@@ -4,6 +4,14 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.8.0-beta.15](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.14...9.8.0-beta.15) (2025-09-03)
+
+### Features
+
+* **quick-capture:** add electron-based quick capture window ([ae80f14](https://github.com/Quorafind/Obsidian-Task-Genius/commit/ae80f14fde8c5e06f3f96b7c890dd3a5201b51ad))
+* **quick-capture:** add start and scheduled date fields to electron quick capture ([cbfb2fc](https://github.com/Quorafind/Obsidian-Task-Genius/commit/cbfb2fc8729914843f9e76cbfccd3963b9ee6af5))
+* **tasks:** add task deletion with cascade support ([1cec2cc](https://github.com/Quorafind/Obsidian-Task-Genius/commit/1cec2cce41bec7ec6468cc567cb6760fe32950b9))
+
 ## [9.8.0-beta.14](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.13...9.8.0-beta.14) (2025-09-03)
 
 ### Bug Fixes
