@@ -629,6 +629,7 @@ export interface TaskProgressBarSettings {
 	supportHoverToShowProgressInfo: boolean;
 	addProgressBarToNonTaskBullet: boolean;
 	addTaskProgressBarToHeading: boolean;
+	addProgressBarToProjectsView: boolean;
 	enableProgressbarInReadingMode: boolean;
 	countSubLevel: boolean;
 	displayMode: string; // e.g., 'percentage', 'bracketPercentage', 'fraction', 'bracketFraction', 'detailed', 'custom', 'range-based'
@@ -805,6 +806,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	supportHoverToShowProgressInfo: false,
 	addProgressBarToNonTaskBullet: false,
 	addTaskProgressBarToHeading: false,
+	addProgressBarToProjectsView: false,
 	enableProgressbarInReadingMode: false,
 
 	// Desktop integration and notifications defaults

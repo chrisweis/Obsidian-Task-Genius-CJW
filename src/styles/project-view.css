@@ -134,7 +134,55 @@
 	align-items: center;
 	padding: var(--size-4-2) var(--size-4-4);
 	border-bottom: 1px solid var(--background-modifier-border);
-	height: var(--size-4-10);
+	min-height: var(--size-4-10);
+}
+
+.projects-header-main-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+}
+
+.projects-header-top-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+
+	width: 100%;
+}
+
+.projects-header-top-right {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+/* Progress bar styles for Projects view */
+.projects-header-progress {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 4px;
+}
+
+/* Adjust the existing progress bar styles when used in projects view */
+.projects-header-progress .cm-task-progress-bar {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+}
+
+.projects-header-progress .progress-bar-inline-background {
+	flex: 1;
+	max-width: 100%;
+}
+
+.projects-header-progress .progress-status {
+	font-size: 0.9em;
+	color: var(--text-muted);
+	white-space: nowrap;
 }
 
 .projects-task-title {

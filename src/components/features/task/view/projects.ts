@@ -18,6 +18,10 @@ import { ProjectTreeComponent } from "./ProjectTreeComponent";
 import { buildProjectTree } from "@/core/project-tree-builder";
 import { TreeNode, ProjectNodeData } from "@/types/tree";
 import { filterTasksByProjectPaths } from "@/core/project-filter";
+import {
+	formatProgressText,
+	ProgressData,
+} from "@/editor-extensions/ui-widgets/progress-bar-widget";
 
 interface SelectedProjects {
 	projects: string[];
@@ -89,8 +93,10 @@ export class ProjectsComponent extends Component {
 		this.initializeViewMode();
 
 		// Load project tree view preference from localStorage
-		const savedTreeView = localStorage.getItem('task-genius-project-tree-view');
-		this.isProjectTreeView = savedTreeView === 'true';
+		const savedTreeView = localStorage.getItem(
+			"task-genius-project-tree-view"
+		);
+		this.isProjectTreeView = savedTreeView === "true";
 
 		// Initialize the task renderer
 		this.taskRenderer = new TaskListRendererComponent(
@@ -158,7 +164,7 @@ export class ProjectsComponent extends Component {
 		});
 
 		const headerButtons = headerEl.createDiv({
-			cls: "projects-sidebar-header-btn-group"
+			cls: "projects-sidebar-header-btn-group",
 		});
 
 		// Add view toggle button for tree/list
@@ -225,18 +231,34 @@ export class ProjectsComponent extends Component {
 			);
 		}
 
-		const taskTitleEl = taskHeaderEl.createDiv({
-			cls: "projects-task-title",
+		// Header main content container
+		const headerMainContent = taskHeaderEl.createDiv({
+			cls: "projects-header-main-content",
 		});
+
+		// First row: title and actions
+		const headerTopRow = headerMainContent.createDiv({
+			cls: "projects-header-top-row",
+		});
+
+		const taskTitleEl = headerTopRow
+			.createDiv({ cls: "projects-header-top-left" })
+			.createDiv({
+				cls: "projects-task-title",
+			});
 		taskTitleEl.setText(t("Tasks"));
 
-		const taskCountEl = taskHeaderEl.createDiv({
+		const headerTopRightRow = headerTopRow.createDiv({
+			cls: "projects-header-top-right",
+		});
+
+		const taskCountEl = headerTopRightRow.createDiv({
 			cls: "projects-task-count",
 		});
 		taskCountEl.setText(`0 ${t("tasks")}`);
 
 		// Add view toggle button
-		const viewToggleBtn = taskHeaderEl.createDiv({
+		const viewToggleBtn = headerTopRightRow.createDiv({
 			cls: "view-toggle-btn",
 		});
 		setIcon(viewToggleBtn, "list");
@@ -316,14 +338,22 @@ export class ProjectsComponent extends Component {
 			);
 
 			// Set up event handlers
-			this.projectTreeComponent.onNodeSelected = (selectedNodes: Set<string>, tasks: Task[]) => {
+			this.projectTreeComponent.onNodeSelected = (
+				selectedNodes: Set<string>,
+				tasks: Task[]
+			) => {
 				this.selectedProjects.projects = Array.from(selectedNodes);
 				this.updateSelectedTasks();
 			};
 
-			this.projectTreeComponent.onMultiSelectToggled = (isMultiSelect: boolean) => {
+			this.projectTreeComponent.onMultiSelectToggled = (
+				isMultiSelect: boolean
+			) => {
 				this.selectedProjects.isMultiSelect = isMultiSelect;
-				if (!isMultiSelect && this.selectedProjects.projects.length === 0) {
+				if (
+					!isMultiSelect &&
+					this.selectedProjects.projects.length === 0
+				) {
 					this.taskRenderer.renderTasks(
 						[],
 						this.isTreeView,
@@ -336,7 +366,10 @@ export class ProjectsComponent extends Component {
 			this.projectTreeComponent.load();
 			// Set the tree that was already built
 			if (this.projectTree) {
-				this.projectTreeComponent.setTree(this.projectTree, this.allTasks);
+				this.projectTreeComponent.setTree(
+					this.projectTree,
+					this.allTasks
+				);
 			}
 		} else {
 			// Render as flat list
@@ -346,7 +379,9 @@ export class ProjectsComponent extends Component {
 			}
 
 			// Sort projects alphabetically
-			const sortedProjects = Array.from(this.allProjectsMap.keys()).sort();
+			const sortedProjects = Array.from(
+				this.allProjectsMap.keys()
+			).sort();
 
 			// Render each project
 			sortedProjects.forEach((project) => {
@@ -386,7 +421,10 @@ export class ProjectsComponent extends Component {
 
 				// Add click handler
 				this.registerDomEvent(projectItem, "click", (e) => {
-					this.handleProjectSelection(project, e.ctrlKey || e.metaKey);
+					this.handleProjectSelection(
+						project,
+						e.ctrlKey || e.metaKey
+					);
 				});
 			});
 
@@ -474,7 +512,9 @@ export class ProjectsComponent extends Component {
 
 		// Update tree component if it exists
 		if (this.projectTreeComponent) {
-			this.projectTreeComponent.setMultiSelectMode(this.selectedProjects.isMultiSelect);
+			this.projectTreeComponent.setMultiSelectMode(
+				this.selectedProjects.isMultiSelect
+			);
 		}
 	}
 
@@ -597,6 +637,340 @@ export class ProjectsComponent extends Component {
 		if (taskCountEl) {
 			taskCountEl.textContent = countText;
 		}
+
+		// Update progress bar if enabled and projects are selected
+		this.updateProgressBar();
+	}
+
+	private updateProgressBar() {
+		// Check if progress bar should be shown
+		if (
+			!this.plugin.settings.addProgressBarToProjectsView ||
+			this.plugin.settings.progressBarDisplayMode === "none" ||
+			this.filteredTasks.length === 0
+		) {
+			// Hide progress bar container if it exists
+			const progressContainer = this.taskContainerEl.querySelector(
+				".projects-header-progress"
+			);
+			if (progressContainer) {
+				progressContainer.remove();
+			}
+			return;
+		}
+
+		// Calculate progress data
+		const progressData = this.calculateProgressData();
+
+		// Get or create progress container
+		let progressContainer = this.taskContainerEl.querySelector(
+			".projects-header-progress"
+		) as HTMLElement;
+
+		if (!progressContainer) {
+			const headerMainContent = this.taskContainerEl.querySelector(
+				".projects-header-main-content"
+			);
+			if (headerMainContent) {
+				progressContainer = headerMainContent.createDiv({
+					cls: "projects-header-progress",
+				});
+			}
+		} else {
+			// Clear existing content
+			progressContainer.empty();
+		}
+
+		if (!progressContainer) return;
+
+		const displayMode = this.plugin.settings.progressBarDisplayMode;
+
+		// Render graphical progress bar using existing progress bar styles
+		if (displayMode === "graphical" || displayMode === "both") {
+			// Create progress bar with same structure as existing widgets
+			const progressBarEl = progressContainer.createSpan({
+				cls: "cm-task-progress-bar projects-progress",
+			});
+
+			const progressBackGroundEl = progressBarEl.createDiv({
+				cls: "progress-bar-inline-background",
+			});
+
+			// Calculate percentages
+			const completedPercentage =
+				Math.round((progressData.completed / progressData.total) * 10000) / 100;
+			const inProgressPercentage = progressData.inProgress
+				? Math.round((progressData.inProgress / progressData.total) * 10000) / 100
+				: 0;
+			const abandonedPercentage = progressData.abandoned
+				? Math.round((progressData.abandoned / progressData.total) * 10000) / 100
+				: 0;
+			const plannedPercentage = progressData.planned
+				? Math.round((progressData.planned / progressData.total) * 10000) / 100
+				: 0;
+
+			// Create progress segments
+			const progressEl = progressBackGroundEl.createDiv({
+				cls: "progress-bar-inline progress-completed",
+			});
+			progressEl.style.width = completedPercentage + "%";
+
+			// Add additional status bars if needed
+			if (progressData.inProgress && progressData.inProgress > 0) {
+				const inProgressEl = progressBackGroundEl.createDiv({
+					cls: "progress-bar-inline progress-in-progress",
+				});
+				inProgressEl.style.width = inProgressPercentage + "%";
+				inProgressEl.style.left = completedPercentage + "%";
+			}
+
+			if (progressData.abandoned && progressData.abandoned > 0) {
+				const abandonedEl = progressBackGroundEl.createDiv({
+					cls: "progress-bar-inline progress-abandoned",
+				});
+				abandonedEl.style.width = abandonedPercentage + "%";
+				abandonedEl.style.left =
+					completedPercentage + inProgressPercentage + "%";
+			}
+
+			if (progressData.planned && progressData.planned > 0) {
+				const plannedEl = progressBackGroundEl.createDiv({
+					cls: "progress-bar-inline progress-planned",
+				});
+				plannedEl.style.width = plannedPercentage + "%";
+				plannedEl.style.left =
+					completedPercentage +
+					inProgressPercentage +
+					abandonedPercentage +
+					"%";
+			}
+
+			// Apply progress level class
+			let progressClass = "progress-bar-inline";
+			switch (true) {
+				case completedPercentage === 0:
+					progressClass += " progress-bar-inline-empty";
+					break;
+				case completedPercentage > 0 && completedPercentage < 25:
+					progressClass += " progress-bar-inline-0";
+					break;
+				case completedPercentage >= 25 && completedPercentage < 50:
+					progressClass += " progress-bar-inline-1";
+					break;
+				case completedPercentage >= 50 && completedPercentage < 75:
+					progressClass += " progress-bar-inline-2";
+					break;
+				case completedPercentage >= 75 && completedPercentage < 100:
+					progressClass += " progress-bar-inline-3";
+					break;
+				case completedPercentage >= 100:
+					progressClass += " progress-bar-inline-complete";
+					break;
+			}
+			progressEl.className = progressClass;
+		}
+
+		// Render text progress
+		if (displayMode === "text" || displayMode === "both") {
+			const progressText = formatProgressText(progressData, this.plugin);
+			if (progressText) {
+				// If we're in text-only mode, create a simple text container
+				// If we're in "both" mode, the text was already added to the progress bar
+				if (displayMode === "text") {
+					const textEl = progressContainer.createDiv({
+						cls: "progress-status projects-progress-text",
+					});
+					textEl.setText(progressText);
+				} else if (displayMode === "both") {
+					// Add text to the existing progress bar container
+					const progressBarEl = progressContainer.querySelector(".cm-task-progress-bar");
+					if (progressBarEl) {
+						const textEl = progressBarEl.createDiv({
+							cls: "progress-status",
+						});
+						textEl.setText(progressText);
+					}
+				}
+			}
+		}
+	}
+
+	private calculateProgressData(): ProgressData {
+		const data: ProgressData = {
+			completed: 0,
+			total: this.filteredTasks.length,
+			inProgress: 0,
+			abandoned: 0,
+			notStarted: 0,
+			planned: 0,
+		};
+
+		this.filteredTasks.forEach((task) => {
+			const status = this.getTaskStatus(task);
+			
+			switch (status) {
+				case "completed":
+					data.completed++;
+					break;
+				case "inProgress":
+					data.inProgress = (data.inProgress || 0) + 1;
+					break;
+				case "abandoned":
+					data.abandoned = (data.abandoned || 0) + 1;
+					break;
+				case "planned":
+					data.planned = (data.planned || 0) + 1;
+					break;
+				case "notStarted":
+				default:
+					data.notStarted = (data.notStarted || 0) + 1;
+					break;
+			}
+		});
+
+		return data;
+	}
+
+	/**
+	 * Get the task status based on plugin settings
+	 * Follows the same logic as progress-bar-widget.ts
+	 */
+	private getTaskStatus(
+		task: Task
+	): "completed" | "inProgress" | "abandoned" | "notStarted" | "planned" {
+		// If task is marked as completed in the task object
+		if (task.completed) {
+			return "completed";
+		}
+
+		const mark = task.status;
+		if (!mark) {
+			return "notStarted";
+		}
+
+		// Priority 1: If useOnlyCountMarks is enabled
+		if (this.plugin?.settings.useOnlyCountMarks) {
+			const onlyCountMarks =
+				this.plugin?.settings.onlyCountTaskMarks?.split("|") || [];
+			if (onlyCountMarks.includes(mark)) {
+				return "completed";
+			} else {
+				// If using onlyCountMarks and the mark is not in the list,
+				// determine which other status it belongs to
+				return this.determineNonCompletedStatus(mark);
+			}
+		}
+
+		// Priority 2: If the mark is in excludeTaskMarks
+		if (
+			this.plugin?.settings.excludeTaskMarks &&
+			this.plugin.settings.excludeTaskMarks.includes(mark)
+		) {
+			// Excluded marks are considered not started
+			return "notStarted";
+		}
+
+		// Priority 3: Check against specific task statuses
+		return this.determineTaskStatus(mark);
+	}
+
+	/**
+	 * Helper to determine the non-completed status of a task mark
+	 */
+	private determineNonCompletedStatus(
+		mark: string
+	): "inProgress" | "abandoned" | "notStarted" | "planned" {
+		const inProgressMarks =
+			this.plugin?.settings.taskStatuses?.inProgress?.split("|") || [
+				"/",
+				"-",
+			];
+
+		if (inProgressMarks.includes(mark)) {
+			return "inProgress";
+		}
+
+		const abandonedMarks =
+			this.plugin?.settings.taskStatuses?.abandoned?.split("|") || [
+				">",
+			];
+		if (abandonedMarks.includes(mark)) {
+			return "abandoned";
+		}
+
+		const plannedMarks =
+			this.plugin?.settings.taskStatuses?.planned?.split("|") || ["?"];
+		if (plannedMarks.includes(mark)) {
+			return "planned";
+		}
+
+		// If the mark doesn't match any specific category, use the countOtherStatusesAs setting
+		return (
+			(this.plugin?.settings.countOtherStatusesAs as
+				| "inProgress"
+				| "abandoned"
+				| "notStarted"
+				| "planned") || "notStarted"
+		);
+	}
+
+	/**
+	 * Helper to determine the specific task status
+	 */
+	private determineTaskStatus(
+		mark: string
+	): "completed" | "inProgress" | "abandoned" | "notStarted" | "planned" {
+		const completedMarks =
+			this.plugin?.settings.taskStatuses?.completed?.split("|") || [
+				"x",
+				"X",
+			];
+		if (completedMarks.includes(mark)) {
+			return "completed";
+		}
+
+		const inProgressMarks =
+			this.plugin?.settings.taskStatuses?.inProgress?.split("|") || [
+				"/",
+				"-",
+			];
+		if (inProgressMarks.includes(mark)) {
+			return "inProgress";
+		}
+
+		const abandonedMarks =
+			this.plugin?.settings.taskStatuses?.abandoned?.split("|") || [
+				">",
+			];
+		if (abandonedMarks.includes(mark)) {
+			return "abandoned";
+		}
+
+		const plannedMarks =
+			this.plugin?.settings.taskStatuses?.planned?.split("|") || ["?"];
+		if (plannedMarks.includes(mark)) {
+			return "planned";
+		}
+
+		// If not matching any specific status, check if it's a not-started mark
+		const notStartedMarks =
+			this.plugin?.settings.taskStatuses?.notStarted?.split("|") || [
+				" ",
+			];
+		if (notStartedMarks.includes(mark)) {
+			return "notStarted";
+		}
+
+		// If we get here, the mark doesn't match any of our defined categories
+		// Use the countOtherStatusesAs setting to determine how to count it
+		return (
+			(this.plugin?.settings.countOtherStatusesAs as
+				| "completed"
+				| "inProgress"
+				| "abandoned"
+				| "notStarted"
+				| "planned") || "notStarted"
+		);
 	}
 
 	private renderTaskList() {
@@ -671,11 +1045,17 @@ export class ProjectsComponent extends Component {
 			".projects-tree-toggle-btn"
 		) as HTMLElement;
 		if (treeToggleBtn) {
-			setIcon(treeToggleBtn, this.isProjectTreeView ? "git-branch" : "list");
+			setIcon(
+				treeToggleBtn,
+				this.isProjectTreeView ? "git-branch" : "list"
+			);
 		}
 
 		// Save preference to localStorage for now
-		localStorage.setItem('task-genius-project-tree-view', this.isProjectTreeView.toString());
+		localStorage.setItem(
+			"task-genius-project-tree-view",
+			this.isProjectTreeView.toString()
+		);
 
 		// Rebuild project index and re-render
 		this.buildProjectsIndex();

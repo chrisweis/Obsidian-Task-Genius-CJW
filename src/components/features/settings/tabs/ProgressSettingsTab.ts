@@ -99,6 +99,25 @@ export function renderProgressSettingsTab(
 			);
 
 		new Setting(containerEl)
+			.setName(t("Add progress bar to Projects view"))
+			.setDesc(
+				t(
+					"Show project progress in Projects header"
+				)
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(
+						settingTab.plugin.settings.addProgressBarToProjectsView
+					)
+					.onChange(async (value) => {
+						settingTab.plugin.settings.addProgressBarToProjectsView =
+							value;
+						settingTab.applySettingsUpdate();
+					})
+			);
+
+		new Setting(containerEl)
 			.setName(t("Add progress bar to Heading"))
 			.setDesc(
 				t(
