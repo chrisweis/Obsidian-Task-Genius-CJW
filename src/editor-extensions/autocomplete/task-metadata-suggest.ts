@@ -89,15 +89,30 @@ export class QuickCaptureSuggest extends EditorSuggest<SuggestOption> {
 		// Define all possible trigger characters
 		const allTriggers = ["~", "!", "#", "*", "@"];
 		
-		// Check if the cursor is right after any trigger character
-		if (cursor.ch > 0) {
-			const charBeforeCursor = line.charAt(cursor.ch - 1);
-			if (allTriggers.includes(charBeforeCursor)) {
-				return {
-					start: { line: cursor.line, ch: cursor.ch - 1 },
-					end: cursor,
-					query: charBeforeCursor,
-				};
+		// Look backwards from cursor to find a trigger character
+		for (let i = cursor.ch - 1; i >= 0; i--) {
+			const char = line.charAt(i);
+			
+			// If we find a trigger character
+			if (allTriggers.includes(char)) {
+				// Check if there's a space or start of line before it
+				if (i === 0 || /\s/.test(line.charAt(i - 1))) {
+					// Extract the query text after the trigger
+					const query = line.substring(i + 1, cursor.ch);
+					
+					return {
+						start: { line: cursor.line, ch: i },
+						end: cursor,
+						query: char + query, // Include trigger char and query text
+					};
+				}
+				// If there's no space before the trigger, don't trigger
+				break;
+			}
+			
+			// Stop searching if we hit a space or special character (except for valid query chars)
+			if (/[\s~!#*@]/.test(char)) {
+				break;
 			}
 		}
 
@@ -108,21 +123,39 @@ export class QuickCaptureSuggest extends EditorSuggest<SuggestOption> {
 	 * Get suggestions based on the trigger
 	 */
 	getSuggestions(context: EditorSuggestContext): SuggestOption[] {
-		const triggerChar = context.query;
+		// Extract trigger character and search query
+		const triggerChar = context.query.charAt(0);
+		const searchQuery = context.query.substring(1).toLowerCase();
+
+		let suggestions: SuggestOption[] = [];
 
 		switch (triggerChar) {
 			case "~":
-				return this.getDateSuggestions();
+				suggestions = this.getDateSuggestions();
+				break;
 			case "!":
-				return this.getPrioritySuggestions();
+				suggestions = this.getPrioritySuggestions();
+				break;
 			case "#":
-				return this.getTagSuggestions();
+				suggestions = this.getTagSuggestions();
+				break;
 			case "*":
 			case "@":
-				return this.getLocationSuggestions();
+				suggestions = this.getLocationSuggestions();
+				break;
 			default:
 				return [];
 		}
+
+		// Filter suggestions based on search query if present
+		if (searchQuery) {
+			suggestions = suggestions.filter(s => 
+				s.label.toLowerCase().includes(searchQuery) ||
+				s.description.toLowerCase().includes(searchQuery)
+			);
+		}
+
+		return suggestions;
 	}
 
 	private getDateSuggestions(): SuggestOption[] {
@@ -411,21 +444,20 @@ export class QuickCaptureSuggest extends EditorSuggest<SuggestOption> {
 		evt: MouseEvent | KeyboardEvent
 	): void {
 		const editor = this.context?.editor;
-		const cursor = this.context?.end;
+		const start = this.context?.start;
+		const end = this.context?.end;
 
-		if (!editor || !cursor) return;
+		if (!editor || !start || !end) return;
 
-		// Replace the trigger character with the replacement text
+		// Replace the entire trigger + query with the replacement text
 		const view = (editor as any).cm as EditorView;
 		if (!view) {
 			// Fallback to old method if view is not available
-			const startPos = { line: cursor.line, ch: cursor.ch - 1 };
-			const endPos = cursor;
-			editor.replaceRange(suggestion.replacement, startPos, endPos);
+			editor.replaceRange(suggestion.replacement, start, end);
 		} else if (view.state?.doc) {
 			// Use CodeMirror 6 changes API
-			const startOffset = view.state.doc.line(cursor.line + 1).from + cursor.ch - 1;
-			const endOffset = view.state.doc.line(cursor.line + 1).from + cursor.ch;
+			const startOffset = view.state.doc.line(start.line + 1).from + start.ch;
+			const endOffset = view.state.doc.line(end.line + 1).from + end.ch;
 			
 			view.dispatch({
 				changes: {
@@ -439,7 +471,7 @@ export class QuickCaptureSuggest extends EditorSuggest<SuggestOption> {
 
 		// Execute custom action if provided
 		if (suggestion.action) {
-			suggestion.action(editor, cursor, this.taskMetadata);
+			suggestion.action(editor, end, this.taskMetadata);
 		}
 
 		// Close this suggest
