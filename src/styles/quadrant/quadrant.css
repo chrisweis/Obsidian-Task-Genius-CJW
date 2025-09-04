@@ -841,7 +841,7 @@
 
 /* Load more indicator styles */
 .tg-quadrant-load-more {
-	display: flex;
+	display: none;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
@@ -851,8 +851,20 @@
 	margin-top: 0.5rem;
 }
 
+.tg-quadrant-load-more--visible {
+	display: flex;
+}
+
 .tg-quadrant-load-more-spinner {
 	margin-bottom: 0.5rem;
+	width: 24px;
+	height: 24px;
+	color: var(--interactive-accent);
+}
+
+/* Animate the Obsidian loader icon */
+.tg-quadrant-load-more-spinner svg {
+	animation: spin 1s linear infinite;
 }
 
 .tg-quadrant-load-more-message {

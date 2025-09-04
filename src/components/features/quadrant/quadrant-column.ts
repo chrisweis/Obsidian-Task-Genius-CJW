@@ -4,7 +4,7 @@ import { Task } from "@/types/task";
 import { QuadrantDefinition } from './quadrant';
 import { QuadrantCardComponent } from "./quadrant-card";
 import { t } from "@/translations/helper";
-import "@/styles/quadrant-column.css";
+import "@/styles/quadrant/quadrant.css";
 
 export class QuadrantColumnComponent extends Component {
 	plugin: TaskProgressBarPlugin;
@@ -195,7 +195,7 @@ export class QuadrantColumnComponent extends Component {
 		const spinnerEl = this.loadMoreEl.createDiv(
 			"tg-quadrant-load-more-spinner"
 		);
-		this.createSpinnerSVG(spinnerEl);
+		setIcon(spinnerEl, "loader-2");
 
 		const messageEl = this.loadMoreEl.createDiv(
 			"tg-quadrant-load-more-message"
@@ -408,22 +408,6 @@ export class QuadrantColumnComponent extends Component {
 	}
 
 
-	private createSpinnerSVG(container: HTMLElement) {
-		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-		svg.setAttribute("class", "tg-quadrant-spinner");
-		svg.setAttribute("viewBox", "0 0 24 24");
-
-		const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-		circle.setAttribute("cx", "12");
-		circle.setAttribute("cy", "12");
-		circle.setAttribute("r", "10");
-		circle.setAttribute("stroke", "currentColor");
-		circle.setAttribute("stroke-width", "2");
-		circle.setAttribute("fill", "none");
-
-		svg.appendChild(circle);
-		container.appendChild(svg);
-	}
 
 	public setTasks(tasks: Task[]) {
 		console.log(
