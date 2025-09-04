@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [9.8.0](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.15...9.8.0) (2025-09-04)
+
+### Features
+
+* **projects:** add completed/total task counts to project badges ([1848f3d](https://github.com/Quorafind/Obsidian-Task-Genius/commit/1848f3d4926534b4170118c7ce552d36c5ff3c58))
+* **projects:** add progress bar to Projects view ([cfdd402](https://github.com/Quorafind/Obsidian-Task-Genius/commit/cfdd40225e87777dee37140d8c08c043b4956353))
+* **settings:** add global Ctrl+K/Cmd+K shortcut for search ([612a979](https://github.com/Quorafind/Obsidian-Task-Genius/commit/612a979f103b52079cf1d7de620025c870b544e7))
+* **views:** add region-based organization with drag-and-drop sorting ([393fb48](https://github.com/Quorafind/Obsidian-Task-Genius/commit/393fb48c0188e29837bd6c7738a9ec2bccb24ca7))
+
+### Bug Fixes
+
+* **filter:** improve filter input performance with increased debounce delays ([8dd02bf](https://github.com/Quorafind/Obsidian-Task-Genius/commit/8dd02bf00c6b1e95bf340a3a1e4522387895a740))
+* **habits:** prevent all habits being checked when selecting one ([28a061e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/28a061eff4e93b48f97ad3d60b9176b2e24acd04))
+* **quick-capture:** resolve tag duplication in autocomplete suggestions ([05d9022](https://github.com/Quorafind/Obsidian-Task-Genius/commit/05d90223847ce042a8616dbcde3f862332b03673))
+* **settings:** correct event reason from 'view-deleted' to 'view-updated' ([9e595e7](https://github.com/Quorafind/Obsidian-Task-Genius/commit/9e595e7ae9c514fb222e510a2b0d8c783308e15d))
+* **task-view:** resolve text display sync issues in markdown rendering ([99861bd](https://github.com/Quorafind/Obsidian-Task-Genius/commit/99861bdb9a151daccc34a351d91ece7540453403))
+
+### Performance
+
+* optimize view settings updates to avoid full refresh ([e26e6d5](https://github.com/Quorafind/Obsidian-Task-Genius/commit/e26e6d54c63c4a60db73a58acd8b99c06ca91e4e))
+
+### Refactors
+
+* remove inline styles and innerHTML from quadrant-column component ([48b3b8e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/48b3b8ecf97d4e4da1e21119ec0cfd7beec66aa6))
+* **styles:** extract inline styles to CSS files ([e93c78b](https://github.com/Quorafind/Obsidian-Task-Genius/commit/e93c78bc2ecd996635cdd87b22b1244081430f06))
+* use Obsidian's setIcon instead of manual SVG creation ([cc9d1d5](https://github.com/Quorafind/Obsidian-Task-Genius/commit/cc9d1d5320cd4679dde35222a67a2beee63e6cdf))
+
+### Documentation
+
+* add bug review and fix documentation ([88f0d16](https://github.com/Quorafind/Obsidian-Task-Genius/commit/88f0d16e81315b8879b4fb74f8693e6d1a26e7a0))
+
+### Styles
+
+* apply prettier formatting to task view components ([27f4457](https://github.com/Quorafind/Obsidian-Task-Genius/commit/27f4457bf4bffef641e78237ee5d5df7ff926689))
+
 ## [9.7.6](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/compare/9.7.5...9.7.6) (2025-08-18)
 
 ### Bug Fixes
