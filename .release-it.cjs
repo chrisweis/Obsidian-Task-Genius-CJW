@@ -97,10 +97,11 @@ module.exports = {
 			},
 			infile: "CHANGELOG.md",
 			header: "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n",
+			// 只生成当前版本的 changelog，但包含从上一个正式版以来的所有提交
+			releaseCount: 0,
 			// 限制 git log 的提交范围，从上一个正式版开始（排除 beta 版本）
 			gitRawCommitsOpts: {
 				from: getLastStableTag() // 智能获取上一个正式版本
-				// 注意：git log 的 --grep 选项不支持负向前瞻，将在 writerOpts.transform 中过滤
 			},
 			writerOpts: {
 				// 自定义提交转换，过滤掉 beta 相关的 chore commits
@@ -123,6 +124,17 @@ module.exports = {
 					
 					// 保留其他所有提交
 					return commit;
+				},
+				// 确保比较链接使用正确的版本范围
+				finalizeContext: (context) => {
+					const lastStableTag = getLastStableTag();
+					if (lastStableTag) {
+						context.previousTag = lastStableTag;
+						context.currentTag = context.version;
+						// 更新比较 URL
+						context.compareUrl = `https://github.com/Quorafind/Obsidian-Task-Genius/compare/${lastStableTag}...${context.version}`;
+					}
+					return context;
 				}
 			}
 		},
