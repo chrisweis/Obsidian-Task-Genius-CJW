@@ -204,6 +204,65 @@ export class TaskView extends ItemView {
 			)
 		);
 
+		// 监听视图配置变更事件（仅刷新侧边栏与当前视图可见性）
+		this.registerEvent(
+			this.app.workspace.on(
+				"task-genius:view-config-changed",
+				(payload: { reason: string; viewId?: string }) => {
+					try {
+						// 先重绘侧边栏项目
+						if (
+							this.sidebarComponent &&
+							typeof this.sidebarComponent.renderSidebarItems ===
+								"function"
+						) {
+							this.sidebarComponent.renderSidebarItems();
+						}
+					} catch (e) {
+						console.warn(
+							"Failed to render sidebar items on view-config-changed:",
+							e
+						);
+					}
+
+					// If the edited view is the current one (e.g., type/layout changed), force refresh the main content
+					if (
+						payload?.viewId &&
+						payload.viewId === this.currentViewId
+					) {
+						this.switchView(this.currentViewId, undefined, true);
+					}
+
+					// 若当前视图被设为不可见，则切换到第一个可见视图（不强制刷新内容）
+					const currentCfg =
+						this.plugin.settings.viewConfiguration.find(
+							(v) => v.id === this.currentViewId
+						);
+					if (!currentCfg?.visible) {
+						const firstVisible =
+							this.plugin.settings.viewConfiguration.find(
+								(v) => v.visible
+							)?.id as ViewMode | undefined;
+						if (
+							firstVisible &&
+							firstVisible !== this.currentViewId
+						) {
+							this.currentViewId = firstVisible;
+							this.sidebarComponent?.setViewMode(
+								this.currentViewId
+							);
+							// Ensure main content switches to the new visible view
+							this.switchView(
+								this.currentViewId,
+								undefined,
+								true
+							);
+						}
+					}
+				}
+			)
+		);
+
 		// 2. 加载缓存的实时过滤状态
 		const savedFilterState = this.app.loadLocalStorage(
 			"task-genius-view-filter"
@@ -1346,7 +1405,33 @@ export class TaskView extends ItemView {
 	}
 
 	public async triggerViewUpdate() {
-		// 直接使用当前的过滤器状态重新加载当前视图
+		// 始终先刷新侧边栏项目，以反映可见性/顺序的变更
+		try {
+			if (
+				this.sidebarComponent &&
+				typeof this.sidebarComponent.renderSidebarItems === "function"
+			) {
+				this.sidebarComponent.renderSidebarItems();
+			}
+		} catch (e) {
+			console.warn("Failed to refresh sidebar items:", e);
+		}
+
+		// 如果当前视图已被设置为隐藏，则切换到第一个可见视图
+		const currentCfg = this.plugin.settings.viewConfiguration.find(
+			(v) => v.id === this.currentViewId
+		);
+		if (!currentCfg?.visible) {
+			const firstVisible = this.plugin.settings.viewConfiguration.find(
+				(v) => v.visible
+			)?.id as ViewMode | undefined;
+			if (firstVisible && firstVisible !== this.currentViewId) {
+				this.currentViewId = firstVisible;
+				this.sidebarComponent?.setViewMode(this.currentViewId);
+			}
+		}
+
+		// 直接使用（可能已更新的）当前视图重新加载
 		this.switchView(this.currentViewId);
 
 		// 更新操作按钮，确保重置筛选器按钮根据最新状态显示
@@ -1745,20 +1830,25 @@ export class TaskView extends ItemView {
 				"TaskView: SidebarComponent does not have renderSidebarItems method."
 			);
 		}
-		
+
 		// 检查当前视图的类型是否发生变化（比如从两列切换到单列）
 		const currentViewConfig = this.plugin.settings.viewConfiguration.find(
-			v => v.id === this.currentViewId
+			(v) => v.id === this.currentViewId
 		);
-		
+
 		// 如果当前是两列视图但配置已改为非两列，需要销毁两列组件
-		const currentTwoColumn = this.twoColumnViewComponents.get(this.currentViewId);
-		if (currentTwoColumn && currentViewConfig?.specificConfig?.viewType !== "twocolumn") {
+		const currentTwoColumn = this.twoColumnViewComponents.get(
+			this.currentViewId
+		);
+		if (
+			currentTwoColumn &&
+			currentViewConfig?.specificConfig?.viewType !== "twocolumn"
+		) {
 			// 销毁两列视图组件 - 使用 unload 方法来清理 Component
 			currentTwoColumn.unload();
 			this.twoColumnViewComponents.delete(this.currentViewId);
 		}
-		
+
 		// 重新切换到当前视图以应用新配置
 		this.switchView(this.currentViewId, undefined, true); // forceRefresh to apply new layout
 		this.updateHeaderDisplay();

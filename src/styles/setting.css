@@ -1222,9 +1222,6 @@
 	margin-bottom: 15px;
 }
 
-/* END: Reward Settings Styles */
-
-/* START: Task Handler Settings Styles */
 .setting-item.sort-criterion-row .setting-item-info {
 	display: none;
 }
@@ -1233,15 +1230,6 @@
 	flex: 1;
 }
 
-/* END: Task Handler Settings Styles */
-
-/* START: View Management Styles */
-.view-management-list {
-	margin: 10px 0;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 5px;
-	padding: 10px;
-}
 
 .view-edit-button,
 .view-copy-button,
@@ -1292,8 +1280,6 @@
 .copy-mode-info p {
 	margin: 4px 0;
 }
-
-/* END: View Management Styles */
 
 /* Tasks Plugin Compatibility Warning Banner */
 .tasks-compatibility-warning {

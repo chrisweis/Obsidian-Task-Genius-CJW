@@ -402,7 +402,7 @@ export function renderViewSettingsTab(
 
 			// Visibility toggle
 			const visibilityBtn = actionsEl.createEl("button", {
-				cls: "view-action-button",
+				cls: ["view-action-button", "clickable-icon"],
 				attr: {
 					"aria-label": view.visible
 						? t("Hide from sidebar")
@@ -410,15 +410,21 @@ export function renderViewSettingsTab(
 				},
 			});
 			setIcon(visibilityBtn, view.visible ? "eye" : "eye-off");
-			visibilityBtn.onclick = () => {
+			visibilityBtn.onclick = async () => {
 				view.visible = !view.visible;
-				settingTab.applySettingsUpdate();
+				// Save only; avoid full view refresh
+				await settingTab.plugin.saveSettings();
 				renderViewList();
+				// Emit event to notify TaskView sidebar to update without full view refresh
+				(settingTab.app.workspace as any).trigger(
+					"task-genius:view-config-changed",
+					{ reason: "visibility-changed", viewId: view.id }
+				);
 			};
 
 			// Edit button
 			const editBtn = actionsEl.createEl("button", {
-				cls: "view-action-button",
+				cls: ["view-action-button", "clickable-icon"],
 				attr: {
 					"aria-label": t("Edit View"),
 				},
@@ -446,8 +452,12 @@ export function renderViewSettingsTab(
 								...updatedView,
 								filterRules: updatedRules,
 							};
-							settingTab.applySettingsUpdate();
+							settingTab.plugin.saveSettings();
 							renderViewList();
+							(settingTab.app.workspace as any).trigger(
+								"task-genius:view-config-changed",
+								{ reason: "view-deleted", viewId: view.id }
+							);
 						}
 					}
 				).open();
@@ -455,7 +465,7 @@ export function renderViewSettingsTab(
 
 			// Copy button
 			const copyBtn = actionsEl.createEl("button", {
-				cls: "view-action-button",
+				cls: ["view-action-button", "clickable-icon"],
 				attr: {
 					"aria-label": t("Copy View"),
 				},
@@ -477,8 +487,15 @@ export function renderViewSettingsTab(
 								...createdView,
 								filterRules: createdRules,
 							});
-							settingTab.applySettingsUpdate();
+							settingTab.plugin.saveSettings();
 							renderViewList();
+							(settingTab.app.workspace as any).trigger(
+								"task-genius:view-config-changed",
+								{
+									reason: "view-copied",
+									viewId: createdView.id,
+								}
+							);
 							new Notice(
 								t("View copied successfully: ") +
 									createdView.name
@@ -494,7 +511,11 @@ export function renderViewSettingsTab(
 			// Delete button for custom views
 			if (view.type === "custom") {
 				const deleteBtn = actionsEl.createEl("button", {
-					cls: "view-action-button view-action-delete",
+					cls: [
+						"view-action-button",
+						"view-action-delete",
+						"clickable-icon",
+					],
 					attr: {
 						"aria-label": t("Delete View"),
 					},
@@ -561,7 +582,11 @@ export function renderViewSettingsTab(
 
 			// Update the settings
 			settingTab.plugin.settings.viewConfiguration = newOrder;
-			settingTab.applySettingsUpdate();
+			settingTab.plugin.saveSettings();
+			(settingTab.app.workspace as any).trigger(
+				"task-genius:view-config-changed",
+				{ reason: "order-changed" }
+			);
 		};
 
 		// Create sortable instances
@@ -615,8 +640,12 @@ export function renderViewSettingsTab(
 								...createdView,
 								filterRules: createdRules,
 							});
-							settingTab.applySettingsUpdate();
+							settingTab.plugin.saveSettings();
 							renderViewList();
+							(settingTab.app.workspace as any).trigger(
+								"task-genius:view-config-changed",
+								{ reason: "view-added", viewId: createdView.id }
+							);
 						} else {
 							new Notice(t("Error: View ID already exists."));
 						}
