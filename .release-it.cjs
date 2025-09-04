@@ -98,7 +98,7 @@ module.exports = {
 			infile: "CHANGELOG.md",
 			header: "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n",
 			// 只生成当前版本的 changelog，但包含从上一个正式版以来的所有提交
-			releaseCount: 0,
+			releaseCount: 1,
 			// 限制 git log 的提交范围，从上一个正式版开始（排除 beta 版本）
 			gitRawCommitsOpts: {
 				from: getLastStableTag() // 智能获取上一个正式版本
