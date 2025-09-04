@@ -59,6 +59,9 @@ function getLastStableTag() {
 	}
 }
 
+// 在模块开始时获取一次，避免重复调用
+const lastStableTag = getLastStableTag();
+
 module.exports = {
 	interactive: true,
 	hooks: {
@@ -101,7 +104,7 @@ module.exports = {
 			releaseCount: 1,
 			// 限制 git log 的提交范围，从上一个正式版开始（排除 beta 版本）
 			gitRawCommitsOpts: {
-				from: getLastStableTag() // 智能获取上一个正式版本
+				from: lastStableTag // 使用已经获取的值
 			},
 			writerOpts: {
 				// 自定义提交转换，过滤掉 beta 相关的 chore commits
@@ -135,7 +138,7 @@ module.exports = {
 				},
 				// 确保比较链接使用正确的版本范围
 				finalizeContext: (context) => {
-					const lastStableTag = getLastStableTag();
+					// 使用已经获取的值，避免重复调用
 					if (lastStableTag) {
 						context.previousTag = lastStableTag;
 						context.currentTag = context.version;
