@@ -69,6 +69,8 @@ module.exports = {
 		"after:bump": [
 			"node esbuild.config.mjs production",
 			"node ./scripts/zip.mjs",
+			// 使用自定义 changelog 生成器替代 conventional-changelog
+			"node ./scripts/custom-changelog.mjs ${version}",
 			"git add .",
 		],
 		"after:release":
@@ -98,56 +100,10 @@ module.exports = {
 					{type: "revert", section: "Reverts"}
 				]
 			},
-			infile: "CHANGELOG.md",
-			header: "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n",
-			// 只生成当前版本的 changelog，但包含从上一个正式版以来的所有提交
-			releaseCount: 1,
-			// 限制 git log 的提交范围，从上一个正式版开始（排除 beta 版本）
-			gitRawCommitsOpts: {
-				from: lastStableTag // 使用已经获取的值
-			},
-			writerOpts: {
-				// 自定义提交转换，过滤掉 beta 相关的 chore commits
-				transform: (commit, context) => {
-					// 过滤掉 beta 版本的 release commits
-					if (commit.type === 'chore' && commit.subject) {
-						// 过滤包含 beta 的 release commits
-						if (commit.subject.includes('beta') || 
-							commit.subject.includes('-beta.') ||
-							commit.subject.match(/v\d+\.\d+\.\d+-beta/)) {
-							return null;
-						}
-						// 过滤 release scope 的 commits（通常是版本发布相关）
-						if (commit.scope === 'release' && 
-							(commit.subject.includes('bump version') || 
-							 commit.subject.includes('v9.8.0'))) {
-							return null;
-						}
-					}
-					
-					// 创建一个新的 commit 对象副本，避免修改原始对象
-					const transformedCommit = Object.assign({}, commit);
-					
-					// 确保 commit 有短 hash 用于显示
-					if (transformedCommit.hash && !transformedCommit.shortHash) {
-						transformedCommit.shortHash = transformedCommit.hash.substring(0, 7);
-					}
-					
-					// 返回转换后的提交
-					return transformedCommit;
-				},
-				// 确保比较链接使用正确的版本范围
-				finalizeContext: (context) => {
-					// 使用已经获取的值，避免重复调用
-					if (lastStableTag) {
-						context.previousTag = lastStableTag;
-						context.currentTag = context.version;
-						// 更新比较 URL
-						context.compareUrl = `https://github.com/Quorafind/Obsidian-Task-Genius/compare/${lastStableTag}...${context.version}`;
-					}
-					return context;
-				}
-			}
+			// 禁用 conventional-changelog 的 changelog 生成，使用我们的自定义脚本
+			infile: false,
+			// 仍然使用 conventional commits 来推荐版本号
+			strictSemVer: false
 		},
 		"./scripts/ob-bumper.mjs": {
 			indent: 2,
