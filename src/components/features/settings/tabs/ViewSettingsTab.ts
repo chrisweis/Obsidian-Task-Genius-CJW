@@ -3,7 +3,9 @@ import { ViewConfig, ViewFilterRule } from "@/common/setting-definition";
 import { t } from "@/translations/helper";
 import { TaskProgressBarSettingTab } from "@/setting";
 import { ViewConfigModal } from "@/components/features/task/view/modals/ViewConfigModal";
-import { TaskFilterComponent } from '@/components/features/task/filter/ViewTaskFilter';
+import { TaskFilterComponent } from "@/components/features/task/filter/ViewTaskFilter";
+import Sortable from "sortablejs";
+import "@/styles/view-setting-tab.css";
 
 export function renderViewSettingsTab(
 	settingTab: TaskProgressBarSettingTab,
@@ -49,9 +51,7 @@ export function renderViewSettingsTab(
 		new Setting(containerEl)
 			.setName(t("Views are disabled"))
 			.setDesc(
-				t(
-					"Enable Task Genius Views above to configure view settings."
-				)
+				t("Enable Task Genius Views above to configure view settings.")
 			);
 		return;
 	}
@@ -76,7 +76,6 @@ export function renderViewSettingsTab(
 				});
 		});
 
-
 	// Project Tree View Settings
 	new Setting(containerEl)
 		.setName(t("Project Tree View Settings"))
@@ -96,9 +95,8 @@ export function renderViewSettingsTab(
 				.addOption("tree", t("Tree View"))
 				.setValue(settingTab.plugin.settings.projectViewDefaultMode)
 				.onChange((value) => {
-					settingTab.plugin.settings.projectViewDefaultMode = value as
-						| "list"
-						| "tree";
+					settingTab.plugin.settings.projectViewDefaultMode =
+						value as "list" | "tree";
 					settingTab.applySettingsUpdate();
 				});
 		});
@@ -122,15 +120,16 @@ export function renderViewSettingsTab(
 	new Setting(containerEl)
 		.setName(t("Show empty project folders"))
 		.setDesc(
-			t(
-				"Display project folders even if they don't contain any tasks."
-			)
+			t("Display project folders even if they don't contain any tasks.")
 		)
 		.addToggle((toggle) => {
 			toggle
-				.setValue(settingTab.plugin.settings.projectTreeShowEmptyFolders)
+				.setValue(
+					settingTab.plugin.settings.projectTreeShowEmptyFolders
+				)
 				.onChange((value) => {
-					settingTab.plugin.settings.projectTreeShowEmptyFolders = value;
+					settingTab.plugin.settings.projectTreeShowEmptyFolders =
+						value;
 					settingTab.applySettingsUpdate();
 				});
 		});
@@ -143,11 +142,11 @@ export function renderViewSettingsTab(
 			)
 		)
 		.addText((text) => {
-			text
-				.setPlaceholder("/")
+			text.setPlaceholder("/")
 				.setValue(settingTab.plugin.settings.projectPathSeparator)
 				.onChange((value) => {
-					settingTab.plugin.settings.projectPathSeparator = value || "/";
+					settingTab.plugin.settings.projectPathSeparator =
+						value || "/";
 					settingTab.applySettingsUpdate();
 				});
 		});
@@ -202,9 +201,12 @@ export function renderViewSettingsTab(
 			)
 		)
 		.addToggle((toggle) => {
-			toggle.setValue(settingTab.plugin.settings.enableDynamicMetadataPositioning);
+			toggle.setValue(
+				settingTab.plugin.settings.enableDynamicMetadataPositioning
+			);
 			toggle.onChange((value) => {
-				settingTab.plugin.settings.enableDynamicMetadataPositioning = value;
+				settingTab.plugin.settings.enableDynamicMetadataPositioning =
+					value;
 				settingTab.applySettingsUpdate();
 			});
 		});
@@ -226,6 +228,10 @@ export function renderViewSettingsTab(
 
 	// Global filter component
 	let globalFilterComponent: TaskFilterComponent | null = null;
+
+	// Sortable instances for view management
+	let topSortable: Sortable | null = null;
+	let bottomSortable: Sortable | null = null;
 
 	// Initialize global filter component
 	const initializeGlobalFilter = () => {
@@ -289,6 +295,15 @@ export function renderViewSettingsTab(
 			globalFilterComponent.onunload();
 			globalFilterComponent = null;
 		}
+		// Also cleanup sortables
+		if (topSortable) {
+			topSortable.destroy();
+			topSortable = null;
+		}
+		if (bottomSortable) {
+			bottomSortable.destroy();
+			bottomSortable = null;
+		}
 	};
 
 	// --- New View Management Section ---
@@ -296,7 +311,7 @@ export function renderViewSettingsTab(
 		.setName(t("Manage Views"))
 		.setDesc(
 			t(
-				"Configure sidebar views, order, visibility, and hide/show completed tasks per view."
+				"Drag views between sections or within sections to reorder them. Toggle visibility with the eye icon."
 			)
 		)
 		.setHeading();
@@ -305,200 +320,273 @@ export function renderViewSettingsTab(
 		cls: "view-management-list",
 	});
 
+	// Create two containers for top and bottom sections
+	const topSectionContainer = viewListContainer.createDiv({
+		cls: "view-section-container",
+	});
+	const topSectionHeader = topSectionContainer.createDiv({
+		cls: "view-section-header",
+	});
+	topSectionHeader.createEl("h4", { text: t("Top Section") });
+	const topViewsContainer = topSectionContainer.createDiv({
+		cls: "view-section-items sortable-views",
+		attr: { "data-region": "top" },
+	});
+
+	const bottomSectionContainer = viewListContainer.createDiv({
+		cls: "view-section-container",
+	});
+	const bottomSectionHeader = bottomSectionContainer.createDiv({
+		cls: "view-section-header",
+	});
+	bottomSectionHeader.createEl("h4", { text: t("Bottom Section") });
+	const bottomViewsContainer = bottomSectionContainer.createDiv({
+		cls: "view-section-items sortable-views",
+		attr: { "data-region": "bottom" },
+	});
+
 	// Function to render the list of views
 	const renderViewList = () => {
-		viewListContainer.empty();
+		topViewsContainer.empty();
+		bottomViewsContainer.empty();
 
-		settingTab.plugin.settings.viewConfiguration.forEach((view, index) => {
-			const viewSetting = new Setting(viewListContainer)
-				.setName(view.name)
-				.setDesc(`[${view.type}]`)
-				.addToggle((toggle) => {
-					/* Visibility Toggle */
-					toggle
-						.setTooltip(t("Show in sidebar"))
-						.setValue(view.visible)
-						.onChange(async (value) => {
+		// Destroy existing sortables before re-rendering
+		if (topSortable) {
+			topSortable.destroy();
+			topSortable = null;
+		}
+		if (bottomSortable) {
+			bottomSortable.destroy();
+			bottomSortable = null;
+		}
+
+		// Group views by region
+		const topViews: ViewConfig[] = [];
+		const bottomViews: ViewConfig[] = [];
+
+		settingTab.plugin.settings.viewConfiguration.forEach((view) => {
+			if (view.region === "bottom") {
+				bottomViews.push(view);
+			} else {
+				topViews.push(view);
+			}
+		});
+
+		// Helper function to create view item
+		const createViewItem = (view: ViewConfig, container: HTMLElement) => {
+			const viewEl = container.createDiv({
+				cls: "view-item sortable-view-item",
+				attr: {
+					"data-view-id": view.id,
+				},
+			});
+
+			// Add drag handle
+			const dragHandle = viewEl.createDiv({ cls: "view-drag-handle" });
+			setIcon(dragHandle, "grip-vertical");
+
+			// View icon
+			const iconEl = viewEl.createDiv({ cls: "view-item-icon" });
+			setIcon(iconEl, view.icon);
+
+			// View info
+			const infoEl = viewEl.createDiv({ cls: "view-item-info" });
+			infoEl.createEl("div", { cls: "view-item-name", text: view.name });
+			infoEl.createEl("div", {
+				cls: "view-item-type",
+				text: `[${view.type}]`,
+			});
+
+			// Actions container
+			const actionsEl = viewEl.createDiv({ cls: "view-item-actions" });
+
+			// Visibility toggle
+			const visibilityBtn = actionsEl.createEl("button", {
+				cls: "view-action-button",
+				attr: {
+					"aria-label": view.visible
+						? t("Hide from sidebar")
+						: t("Show in sidebar"),
+				},
+			});
+			setIcon(visibilityBtn, view.visible ? "eye" : "eye-off");
+			visibilityBtn.onclick = () => {
+				view.visible = !view.visible;
+				settingTab.applySettingsUpdate();
+				renderViewList();
+			};
+
+			// Edit button
+			const editBtn = actionsEl.createEl("button", {
+				cls: "view-action-button",
+				attr: {
+					"aria-label": t("Edit View"),
+				},
+			});
+			setIcon(editBtn, "pencil");
+			editBtn.onclick = () => {
+				if (view.id === "habit") {
+					settingTab.openTab("habit");
+					return;
+				}
+				new ViewConfigModal(
+					settingTab.app,
+					settingTab.plugin,
+					view,
+					view.filterRules || {},
+					(updatedView: ViewConfig, updatedRules: ViewFilterRule) => {
+						const currentIndex =
+							settingTab.plugin.settings.viewConfiguration.findIndex(
+								(v) => v.id === updatedView.id
+							);
+						if (currentIndex !== -1) {
 							settingTab.plugin.settings.viewConfiguration[
-								index
-							].visible = value;
-							settingTab.applySettingsUpdate();
-						});
-				});
-
-			// Edit button - Now available for ALL views to edit rules/name/icon
-			viewSetting.addExtraButton((button) => {
-				button
-					.setIcon("pencil")
-					.setTooltip(t("Edit View"))
-					.onClick(() => {
-						if (view.id === "habit") {
-							settingTab.openTab("habit");
-							return;
-						}
-						// Get current rules (might be undefined for defaults initially)
-						const currentRules = view.filterRules || {};
-						new ViewConfigModal(
-							settingTab.app,
-							settingTab.plugin,
-							view,
-							currentRules,
-							(
-								updatedView: ViewConfig,
-								updatedRules: ViewFilterRule
-							) => {
-								const currentIndex =
-									settingTab.plugin.settings.viewConfiguration.findIndex(
-										(v) => v.id === updatedView.id
-									);
-								if (currentIndex !== -1) {
-									// Update the view config in the array
-									settingTab.plugin.settings.viewConfiguration[
-										currentIndex
-									] = {
-										...updatedView,
-										filterRules: updatedRules,
-									}; // Ensure rules are saved back to viewConfig
-									settingTab.applySettingsUpdate();
-									renderViewList(); // Re-render the settings list
-								}
-							}
-						).open();
-					});
-				button.extraSettingsEl.addClass("view-edit-button"); // Add class for potential styling
-			});
-
-			// Copy button - Available for ALL views to create a copy
-			viewSetting.addExtraButton((button) => {
-				button
-					.setIcon("copy")
-					.setTooltip(t("Copy View"))
-					.onClick(() => {
-						// Create a copy of the current view
-						new ViewConfigModal(
-							settingTab.app,
-							settingTab.plugin,
-							null, // null for create mode
-							null, // null for create mode
-							(
-								createdView: ViewConfig,
-								createdRules: ViewFilterRule
-							) => {
-								if (
-									!settingTab.plugin.settings.viewConfiguration.some(
-										(v) => v.id === createdView.id
-									)
-								) {
-									// Save with filter rules embedded
-									settingTab.plugin.settings.viewConfiguration.push(
-										{
-											...createdView,
-											filterRules: createdRules,
-										}
-									);
-									settingTab.applySettingsUpdate();
-									renderViewList();
-									new Notice(
-										t("View copied successfully: ") +
-											createdView.name
-									);
-								} else {
-									new Notice(
-										t("Error: View ID already exists.")
-									);
-								}
-							},
-							view // 传入当前视图作为拷贝源
-						).open();
-					});
-				button.extraSettingsEl.addClass("view-copy-button");
-			});
-
-			// Reordering buttons
-			viewSetting.addExtraButton((button) => {
-				button
-					.setIcon("arrow-up")
-					.setTooltip(t("Move Up"))
-					.setDisabled(index === 0)
-					.onClick(() => {
-						if (index > 0) {
-							const item =
-								settingTab.plugin.settings.viewConfiguration.splice(
-									index,
-									1
-								)[0];
-							settingTab.plugin.settings.viewConfiguration.splice(
-								index - 1,
-								0,
-								item
-							);
-							settingTab.applySettingsUpdate();
-							renderViewList(); // Re-render the list
-						}
-					});
-				button.extraSettingsEl.addClass("view-order-button");
-			});
-			viewSetting.addExtraButton((button) => {
-				button
-					.setIcon("arrow-down")
-					.setTooltip(t("Move Down"))
-					.setDisabled(
-						index ===
-							settingTab.plugin.settings.viewConfiguration
-								.length -
-								1
-					)
-					.onClick(() => {
-						if (
-							index <
-							settingTab.plugin.settings.viewConfiguration
-								.length -
-								1
-						) {
-							const item =
-								settingTab.plugin.settings.viewConfiguration.splice(
-									index,
-									1
-								)[0];
-							settingTab.plugin.settings.viewConfiguration.splice(
-								index + 1,
-								0,
-								item
-							);
-							settingTab.applySettingsUpdate();
-							renderViewList(); // Re-render the list
-						}
-					});
-				button.extraSettingsEl.addClass("view-order-button");
-			});
-
-			// Delete button - ONLY for custom views
-			if (view.type === "custom") {
-				viewSetting.addExtraButton((button) => {
-					button
-						.setIcon("trash")
-						.setTooltip(t("Delete View"))
-						.onClick(() => {
-							// TODO: Add confirmation modal before deleting
-							settingTab.plugin.settings.viewConfiguration.splice(
-								index,
-								1
-							);
-							// No need to delete from customViewDefinitions anymore
+								currentIndex
+							] = {
+								...updatedView,
+								filterRules: updatedRules,
+							};
 							settingTab.applySettingsUpdate();
 							renderViewList();
-						});
-					button.extraSettingsEl.addClass("view-delete-button");
+						}
+					}
+				).open();
+			};
+
+			// Copy button
+			const copyBtn = actionsEl.createEl("button", {
+				cls: "view-action-button",
+				attr: {
+					"aria-label": t("Copy View"),
+				},
+			});
+			setIcon(copyBtn, "copy");
+			copyBtn.onclick = () => {
+				new ViewConfigModal(
+					settingTab.app,
+					settingTab.plugin,
+					null,
+					null,
+					(createdView: ViewConfig, createdRules: ViewFilterRule) => {
+						if (
+							!settingTab.plugin.settings.viewConfiguration.some(
+								(v) => v.id === createdView.id
+							)
+						) {
+							settingTab.plugin.settings.viewConfiguration.push({
+								...createdView,
+								filterRules: createdRules,
+							});
+							settingTab.applySettingsUpdate();
+							renderViewList();
+							new Notice(
+								t("View copied successfully: ") +
+									createdView.name
+							);
+						} else {
+							new Notice(t("Error: View ID already exists."));
+						}
+					},
+					view
+				).open();
+			};
+
+			// Delete button for custom views
+			if (view.type === "custom") {
+				const deleteBtn = actionsEl.createEl("button", {
+					cls: "view-action-button view-action-delete",
+					attr: {
+						"aria-label": t("Delete View"),
+					},
 				});
+				setIcon(deleteBtn, "trash");
+				deleteBtn.onclick = () => {
+					const index =
+						settingTab.plugin.settings.viewConfiguration.findIndex(
+							(v) => v.id === view.id
+						);
+					if (index !== -1) {
+						settingTab.plugin.settings.viewConfiguration.splice(
+							index,
+							1
+						);
+						settingTab.applySettingsUpdate();
+						renderViewList();
+					}
+				};
 			}
 
-			// Add new view icon
-			const fragement = document.createDocumentFragment();
-			const icon = fragement.createEl("i", {
-				cls: "view-icon",
-			});
-			setIcon(icon, view.icon);
-			viewSetting.settingEl.prepend(fragement);
+			return viewEl;
+		};
+
+		// Render views in their respective containers
+		topViews.forEach((view) => createViewItem(view, topViewsContainer));
+		bottomViews.forEach((view) =>
+			createViewItem(view, bottomViewsContainer)
+		);
+
+		// Setup sortable for both containers
+		const updateViewOrder = () => {
+			const newOrder: ViewConfig[] = [];
+
+			// Get all views from top container
+			topViewsContainer
+				.querySelectorAll(".sortable-view-item")
+				.forEach((el) => {
+					const viewId = el.getAttribute("data-view-id");
+					const view =
+						settingTab.plugin.settings.viewConfiguration.find(
+							(v) => v.id === viewId
+						);
+					if (view) {
+						view.region = "top";
+						newOrder.push(view);
+					}
+				});
+
+			// Get all views from bottom container
+			bottomViewsContainer
+				.querySelectorAll(".sortable-view-item")
+				.forEach((el) => {
+					const viewId = el.getAttribute("data-view-id");
+					const view =
+						settingTab.plugin.settings.viewConfiguration.find(
+							(v) => v.id === viewId
+						);
+					if (view) {
+						view.region = "bottom";
+						newOrder.push(view);
+					}
+				});
+
+			// Update the settings
+			settingTab.plugin.settings.viewConfiguration = newOrder;
+			settingTab.applySettingsUpdate();
+		};
+
+		// Create sortable instances
+		topSortable = Sortable.create(topViewsContainer, {
+			group: "views",
+			animation: 150,
+			handle: ".view-drag-handle",
+			ghostClass: "sortable-ghost",
+			chosenClass: "sortable-chosen",
+			dragClass: "sortable-drag",
+			onEnd: () => {
+				updateViewOrder();
+			},
+		});
+
+		bottomSortable = Sortable.create(bottomViewsContainer, {
+			group: "views",
+			animation: 150,
+			handle: ".view-drag-handle",
+			ghostClass: "sortable-ghost",
+			chosenClass: "sortable-chosen",
+			dragClass: "sortable-drag",
+			onEnd: () => {
+				updateViewOrder();
+			},
 		});
 	};
 
@@ -536,5 +624,4 @@ export function renderViewSettingsTab(
 				).open();
 			});
 	});
-
 }

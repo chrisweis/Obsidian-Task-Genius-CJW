@@ -51,24 +51,24 @@ export class SidebarComponent extends Component {
 			return;
 		}
 
-		// 将视图分成顶部组和底部组
-		const bottomViews = ["habit", "calendar", "gantt", "kanban"]; // 这些视图将放在底部
-		const topDefaultViews: ViewConfig[] = [];
-		const topCustomViews: ViewConfig[] = [];
+		// 根据 region 属性将视图分为顶部组和底部组，同时保持各组内的顺序
+		const topViews: ViewConfig[] = [];
+		const bottomViews: ViewConfig[] = [];
 
-		// 分离默认视图和自定义视图
+		// 按照原始顺序遍历，根据 region 分组
 		this.plugin.settings.viewConfiguration.forEach((viewConfig) => {
-			if (viewConfig.visible && !bottomViews.includes(viewConfig.id)) {
-				if (viewConfig.type === "default") {
-					topDefaultViews.push(viewConfig);
+			if (viewConfig.visible) {
+				if (viewConfig.region === "bottom") {
+					bottomViews.push(viewConfig);
 				} else {
-					topCustomViews.push(viewConfig);
+					// 默认或 "top" 都放在顶部
+					topViews.push(viewConfig);
 				}
 			}
 		});
 
-		// 首先渲染默认视图（在顶部）
-		topDefaultViews.forEach((viewConfig) => {
+		// 先渲染顶部视图（保持原始顺序）
+		topViews.forEach((viewConfig) => {
 			this.createNavItem(
 				viewConfig.id,
 				t(viewConfig.name),
@@ -76,29 +76,18 @@ export class SidebarComponent extends Component {
 			);
 		});
 
-		// 然后渲染自定义视图（在默认视图下方）
-		topCustomViews.forEach((viewConfig) => {
-			this.createNavItem(
-				viewConfig.id,
-				t(viewConfig.name),
-				viewConfig.icon
-			);
-		});
-
-		// 添加分隔符（如果有顶部视图）
-		if (topDefaultViews.length > 0 || topCustomViews.length > 0) {
+		// 如果有顶部视图和底部视图，添加分隔符
+		if (topViews.length > 0 && bottomViews.length > 0) {
 			this.createNavSpacer();
 		}
 
-		// 最后渲染底部组视图
-		this.plugin.settings.viewConfiguration.forEach((viewConfig) => {
-			if (viewConfig.visible && bottomViews.includes(viewConfig.id)) {
-				this.createNavItem(
-					viewConfig.id,
-					t(viewConfig.name),
-					viewConfig.icon
-				);
-			}
+		// 渲染底部视图（保持原始顺序）
+		bottomViews.forEach((viewConfig) => {
+			this.createNavItem(
+				viewConfig.id,
+				t(viewConfig.name),
+				viewConfig.icon
+			);
 		});
 
 		// Highlight the currently active view

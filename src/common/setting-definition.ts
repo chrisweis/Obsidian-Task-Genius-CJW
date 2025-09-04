@@ -77,6 +77,7 @@ export interface ViewConfig {
 	filterRules?: ViewFilterRule; // ADDED: Optional filter rules for ALL views
 	sortCriteria?: SortCriterion[]; // ADDED: Optional sort criteria for ALL views
 	specificConfig?: SpecificViewConfig; // ADDED: Optional property for view-specific settings
+	region?: "top" | "bottom"; // 视图区域：顶部或底部，用于侧边栏分组
 }
 
 // ADDED: Specific config interfaces
@@ -1181,6 +1182,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			hideCompletedAndAbandonedTasks: false,
 			filterRules: {},
 			filterBlanks: false,
+			region: "bottom", // 底部区域
 			specificConfig: {
 				viewType: "calendar",
 				firstDayOfWeek: undefined, // Use locale default initially
@@ -1196,6 +1198,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			hideCompletedAndAbandonedTasks: false,
 			filterRules: {},
 			filterBlanks: false,
+			region: "bottom", // 底部区域
 			specificConfig: {
 				viewType: "kanban",
 				showCheckbox: true, // Example default, adjust if needed
@@ -1214,6 +1217,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			hideCompletedAndAbandonedTasks: false,
 			filterRules: {},
 			filterBlanks: false,
+			region: "bottom", // 底部区域
 			specificConfig: {
 				viewType: "gantt",
 				showTaskLabels: true,
@@ -1229,6 +1233,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			hideCompletedAndAbandonedTasks: false,
 			filterRules: {},
 			filterBlanks: false,
+			region: "bottom", // 底部区域
 		},
 		{
 			id: "table",

@@ -89,6 +89,12 @@ export class ViewConfigModal extends Modal {
 					name: t("Copy of ") + sourceViewForCopy.name, // 修改名称
 					type: "custom", // 确保类型为自定义
 				};
+				
+				// Apply default region if not set (for backward compatibility)
+				if (!this.viewConfig.region) {
+					const bottomViewIds = ["habit", "calendar", "gantt", "kanban"];
+					this.viewConfig.region = bottomViewIds.includes(sourceViewForCopy.id) ? "bottom" : "top";
+				}
 
 				// 如果源视图有过滤规则，也拷贝过来
 				this.viewFilterRule = sourceViewForCopy.filterRules
@@ -105,6 +111,7 @@ export class ViewConfigModal extends Modal {
 					hideCompletedAndAbandonedTasks: false,
 					filterBlanks: false,
 					sortCriteria: [], // Initialize sort criteria as an empty array
+					region: "top", // Default new custom views to top
 				};
 				this.viewFilterRule = initialFilterRule || {}; // Start with empty rules or provided defaults
 			}
@@ -118,6 +125,12 @@ export class ViewConfigModal extends Modal {
 			// Make sure sortCriteria exists
 			if (!this.viewConfig.sortCriteria) {
 				this.viewConfig.sortCriteria = [];
+			}
+			
+			// Apply default region if not set (for backward compatibility)
+			if (!this.viewConfig.region) {
+				const bottomViewIds = ["habit", "calendar", "gantt", "kanban"];
+				this.viewConfig.region = bottomViewIds.includes(this.viewConfig.id) ? "bottom" : "top";
 			}
 		}
 
@@ -260,6 +273,29 @@ export class ViewConfigModal extends Modal {
 						this.iconInput.setValue(iconId);
 					},
 				});
+			});
+
+		// Add Region setting for sidebar position
+		// Default to 'bottom' for specific views for backward compatibility
+		const bottomViewIds = ["habit", "calendar", "gantt", "kanban"];
+		const defaultRegion = bottomViewIds.includes(this.viewConfig.id) ? "bottom" : "top";
+		
+		new Setting(contentEl)
+			.setName(t("Sidebar Position"))
+			.setDesc(
+				t(
+					"Choose where this view appears in the sidebar. Views in the bottom section are visually separated from top section views."
+				)
+			)
+			.addDropdown((dropdown) => {
+				dropdown
+					.addOption("top", t("Top Section"))
+					.addOption("bottom", t("Bottom Section"))
+					.setValue(this.viewConfig.region || defaultRegion)
+					.onChange((value: "top" | "bottom") => {
+						this.viewConfig.region = value;
+						this.checkForChanges();
+					});
 			});
 
 		// 检查是否为日历视图（原始ID或拷贝的日历视图）
@@ -1103,11 +1139,12 @@ export class ViewConfigModal extends Modal {
 		// Two Column View specific config
 		if (
 			this.isCreate ||
-			this.viewConfig.specificConfig?.viewType === "twocolumn"
+			this.viewConfig.specificConfig?.viewType === "twocolumn" ||
+			this.viewConfig.type === "custom" // 自定义视图总是可以切换布局
 		) {
-			// For new views (but not copy mode), add a "View Type" dropdown
-			// 只有在非拷贝的创建模式下才显示视图类型选择器
-			if (this.isCreate && !this.isCopyMode) {
+			// For custom views, allow changing view type even in edit mode
+			// 对于自定义视图，编辑模式下也允许切换视图类型
+			if ((this.isCreate && !this.isCopyMode) || this.viewConfig.type === "custom") {
 				new Setting(contentEl)
 					.setName(t("View type"))
 					.setDesc(t("Select the type of view to create"))
