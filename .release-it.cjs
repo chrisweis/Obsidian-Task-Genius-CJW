@@ -89,17 +89,38 @@ module.exports = {
 					{type: "fix", section: "Bug Fixes"},
 					{type: "perf", section: "Performance"},
 					{type: "refactor", section: "Refactors"},
-					{type: "chore", section: "Chores"},
 					{type: "docs", section: "Documentation"},
 					{type: "style", section: "Styles"},
-					{type: "test", section: "Tests"}
+					{type: "test", section: "Tests"},
+					{type: "revert", section: "Reverts"}
 				]
 			},
 			infile: "CHANGELOG.md",
 			header: "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n",
 			// 限制 git log 的提交范围，从上一个正式版开始（排除 beta 版本）
 			gitRawCommitsOpts: {
-				from: getLastStableTag() // 智能获取上一个正式版本
+				from: getLastStableTag(), // 智能获取上一个正式版本
+				// 过滤掉 beta release commits
+				grep: '^(?!chore\\(release\\):.*beta)',
+				// 使用 perl 兼容的正则表达式
+				regexpFlags: 'P'
+			},
+			writerOpts: {
+				// 自定义提交转换，过滤掉 beta 相关的 chore commits
+				transform: (commit, context) => {
+					// 过滤掉 beta 版本的 release commits
+					if (commit.type === 'chore' && commit.subject && 
+						(commit.subject.includes('beta') || commit.subject.includes('v9.8.0-beta'))) {
+						return null;
+					}
+					
+					// 过滤掉不需要在 changelog 中显示的 chore commits
+					if (commit.type === 'chore' && commit.scope === 'release') {
+						return null;
+					}
+					
+					return commit;
+				}
 			}
 		},
 		"./scripts/ob-bumper.mjs": {
