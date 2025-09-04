@@ -12,8 +12,6 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
-* **release:** implement custom changelog generator for merged beta versions ([9bd0d53](https://github.com/Quorafind/Obsidian-Task-Genius/commit/9bd0d53))
-* **release:** enhance changelog generation to merge beta versions ([0a5e6aa](https://github.com/Quorafind/Obsidian-Task-Genius/commit/0a5e6aa))
 * **settings:** add global Ctrl+K/Cmd+K shortcut for search ([612a979](https://github.com/Quorafind/Obsidian-Task-Genius/commit/612a979))
 * **views:** add region-based organization with drag-and-drop sorting ([393fb48](https://github.com/Quorafind/Obsidian-Task-Genius/commit/393fb48))
 * **projects:** add completed/total task counts to project badges ([1848f3d](https://github.com/Quorafind/Obsidian-Task-Genius/commit/1848f3d))
@@ -47,12 +45,6 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 
-* **release:** prevent multiple getLastStableTag calls causing infinite loop ([af101fd](https://github.com/Quorafind/Obsidian-Task-Genius/commit/af101fd))
-* **release:** avoid modifying immutable commit objects in changelog transform ([8f7b163](https://github.com/Quorafind/Obsidian-Task-Genius/commit/8f7b163))
-* **release:** add shortHash to commits for proper link display in changelog ([7d2a9f4](https://github.com/Quorafind/Obsidian-Task-Genius/commit/7d2a9f4))
-* **release:** set releaseCount to 1 for single version changelog entry ([9070f8f](https://github.com/Quorafind/Obsidian-Task-Genius/commit/9070f8f))
-* **release:** configure changelog to merge all beta versions into single entry ([8c077f3](https://github.com/Quorafind/Obsidian-Task-Genius/commit/8c077f3))
-* **release:** remove unsupported git regexp-flags from changelog config ([b3cbcbc](https://github.com/Quorafind/Obsidian-Task-Genius/commit/b3cbcbc))
 * **settings:** correct event reason from 'view-deleted' to 'view-updated' ([9e595e7](https://github.com/Quorafind/Obsidian-Task-Genius/commit/9e595e7))
 * **habits:** prevent all habits being checked when selecting one ([28a061e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/28a061e))
 * **task-view:** resolve text display sync issues in markdown rendering ([99861bd](https://github.com/Quorafind/Obsidian-Task-Genius/commit/99861bd))
@@ -92,14 +84,9 @@ All notable changes to this project will be documented in this file.
 
 ### Refactors
 
-* use Obsidian's setIcon instead of manual SVG creation ([cc9d1d5](https://github.com/Quorafind/Obsidian-Task-Genius/commit/cc9d1d5))
-* remove inline styles and innerHTML from quadrant-column component ([48b3b8e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/48b3b8e))
 * **styles:** extract inline styles to CSS files ([e93c78b](https://github.com/Quorafind/Obsidian-Task-Genius/commit/e93c78b))
 * **settings:** replace custom list UI with ListConfigModal and use native debounce ([a6d94a5](https://github.com/Quorafind/Obsidian-Task-Genius/commit/a6d94a5))
-* rename DesktopIntegrationManager file to kebab-case and add multi-instance support ([bd4623f](https://github.com/Quorafind/Obsidian-Task-Genius/commit/bd4623f))
 * **build:** migrate to TypeScript path aliases and update esbuild to v0.25.9 ([77dd5f5](https://github.com/Quorafind/Obsidian-Task-Genius/commit/77dd5f5))
-* complete component directory migration with all direct imports fixed ([798403e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/798403e))
-* remove duplicate re-export files and update all imports to point directly to new locations ([a7667b1](https://github.com/Quorafind/Obsidian-Task-Genius/commit/a7667b1))
 * **components:** add missing re-exports for backward compatibility (phase 5) ([a720293](https://github.com/Quorafind/Obsidian-Task-Genius/commit/a720293))
 * **components:** add barrel exports for ui modules (phase 4) ([a009352](https://github.com/Quorafind/Obsidian-Task-Genius/commit/a009352))
 * **settings:** standardize settings under features/settings with tabs/components/core structure (phase 3) ([28efa41](https://github.com/Quorafind/Obsidian-Task-Genius/commit/28efa41))
@@ -146,10 +133,6 @@ All notable changes to this project will be documented in this file.
 * apply code formatting and linting updates ([d43186f](https://github.com/Quorafind/Obsidian-Task-Genius/commit/d43186f))
 * **task-list:** improve multi-line content layout flexibility ([bd56cd6](https://github.com/Quorafind/Obsidian-Task-Genius/commit/bd56cd6))
 * **settings:** add tg- prefix to CSS classes to avoid conflicts ([449a1b7](https://github.com/Quorafind/Obsidian-Task-Genius/commit/449a1b7))
-
-### Reverts
-
-* rollback to 9.8.0-beta.15 and enhance release configuration ([dee72cd](https://github.com/Quorafind/Obsidian-Task-Genius/commit/dee72cd))
 
 ## [9.7.6](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/compare/9.7.5...9.7.6) (2025-08-18)
 
