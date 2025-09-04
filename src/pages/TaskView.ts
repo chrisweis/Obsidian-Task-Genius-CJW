@@ -101,7 +101,7 @@ export class TaskView extends ItemView {
 	// 创建防抖的过滤器应用函数
 	private debouncedApplyFilter = debounce(() => {
 		this.applyCurrentFilter();
-	}, 100);
+	}, 400); // 增加延迟到 400ms 减少频繁更新
 
 	constructor(leaf: WorkspaceLeaf, private plugin: TaskProgressBarPlugin) {
 		super(leaf);
@@ -147,7 +147,7 @@ export class TaskView extends ItemView {
 			// For external/editor updates, force a view refresh to avoid false "unchanged" skips
 			await this.loadTasks(false, true); // skip internal triggerViewUpdate
 			this.switchView(this.currentViewId, undefined, true); // forceRefresh
-		}, 150); // 150ms debounce delay
+		}, 500); // 增加到 500ms 防抖延迟，避免频繁更新导致中间状态显示
 
 		// 1. 首先注册事件监听器，确保不会错过任何更新
 		if (
@@ -1745,7 +1745,22 @@ export class TaskView extends ItemView {
 				"TaskView: SidebarComponent does not have renderSidebarItems method."
 			);
 		}
-		this.switchView(this.currentViewId);
+		
+		// 检查当前视图的类型是否发生变化（比如从两列切换到单列）
+		const currentViewConfig = this.plugin.settings.viewConfiguration.find(
+			v => v.id === this.currentViewId
+		);
+		
+		// 如果当前是两列视图但配置已改为非两列，需要销毁两列组件
+		const currentTwoColumn = this.twoColumnViewComponents.get(this.currentViewId);
+		if (currentTwoColumn && currentViewConfig?.specificConfig?.viewType !== "twocolumn") {
+			// 销毁两列视图组件 - 使用 unload 方法来清理 Component
+			currentTwoColumn.unload();
+			this.twoColumnViewComponents.delete(this.currentViewId);
+		}
+		
+		// 重新切换到当前视图以应用新配置
+		this.switchView(this.currentViewId, undefined, true); // forceRefresh to apply new layout
 		this.updateHeaderDisplay();
 	}
 

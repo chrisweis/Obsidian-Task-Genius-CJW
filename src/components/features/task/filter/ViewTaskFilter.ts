@@ -585,7 +585,8 @@ export class TaskFilterComponent extends Component {
 
 		propertySelect.onChange((value) => {
 			filterData.property = value;
-			this.saveStateToLocalStorage();
+			this.saveStateToLocalStorage(false); // 不立即触发更新
+			setTimeout(() => this.saveStateToLocalStorage(true), 300);
 			this.updateFilterPropertyOptions(
 				newFilterEl,
 				filterData,
@@ -635,7 +636,8 @@ export class TaskFilterComponent extends Component {
 
 		conditionSelect.onChange((newCondition) => {
 			filterData.condition = newCondition;
-			this.saveStateToLocalStorage();
+			this.saveStateToLocalStorage(false); // 不立即触发更新
+			setTimeout(() => this.saveStateToLocalStorage(true), 300);
 			toggleValueInputVisibility(newCondition, filterData.property);
 			if (
 				valueInput.style.display === "none" &&
@@ -649,9 +651,16 @@ export class TaskFilterComponent extends Component {
 
 		valueInput.value = filterData.value || "";
 
+		let valueInputTimeout: NodeJS.Timeout;
 		this.registerDomEvent(valueInput, "input", (event) => {
 			filterData.value = (event.target as HTMLInputElement).value;
-			this.saveStateToLocalStorage();
+			// 在输入时不立即触发实时更新，只保存状态
+			this.saveStateToLocalStorage(false);
+			// 延迟触发实时更新
+			clearTimeout(valueInputTimeout);
+			valueInputTimeout = setTimeout(() => {
+				this.saveStateToLocalStorage(true);
+			}, 400); // 400ms 防抖
 		});
 
 		const removeFilterBtn = new ExtraButtonComponent(newFilterEl)

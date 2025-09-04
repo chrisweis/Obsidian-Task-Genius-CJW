@@ -118,8 +118,12 @@ export class ContentComponent extends Component {
 		// ...
 
 		// Event listeners
+		let filterTimeout: NodeJS.Timeout;
 		this.registerDomEvent(this.filterInput, "input", () => {
-			this.filterTasks(this.filterInput.value);
+			clearTimeout(filterTimeout);
+			filterTimeout = setTimeout(() => {
+				this.filterTasks(this.filterInput.value);
+			}, 300); // 增加 300ms 防抖延迟
 		});
 	}
 
