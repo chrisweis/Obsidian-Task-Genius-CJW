@@ -122,13 +122,16 @@ module.exports = {
 						}
 					}
 					
+					// 创建一个新的 commit 对象副本，避免修改原始对象
+					const transformedCommit = Object.assign({}, commit);
+					
 					// 确保 commit 有短 hash 用于显示
-					if (commit.hash) {
-						commit.shortHash = commit.hash.substring(0, 7);
+					if (transformedCommit.hash && !transformedCommit.shortHash) {
+						transformedCommit.shortHash = transformedCommit.hash.substring(0, 7);
 					}
 					
-					// 保留其他所有提交
-					return commit;
+					// 返回转换后的提交
+					return transformedCommit;
 				},
 				// 确保比较链接使用正确的版本范围
 				finalizeContext: (context) => {
