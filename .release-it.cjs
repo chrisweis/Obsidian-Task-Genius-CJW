@@ -122,6 +122,11 @@ module.exports = {
 						}
 					}
 					
+					// 确保 commit 有短 hash 用于显示
+					if (commit.hash) {
+						commit.shortHash = commit.hash.substring(0, 7);
+					}
+					
 					// 保留其他所有提交
 					return commit;
 				},
