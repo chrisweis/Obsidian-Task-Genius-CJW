@@ -456,7 +456,10 @@ export function renderViewSettingsTab(
 							renderViewList();
 							(settingTab.app.workspace as any).trigger(
 								"task-genius:view-config-changed",
-								{ reason: "view-deleted", viewId: view.id }
+								{
+									reason: "view-updated",
+									viewId: updatedView.id,
+								}
 							);
 						}
 					}
