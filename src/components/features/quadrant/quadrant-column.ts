@@ -4,6 +4,7 @@ import { Task } from "@/types/task";
 import { QuadrantDefinition } from './quadrant';
 import { QuadrantCardComponent } from "./quadrant-card";
 import { t } from "@/translations/helper";
+import "@/styles/quadrant-column.css";
 
 export class QuadrantColumnComponent extends Component {
 	plugin: TaskProgressBarPlugin;
@@ -11,7 +12,6 @@ export class QuadrantColumnComponent extends Component {
 	public containerEl: HTMLElement;
 	private headerEl: HTMLElement;
 	private titleEl: HTMLElement;
-	private descriptionEl: HTMLElement;
 	private countEl: HTMLElement;
 	private contentEl: HTMLElement;
 	private scrollContainerEl: HTMLElement;
@@ -191,19 +191,11 @@ export class QuadrantColumnComponent extends Component {
 		this.loadMoreEl = this.scrollContainerEl.createDiv(
 			"tg-quadrant-load-more"
 		);
-		this.loadMoreEl.style.display = "none";
 
 		const spinnerEl = this.loadMoreEl.createDiv(
 			"tg-quadrant-load-more-spinner"
 		);
-		spinnerEl.innerHTML = `
-			<svg class="tg-quadrant-spinner" viewBox="0 0 24 24">
-				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="31.416" stroke-dashoffset="31.416">
-					<animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416" repeatCount="indefinite"/>
-					<animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite"/>
-				</circle>
-			</svg>
-		`;
+		this.createSpinnerSVG(spinnerEl);
 
 		const messageEl = this.loadMoreEl.createDiv(
 			"tg-quadrant-load-more-message"
@@ -405,37 +397,32 @@ export class QuadrantColumnComponent extends Component {
 
 	private showLoadMoreIndicator() {
 		if (this.loadMoreEl && this.hasMoreTasks) {
-			this.loadMoreEl.style.display = "flex";
+			this.loadMoreEl.addClass("tg-quadrant-load-more--visible");
 		}
 	}
 
 	private hideLoadMoreIndicator() {
 		if (this.loadMoreEl) {
-			this.loadMoreEl.style.display = "none";
+			this.loadMoreEl.removeClass("tg-quadrant-load-more--visible");
 		}
 	}
 
-	private showLoadingIndicator() {
-		if (this.loadingEl) return;
 
-		this.loadingEl = this.contentEl.createDiv("tg-quadrant-loading");
+	private createSpinnerSVG(container: HTMLElement) {
+		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.setAttribute("class", "tg-quadrant-spinner");
+		svg.setAttribute("viewBox", "0 0 24 24");
 
-		const spinnerEl = this.loadingEl.createDiv(
-			"tg-quadrant-loading-spinner"
-		);
-		spinnerEl.innerHTML = `
-			<svg class="tg-quadrant-spinner" viewBox="0 0 24 24">
-				<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="31.416" stroke-dashoffset="31.416">
-					<animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416" repeatCount="indefinite"/>
-					<animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite"/>
-				</circle>
-			</svg>
-		`;
+		const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+		circle.setAttribute("cx", "12");
+		circle.setAttribute("cy", "12");
+		circle.setAttribute("r", "10");
+		circle.setAttribute("stroke", "currentColor");
+		circle.setAttribute("stroke-width", "2");
+		circle.setAttribute("fill", "none");
 
-		const messageEl = this.loadingEl.createDiv(
-			"tg-quadrant-loading-message"
-		);
-		messageEl.textContent = t("Loading tasks...");
+		svg.appendChild(circle);
+		container.appendChild(svg);
 	}
 
 	public setTasks(tasks: Task[]) {
@@ -885,10 +872,8 @@ export class QuadrantColumnComponent extends Component {
 
 	public setVisibility(visible: boolean) {
 		if (visible) {
-			this.containerEl.style.display = "";
 			this.containerEl.removeClass("tg-quadrant-column--hidden");
 		} else {
-			this.containerEl.style.display = "none";
 			this.containerEl.addClass("tg-quadrant-column--hidden");
 		}
 	}
@@ -912,12 +897,6 @@ export class QuadrantColumnComponent extends Component {
 			);
 			this.containerEl.removeClass("tg-quadrant-column--drag-target");
 			this.containerEl.removeClass("tg-quadrant-column--highlighted");
-
-			// Also clean up any inline styles that might have been added
-			this.containerEl.style.removeProperty("border");
-			this.containerEl.style.removeProperty("background");
-			this.contentEl.style.removeProperty("border");
-			this.contentEl.style.removeProperty("background");
 		}, 10);
 	}
 
