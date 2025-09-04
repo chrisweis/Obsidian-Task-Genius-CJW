@@ -99,26 +99,29 @@ module.exports = {
 			header: "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n",
 			// 限制 git log 的提交范围，从上一个正式版开始（排除 beta 版本）
 			gitRawCommitsOpts: {
-				from: getLastStableTag(), // 智能获取上一个正式版本
-				// 过滤掉 beta release commits
-				grep: '^(?!chore\\(release\\):.*beta)',
-				// 使用 perl 兼容的正则表达式
-				regexpFlags: 'P'
+				from: getLastStableTag() // 智能获取上一个正式版本
+				// 注意：git log 的 --grep 选项不支持负向前瞻，将在 writerOpts.transform 中过滤
 			},
 			writerOpts: {
 				// 自定义提交转换，过滤掉 beta 相关的 chore commits
 				transform: (commit, context) => {
 					// 过滤掉 beta 版本的 release commits
-					if (commit.type === 'chore' && commit.subject && 
-						(commit.subject.includes('beta') || commit.subject.includes('v9.8.0-beta'))) {
-						return null;
+					if (commit.type === 'chore' && commit.subject) {
+						// 过滤包含 beta 的 release commits
+						if (commit.subject.includes('beta') || 
+							commit.subject.includes('-beta.') ||
+							commit.subject.match(/v\d+\.\d+\.\d+-beta/)) {
+							return null;
+						}
+						// 过滤 release scope 的 commits（通常是版本发布相关）
+						if (commit.scope === 'release' && 
+							(commit.subject.includes('bump version') || 
+							 commit.subject.includes('v9.8.0'))) {
+							return null;
+						}
 					}
 					
-					// 过滤掉不需要在 changelog 中显示的 chore commits
-					if (commit.type === 'chore' && commit.scope === 'release') {
-						return null;
-					}
-					
+					// 保留其他所有提交
 					return commit;
 				}
 			}
