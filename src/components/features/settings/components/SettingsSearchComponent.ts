@@ -108,6 +108,26 @@ export class SettingsSearchComponent extends Component {
 				this.handleKeyDown(e);
 			}
 		);
+		
+		// 全局 Ctrl+K / Cmd+K 快捷键监听
+		this.registerDomEvent(document, "keydown", (e: KeyboardEvent) => {
+			// 检查是否是 Ctrl+K (Windows/Linux) 或 Cmd+K (macOS)
+			const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+			const isCtrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+			
+			if (isCtrlOrCmd && e.key.toLowerCase() === 'k') {
+				// 确保当前在设置页面中
+				if (this.containerEl.isConnected && document.body.contains(this.containerEl)) {
+					e.preventDefault();
+					e.stopPropagation();
+					this.searchInputEl.focus();
+					// 如果有文本，全选以便用户可以快速替换
+					if (this.searchInputEl.value) {
+						this.searchInputEl.select();
+					}
+				}
+			}
+		});
 
 		// 焦点事件
 		this.registerDomEvent(this.searchInputEl, "focus", () => {
