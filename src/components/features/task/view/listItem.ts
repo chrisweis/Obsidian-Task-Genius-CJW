@@ -741,24 +741,27 @@ export class TaskListItemComponent extends Component {
 		// Clear the content element
 		this.contentEl.empty();
 
-		// Create new renderer
-		this.markdownRenderer = new MarkdownRendererComponent(
-			this.app,
-			this.contentEl,
-			this.task.filePath
-		);
-		this.addChild(this.markdownRenderer);
-
-		// Render the markdown content
-		this.markdownRenderer.render(this.task.originalMarkdown || "\u200b");
-
-		// Re-register the click event for editing after rendering
-		this.registerContentClickHandler();
-
-		// Update layout mode after content is rendered
-		// Use requestAnimationFrame to ensure the content is fully rendered
+		// 使用 requestAnimationFrame 确保 DOM 完全清理后再渲染新内容
 		requestAnimationFrame(() => {
-			this.updateLayoutMode();
+			// Create new renderer
+			this.markdownRenderer = new MarkdownRendererComponent(
+				this.app,
+				this.contentEl,
+				this.task.filePath
+			);
+			this.addChild(this.markdownRenderer);
+
+			// Render the markdown content - 使用最新的 originalMarkdown
+			this.markdownRenderer.render(this.task.originalMarkdown || "\u200b");
+
+			// Re-register the click event for editing after rendering
+			this.registerContentClickHandler();
+
+			// Update layout mode after content is rendered
+			// Use another requestAnimationFrame to ensure the content is fully rendered
+			requestAnimationFrame(() => {
+				this.updateLayoutMode();
+			});
 		});
 	}
 
