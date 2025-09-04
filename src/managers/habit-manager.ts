@@ -336,6 +336,12 @@ export class HabitManager extends Component {
 
 		const dateStr = dateMoment.format("YYYY-MM-DD");
 		let habitsChanged = false;
+		
+		// 添加一个标记，防止在同一个事件循环中重复更新
+		if ((this as any)._isUpdatingFromToggle) {
+			(this as any)._isUpdatingFromToggle = false;
+			return;
+		}
 
 		const updatedHabits = this.habits.map((habit) => {
 			const habitClone = JSON.parse(JSON.stringify(habit)) as HabitProps; // Work on a clone
@@ -533,6 +539,14 @@ export class HabitManager extends Component {
 				`Invalid date format provided: ${date}. Expected YYYY-MM-DD.`
 			);
 			return;
+		}
+		
+		// 先更新内存中的习惯状态，避免触发 metadata change 事件时状态不一致
+		const habitIndex = this.habits.findIndex(h => h.id === updatedHabit.id);
+		if (habitIndex !== -1) {
+			this.habits[habitIndex] = JSON.parse(JSON.stringify(updatedHabit));
+			// 设置标记，防止 metadata change 事件重复更新
+			(this as any)._isUpdatingFromToggle = true;
 		}
 
 		let dailyNote: TFile | null = null;
