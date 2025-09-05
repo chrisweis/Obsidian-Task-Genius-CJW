@@ -926,11 +926,8 @@ export class ElectronQuickCapture {
 			const newHeight = Math.min(textarea.scrollHeight, 300);
 			textarea.style.height = newHeight + 'px';
 			
-			// Resize the window if needed
-			if (window.resizeTo) {
-				const windowHeight = document.body.scrollHeight + 40;
-				window.resizeTo(500, Math.min(windowHeight, 800));
-			}
+			// Don't resize the window - let the container handle overflow
+			// The window size should remain stable
 		}
 
 		// Initialize
