@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.1](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0...9.8.1) (2025-09-05)
+
+### Bug Fixes
+
+* **quick-capture:** prevent window height expansion during text input ([f4c0ebc](https://github.com/Quorafind/Obsidian-Task-Genius/commit/f4c0ebc))
+
 ## [9.8.0](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.7.6...9.8.0) (2025-09-04)
 
 ### Breaking Changes
