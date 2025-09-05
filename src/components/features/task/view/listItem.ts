@@ -1,4 +1,4 @@
-import { App, Component, Menu, setIcon } from "obsidian";
+import { App, Component, Menu, setIcon, Keymap } from "obsidian";
 import { Task } from "@/types/task";
 import { MarkdownRendererComponent } from "@/components/ui/renderers/MarkdownRenderer";
 import "@/styles/task-list.css";
@@ -752,7 +752,9 @@ export class TaskListItemComponent extends Component {
 			this.addChild(this.markdownRenderer);
 
 			// Render the markdown content - 使用最新的 originalMarkdown
-			this.markdownRenderer.render(this.task.originalMarkdown || "\u200b");
+			this.markdownRenderer.render(
+				this.task.originalMarkdown || "\u200b"
+			);
 
 			// Re-register the click event for editing after rendering
 			this.registerContentClickHandler();
@@ -776,39 +778,57 @@ export class TaskListItemComponent extends Component {
 		// Check if dynamic metadata positioning is enabled
 		if (!this.plugin.settings.enableDynamicMetadataPositioning) {
 			// If disabled, always use multi-line (traditional) layout
-			this.contentMetadataContainer.toggleClass("multi-line-content", true);
-			this.contentMetadataContainer.toggleClass("single-line-content", false);
+			this.contentMetadataContainer.toggleClass(
+				"multi-line-content",
+				true
+			);
+			this.contentMetadataContainer.toggleClass(
+				"single-line-content",
+				false
+			);
 			return;
 		}
 
 		// Get the line height of the content element
 		const computedStyle = window.getComputedStyle(this.contentEl);
-		const lineHeight = parseFloat(computedStyle.lineHeight) || parseFloat(computedStyle.fontSize) * 1.4;
-		
+		const lineHeight =
+			parseFloat(computedStyle.lineHeight) ||
+			parseFloat(computedStyle.fontSize) * 1.4;
+
 		// Get actual content height
 		const contentHeight = this.contentEl.scrollHeight;
-		
+
 		// Check if content is multi-line (with some tolerance)
 		const isMultiLine = contentHeight > lineHeight * 1.2;
-		
+
 		// Apply appropriate layout class using Obsidian's toggleClass method
-		this.contentMetadataContainer.toggleClass("multi-line-content", isMultiLine);
-		this.contentMetadataContainer.toggleClass("single-line-content", !isMultiLine);
+		this.contentMetadataContainer.toggleClass(
+			"multi-line-content",
+			isMultiLine
+		);
+		this.contentMetadataContainer.toggleClass(
+			"single-line-content",
+			!isMultiLine
+		);
 	}
 
 	/**
 	 * Register click handler for content editing
 	 */
 	private registerContentClickHandler() {
-		// Only enable inline editing if the setting is enabled
-		if (!this.plugin.settings.enableInlineEditor) {
-			return;
-		}
-
-		// Make content clickable for editing
-		this.registerDomEvent(this.contentEl, "click", (e) => {
+		// Make content clickable for editing or navigation
+		this.registerDomEvent(this.contentEl, "click", async (e) => {
 			e.stopPropagation();
-			if (!this.isCurrentlyEditing()) {
+
+			// Check if modifier key is pressed (Cmd/Ctrl)
+			if (Keymap.isModEvent(e)) {
+				// Open task in file
+				await this.openTaskInFile();
+			} else if (
+				this.plugin.settings.enableInlineEditor &&
+				!this.isCurrentlyEditing()
+			) {
+				// Show inline editor only if enabled
 				this.getInlineEditor().showContentEditor(this.contentEl);
 			}
 		});
@@ -837,15 +857,32 @@ export class TaskListItemComponent extends Component {
 		}
 
 		// If content or originalMarkdown changed, update the markdown display
-		if (oldTask.originalMarkdown !== task.originalMarkdown || oldTask.content !== task.content) {
+		if (
+			oldTask.originalMarkdown !== task.originalMarkdown ||
+			oldTask.content !== task.content
+		) {
 			// Re-render the markdown content
 			this.contentEl.empty();
 			this.renderMarkdown();
 		}
-		
+
 		// Check if metadata changed and update metadata display
-		if (JSON.stringify(oldTask.metadata) !== JSON.stringify(task.metadata)) {
+		if (
+			JSON.stringify(oldTask.metadata) !== JSON.stringify(task.metadata)
+		) {
 			this.renderMetadata();
+		}
+	}
+
+	private async openTaskInFile() {
+		const file = this.app.vault.getFileByPath(this.task.filePath);
+		if (file) {
+			const leaf = this.app.workspace.getLeaf(false);
+			await leaf.openFile(file, {
+				eState: {
+					line: this.task.line,
+				},
+			});
 		}
 	}
 

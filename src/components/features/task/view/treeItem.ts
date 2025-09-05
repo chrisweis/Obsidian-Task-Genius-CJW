@@ -1,4 +1,4 @@
-import { App, Component, setIcon, Menu } from "obsidian";
+import { App, Component, setIcon, Menu, Keymap } from "obsidian";
 import { Task } from "@/types/task";
 import "@/styles/tree-view.css";
 import { MarkdownRendererComponent } from "@/components/ui/renderers/MarkdownRenderer";
@@ -885,15 +885,16 @@ export class TaskTreeItemComponent extends Component {
 	 * Register click handler for content editing
 	 */
 	private registerContentClickHandler() {
-		// Only enable inline editing if the setting is enabled
-		if (!this.plugin.settings.enableInlineEditor) {
-			return;
-		}
-
-		// Make content clickable for editing - only create editor when clicked
-		this.registerDomEvent(this.contentEl, "click", (e) => {
+		// Make content clickable for editing or navigation
+		this.registerDomEvent(this.contentEl, "click", async (e) => {
 			e.stopPropagation();
-			if (!this.isCurrentlyEditing()) {
+			
+			// Check if modifier key is pressed (Cmd/Ctrl)
+			if (Keymap.isModEvent(e)) {
+				// Open task in file
+				await this.openTaskInFile();
+			} else if (this.plugin.settings.enableInlineEditor && !this.isCurrentlyEditing()) {
+				// Show inline editor only if enabled
 				const editor = this.getInlineEditor();
 				editor.showContentEditor(this.contentEl);
 			}
@@ -1099,6 +1100,18 @@ export class TaskTreeItemComponent extends Component {
 		// Notify parent
 		if (this.onToggleExpand) {
 			this.onToggleExpand(this.task.id, this.isExpanded);
+		}
+	}
+
+	private async openTaskInFile() {
+		const file = this.app.vault.getFileByPath(this.task.filePath);
+		if (file) {
+			const leaf = this.app.workspace.getLeaf(false);
+			await leaf.openFile(file, {
+				eState: {
+					line: this.task.line,
+				},
+			});
 		}
 	}
 
