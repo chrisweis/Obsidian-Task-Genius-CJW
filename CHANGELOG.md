@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.2](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.1...9.8.2) (2025-09-05)
+
+### Features
+
+* **task-view:** add modifier key navigation to open tasks in source file ([8700e54](https://github.com/Quorafind/Obsidian-Task-Genius/commit/8700e54))
+
+### Refactors
+
+* **dataflow:** improve file filtering and task indexing performance ([937d7b7](https://github.com/Quorafind/Obsidian-Task-Genius/commit/937d7b7))
+
 ## [9.8.1](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0...9.8.1) (2025-09-05)
 
 ### Bug Fixes
