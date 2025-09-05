@@ -133,10 +133,13 @@ export function renderIndexSettingsTab(
 						description: t(
 							"Add custom date format patterns. Date patterns: yyyy (4-digit year), yy (2-digit year), MM (2-digit month), M (1-2 digit month), dd (2-digit day), d (1-2 digit day), MMM (short month name), MMMM (full month name). Time patterns: HH (2-digit hour), mm (2-digit minute), ss (2-digit second). Use single quotes for literals (e.g., 'T' for ISO format)."
 						),
-						placeholder: t("Enter date format (e.g., yyyy-MM-dd or yyyyMMdd_HHmmss)"),
+						placeholder: t(
+							"Enter date format (e.g., yyyy-MM-dd or yyyyMMdd_HHmmss)"
+						),
 						values: getCustomFormats(),
 						onSave: (values) => {
-							settingTab.plugin.settings.customDateFormats = values;
+							settingTab.plugin.settings.customDateFormats =
+								values;
 							settingTab.applySettingsUpdate();
 							updateButtonText();
 							new Notice(
@@ -438,6 +441,79 @@ export function renderIndexSettingsTab(
 						settingTab.applySettingsUpdate();
 					});
 			});
+	}
+
+	// File Metadata Inheritance Settings
+	new Setting(containerEl)
+		.setName(t("File Metadata Inheritance"))
+		.setDesc(
+			t("Configure how tasks inherit metadata from file frontmatter")
+		)
+		.setHeading();
+
+	new Setting(containerEl)
+		.setName(t("Enable file metadata inheritance"))
+		.setDesc(
+			t(
+				"Allow tasks to inherit metadata properties from their file's frontmatter"
+			)
+		)
+		.addToggle((toggle) =>
+			toggle
+				.setValue(
+					settingTab.plugin.settings.fileMetadataInheritance.enabled
+				)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.fileMetadataInheritance.enabled =
+						value;
+					settingTab.applySettingsUpdate();
+
+					setTimeout(() => {
+						settingTab.display();
+					}, 200);
+				})
+		);
+
+	if (settingTab.plugin.settings.fileMetadataInheritance.enabled) {
+		new Setting(containerEl)
+			.setName(t("Inherit from frontmatter"))
+			.setDesc(
+				t(
+					"Tasks inherit metadata properties like priority, context, etc. from file frontmatter when not explicitly set on the task"
+				)
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(
+						settingTab.plugin.settings.fileMetadataInheritance
+							.inheritFromFrontmatter
+					)
+					.onChange(async (value) => {
+						settingTab.plugin.settings.fileMetadataInheritance.inheritFromFrontmatter =
+							value;
+						settingTab.applySettingsUpdate();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName(t("Inherit from frontmatter for subtasks"))
+			.setDesc(
+				t(
+					"Allow subtasks to inherit metadata from file frontmatter. When disabled, only top-level tasks inherit file metadata"
+				)
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(
+						settingTab.plugin.settings.fileMetadataInheritance
+							.inheritFromFrontmatterForSubtasks
+					)
+					.onChange(async (value) => {
+						settingTab.plugin.settings.fileMetadataInheritance.inheritFromFrontmatterForSubtasks =
+							value;
+						settingTab.applySettingsUpdate();
+					})
+			);
 	}
 
 	// ========================================

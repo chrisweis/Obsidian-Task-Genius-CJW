@@ -143,7 +143,10 @@ export class FileFilterManager {
 	/**
 	 * Check if a file should be included in indexing
 	 */
-	shouldIncludeFile(file: TFile, scope: "both" | "inline" | "file" = "both"): boolean {
+	shouldIncludeFile(
+		file: TFile,
+		scope: "both" | "inline" | "file" = "both"
+	): boolean {
 		if (!this.config.enabled) {
 			return true;
 		}
@@ -163,7 +166,10 @@ export class FileFilterManager {
 	/**
 	 * Check if a folder should be included in indexing
 	 */
-	shouldIncludeFolder(folder: TFolder, scope: "both" | "inline" | "file" = "both"): boolean {
+	shouldIncludeFolder(
+		folder: TFolder,
+		scope: "both" | "inline" | "file" = "both"
+	): boolean {
 		if (!this.config.enabled) {
 			return true;
 		}
@@ -183,7 +189,10 @@ export class FileFilterManager {
 	/**
 	 * Check if a path should be included (generic method)
 	 */
-	shouldIncludePath(path: string, scope: "both" | "inline" | "file" = "both"): boolean {
+	shouldIncludePath(
+		path: string,
+		scope: "both" | "inline" | "file" = "both"
+	): boolean {
 		if (!this.config.enabled) {
 			return true;
 		}
@@ -219,7 +228,10 @@ export class FileFilterManager {
 	/**
 	 * Evaluate if a file should be included
 	 */
-	private evaluateFile(filePath: string, scope: "both" | "inline" | "file" = "both"): boolean {
+	private evaluateFile(
+		filePath: string,
+		scope: "both" | "inline" | "file" = "both"
+	): boolean {
 		const matches = this.pathMatches(filePath, scope);
 
 		if (this.config.mode === FilterMode.WHITELIST) {
@@ -232,7 +244,10 @@ export class FileFilterManager {
 	/**
 	 * Evaluate if a folder should be included
 	 */
-	private evaluateFolder(folderPath: string, scope: "both" | "inline" | "file" = "both"): boolean {
+	private evaluateFolder(
+		folderPath: string,
+		scope: "both" | "inline" | "file" = "both"
+	): boolean {
 		const matches = this.pathMatches(folderPath, scope);
 
 		if (this.config.mode === FilterMode.WHITELIST) {
@@ -245,45 +260,57 @@ export class FileFilterManager {
 	/**
 	 * Evaluate if a path should be included (generic)
 	 */
-	private evaluatePath(path: string, scope: "both" | "inline" | "file" = "both"): boolean {
+	private evaluatePath(
+		path: string,
+		scope: "both" | "inline" | "file" = "both"
+	): boolean {
 		const matches = this.pathMatches(path, scope);
-
-		if (this.config.mode === FilterMode.WHITELIST) {
-			return matches;
-		} else {
-			return !matches;
-		}
+		const result =
+			this.config.mode === FilterMode.WHITELIST ? matches : !matches;
+		return result;
 	}
 
 	/**
 	 * Check if a path matches any filter rule
 	 */
-	private pathMatches(path: string, scope: "both" | "inline" | "file"): boolean {
+	private pathMatches(
+		path: string,
+		scope: "both" | "inline" | "file"
+	): boolean {
 		const normalizedPath = this.normalizePath(path);
 
 		// Pick the right indexes based on scope
-		const fileSet = scope === "file" ? this.fileSetFile : scope === "inline" ? this.fileSetInline : this.fileSet;
-		const folderTrie = scope === "file" ? this.folderTrieFile : scope === "inline" ? this.folderTrieInline : this.folderTrie;
-		const patternRegexes = scope === "file" ? this.patternRegexesFile : scope === "inline" ? this.patternRegexesInline : this.patternRegexes;
+		const fileSet =
+			scope === "file"
+				? this.fileSetFile
+				: scope === "inline"
+				? this.fileSetInline
+				: this.fileSet;
+		const folderTrie =
+			scope === "file"
+				? this.folderTrieFile
+				: scope === "inline"
+				? this.folderTrieInline
+				: this.folderTrie;
+		const patternRegexes =
+			scope === "file"
+				? this.patternRegexesFile
+				: scope === "inline"
+				? this.patternRegexesInline
+				: this.patternRegexes;
 
-		// Check exact file matches
-		if (fileSet.has(normalizedPath)) {
-			return true;
-		}
-
-		// Check folder matches (including parent folders)
-		if (folderTrie.contains(normalizedPath)) {
-			return true;
-		}
-
-		// Check pattern matches
+		// Detailed match breakdown
+		const fileHit = fileSet.has(normalizedPath);
+		const folderHit = folderTrie.contains(normalizedPath);
+		let patternHit = false;
 		for (const regex of patternRegexes) {
 			if (regex.test(normalizedPath)) {
-				return true;
+				patternHit = true;
+				break;
 			}
 		}
-
-		return false;
+		const matched = fileHit || folderHit || patternHit;
+		return matched;
 	}
 
 	/**
@@ -333,15 +360,21 @@ export class FileFilterManager {
 								: this.patternRegexes
 							).push(new RegExp(regexPattern, "i"));
 						} catch (error) {
-							console.warn(`Invalid pattern rule: ${rule.path}`, error);
+							console.warn(
+								`Invalid pattern rule: ${rule.path}`,
+								error
+							);
 						}
 						break;
 				}
 			};
 
-			// Add to legacy 'both' indexes if scope is both, else add to specific
+			// IMPORTANT: When scope is 'both', ensure rules apply to both 'inline' and 'file' scoped indexes
+			// Previously only the legacy 'both' index was filled, but lookups for scoped checks ignored it
 			if (scope === "both") {
 				addTo("both");
+				addTo("inline");
+				addTo("file");
 			} else if (scope === "inline") {
 				addTo("inline");
 			} else if (scope === "file") {

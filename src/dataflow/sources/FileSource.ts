@@ -143,7 +143,9 @@ export class FileSource {
 	 */
 	private handleFileUpdate(filePath: string, reason: string): void {
 		if (!this.isInitialized || !this.config.isEnabled()) return;
-		if (!this.isRelevantFile(filePath)) return;
+		const relevant = this.isRelevantFile(filePath);
+
+		if (!relevant) return;
 
 		// Clear existing timeout for this file
 		const existingTimeout = this.pendingUpdates.get(filePath);
@@ -197,12 +199,15 @@ export class FileSource {
 		}
 
 		// Apply centralized file filter manager for file-scope rules
-		if (
-			this.fileFilterManager &&
-			!this.fileFilterManager.shouldIncludePath(filePath, "file")
-		) {
-			return;
+		if (this.fileFilterManager) {
+			const include = this.fileFilterManager.shouldIncludePath(
+				filePath,
+				"file"
+			);
+
+			if (!include) return;
 		}
+
 		const shouldBeTask = await this.shouldCreateFileTask(filePath);
 		const existingCache = this.fileTaskCache.get(filePath);
 		const wasTask = existingCache?.fileTaskExists ?? false;
@@ -1012,11 +1017,16 @@ export class FileSource {
 	 */
 	private isRelevantFile(filePath: string): boolean {
 		// Use centralized FileFilterManager for 'file' scope filtering if available
-		if (
-			this.fileFilterManager &&
-			!this.fileFilterManager.shouldIncludePath(filePath, "file")
-		) {
-			return false;
+		if (this.fileFilterManager) {
+			const include = this.fileFilterManager.shouldIncludePath(
+				filePath,
+				"file"
+			);
+			console.log(
+				"[FileSource] isRelevantFile filter check (file-scope)",
+				{ filePath, include }
+			);
+			if (!include) return false;
 		}
 
 		// Only process markdown files for now (additional file type support can be added later)

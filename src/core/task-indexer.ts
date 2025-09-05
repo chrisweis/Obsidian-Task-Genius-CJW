@@ -110,12 +110,17 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 		// Watch for file modifications
 		this.registerEvent(
 			this.vault.on("modify", (file) => {
-				if (
-					file instanceof TFile &&
-					// Inline parsing scope for indexer (inline tasks)
-					isSupportedFileWithFilter(file, this.fileFilterManager, "inline")
-				) {
-					this.queueFileForIndexing(file);
+				if (file instanceof TFile) {
+					const include = isSupportedFileWithFilter(
+						file,
+						this.fileFilterManager,
+						"inline"
+					);
+					console.log("[TaskIndexer] modify event inline filter", {
+						path: file.path,
+						include,
+					});
+					if (include) this.queueFileForIndexing(file);
 				}
 			})
 		);
@@ -123,12 +128,17 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 		// Watch for file deletions
 		this.registerEvent(
 			this.vault.on("delete", (file) => {
-				if (
-					file instanceof TFile &&
-					// Inline parsing scope for indexer (inline tasks)
-					isSupportedFileWithFilter(file, this.fileFilterManager, "inline")
-				) {
-					this.removeFileFromIndex(file);
+				if (file instanceof TFile) {
+					const include = isSupportedFileWithFilter(
+						file,
+						this.fileFilterManager,
+						"inline"
+					);
+					console.log("[TaskIndexer] delete event inline filter", {
+						path: file.path,
+						include,
+					});
+					if (include) this.removeFileFromIndex(file);
 				}
 			})
 		);
@@ -136,12 +146,17 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 		// Watch for new files
 		this.registerEvent(
 			this.vault.on("create", (file) => {
-				if (
-					file instanceof TFile &&
-					// Inline parsing scope for indexer (inline tasks)
-					isSupportedFileWithFilter(file, this.fileFilterManager, "inline")
-				) {
-					this.queueFileForIndexing(file);
+				if (file instanceof TFile) {
+					const include = isSupportedFileWithFilter(
+						file,
+						this.fileFilterManager,
+						"inline"
+					);
+					console.log("[TaskIndexer] create event inline filter", {
+						path: file.path,
+						include,
+					});
+					if (include) this.queueFileForIndexing(file);
 				}
 			})
 		);
@@ -238,7 +253,9 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 	public async getTaskIdsByTag(tag: string): Promise<Set<string>> {
 		return this.taskCache.tags.get(tag) || new Set();
 	}
-	public async getTaskIdsByCompletionStatus(completed: boolean): Promise<Set<string>> {
+	public async getTaskIdsByCompletionStatus(
+		completed: boolean
+	): Promise<Set<string>> {
 		return this.taskCache.completed.get(completed) || new Set();
 	}
 	public async getIndexSnapshot(): Promise<TaskCache> {
@@ -1147,7 +1164,7 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 		if (!this.taskCache.fileProcessedTimes) {
 			this.taskCache.fileProcessedTimes = new Map<string, number>();
 		}
-		
+
 		this.taskCache.fileMtimes.set(filePath, mtime);
 		this.taskCache.fileProcessedTimes.set(filePath, Date.now());
 	}
@@ -1219,7 +1236,7 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 	public setCache(cache: TaskCache): void {
 		// Ensure cache structure is complete
 		this.ensureCacheStructure(cache);
-		
+
 		this.taskCache = cache;
 
 		// Update lastIndexTime for all files in the cache

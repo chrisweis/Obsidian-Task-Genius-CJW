@@ -1,4 +1,4 @@
-import { App, TFile, Vault, MetadataCache, EventRef } from "obsidian";
+import { App, TFile, Vault, MetadataCache, EventRef, debounce } from "obsidian";
 import type { Task, TgProject } from "../types/task";
 import type { ProjectConfigManagerOptions } from "../managers/project-config-manager";
 
@@ -54,11 +54,20 @@ export class DataflowOrchestrator {
 	private processingQueue = new Map<string, NodeJS.Timeout>();
 	private readonly DEBOUNCE_DELAY = 300; // ms
 
+	// Lightweight bookkeeping for filter-based pruning/restoration
+	private suppressedInline = new Set<string>();
+	private suppressedFileTasks = new Set<string>();
+	private restoreByFilterDebounced: () => void;
+	private readonly RESTORE_BATCH_SIZE = 50;
+	private readonly RESTORE_BATCH_INTERVAL_MS = 100;
+	private lastFileFilterEnabled: boolean = false;
+
 	// Track last processed sequence to avoid infinite loops
 	private lastProcessedSeq: number = 0;
 
 	constructor(
 		private app: App,
+
 		private vault: Vault,
 		private metadataCache: MetadataCache,
 		private plugin: any, // Plugin instance for parser access
@@ -79,6 +88,47 @@ export class DataflowOrchestrator {
 			metadataCache,
 		});
 		this.storage = this.repository.getStorage();
+
+		// Initialize FileFilterManager from settings early so sources get it
+		try {
+			const ffSettingsEarly = this.plugin.settings?.fileFilter;
+			console.log(
+				"[DataflowOrchestrator] Early FileFilter settings:",
+				JSON.stringify(ffSettingsEarly, null, 2)
+			);
+			if (ffSettingsEarly) {
+				this.fileFilterManager = new FileFilterManager(ffSettingsEarly);
+				console.log(
+					"[DataflowOrchestrator] Created FileFilterManager early with stats:",
+					this.fileFilterManager.getStats()
+				);
+				// Provide to repository's indexer for inline filtering immediately
+				(this.repository as any).setFileFilterManager?.(
+					this.fileFilterManager
+				);
+				console.log(
+					"[DataflowOrchestrator] Provided FileFilterManager to repository indexer"
+				);
+			} else {
+				console.log(
+					"[DataflowOrchestrator] No FileFilter settings found, FileFilterManager not created"
+				);
+			}
+		} catch (e) {
+			console.warn(
+				"[DataflowOrchestrator] Failed early FileFilterManager init",
+				e
+			);
+		}
+
+		// Initialize debounced restore handler (default ON) - trailing only
+		this.restoreByFilterDebounced = debounce(
+			() => {
+				void this.restoreByFilter();
+			},
+			500,
+			false
+		);
 
 		// Initialize worker orchestrator with settings
 		const taskWorkerManager = new TaskWorkerManager(vault, metadataCache, {
@@ -164,10 +214,17 @@ export class DataflowOrchestrator {
 				this.plugin.settings.fileSource,
 				this.fileFilterManager
 			);
+			console.log(
+				"[DataflowOrchestrator] FileSource constructed with filterManager=",
+				!!this.fileFilterManager
+			);
 			// Keep FileSource status mapping in sync with Task Status settings
 			try {
 				this.fileSource.syncStatusMappingFromSettings(
 					this.plugin.settings.taskStatuses
+				);
+				console.log(
+					"[DataflowOrchestrator] Synced FileSource status mapping from settings"
 				);
 			} catch (e) {
 				console.warn(
@@ -191,16 +248,62 @@ export class DataflowOrchestrator {
 				"[DataflowOrchestrator] Initializing QueryAPI and Repository..."
 			);
 
-			// Initialize FileFilterManager from settings
+			// Initialize or sync FileFilterManager from settings (do not recreate if already exists)
 			const ffSettings = this.plugin.settings?.fileFilter;
+			console.log(
+				"[DataflowOrchestrator] Initialize(): FileFilter settings:",
+				JSON.stringify(ffSettings, null, 2)
+			);
 			if (ffSettings) {
-				this.fileFilterManager = new FileFilterManager(ffSettings);
+				if (!this.fileFilterManager) {
+					this.fileFilterManager = new FileFilterManager(ffSettings);
+					console.log(
+						"[DataflowOrchestrator] Initialize(): Created FileFilterManager with stats:",
+						this.fileFilterManager.getStats()
+					);
+				} else {
+					this.fileFilterManager.updateConfig(ffSettings);
+					console.log(
+						"[DataflowOrchestrator] Initialize(): Updated FileFilterManager config; stats:",
+						this.fileFilterManager.getStats()
+					);
+				}
 				// Provide to repository's indexer for inline filtering
 				(this.repository as any).setFileFilterManager?.(
 					this.fileFilterManager
 				);
+				console.log(
+					"[DataflowOrchestrator] Initialize(): Provided FileFilterManager to repository indexer"
+				);
+			} else {
+				console.log(
+					"[DataflowOrchestrator] Initialize(): No FileFilter settings"
+				);
 			}
 			await this.queryAPI.initialize();
+
+			// Load persisted suppressed file sets for cross-restart restore
+			try {
+				const supInline = await this.storage.loadMeta<string[]>(
+					"filter:suppressedInline"
+				);
+				if (Array.isArray(supInline))
+					this.suppressedInline = new Set(supInline);
+				const supFiles = await this.storage.loadMeta<string[]>(
+					"filter:suppressedFileTasks"
+				);
+				if (Array.isArray(supFiles))
+					this.suppressedFileTasks = new Set(supFiles);
+				console.log("[DataflowOrchestrator] Loaded suppressed sets", {
+					inline: this.suppressedInline.size,
+					file: this.suppressedFileTasks.size,
+				});
+			} catch (e) {
+				console.warn(
+					"[DataflowOrchestrator] Failed loading suppressed sets",
+					e
+				);
+			}
 
 			// Ensure cache is populated for synchronous access
 			await this.queryAPI.ensureCache();
@@ -422,18 +525,22 @@ export class DataflowOrchestrator {
 			on(this.app, Events.TASK_DELETED, async (payload: any) => {
 				const { taskId, filePath, deletedTaskIds, mode } = payload;
 				console.log(
-					`[DataflowOrchestrator] TASK_DELETED: ${taskId} in ${filePath}, mode: ${mode}, deleted: ${deletedTaskIds?.length || 1} tasks`
+					`[DataflowOrchestrator] TASK_DELETED: ${taskId} in ${filePath}, mode: ${mode}, deleted: ${
+						deletedTaskIds?.length || 1
+					} tasks`
 				);
-				
+
 				// Remove deleted tasks from repository
 				if (deletedTaskIds && deletedTaskIds.length > 0) {
 					for (const id of deletedTaskIds) {
 						await this.repository.removeTaskById(id);
 					}
 				}
-				
+
 				// Process the file to update remaining tasks' line numbers
-				const file = this.vault.getAbstractFileByPath(filePath) as TFile;
+				const file = this.vault.getAbstractFileByPath(
+					filePath
+				) as TFile;
 				if (file) {
 					await this.processFileImmediate(file, true);
 				}
@@ -509,6 +616,13 @@ export class DataflowOrchestrator {
 			const rawCached = await this.storage.loadRaw(filePath);
 			const augmentedCached = await this.storage.loadAugmented(filePath);
 			const fileContent = await this.vault.cachedRead(file);
+			console.log("[DataflowOrchestrator] processFileImmediate start", {
+				filePath,
+				forceInvalidate,
+				mtime,
+				hasRawCached: !!rawCached,
+				hasAugmentedCached: !!augmentedCached,
+			});
 
 			let augmentedTasks: Task[];
 			let needsProcessing = false;
@@ -526,6 +640,20 @@ export class DataflowOrchestrator {
 					`[DataflowOrchestrator] Using cached augmented tasks for ${filePath} (mtime match)`
 				);
 				augmentedTasks = augmentedCached.data;
+				// Apply inline filter even when using cached augmented tasks
+				const includeInlineCached = this.fileFilterManager
+					? this.fileFilterManager.shouldIncludePath(
+							filePath,
+							"inline"
+					  )
+					: true;
+				console.log(
+					"[DataflowOrchestrator] Inline filter decision (cached augmented)",
+					{ filePath, includeInline: includeInlineCached }
+				);
+				if (!includeInlineCached) {
+					augmentedTasks = [];
+				}
 			} else {
 				// Need to parse and/or augment
 				needsProcessing = true;
@@ -547,7 +675,17 @@ export class DataflowOrchestrator {
 					console.log(
 						`[DataflowOrchestrator] Re-augmenting cached raw tasks for ${filePath}`
 					);
-					rawTasks = rawCached.data;
+					const includeInlineReaugment = this.fileFilterManager
+						? this.fileFilterManager.shouldIncludePath(
+								filePath,
+								"inline"
+						  )
+						: true;
+					console.log(
+						"[DataflowOrchestrator] Inline filter decision (re-augment cached raw)",
+						{ filePath, includeInline: includeInlineReaugment }
+					);
+					rawTasks = includeInlineReaugment ? rawCached.data : [];
 					projectData = await this.projectResolver.get(filePath);
 				} else {
 					// Parse the file from scratch
@@ -583,9 +721,12 @@ export class DataflowOrchestrator {
 									this.plugin.settings.ignoreHeading,
 								focusHeading: this.plugin.settings.focusHeading,
 								// Include tag prefixes for custom dataview field support
-								projectTagPrefix: this.plugin.settings.projectTagPrefix,
-								contextTagPrefix: this.plugin.settings.contextTagPrefix,
-								areaTagPrefix: this.plugin.settings.areaTagPrefix,
+								projectTagPrefix:
+									this.plugin.settings.projectTagPrefix,
+								contextTagPrefix:
+									this.plugin.settings.contextTagPrefix,
+								areaTagPrefix:
+									this.plugin.settings.areaTagPrefix,
 							});
 						}
 					} catch (e) {
@@ -595,11 +736,26 @@ export class DataflowOrchestrator {
 						);
 					}
 
-					// Parse the file using workers (single-file path)
-					rawTasks = await this.workerOrchestrator.parseFileTasks(
-						file,
-						"high"
+					// Apply inline filter for parse path
+					const includeInlineParse = this.fileFilterManager
+						? this.fileFilterManager.shouldIncludePath(
+								filePath,
+								"inline"
+						  )
+						: true;
+					console.log(
+						"[DataflowOrchestrator] Inline filter decision (parse path)",
+						{ filePath, includeInline: includeInlineParse }
 					);
+					if (includeInlineParse) {
+						// Parse the file using workers (single-file path)
+						rawTasks = await this.workerOrchestrator.parseFileTasks(
+							file,
+							"high"
+						);
+					} else {
+						rawTasks = [];
+					}
 
 					// Store raw tasks with file content and mtime
 					await this.storage.storeRaw(
@@ -749,6 +905,7 @@ export class DataflowOrchestrator {
 		}
 
 		// Update FileFilterManager
+		let fileFilterChanged = false;
 		if (settings?.fileFilter) {
 			if (!this.fileFilterManager) {
 				this.fileFilterManager = new FileFilterManager(
@@ -757,8 +914,300 @@ export class DataflowOrchestrator {
 			} else {
 				this.fileFilterManager.updateConfig(settings.fileFilter);
 			}
+			(this.repository as any).setFileFilterManager?.(
+				this.fileFilterManager
+			);
+			fileFilterChanged = true;
+		}
+
+		if (fileFilterChanged) {
+			const newEnabled: boolean = Boolean(settings?.fileFilter?.enabled);
+			const rulesCount = Array.isArray(settings?.fileFilter?.rules)
+				? settings.fileFilter.rules.filter((r: any) => r?.enabled)
+						.length
+				: 0;
+			console.log("[TG Index Filter] settingsChange", {
+				enabled: newEnabled,
+				mode: settings?.fileFilter?.mode,
+				rulesCount,
+			});
+			this.lastFileFilterEnabled = newEnabled;
+
+			// Plan B: Always prune then restore (debounced) on any fileFilter change
+			console.log("[TG Index Filter] action", {
+				action: "PRUNE_THEN_RESTORE",
+			});
+			void this.pruneByFilter();
+			this.restoreByFilterDebounced?.();
 		}
 	}
+
+	/**
+	 * Prune existing index and file-tasks by current file filter (lightweight)
+	 * Performance notes:
+	 * - Uses index snapshot to avoid scanning vault
+	 * - Batches inline clearing via repository.updateBatch
+	 * - Only runs when fileFilter actually changes
+	 */
+	private async pruneByFilter(): Promise<void> {
+		if (!this.fileFilterManager) return;
+		try {
+			const start = Date.now();
+			const files = await this.repository.getIndexedFilePaths();
+			const toClear = new Map<string, Task[]>();
+			let prunedInline = 0;
+			for (const p of files) {
+				const includeInline = this.fileFilterManager.shouldIncludePath(
+					p,
+					"inline"
+				);
+				if (!includeInline) {
+					toClear.set(p, []);
+				}
+			}
+			if (toClear.size > 0) {
+				// Force event emission to ensure views refresh even if storage matches
+				await this.repository.updateBatch(toClear, undefined, {
+					persist: false,
+					forceEmit: true,
+				});
+				for (const p of toClear.keys()) {
+					this.suppressedInline.add(p);
+					prunedInline++;
+				}
+			}
+			const fileTaskPaths = this.repository.getFileTaskPaths?.() || [];
+			let prunedFileTasks = 0;
+			for (const p of fileTaskPaths) {
+				const includeFile = this.fileFilterManager.shouldIncludePath(
+					p,
+					"file"
+				);
+				if (!includeFile) {
+					await this.repository.removeFileTask(p);
+					this.suppressedFileTasks.add(p);
+					prunedFileTasks++;
+				}
+			}
+			// Persist suppressed sets for cross-restart restore capability (after updates)
+			try {
+				await (this.storage as any).saveMeta?.(
+					"filter:suppressedInline",
+					Array.from(this.suppressedInline)
+				);
+				await (this.storage as any).saveMeta?.(
+					"filter:suppressedFileTasks",
+					Array.from(this.suppressedFileTasks)
+				);
+			} catch (e) {
+				console.warn(
+					"[DataflowOrchestrator] persist suppressed meta after prune failed",
+					e
+				);
+			}
+			const elapsed = Date.now() - start;
+			console.log("[DataflowOrchestrator] pruneByFilter", {
+				prunedInline,
+				prunedFileTasks,
+				elapsed,
+				inlineSuppressedSize: this.suppressedInline.size,
+				fileSuppressedSize: this.suppressedFileTasks.size,
+			});
+		} catch (e) {
+			console.warn("[DataflowOrchestrator] pruneByFilter failed", e);
+		}
+	}
+
+	/**
+	 * Restore previously suppressed files when filters are loosened
+	 * - Inline: prefer augmented/raw cache; fallback to re-parse single file
+	 * - File tasks: emit FILE_UPDATED to let FileSource reevaluate
+	 * - Runs in small batches to avoid UI jank
+	 */
+	private async restoreByFilter(): Promise<void> {
+		if (!this.fileFilterManager) return;
+		try {
+			const start = Date.now();
+			let inlineCandidates: string[] = Array.from(
+				this.suppressedInline
+			).filter((p) =>
+				this.fileFilterManager!.shouldIncludePath(p, "inline")
+			);
+			const fileTaskCandidates: string[] = Array.from(
+				this.suppressedFileTasks
+			).filter((p) =>
+				this.fileFilterManager!.shouldIncludePath(p, "file")
+			);
+
+			// Fallback: if we have no suppressed inline candidates (e.g., previous session), derive from cache keys
+			if (inlineCandidates.length === 0) {
+				try {
+					const indexed = new Set(
+						await this.repository.getIndexedFilePaths()
+					);
+					const augPaths =
+						(await (this.storage as any).listAugmentedPaths?.()) ||
+						[];
+					const rawPaths =
+						(await (this.storage as any).listRawPaths?.()) || [];
+					const union = new Set<string>([...augPaths, ...rawPaths]);
+					inlineCandidates = Array.from(union).filter(
+						(p) =>
+							!indexed.has(p) &&
+							this.fileFilterManager!.shouldIncludePath(
+								p,
+								"inline"
+							)
+					);
+					console.log(
+						"[DataflowOrchestrator] restoreByFilter fallback candidates",
+						{ extra: inlineCandidates.length }
+					);
+				} catch (e) {
+					console.warn(
+						"[DataflowOrchestrator] fallback candidate discovery failed",
+						e
+					);
+				}
+			}
+
+			let restoredFromAugmented = 0;
+			let restoredFromRaw = 0;
+			let reparsed = 0;
+
+			const processInlineBatch = async (batch: string[]) => {
+				for (const path of batch) {
+					try {
+						const file = this.vault.getAbstractFileByPath(
+							path
+						) as TFile | null;
+						if (!file) {
+							this.suppressedInline.delete(path);
+							continue;
+						}
+						// Try augmented cache
+						const augmented = await this.storage.loadAugmented(
+							path
+						);
+						if (augmented?.data?.length !== undefined) {
+							await this.repository.updateFile(
+								path,
+								augmented.data,
+								undefined,
+								{ forceEmit: true }
+							);
+							restoredFromAugmented++;
+							this.suppressedInline.delete(path);
+							continue;
+						}
+						// Try raw cache and re-augment
+						const raw = await this.storage.loadRaw(path);
+						if (raw?.data) {
+							const projectData = await this.projectResolver.get(
+								path
+							);
+							const fileCache =
+								this.metadataCache.getFileCache(file);
+							const augmentContext: AugmentContext = {
+								filePath: path,
+								fileMeta: fileCache?.frontmatter || {},
+								projectName: projectData.tgProject?.name,
+								projectMeta: {
+									...projectData.enhancedMetadata,
+									tgProject: projectData.tgProject,
+								},
+								tasks: raw.data,
+							};
+							const augmentedTasks = await this.augmentor.merge(
+								augmentContext
+							);
+							await this.repository.updateFile(
+								path,
+								augmentedTasks
+							);
+							restoredFromRaw++;
+							this.suppressedInline.delete(path);
+							continue;
+						}
+						// Fallback: single-file parse
+						await this.processFileImmediate(file, false);
+						reparsed++;
+						this.suppressedInline.delete(path);
+					} catch (e) {
+						// Persist updated suppressed sets for cross-restart recovery
+						try {
+							await this.storage.saveMeta(
+								"filter:suppressedInline",
+								Array.from(this.suppressedInline)
+							);
+							await this.storage.saveMeta(
+								"filter:suppressedFileTasks",
+								Array.from(this.suppressedFileTasks)
+							);
+						} catch (e) {
+							console.warn(
+								"[DataflowOrchestrator] persist suppressed meta failed",
+								e
+							);
+						}
+
+						console.warn(
+							"[DataflowOrchestrator] restore inline failed",
+							{ path, e }
+						);
+					}
+				}
+			};
+
+			// Batch inline restores
+			for (
+				let i = 0;
+				i < inlineCandidates.length;
+				i += this.RESTORE_BATCH_SIZE
+			) {
+				const batch = inlineCandidates.slice(
+					i,
+					i + this.RESTORE_BATCH_SIZE
+				);
+				await processInlineBatch(batch);
+				if (i + this.RESTORE_BATCH_SIZE < inlineCandidates.length) {
+					await new Promise((r) =>
+						setTimeout(r, this.RESTORE_BATCH_INTERVAL_MS)
+					);
+				}
+			}
+
+			// File-task restores: emit event to let FileSource re-evaluate
+			for (const path of fileTaskCandidates) {
+				try {
+					emit(this.app, Events.FILE_UPDATED, {
+						path,
+						reason: "restore",
+						timestamp: Date.now(),
+					});
+					this.suppressedFileTasks.delete(path);
+				} catch (e) {
+					console.warn(
+						"[DataflowOrchestrator] restore file-task emit failed",
+						{ path, e }
+					);
+				}
+			}
+
+			const elapsed = Date.now() - start;
+			console.log("[DataflowOrchestrator] restoreByFilter", {
+				restoredFromAugmented,
+				restoredFromRaw,
+				reparsed,
+				totalInline: inlineCandidates.length,
+				totalFileTasks: fileTaskCandidates.length,
+				elapsed,
+			});
+		} catch (e) {
+			console.warn("[DataflowOrchestrator] restoreByFilter failed", e);
+		}
+	}
+
 	/**
 	 * Get worker processing status and metrics
 	 */
@@ -1077,13 +1526,17 @@ export class DataflowOrchestrator {
 						filePath
 					);
 					// Apply file filter scope: skip inline parsing when scope === 'file'
-					const shouldParseInline =
-						!this.fileFilterManager ||
-						this.fileFilterManager.shouldIncludePath(
-							filePath,
-							"inline"
-						);
-					const rawTasks = shouldParseInline
+					const includeInline = this.fileFilterManager
+						? this.fileFilterManager.shouldIncludePath(
+								filePath,
+								"inline"
+						  )
+						: true;
+					console.log(
+						"[DataflowOrchestrator] Inline filter decision",
+						{ filePath, includeInline }
+					);
+					const rawTasks = includeInline
 						? await this.parseFile(file, projectData.tgProject)
 						: [];
 

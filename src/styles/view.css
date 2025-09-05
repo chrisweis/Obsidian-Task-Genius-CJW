@@ -405,12 +405,12 @@
 }
 
 .mod-left-split
-.workspace-tab-header-status-container:has(.task-genius-action-btn) {
+	.workspace-tab-header-status-container:has(.task-genius-action-btn) {
 	display: none;
 }
 
 .mod-right-split
-.workspace-tab-header-status-container:has(.task-genius-action-btn) {
+	.workspace-tab-header-status-container:has(.task-genius-action-btn) {
 	display: none;
 }
 
@@ -431,6 +431,10 @@
 	.mod-root .task-genius-action-btn {
 		display: none;
 	}
+}
+
+.task-sidebar.collapsed .sidebar-nav {
+	max-width: 45px;
 }
 
 /* Workflow Quick Modal Styles */
