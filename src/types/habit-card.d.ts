@@ -50,7 +50,7 @@ export type BaseHabitData =
 
 // DailyHabitProps
 export interface DailyHabitProps extends BaseDailyHabitData {
-	completions: Record<string, string | number>; // String is date, string or number is completion value
+	completions: Record<string, boolean | string | number | null>; // Date -> boolean (for simple check), number (for completionText), null (for unchecked)
 }
 
 // CountHabitProps

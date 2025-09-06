@@ -60,8 +60,8 @@ export class DailyHabitCard extends HabitCard {
 			// If completionText is defined, check if value is 1 (meaning it matched completionText)
 			isCompletedToday = todayValue === 1;
 		} else {
-			// Default behavior: any truthy value means completed
-			isCompletedToday = !!todayValue;
+			// Default behavior: check for boolean true
+			isCompletedToday = todayValue === true;
 		}
 
 		checkbox.checked = isCompletedToday;
@@ -85,8 +85,8 @@ export class DailyHabitCard extends HabitCard {
 				if (this.habit.completionText) {
 					return value === 1;
 				}
-				// Default behavior: any truthy value means completed
-				return value > 0;
+				// Default behavior: check for boolean true
+				return value === true;
 			}
 		);
 	}

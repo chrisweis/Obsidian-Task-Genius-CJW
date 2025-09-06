@@ -193,10 +193,10 @@ export class HabitCard extends Component {
 			case "daily":
 				const dailyHabit = habitToUpdate as DailyHabitProps;
 				if (dailyHabit.completionText) {
-					newCompletionValue = currentCompletionToday === 1 ? 0 : 1;
+					newCompletionValue = currentCompletionToday === 1 ? null : 1;
 				} else {
-					// Default behavior: toggle between 0 and 1
-					newCompletionValue = currentCompletionToday ? 0 : 1;
+					// Default behavior: toggle between true and false
+					newCompletionValue = currentCompletionToday ? false : true;
 				}
 				break;
 			case "count":
