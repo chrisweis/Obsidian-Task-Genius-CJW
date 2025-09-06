@@ -132,6 +132,21 @@ export class SidebarComponent extends Component {
 			})
 				.addItem((item) => {
 					item.setTitle(t("Open settings")).onClick(async () => {
+						// Special handling for habit view
+						if (viewId === "habit") {
+							// Open the settings tab and navigate to habit section
+							(this.app as any).setting.open();
+							(this.app as any).setting.openTabById(this.plugin.manifest.id);
+							// Wait a bit for the settings to open
+							setTimeout(() => {
+								if (this.plugin.settingTab) {
+									this.plugin.settingTab.openTab("habit");
+								}
+							}, 100);
+							return;
+						}
+						
+						// Normal handling for other views
 						const view =
 							this.plugin.settings.viewConfiguration.find(
 								(v) => v.id === viewId
