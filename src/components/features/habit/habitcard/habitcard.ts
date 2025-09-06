@@ -132,8 +132,8 @@ export class HabitCard extends Component {
 					// Set default if not set by custom renderer
 					tooltipText += "Recorded";
 				}
-			} else if (typeof cellValue === "number" && size === "sm") {
-				// Count habit
+			} else if (typeof cellValue === "number" && !customContent) {
+				// Count habit (any size)
 				tooltipText += `${cellValue} times`;
 			} else if (typeof cellValue === "number" && customContent) {
 				// Mapping habit (emoji shown)
@@ -193,7 +193,8 @@ export class HabitCard extends Component {
 			case "daily":
 				const dailyHabit = habitToUpdate as DailyHabitProps;
 				if (dailyHabit.completionText) {
-					newCompletionValue = currentCompletionToday === 1 ? null : 1;
+					newCompletionValue =
+						currentCompletionToday === 1 ? null : 1;
 				} else {
 					// Default behavior: toggle between true and false
 					newCompletionValue = currentCompletionToday ? false : true;

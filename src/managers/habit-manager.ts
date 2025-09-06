@@ -29,7 +29,7 @@ import {
 	appHasDailyNotesPluginLoaded,
 	getDailyNoteSettings,
 } from "obsidian-daily-notes-interface";
-import { Events, on } from "../dataflow/events/Events";
+import { Events, on, emit } from "../dataflow/events/Events";
 import { DateInheritanceService } from "../services/date-inheritance-service";
 
 // Helpers for habit processing
@@ -707,6 +707,10 @@ export class HabitManager extends Component {
 
 		if (dailyNote) {
 			try {
+				// Notify dataflow write start to avoid event loops
+				emit(this.plugin.app, Events.WRITE_OPERATION_START, {
+					path: dailyNote.path,
+				});
 				await app.fileManager.processFrontMatter(
 					dailyNote,
 					(frontmatter) => {
@@ -829,6 +833,10 @@ export class HabitManager extends Component {
 						}
 					}
 				);
+				// Notify dataflow write complete
+				emit(this.plugin.app, Events.WRITE_OPERATION_COMPLETE, {
+					path: dailyNote.path,
+				});
 			} catch (error) {
 				console.error(
 					`Error processing frontmatter for ${dailyNote.path}:`,

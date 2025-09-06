@@ -50,11 +50,13 @@ export class CountHabitCard extends HabitCard {
 					cls: "habit-card-name",
 					text: this.habit.name,
 				});
+				// For count habit, show today's numeric value instead of completed/inactive
+				const unit = this.habit.countUnit
+					? ` ${this.habit.countUnit}`
+					: "";
 				el.createEl("span", {
 					cls: "habit-active-day",
-					text: this.habit.completions[today]
-						? `${t("Active")} ${t("today")}`
-						: `${t("Inactive")} ${t("today")}`,
+					text: `${t("Today")}: ${countToday}${unit}`,
 				});
 			}
 		);
@@ -65,13 +67,21 @@ export class CountHabitCard extends HabitCard {
 		const heatmapContainer = progressArea.createDiv({
 			cls: "habit-heatmap-small",
 		});
+		// Always render heatmap for count habits; fill rule depends on max if provided
+		this.renderHeatmap(
+			heatmapContainer,
+			this.habit.completions,
+			"md",
+			(value: any) => {
+				if (typeof value !== "number") return false;
+				if (this.habit.max && this.habit.max > 0) {
+					return value >= this.habit.max;
+				}
+				return value > 0;
+			}
+		);
+		// Only render progress bar when a goal (max) is configured
 		if (this.habit.max && this.habit.max > 0) {
-			this.renderHeatmap(
-				heatmapContainer,
-				this.habit.completions,
-				"md",
-				(value: any) => value >= (this.habit.max ?? 0)
-			);
 			this.renderProgressBar(progressArea, countToday, this.habit.max);
 		}
 	}
