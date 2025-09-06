@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.4](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.3...9.8.4) (2025-09-06)
+
+### Bug Fixes
+
+* **habit:** improve count habit display and prevent dataflow loops ([f868c16](https://github.com/Quorafind/Obsidian-Task-Genius/commit/f868c16))
+
 ## [9.8.3](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.2...9.8.3) (2025-09-06)
 
 ### Features
