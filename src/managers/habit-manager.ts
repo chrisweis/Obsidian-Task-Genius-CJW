@@ -30,6 +30,7 @@ import {
 	getDailyNoteSettings,
 } from "obsidian-daily-notes-interface";
 import { Events, on } from "../dataflow/events/Events";
+import { DateInheritanceService } from "../services/date-inheritance-service";
 
 // Helpers for habit processing
 const hasValue = (v: any): boolean => v !== undefined && v !== null && v !== "";
@@ -44,10 +45,16 @@ const slugify = (s: string): string =>
 export class HabitManager extends Component {
 	private plugin: TaskProgressBarPlugin;
 	habits: HabitProps[] = [];
+	private dateInheritanceService: DateInheritanceService;
 
 	constructor(plugin: TaskProgressBarPlugin) {
 		super();
 		this.plugin = plugin;
+		this.dateInheritanceService = new DateInheritanceService(
+			plugin.app,
+			plugin.app.vault,
+			plugin.app.metadataCache
+		);
 	}
 
 	async onload() {
@@ -89,6 +96,26 @@ export class HabitManager extends Component {
 					}
 				)
 			);
+
+			// Listen for unified FILE_UPDATED events to handle deletions in dataflow mode
+			this.registerEvent(
+				on(this.plugin.app, Events.FILE_UPDATED, ({ path, reason }) => {
+					try {
+						if (
+							reason === "delete" &&
+							typeof path === "string" &&
+							this.isDailyNotePath(path)
+						) {
+							this.handleDailyNoteDeletedByPath(path);
+						}
+					} catch (e) {
+						console.warn(
+							"[HabitManager] Failed to handle FILE_UPDATED(delete) for habits",
+							e
+						);
+					}
+				})
+			);
 		} else {
 			// Fallback for legacy mode without dataflow
 			this.registerEvent(
@@ -100,6 +127,15 @@ export class HabitManager extends Component {
 						}
 					}
 				)
+			);
+
+			// Also listen for file deletions in legacy mode
+			this.registerEvent(
+				this.plugin.app.vault.on("delete", (file) => {
+					if (file instanceof TFile && this.isDailyNote(file)) {
+						this.handleDailyNoteDeleted(file);
+					}
+				})
 			);
 		}
 	}
@@ -276,10 +312,9 @@ export class HabitManager extends Component {
 											value as string;
 									}
 								} else {
-									// Default behavior: any non-empty value means completed
-									dailyHabit.completions[date] = value
-										? 1
-										: 0;
+									// Default behavior: boolean value for completion
+									dailyHabit.completions[date] =
+										value === true || value === "true";
 								}
 								break; // Use the first found property
 							}
@@ -328,6 +363,78 @@ export class HabitManager extends Component {
 		return convertedHabits;
 	}
 
+	private handleDailyNoteDeleted(file: TFile): void {
+		const dateMoment = getDateFromFile(file, "day");
+		if (!dateMoment) return; // Not a daily note
+
+		const dateStr = dateMoment.format("YYYY-MM-DD");
+		let habitsChanged = false;
+
+		// Remove completions for this date from all habits
+		this.habits = this.habits.map((habit) => {
+			const habitClone = JSON.parse(JSON.stringify(habit)) as HabitProps;
+			if (
+				habitClone.completions &&
+				habitClone.completions[dateStr] !== undefined
+			) {
+				delete habitClone.completions[dateStr];
+				habitsChanged = true;
+			}
+			return habitClone;
+		});
+
+		if (habitsChanged) {
+			// Trigger update event to refresh the UI
+			this.plugin.app.workspace.trigger(
+				"task-genius:habit-index-updated",
+				this.habits
+			);
+		}
+	}
+
+	private isDailyNotePath(path: string): boolean {
+		try {
+			return !!this.dateInheritanceService.extractDailyNoteDate(path);
+		} catch (e) {
+			return false;
+		}
+	}
+
+	private handleDailyNoteDeletedByPath(path: string): void {
+		try {
+			const date = this.dateInheritanceService.extractDailyNoteDate(path);
+			if (!date) return;
+			const dateStr = moment(date).format("YYYY-MM-DD");
+			let habitsChanged = false;
+
+			this.habits = this.habits.map((habit) => {
+				const habitClone = JSON.parse(
+					JSON.stringify(habit)
+				) as HabitProps;
+				if (
+					habitClone.completions &&
+					habitClone.completions[dateStr] !== undefined
+				) {
+					delete habitClone.completions[dateStr];
+					habitsChanged = true;
+				}
+				return habitClone;
+			});
+
+			if (habitsChanged) {
+				this.plugin.app.workspace.trigger(
+					"task-genius:habit-index-updated",
+					this.habits
+				);
+			}
+		} catch (e) {
+			console.warn(
+				"[HabitManager] Failed to handle daily note deletion by path",
+				e
+			);
+		}
+	}
+
 	private updateHabitCompletions(file: TFile, cache: CachedMetadata): void {
 		if (!cache?.frontmatter) return;
 
@@ -336,7 +443,7 @@ export class HabitManager extends Component {
 
 		const dateStr = dateMoment.format("YYYY-MM-DD");
 		let habitsChanged = false;
-		
+
 		// 添加一个标记，防止在同一个事件循环中重复更新
 		if ((this as any)._isUpdatingFromToggle) {
 			(this as any)._isUpdatingFromToggle = false;
@@ -424,8 +531,8 @@ export class HabitManager extends Component {
 								habitsChanged = true;
 							}
 						} else {
-							// Default behavior: any non-empty value means completed
-							const newValue = hasValue(value) ? 1 : 0;
+							// Default behavior: boolean value for completion
+							const newValue = value === true || value === "true";
 							if (dailyHabit.completions[dateStr] !== newValue) {
 								dailyHabit.completions[dateStr] = newValue;
 								habitsChanged = true;
@@ -540,13 +647,21 @@ export class HabitManager extends Component {
 			);
 			return;
 		}
-		
+
 		// 先更新内存中的习惯状态，避免触发 metadata change 事件时状态不一致
-		const habitIndex = this.habits.findIndex(h => h.id === updatedHabit.id);
+		const habitIndex = this.habits.findIndex(
+			(h) => h.id === updatedHabit.id
+		);
 		if (habitIndex !== -1) {
 			this.habits[habitIndex] = JSON.parse(JSON.stringify(updatedHabit));
 			// 设置标记，防止 metadata change 事件重复更新
 			(this as any)._isUpdatingFromToggle = true;
+
+			// 立刻触发一次刷新，确保 UI 即时更新
+			this.plugin.app.workspace.trigger(
+				"task-genius:habit-index-updated",
+				this.habits
+			);
 		}
 
 		let dailyNote: TFile | null = null;
@@ -634,7 +749,10 @@ export class HabitManager extends Component {
 								if (dailyHabit.property) {
 									const keyToUpdate = dailyHabit.property; // Update the primary property
 
-									if (completion !== undefined) {
+									if (
+										completion !== undefined &&
+										completion !== null
+									) {
 										// If completionText is defined and completion is 1, use the completionText
 										if (
 											dailyHabit.completionText &&
@@ -642,6 +760,13 @@ export class HabitManager extends Component {
 										) {
 											frontmatter[keyToUpdate] =
 												dailyHabit.completionText;
+										} else if (
+											!dailyHabit.completionText &&
+											typeof completion === "boolean"
+										) {
+											// For simple daily habits, use boolean value
+											frontmatter[keyToUpdate] =
+												completion;
 										} else {
 											// Otherwise use the raw value
 											frontmatter[keyToUpdate] =

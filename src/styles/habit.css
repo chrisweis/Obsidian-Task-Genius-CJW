@@ -49,6 +49,12 @@
 	min-height: fit-content;
 }
 
+/* === Create Habit Button === */
+.habit-create-button-container {
+	display: flex;
+	justify-content: flex-start;
+}
+
 /* === Base Card Styles === */
 .habit-card {
 	border: 1px solid var(--background-modifier-border);

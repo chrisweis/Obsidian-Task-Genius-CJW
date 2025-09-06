@@ -5,6 +5,7 @@ import {
 	Setting,
 	Notice,
 	ButtonComponent,
+	ExtraButtonComponent,
 } from "obsidian";
 import {
 	HabitProps,
@@ -103,6 +104,44 @@ export class Habit extends Component {
 				cls: "habit-card-wrapper",
 			}); // Wrapper for context menu, etc.
 			this.renderHabitCard(habitCardContainer, habit);
+		});
+
+		// Add create new habit button at the bottom left
+		const buttonContainer = listContainer.createDiv({
+			cls: "habit-create-button-container",
+		});
+
+		new ExtraButtonComponent(buttonContainer)
+			.setIcon("plus")
+			.setTooltip(t("Create new habit"))
+			.onClick(() => {
+				this.openCreateHabitDialog();
+			});
+	}
+
+	openCreateHabitDialog() {
+		import("./components/HabitEditDialog").then(({ HabitEditDialog }) => {
+			new HabitEditDialog(
+				this.plugin.app,
+				this.plugin,
+				null, // null for new habit
+				async (habitData) => {
+					// Save the new habit
+					if (!this.plugin.settings.habit.habits) {
+						this.plugin.settings.habit.habits = [];
+					}
+					this.plugin.settings.habit.habits.push(habitData);
+					await this.plugin.saveSettings();
+
+					// Reload habits
+					if (this.plugin.habitManager) {
+						await this.plugin.habitManager.initializeHabits();
+					}
+
+					new Notice(t("Habit created successfully"));
+					this.redraw();
+				}
+			).open();
 		});
 	}
 
