@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.3](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.2...9.8.3) (2025-09-06)
+
+### Features
+
+* **habit:** add quick create habit button in habit view ([dad5480](https://github.com/Quorafind/Obsidian-Task-Genius/commit/dad5480))
+
+### Bug Fixes
+
+* **sidebar:** open habit settings tab directly instead of modal ([37ef1a8](https://github.com/Quorafind/Obsidian-Task-Genius/commit/37ef1a8))
+* **habit:** use boolean values for daily habit completion tracking ([5550cb0](https://github.com/Quorafind/Obsidian-Task-Genius/commit/5550cb0))
+
+### Styles
+
+* **habit:** add container for habit create button ([b0f8912](https://github.com/Quorafind/Obsidian-Task-Genius/commit/b0f8912))
+
 ## [9.8.2](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.1...9.8.2) (2025-09-05)
 
 ### Features
