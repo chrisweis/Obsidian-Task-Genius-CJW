@@ -826,6 +826,36 @@ export class DataflowOrchestrator {
 			);
 		}
 
+		// Update ProjectResolver / ProjectConfigManager options from settings
+		try {
+			const pc = settings?.projectConfig;
+			if (pc) {
+				this.updateProjectOptions({
+					configFileName: pc?.configFile?.fileName || "project.md",
+					searchRecursively:
+						pc?.configFile?.searchRecursively ?? true,
+					metadataKey: pc?.metadataConfig?.metadataKey || "project",
+					pathMappings: pc?.pathMappings || [],
+					metadataMappings: pc?.metadataMappings || [],
+					defaultProjectNaming: pc?.defaultProjectNaming || {
+						strategy: "filename",
+						stripExtension: true,
+						enabled: false,
+					},
+					enhancedProjectEnabled: pc?.enableEnhancedProject ?? false,
+					metadataConfigEnabled: pc?.metadataConfig?.enabled ?? false,
+					configFileEnabled: pc?.configFile?.enabled ?? false,
+					detectionMethods:
+						pc?.metadataConfig?.detectionMethods || [],
+				});
+			}
+		} catch (e) {
+			console.warn(
+				"[DataflowOrchestrator] Failed to update project config options on settings update",
+				e
+			);
+		}
+
 		// Update TimeParsingService configuration
 		if (settings.timeParsing && this.timeParsingService) {
 			this.timeParsingService.updateConfig(settings.timeParsing);

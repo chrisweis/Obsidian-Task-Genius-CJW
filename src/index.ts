@@ -390,7 +390,37 @@ export default class TaskProgressBarPlugin extends Plugin {
 					this.app.metadataCache,
 					this,
 					{
-						// ProjectConfigManagerOptions is narrower; pass only known properties
+						configFileName:
+							this.settings.projectConfig?.configFile?.fileName ||
+							"project.md",
+						searchRecursively:
+							this.settings.projectConfig?.configFile
+								?.searchRecursively ?? true,
+						metadataKey:
+							this.settings.projectConfig?.metadataConfig
+								?.metadataKey || "project",
+						pathMappings:
+							this.settings.projectConfig?.pathMappings || [],
+						metadataMappings:
+							this.settings.projectConfig?.metadataMappings || [],
+						defaultProjectNaming: this.settings.projectConfig
+							?.defaultProjectNaming || {
+							strategy: "filename",
+							stripExtension: true,
+							enabled: false,
+						},
+						enhancedProjectEnabled:
+							this.settings.projectConfig
+								?.enableEnhancedProject ?? false,
+						metadataConfigEnabled:
+							this.settings.projectConfig?.metadataConfig
+								?.enabled ?? false,
+						configFileEnabled:
+							this.settings.projectConfig?.configFile?.enabled ??
+							false,
+						detectionMethods:
+							this.settings.projectConfig?.metadataConfig
+								?.detectionMethods || [],
 					}
 				);
 				console.timeEnd("[TPB] createDataflow");

@@ -187,7 +187,8 @@ export class ProjectConfigManager {
 			}
 
 			const currentTimestamp = (file as TFile).stat.mtime;
-			const cachedTimestamp = this.fileMetadataTimestampCache.get(filePath);
+			const cachedTimestamp =
+				this.fileMetadataTimestampCache.get(filePath);
 
 			// Check if cache is valid (file hasn't been modified)
 			if (
@@ -219,16 +220,16 @@ export class ProjectConfigManager {
 	 */
 	public normalizeProjectPath(path: string): string {
 		if (!path) return "";
-		
+
 		// Replace backslashes with forward slashes
 		let normalized = path.replace(/\\/g, "/");
-		
+
 		// Remove duplicate slashes
 		normalized = normalized.replace(/\/+/g, "/");
-		
+
 		// Remove leading and trailing slashes
 		normalized = normalized.replace(/^\/|\/$/g, "");
-		
+
 		return normalized;
 	}
 
@@ -248,7 +249,9 @@ export class ProjectConfigManager {
 			// Simple path matching - could be enhanced with glob patterns
 			if (this.matchesPathPattern(filePath, mapping.pathPattern)) {
 				// Normalize the project name to support nested paths
-				const normalizedName = this.normalizeProjectPath(mapping.projectName);
+				const normalizedName = this.normalizeProjectPath(
+					mapping.projectName
+				);
 				return {
 					type: "path",
 					name: normalizedName,
@@ -264,34 +267,60 @@ export class ProjectConfigManager {
 			if (file && file instanceof TFile) {
 				const fileCache = this.metadataCache.getFileCache(file);
 				const fileMetadata = this.getFileMetadata(filePath);
-				
+
 				for (const method of this.detectionMethods) {
 					if (!method.enabled) continue;
-					
+
 					switch (method.type) {
 						case "metadata":
 							// Check if the specified metadata property exists
-							if (fileMetadata && fileMetadata[method.propertyKey]) {
+							if (
+								fileMetadata &&
+								fileMetadata[method.propertyKey]
+							) {
 								return {
 									type: "metadata",
-									name: String(fileMetadata[method.propertyKey]),
+									name: String(
+										fileMetadata[method.propertyKey]
+									),
 									source: method.propertyKey,
 									readonly: true,
 								};
 							}
 							break;
-							
+
 						case "tag":
-							// Check if file has the specified tag
-							if (fileCache?.tags) {
-								const targetTag = method.propertyKey.startsWith("#") 
-									? method.propertyKey 
+							// Check if file has the specified tag (consider both inline and frontmatter tags)
+							{
+								const targetTag = method.propertyKey.startsWith(
+									"#"
+								)
+									? method.propertyKey
 									: `#${method.propertyKey}`;
-								
-								const hasTag = fileCache.tags.some(tagCache => 
-									tagCache.tag === targetTag
+								const normalizedTarget =
+									targetTag.toLowerCase();
+								const inlineTags = (fileCache?.tags || []).map(
+									(tc) => tc.tag
 								);
-								
+								const fmTagsRaw = fileCache?.frontmatter?.tags;
+								const fmTagsArr = Array.isArray(fmTagsRaw)
+									? fmTagsRaw
+									: fmTagsRaw !== undefined
+									? [fmTagsRaw]
+									: [];
+								const fmTagsNorm = fmTagsArr.map((t: any) => {
+									const s = String(t || "");
+									return s.startsWith("#") ? s : `#${s}`;
+								});
+								const allTags = [
+									...inlineTags,
+									...fmTagsNorm,
+								].map((t) => String(t || "").toLowerCase());
+								// For file-level detection: require exact match; do NOT treat hierarchical '#project/xxx' as match unless configured exactly
+								const hasTag = allTags.some(
+									(t) => t === normalizedTarget
+								);
+
 								if (hasTag) {
 									// First try to use title or name from frontmatter as project name
 									if (fileMetadata?.title) {
@@ -311,8 +340,12 @@ export class ProjectConfigManager {
 										};
 									}
 									// Fallback: use the file name (without extension)
-									const fileName = filePath.split('/').pop() || filePath;
-									const nameWithoutExt = fileName.replace(/\.md$/i, '');
+									const fileName =
+										filePath.split("/").pop() || filePath;
+									const nameWithoutExt = fileName.replace(
+										/\.md$/i,
+										""
+									);
 									return {
 										type: "metadata",
 										name: nameWithoutExt,
@@ -322,21 +355,27 @@ export class ProjectConfigManager {
 								}
 							}
 							break;
-							
+
 						case "link":
 							// Check all links in the file
 							if (fileCache?.links) {
 								for (const linkCache of fileCache.links) {
 									const linkedNote = linkCache.link;
-									
+
 									// If there's a filter, check if the link matches
 									if (method.linkFilter) {
-										if (linkedNote.includes(method.linkFilter)) {
+										if (
+											linkedNote.includes(
+												method.linkFilter
+											)
+										) {
 											// First try to use title or name from frontmatter as project name
 											if (fileMetadata?.title) {
 												return {
 													type: "metadata",
-													name: String(fileMetadata.title),
+													name: String(
+														fileMetadata.title
+													),
 													source: "title (via link)",
 													readonly: true,
 												};
@@ -344,14 +383,19 @@ export class ProjectConfigManager {
 											if (fileMetadata?.name) {
 												return {
 													type: "metadata",
-													name: String(fileMetadata.name),
+													name: String(
+														fileMetadata.name
+													),
 													source: "name (via link)",
 													readonly: true,
 												};
 											}
 											// Fallback: use the file name (without extension)
-											const fileName = filePath.split('/').pop() || filePath;
-											const nameWithoutExt = fileName.replace(/\.md$/i, '');
+											const fileName =
+												filePath.split("/").pop() ||
+												filePath;
+											const nameWithoutExt =
+												fileName.replace(/\.md$/i, "");
 											return {
 												type: "metadata",
 												name: nameWithoutExt,
@@ -361,15 +405,26 @@ export class ProjectConfigManager {
 										}
 									} else if (method.propertyKey) {
 										// If a property key is specified, only check links in that metadata field
-										if (fileMetadata && fileMetadata[method.propertyKey]) {
-											const propValue = String(fileMetadata[method.propertyKey]);
+										if (
+											fileMetadata &&
+											fileMetadata[method.propertyKey]
+										) {
+											const propValue = String(
+												fileMetadata[method.propertyKey]
+											);
 											// Check if this link is mentioned in the property
-											if (propValue.includes(`[[${linkedNote}]]`)) {
+											if (
+												propValue.includes(
+													`[[${linkedNote}]]`
+												)
+											) {
 												// First try to use title or name from frontmatter as project name
 												if (fileMetadata?.title) {
 													return {
 														type: "metadata",
-														name: String(fileMetadata.title),
+														name: String(
+															fileMetadata.title
+														),
 														source: "title (via link)",
 														readonly: true,
 													};
@@ -377,14 +432,22 @@ export class ProjectConfigManager {
 												if (fileMetadata?.name) {
 													return {
 														type: "metadata",
-														name: String(fileMetadata.name),
+														name: String(
+															fileMetadata.name
+														),
 														source: "name (via link)",
 														readonly: true,
 													};
 												}
 												// Fallback: use the file name (without extension)
-												const fileName = filePath.split('/').pop() || filePath;
-												const nameWithoutExt = fileName.replace(/\.md$/i, '');
+												const fileName =
+													filePath.split("/").pop() ||
+													filePath;
+												const nameWithoutExt =
+													fileName.replace(
+														/\.md$/i,
+														""
+													);
 												return {
 													type: "metadata",
 													name: nameWithoutExt,
@@ -445,7 +508,8 @@ export class ProjectConfigManager {
 			const defaultProject = this.generateDefaultProjectName(filePath);
 			if (defaultProject) {
 				// Normalize default project name as well
-				const normalizedName = this.normalizeProjectPath(defaultProject);
+				const normalizedName =
+					this.normalizeProjectPath(defaultProject);
 				return {
 					type: "default",
 					name: normalizedName,
@@ -482,7 +546,8 @@ export class ProjectConfigManager {
 
 			// Create composite cache key
 			const cacheKey = `${fileTimestamp}_${configTimestamp}`;
-			const cachedCacheKey = this.enhancedMetadataTimestampCache.get(filePath);
+			const cachedCacheKey =
+				this.enhancedMetadataTimestampCache.get(filePath);
 
 			// Check if cache is valid (neither file nor config has been modified)
 			if (
@@ -508,7 +573,10 @@ export class ProjectConfigManager {
 
 			return mergedMetadata;
 		} catch (error) {
-			console.warn(`Failed to get enhanced metadata for ${filePath}:`, error);
+			console.warn(
+				`Failed to get enhanced metadata for ${filePath}:`,
+				error
+			);
 			return {};
 		}
 	}
@@ -747,7 +815,9 @@ export class ProjectConfigManager {
 			// Try to convert date string to timestamp for better performance
 			if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
 				// Use the same date parsing logic as MarkdownTaskParser
-				const { parseLocalDate } = require("../utils/date/date-formatter");
+				const {
+					parseLocalDate,
+				} = require("../utils/date/date-formatter");
 				const timestamp = parseLocalDate(value);
 				return timestamp !== undefined ? timestamp : value;
 			}
@@ -815,22 +885,29 @@ export class ProjectConfigManager {
 			case "foldername": {
 				const normalizedPath = filePath.replace(/\\/g, "/");
 				const pathParts = normalizedPath.split("/");
-				
+
 				// For path-based projects, build nested structure from folder path
 				// e.g., "Projects/Web/Frontend/file.md" -> "Web/Frontend"
 				if (pathParts.length > 1) {
 					// Find if path contains a common project root folder
-					const projectRootIndex = pathParts.findIndex(part => 
-						part.toLowerCase() === "projects" || 
-						part.toLowerCase() === "project"
+					const projectRootIndex = pathParts.findIndex(
+						(part) =>
+							part.toLowerCase() === "projects" ||
+							part.toLowerCase() === "project"
 					);
-					
-					if (projectRootIndex >= 0 && projectRootIndex < pathParts.length - 2) {
+
+					if (
+						projectRootIndex >= 0 &&
+						projectRootIndex < pathParts.length - 2
+					) {
 						// Build project path from folders after the project root
-						const projectParts = pathParts.slice(projectRootIndex + 1, pathParts.length - 1);
+						const projectParts = pathParts.slice(
+							projectRootIndex + 1,
+							pathParts.length - 1
+						);
 						return projectParts.join("/");
 					}
-					
+
 					// Fallback to just parent folder name if no project root found
 					return pathParts[pathParts.length - 2] || "";
 				}
@@ -886,6 +963,9 @@ export class ProjectConfigManager {
 		if (options.configFileEnabled !== undefined) {
 			this.configFileEnabled = options.configFileEnabled;
 		}
+		if (options.detectionMethods !== undefined) {
+			this.detectionMethods = options.detectionMethods || [];
+		}
 
 		// Clear cache when options change
 		this.clearCache();
@@ -910,6 +990,13 @@ export class ProjectConfigManager {
 			defaultProjectNaming: this.defaultProjectNaming,
 			metadataKey: this.metadataKey,
 		};
+	}
+
+	/**
+	 * Expose detection methods (used to decide if worker can be used)
+	 */
+	getDetectionMethods(): ProjectDetectionMethod[] {
+		return this.detectionMethods || [];
 	}
 
 	/**
@@ -943,18 +1030,23 @@ export class ProjectConfigManager {
 	} {
 		// Calculate estimated memory usage (rough approximation)
 		const configCacheSize = Array.from(this.configCache.values())
-			.map(config => JSON.stringify(config).length)
+			.map((config) => JSON.stringify(config).length)
 			.reduce((sum, size) => sum + size, 0);
 
-		const fileMetadataCacheSize = Array.from(this.fileMetadataCache.values())
-			.map(metadata => JSON.stringify(metadata).length)
+		const fileMetadataCacheSize = Array.from(
+			this.fileMetadataCache.values()
+		)
+			.map((metadata) => JSON.stringify(metadata).length)
 			.reduce((sum, size) => sum + size, 0);
 
-		const enhancedMetadataCacheSize = Array.from(this.enhancedMetadataCache.values())
-			.map(metadata => JSON.stringify(metadata).length)
+		const enhancedMetadataCacheSize = Array.from(
+			this.enhancedMetadataCache.values()
+		)
+			.map((metadata) => JSON.stringify(metadata).length)
 			.reduce((sum, size) => sum + size, 0);
 
-		const totalMemoryUsage = configCacheSize + fileMetadataCacheSize + enhancedMetadataCacheSize;
+		const totalMemoryUsage =
+			configCacheSize + fileMetadataCacheSize + enhancedMetadataCacheSize;
 
 		return {
 			configCache: {
@@ -980,9 +1072,16 @@ export class ProjectConfigManager {
 		let clearedCount = 0;
 
 		// Check file metadata cache for stale entries
-		for (const [filePath, timestamp] of this.fileMetadataTimestampCache.entries()) {
+		for (const [
+			filePath,
+			timestamp,
+		] of this.fileMetadataTimestampCache.entries()) {
 			const file = this.vault.getFileByPath(filePath);
-			if (!file || !("stat" in file) || (file as TFile).stat.mtime !== timestamp) {
+			if (
+				!file ||
+				!("stat" in file) ||
+				(file as TFile).stat.mtime !== timestamp
+			) {
 				this.fileMetadataCache.delete(filePath);
 				this.fileMetadataTimestampCache.delete(filePath);
 				this.enhancedMetadataCache.delete(filePath);
