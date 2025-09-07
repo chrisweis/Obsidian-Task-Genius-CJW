@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.5](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.4...9.8.5) (2025-09-07)
+
+### Bug Fixes
+
+* **kanban:** improve status mark resolution and task selection ([9c5b27c](https://github.com/Quorafind/Obsidian-Task-Genius/commit/9c5b27c))
+
 ## [9.8.4](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.3...9.8.4) (2025-09-06)
 
 ### Bug Fixes
