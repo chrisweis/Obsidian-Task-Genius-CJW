@@ -50,7 +50,9 @@ export class KanbanCardComponent extends Component {
 		}
 		const metadata = this.task.metadata || {};
 		if (metadata.priority) {
-			const sanitizedPriority = sanitizePriorityForClass(metadata.priority);
+			const sanitizedPriority = sanitizePriorityForClass(
+				metadata.priority
+			);
 			if (sanitizedPriority) {
 				this.element.classList.add(`priority-${sanitizedPriority}`);
 			}
@@ -345,13 +347,17 @@ export class KanbanCardComponent extends Component {
 		}
 		if (oldMetadata.priority !== newMetadata.priority) {
 			if (oldMetadata.priority) {
-				const oldSanitized = sanitizePriorityForClass(oldMetadata.priority);
+				const oldSanitized = sanitizePriorityForClass(
+					oldMetadata.priority
+				);
 				if (oldSanitized) {
 					this.element.classList.remove(`priority-${oldSanitized}`);
 				}
 			}
 			if (newMetadata.priority) {
-				const newSanitized = sanitizePriorityForClass(newMetadata.priority);
+				const newSanitized = sanitizePriorityForClass(
+					newMetadata.priority
+				);
 				if (newSanitized) {
 					this.element.classList.add(`priority-${newSanitized}`);
 				}

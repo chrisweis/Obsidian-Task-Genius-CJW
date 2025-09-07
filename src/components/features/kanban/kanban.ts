@@ -22,7 +22,10 @@ import {
 	KanbanSpecificConfig,
 	KanbanColumnConfig,
 } from "../../../common/setting-definition";
-import { getEffectiveProject, isProjectReadonly } from "@/utils/task/task-operations";
+import {
+	getEffectiveProject,
+	isProjectReadonly,
+} from "@/utils/task/task-operations";
 
 // CSS classes for drop indicators
 const DROP_INDICATOR_BEFORE_CLASS = "tg-kanban-card--drop-indicator-before";
@@ -479,8 +482,7 @@ export class KanbanComponent extends Component {
 		const otherStatuses: string[] = [];
 
 		statusNames.forEach((statusName) => {
-			const statusMark =
-				this.plugin.settings.taskStatusMarks[statusName] || " ";
+			const statusMark = this.resolveStatusMark(statusName) ?? " ";
 
 			if (
 				this.plugin.settings.excludeMarksFromCycle &&
@@ -491,7 +493,7 @@ export class KanbanComponent extends Component {
 
 			if (statusMark === " ") {
 				spaceStatus.push(statusName);
-			} else if (statusMark === "x") {
+			} else if (statusMark.toLowerCase() === "x") {
 				xStatus.push(statusName);
 			} else {
 				otherStatuses.push(statusName);
@@ -720,8 +722,7 @@ export class KanbanComponent extends Component {
 	}
 
 	private getTasksForStatus(statusName: string): Task[] {
-		const statusMark =
-			this.plugin.settings.taskStatusMarks[statusName] || " ";
+		const statusMark = this.resolveStatusMark(statusName) ?? " ";
 
 		// Filter from the already filtered list
 		const tasksForStatus = this.tasks.filter((task) => {
@@ -855,8 +856,9 @@ export class KanbanComponent extends Component {
 
 				if (groupBy === "status") {
 					// Handle status-based grouping (original logic)
-					const targetStatusMark =
-						this.plugin.settings.taskStatusMarks[targetColumnTitle];
+					const targetStatusMark = this.resolveStatusMark(
+						(targetColumnTitle || "").trim()
+					);
 					if (targetStatusMark !== undefined) {
 						console.log(
 							`Kanban requesting status update for task ${taskId} to status ${targetColumnTitle} (mark: ${targetStatusMark})`
@@ -888,6 +890,14 @@ export class KanbanComponent extends Component {
 						sourceValue,
 						targetValue
 					);
+				}
+
+				// After update, select the moved task so the status panel (details) reflects changes
+				const movedTask =
+					this.allTasks.find((t) => t.id === taskId) ||
+					this.tasks.find((t) => t.id === taskId);
+				if (movedTask && this.params?.onTaskSelected) {
+					this.params.onTaskSelected(movedTask);
 				}
 			}
 		}
@@ -922,9 +932,34 @@ export class KanbanComponent extends Component {
 			startDate: t("Start Date"),
 			createdDate: t("Created Date"),
 		};
-
 		const orderLabel = order === "asc" ? t("Ascending") : t("Descending");
 		return `${fieldLabels[field]} (${orderLabel})`;
+	}
+
+	/**
+	 * Resolve a status column title to its mark safely.
+	 * Accepts either configured status names (e.g., "Abandoned")
+	 * or raw marks (e.g., "-", "x", "/").
+	 */
+	private resolveStatusMark(titleOrMark: string): string | undefined {
+		if (!titleOrMark) return undefined;
+		const trimmed = titleOrMark.trim();
+		// If a single-character mark is provided, use it as-is
+		if (trimmed.length === 1) {
+			return trimmed;
+		}
+		// Try exact match
+		const exact = (this.plugin.settings.taskStatusMarks as any)[trimmed];
+		if (typeof exact === "string") return exact;
+		// Try case-insensitive match
+		for (const [name, mark] of Object.entries(
+			this.plugin.settings.taskStatusMarks
+		)) {
+			if (name.toLowerCase() === trimmed.toLowerCase()) {
+				return mark as string;
+			}
+		}
+		return undefined;
 	}
 
 	public getColumnContainer(): HTMLElement {

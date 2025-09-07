@@ -234,8 +234,16 @@ export class WriteAPI {
 			const updatedTask = { ...originalTask, ...args.updates };
 			let taskLine = lines[originalTask.line];
 
-			// Update checkbox status
-			if (args.updates.completed !== undefined) {
+			// Update checkbox status or status mark
+			if (args.updates.status !== undefined) {
+				// Prefer explicit status mark if provided
+				const statusMark = args.updates.status as string;
+				taskLine = taskLine.replace(
+					/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
+					`$1${statusMark}$2`
+				);
+			} else if (args.updates.completed !== undefined) {
+				// Fallback to setting based on completed boolean
 				const statusMark = args.updates.completed ? "x" : " ";
 				taskLine = taskLine.replace(
 					/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
@@ -922,13 +930,20 @@ export class WriteAPI {
 
 			if (args.deleteChildren) {
 				// Get all descendant tasks
-				const descendantIds = await this.getDescendantTaskIds(args.taskId);
+				const descendantIds = await this.getDescendantTaskIds(
+					args.taskId
+				);
 				deletedTaskIds.push(...descendantIds);
 
 				// Collect line numbers for all descendants in the same file
 				for (const descendantId of descendantIds) {
-					const descendantTask = await Promise.resolve(this.getTaskById(descendantId));
-					if (descendantTask && descendantTask.filePath === task.filePath) {
+					const descendantTask = await Promise.resolve(
+						this.getTaskById(descendantId)
+					);
+					if (
+						descendantTask &&
+						descendantTask.filePath === task.filePath
+					) {
 						linesToDelete.push(descendantTask.line);
 					}
 				}
@@ -1010,10 +1025,7 @@ export class WriteAPI {
 	/**
 	 * Postpone tasks to a new date
 	 */
-	async postponeTasks(args: {
-		taskIds: string[];
-		newDate: string;
-	}): Promise<{
+	async postponeTasks(args: { taskIds: string[]; newDate: string }): Promise<{
 		updated: string[];
 		failed: Array<{ id: string; error: string }>;
 	}> {
@@ -1661,7 +1673,9 @@ export class WriteAPI {
 
 			if (args.deleteChildren) {
 				// Get all descendant tasks
-				const descendantIds = await this.getDescendantTaskIds(args.taskId);
+				const descendantIds = await this.getDescendantTaskIds(
+					args.taskId
+				);
 				deletedTaskIds.push(...descendantIds);
 			}
 
