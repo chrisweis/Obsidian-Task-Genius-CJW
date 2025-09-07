@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.6](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.5...9.8.6) (2025-09-07)
+
+### Bug Fixes
+
+* **project:** restore project config settings synchronization ([42d67c6](https://github.com/Quorafind/Obsidian-Task-Genius/commit/42d67c6))
+
 ## [9.8.5](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.4...9.8.5) (2025-09-07)
 
 ### Bug Fixes
