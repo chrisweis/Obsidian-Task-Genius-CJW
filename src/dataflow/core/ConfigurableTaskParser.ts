@@ -59,7 +59,7 @@ export class MarkdownTaskParser {
 		statusMapping: Record<string, string>,
 		timeParsingService?: TimeParsingService
 	): MarkdownTaskParser {
-		const newConfig = { ...config, statusMapping };
+		const newConfig = {...config, statusMapping};
 		return new MarkdownTaskParser(newConfig, timeParsingService);
 	}
 
@@ -177,10 +177,10 @@ export class MarkdownTaskParser {
 				const [comment, linesToSkip] =
 					this.config.parseComments && i + 1 < lines.length
 						? this.extractMultilineComment(
-								lines,
-								i + 1,
-								actualSpaces
-						  )
+							lines,
+							i + 1,
+							actualSpaces
+						)
 						: [undefined, 0];
 
 				i += linesToSkip;
@@ -471,7 +471,7 @@ export class MarkdownTaskParser {
 							this.config.specialTagPrefixes[prefix] ??
 							this.config.specialTagPrefixes[
 								prefix.toLowerCase()
-							];
+								];
 						console.debug("[TPB] Tag parse", {
 							tag,
 							prefix,
@@ -481,7 +481,7 @@ export class MarkdownTaskParser {
 						if (
 							metadataKey &&
 							this.config.metadataParseMode !==
-								MetadataParseMode.None
+							MetadataParseMode.None
 						) {
 							metadata[metadataKey] = value;
 						} else {
@@ -781,7 +781,7 @@ export class MarkdownTaskParser {
 					specialTagPrefixes: Object.keys(this.config.specialTagPrefixes || {}),
 				});
 			}
-			
+
 			const before = content.substring(0, start);
 			const after = content.substring(end + 1);
 			return [key, value, before + after];
@@ -801,7 +801,7 @@ export class MarkdownTaskParser {
 			const pos = content.indexOf(emoji);
 			if (pos !== -1) {
 				if (!earliestEmoji || pos < earliestEmoji.pos) {
-					earliestEmoji = { pos, emoji, key };
+					earliestEmoji = {pos, emoji, key};
 				}
 			}
 		}
@@ -1211,11 +1211,11 @@ export class MarkdownTaskParser {
 							this.config.specialTagPrefixes[prefix] ??
 							this.config.specialTagPrefixes[
 								prefix.toLowerCase()
-							];
+								];
 						if (
 							metadataKey &&
 							this.config.metadataParseMode !==
-								MetadataParseMode.None
+							MetadataParseMode.None
 						) {
 							metadata[metadataKey] = value;
 						} else {
@@ -1294,7 +1294,7 @@ export class MarkdownTaskParser {
 			);
 		}
 
-		this.indentStack.push({ taskId, indentLevel, actualSpaces });
+		this.indentStack.push({taskId, indentLevel, actualSpaces});
 	}
 
 	private getStatusFromMapping(rawStatus: string): string | undefined {
@@ -1494,9 +1494,9 @@ export class MarkdownTaskParser {
 				id: enhancedTask.metadata.id,
 				dependsOn: enhancedTask.metadata.dependsOn
 					? enhancedTask.metadata.dependsOn
-							.split(",")
-							.map((id) => id.trim())
-							.filter((id) => id.length > 0)
+						.split(",")
+						.map((id) => id.trim())
+						.filter((id) => id.length > 0)
 					: undefined,
 				onCompletion: enhancedTask.metadata.onCompletion,
 				// Legacy compatibility fields that should remain in metadata
@@ -1504,8 +1504,8 @@ export class MarkdownTaskParser {
 				heading: Array.isArray(enhancedTask.heading)
 					? enhancedTask.heading
 					: enhancedTask.heading
-					? [enhancedTask.heading]
-					: [],
+						? [enhancedTask.heading]
+						: [],
 				parent: enhancedTask.parentId,
 				tgProject: enhancedTask.tgProject,
 			},
@@ -1696,7 +1696,13 @@ export class MarkdownTaskParser {
 	}
 
 	/**
-	 * Inherit metadata from file frontmatter and project configuration
+	 * LEGACY (pre-dataflow): Inherit metadata from file frontmatter and project configuration
+	 *
+	 * In the new dataflow architecture, inheritance is handled exclusively by Augmentor.
+	 * This method remains for backward compatibility and is effectively disabled when
+	 * fileMetadataInheritance.enabled is false (returns {}). When enabled, Parser may still
+	 * perform minimal, legacy-compatible merging, but authoritative merging should be done
+	 * in Augmentor.merge().
 	 */
 	private inheritFileMetadata(
 		taskMetadata: Record<string, string>,
@@ -1756,7 +1762,7 @@ export class MarkdownTaskParser {
 		};
 
 		// Always convert priority values in task metadata, even if inheritance is disabled
-		const inherited = { ...taskMetadata };
+		const inherited = {...taskMetadata};
 		if (inherited.priority !== undefined) {
 			inherited.priority = convertPriorityValue(inherited.priority);
 		}
@@ -1764,11 +1770,14 @@ export class MarkdownTaskParser {
 		// Early return if enhanced project features are disabled
 		// Check if file metadata inheritance is enabled
 		if (!this.config.fileMetadataInheritance?.enabled) {
-			return inherited;
+			// Parser should not perform file-level inheritance when disabled
+			// Leave any file/frontmatter merging to Augmentor when enabled
+			return {};
 		}
 
 		// Check if frontmatter inheritance is enabled
 		if (!this.config.fileMetadataInheritance?.inheritFromFrontmatter) {
+			// Legacy behavior: return task-only metadata
 			return inherited;
 		}
 
@@ -1778,6 +1787,7 @@ export class MarkdownTaskParser {
 			!this.config.fileMetadataInheritance
 				?.inheritFromFrontmatterForSubtasks
 		) {
+			// Legacy behavior: do not inherit for subtasks
 			return inherited;
 		}
 
@@ -1806,7 +1816,7 @@ export class MarkdownTaskParser {
 			"metadata", // Prevent recursive metadata inheritance
 		]);
 
-		// Inherit from file metadata (frontmatter) if available
+		// LEGACY: Inherit from file metadata (frontmatter) if available
 		if (this.fileMetadata) {
 			// Map configured frontmatter project key to standard 'project'
 			try {
@@ -1817,7 +1827,7 @@ export class MarkdownTaskParser {
 					this.fileMetadata[configuredProjectKey] !== undefined &&
 					this.fileMetadata[configuredProjectKey] !== null &&
 					String(this.fileMetadata[configuredProjectKey]).trim() !==
-						""
+					""
 				) {
 					if (
 						inherited.project === undefined ||
@@ -1829,7 +1839,8 @@ export class MarkdownTaskParser {
 						).trim();
 					}
 				}
-			} catch {}
+			} catch {
+			}
 
 			for (const [key, value] of Object.entries(this.fileMetadata)) {
 				// Special handling for tags field
@@ -1896,7 +1907,7 @@ export class MarkdownTaskParser {
 			}
 		}
 
-		// Inherit from project configuration data if available
+		// LEGACY: Inherit from project configuration data if available
 		if (this.projectConfigCache) {
 			for (const [key, value] of Object.entries(
 				this.projectConfigCache
@@ -1980,6 +1991,6 @@ export class ConfigurableTaskParser extends MarkdownTaskParser {
 			},
 		};
 
-		super({ ...defaultConfig, ...config }, timeParsingService);
+		super({...defaultConfig, ...config}, timeParsingService);
 	}
 }

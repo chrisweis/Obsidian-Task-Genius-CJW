@@ -1622,6 +1622,10 @@ export default class TaskProgressBarPlugin extends Plugin {
 	async loadSettings() {
 		const savedData = await this.loadData();
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
+		try {
+			console.debug('[Plugin][loadSettings] fileMetadataInheritance (raw):', savedData?.fileMetadataInheritance);
+			console.debug('[Plugin][loadSettings] fileMetadataInheritance (effective):', this.settings.fileMetadataInheritance);
+		} catch {}
 
 		// Migrate old inheritance settings to new structure
 		this.migrateInheritanceSettings(savedData);
@@ -1658,6 +1662,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 	}
 
 	async saveSettings() {
+		try {
+			console.debug('[Plugin][saveSettings] fileMetadataInheritance:', this.settings?.fileMetadataInheritance);
+		} catch {}
 		await this.saveData(this.settings);
 	}
 

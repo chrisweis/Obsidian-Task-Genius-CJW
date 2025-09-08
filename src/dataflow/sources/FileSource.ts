@@ -11,7 +11,6 @@ import type {
 	FileSourceConfiguration,
 	FileSourceTaskMetadata,
 	FileSourceStats,
-	UpdateDecision,
 	FileTaskCache,
 	RecognitionStrategy,
 	PathRecognitionConfig,
@@ -198,16 +197,6 @@ export class FileSource {
 			return;
 		}
 
-		// Apply centralized file filter manager for file-scope rules
-		if (this.fileFilterManager) {
-			const include = this.fileFilterManager.shouldIncludePath(
-				filePath,
-				"file"
-			);
-
-			if (!include) return;
-		}
-
 		const shouldBeTask = await this.shouldCreateFileTask(filePath);
 		const existingCache = this.fileTaskCache.get(filePath);
 		const wasTask = existingCache?.fileTaskExists ?? false;
@@ -229,6 +218,7 @@ export class FileSource {
 	 * Check if a file should be treated as a task
 	 */
 	async shouldCreateFileTask(filePath: string): Promise<boolean> {
+		// Fast reject non-relevant files before any IO
 		if (!this.isRelevantFile(filePath)) return false;
 
 		const file = this.app.vault.getAbstractFileByPath(filePath) as TFile;
@@ -261,7 +251,7 @@ export class FileSource {
 		fileCache: CachedMetadata | null
 	): boolean {
 		const config = this.config.getConfig();
-		const { recognitionStrategies } = config;
+		const {recognitionStrategies} = config;
 
 		// Check metadata strategy
 		if (recognitionStrategies.metadata.enabled) {
@@ -333,7 +323,7 @@ export class FileSource {
 	): boolean {
 		if (!fileCache?.frontmatter) return false;
 
-		const { taskFields, requireAllFields } = config;
+		const {taskFields, requireAllFields} = config;
 		const frontmatter = fileCache.frontmatter;
 
 		const matchingFields = taskFields.filter(
@@ -360,7 +350,7 @@ export class FileSource {
 	): boolean {
 		if (!fileCache?.tags) return false;
 
-		const { taskTags, matchMode } = config;
+		const {taskTags, matchMode} = config;
 		const fileTags = fileCache.tags.map((tag) => tag.tag);
 
 		return taskTags.some((taskTag: string) => {
@@ -680,7 +670,7 @@ export class FileSource {
 				config.recognitionStrategies.metadata
 			)
 		) {
-			return { name: "metadata", criteria: "frontmatter" };
+			return {name: "metadata", criteria: "frontmatter"};
 		}
 
 		if (
@@ -692,7 +682,7 @@ export class FileSource {
 				config.recognitionStrategies.tags
 			)
 		) {
-			return { name: "tag", criteria: "file-tags" };
+			return {name: "tag", criteria: "file-tags"};
 		}
 
 		// Check path strategy
@@ -1016,19 +1006,7 @@ export class FileSource {
 	 * Check if file is relevant for processing
 	 */
 	private isRelevantFile(filePath: string): boolean {
-		// Use centralized FileFilterManager for 'file' scope filtering if available
-		if (this.fileFilterManager) {
-			const include = this.fileFilterManager.shouldIncludePath(
-				filePath,
-				"file"
-			);
-			console.log(
-				"[FileSource] isRelevantFile filter check (file-scope)",
-				{ filePath, include }
-			);
-			if (!include) return false;
-		}
-
+		// Fast-path filters first
 		// Only process markdown files for now (additional file type support can be added later)
 		if (!filePath.endsWith(".md")) {
 			return false;
@@ -1037,6 +1015,15 @@ export class FileSource {
 		// Skip system/hidden files
 		if (filePath.startsWith(".") || filePath.includes("/.")) {
 			return false;
+		}
+
+		// Apply centralized FileFilterManager for 'file' scope filtering if available
+		if (this.fileFilterManager) {
+			const include = this.fileFilterManager.shouldIncludePath(
+				filePath,
+				"file"
+			);
+			if (!include) return false;
 		}
 
 		return true;
@@ -1138,7 +1125,7 @@ export class FileSource {
 	 * Get current statistics
 	 */
 	getStats(): FileSourceStats {
-		return { ...this.stats };
+		return {...this.stats};
 	}
 
 	/**
@@ -1185,8 +1172,6 @@ export class FileSource {
 	async refresh(): Promise<void> {
 		if (!this.isInitialized || !this.config.isEnabled()) return;
 
-		console.log("[FileSource] Manual refresh triggered");
-
 		// Clear cache and re-scan
 		this.fileTaskCache.clear();
 		this.stats.trackedFileCount = 0;
@@ -1227,7 +1212,7 @@ export class FileSource {
 		this.stats = {
 			initialized: false,
 			trackedFileCount: 0,
-			recognitionBreakdown: { metadata: 0, tag: 0, template: 0, path: 0 },
+			recognitionBreakdown: {metadata: 0, tag: 0, template: 0, path: 0},
 			lastUpdate: 0,
 			lastUpdateSeq: 0,
 		};

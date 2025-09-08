@@ -164,17 +164,17 @@ export function renderIndexSettingsTab(
 		});
 
 		const exampleFormats = [
-			{ format: "yyyy-MM-dd", example: "2025-08-16" },
-			{ format: "dd/MM/yyyy", example: "16/08/2025" },
-			{ format: "MM-dd-yyyy", example: "08-16-2025" },
-			{ format: "yyyy.MM.dd", example: "2025.08.16" },
-			{ format: "yyyyMMdd", example: "20250816" },
-			{ format: "yyyyMMdd_HHmmss", example: "20250816_144403" },
-			{ format: "yyyyMMddHHmmss", example: "20250816144403" },
-			{ format: "yyyy-MM-dd'T'HH:mm", example: "2025-08-16T14:44" },
-			{ format: "dd MMM yyyy", example: "16 Aug 2025" },
-			{ format: "MMM dd, yyyy", example: "Aug 16, 2025" },
-			{ format: "yyyy年MM月dd日", example: "2025年08月16日" },
+			{format: "yyyy-MM-dd", example: "2025-08-16"},
+			{format: "dd/MM/yyyy", example: "16/08/2025"},
+			{format: "MM-dd-yyyy", example: "08-16-2025"},
+			{format: "yyyy.MM.dd", example: "2025.08.16"},
+			{format: "yyyyMMdd", example: "20250816"},
+			{format: "yyyyMMdd_HHmmss", example: "20250816_144403"},
+			{format: "yyyyMMddHHmmss", example: "20250816144403"},
+			{format: "yyyy-MM-dd'T'HH:mm", example: "2025-08-16T14:44"},
+			{format: "dd MMM yyyy", example: "16 Aug 2025"},
+			{format: "MMM dd, yyyy", example: "Aug 16, 2025"},
+			{format: "yyyy年MM月dd日", example: "2025年08月16日"},
 		];
 
 		const table = examplesContainer.createEl("table", {
@@ -182,13 +182,13 @@ export function renderIndexSettingsTab(
 		});
 
 		const headerRow = table.createEl("tr");
-		headerRow.createEl("th", { text: t("Format Pattern") });
-		headerRow.createEl("th", { text: t("Example") });
+		headerRow.createEl("th", {text: t("Format Pattern")});
+		headerRow.createEl("th", {text: t("Example")});
 
-		exampleFormats.forEach(({ format, example }) => {
+		exampleFormats.forEach(({format, example}) => {
 			const row = table.createEl("tr");
-			row.createEl("td", { text: format });
-			row.createEl("td", { text: example });
+			row.createEl("td", {text: format});
+			row.createEl("td", {text: example});
 		});
 	}
 
@@ -202,23 +202,23 @@ export function renderIndexSettingsTab(
 		.setDesc(
 			isDataviewFormat
 				? t(
-						"Customize the prefix used for project tags in dataview format (e.g., 'project' for [project:: myproject]). Changes require reindexing."
-				  )
+					"Customize the prefix used for project tags in dataview format (e.g., 'project' for [project:: myproject]). Changes require reindexing."
+				)
 				: t(
-						"Customize the prefix used for project tags (e.g., 'project' for #project/myproject). Changes require reindexing."
-				  )
+					"Customize the prefix used for project tags (e.g., 'project' for #project/myproject). Changes require reindexing."
+				)
 		)
 		.addText((text) => {
 			text.setPlaceholder("project")
 				.setValue(
 					settingTab.plugin.settings.projectTagPrefix[
 						settingTab.plugin.settings.preferMetadataFormat
-					]
+						]
 				)
 				.onChange(async (value) => {
 					settingTab.plugin.settings.projectTagPrefix[
 						settingTab.plugin.settings.preferMetadataFormat
-					] = value || "project";
+						] = value || "project";
 					settingTab.applySettingsUpdate();
 				});
 		});
@@ -229,23 +229,23 @@ export function renderIndexSettingsTab(
 		.setDesc(
 			isDataviewFormat
 				? t(
-						"Customize the prefix used for context tags in dataview format (e.g., 'context' for [context:: home]). Changes require reindexing."
-				  )
+					"Customize the prefix used for context tags in dataview format (e.g., 'context' for [context:: home]). Changes require reindexing."
+				)
 				: t(
-						"Customize the prefix used for context tags (e.g., '@home' for @home). Changes require reindexing."
-				  )
+					"Customize the prefix used for context tags (e.g., '@home' for @home). Changes require reindexing."
+				)
 		)
 		.addText((text) => {
 			text.setPlaceholder("context")
 				.setValue(
 					settingTab.plugin.settings.contextTagPrefix[
 						settingTab.plugin.settings.preferMetadataFormat
-					]
+						]
 				)
 				.onChange(async (value) => {
 					settingTab.plugin.settings.contextTagPrefix[
 						settingTab.plugin.settings.preferMetadataFormat
-					] = value || (isDataviewFormat ? "context" : "@");
+						] = value || (isDataviewFormat ? "context" : "@");
 					settingTab.applySettingsUpdate();
 				});
 		});
@@ -464,9 +464,26 @@ export function renderIndexSettingsTab(
 					settingTab.plugin.settings.fileMetadataInheritance.enabled
 				)
 				.onChange(async (value) => {
-					settingTab.plugin.settings.fileMetadataInheritance.enabled =
-						value;
+					settingTab.plugin.settings.fileMetadataInheritance.enabled = value;
 					settingTab.applySettingsUpdate();
+
+					new ConfirmModal(settingTab.plugin, {
+						title: t("Reindex"),
+						message: t("This change affects how tasks inherit metadata from files. Rebuild the index now so changes take effect immediately?"),
+						confirmText: t("Reindex"),
+						cancelText: t("Cancel"),
+						onConfirm: async (confirmed: boolean) => {
+							if (!confirmed) return;
+							try {
+								new Notice(t("Clearing task cache and rebuilding index..."));
+								await settingTab.plugin.dataflowOrchestrator?.onSettingsChange(["parser"]);
+								new Notice(t("Task index completely rebuilt"));
+							} catch (error) {
+								console.error("Failed to reindex after inheritance setting change:", error);
+								new Notice(t("Failed to reindex tasks"));
+							}
+						},
+					}).open();
 
 					setTimeout(() => {
 						settingTab.display();
@@ -489,9 +506,26 @@ export function renderIndexSettingsTab(
 							.inheritFromFrontmatter
 					)
 					.onChange(async (value) => {
-						settingTab.plugin.settings.fileMetadataInheritance.inheritFromFrontmatter =
-							value;
+						settingTab.plugin.settings.fileMetadataInheritance.inheritFromFrontmatter = value;
 						settingTab.applySettingsUpdate();
+
+						new ConfirmModal(settingTab.plugin, {
+							title: t("Reindex"),
+							message: t("This change affects how tasks inherit metadata from files. Rebuild the index now so changes take effect immediately?"),
+							confirmText: t("Reindex"),
+							cancelText: t("Cancel"),
+							onConfirm: async (confirmed: boolean) => {
+								if (!confirmed) return;
+								try {
+									new Notice(t("Clearing task cache and rebuilding index..."));
+									await settingTab.plugin.dataflowOrchestrator?.onSettingsChange(["parser"]);
+									new Notice(t("Task index completely rebuilt"));
+								} catch (error) {
+									console.error("Failed to reindex after inheritance setting change:", error);
+									new Notice(t("Failed to reindex tasks"));
+								}
+							},
+						}).open();
 					})
 			);
 
@@ -509,9 +543,26 @@ export function renderIndexSettingsTab(
 							.inheritFromFrontmatterForSubtasks
 					)
 					.onChange(async (value) => {
-						settingTab.plugin.settings.fileMetadataInheritance.inheritFromFrontmatterForSubtasks =
-							value;
+						settingTab.plugin.settings.fileMetadataInheritance.inheritFromFrontmatterForSubtasks = value;
 						settingTab.applySettingsUpdate();
+
+						new ConfirmModal(settingTab.plugin, {
+							title: t("Reindex"),
+							message: t("This change affects how tasks inherit metadata from files. Rebuild the index now so changes take effect immediately?"),
+							confirmText: t("Reindex"),
+							cancelText: t("Cancel"),
+							onConfirm: async (confirmed: boolean) => {
+								if (!confirmed) return;
+								try {
+									new Notice(t("Clearing task cache and rebuilding index..."));
+									await settingTab.plugin.dataflowOrchestrator?.onSettingsChange(["parser"]);
+									new Notice(t("Task index completely rebuilt"));
+								} catch (error) {
+									console.error("Failed to reindex after inheritance setting change:", error);
+									new Notice(t("Failed to reindex tasks"));
+								}
+							},
+						}).open();
 					})
 			);
 	}
