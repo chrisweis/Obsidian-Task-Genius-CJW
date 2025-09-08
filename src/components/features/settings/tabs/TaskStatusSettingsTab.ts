@@ -18,7 +18,6 @@ export function renderTaskStatusSettingsTab(
 		.setDesc(t("Configure checkbox status settings"))
 		.setHeading();
 
-
 	// Check if Tasks plugin is installed and show compatibility warning
 	const tasksAPI = getTasksAPI(settingTab.plugin);
 	if (tasksAPI) {
