@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.7](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.6...9.8.7) (2025-09-09)
+
+### Bug Fixes
+
+* **task-view:** allow task selection when inline editor is disabled ([81f7775](https://github.com/Quorafind/Obsidian-Task-Genius/commit/81f7775))
+* **metadata:** add reindexing prompts for inheritance settings and improve augmentor sync ([6c51119](https://github.com/Quorafind/Obsidian-Task-Genius/commit/6c51119))
+
+### Refactors
+
+* **debounce:** use Obsidian's built-in debounce utility and reduce log spam ([36ca266](https://github.com/Quorafind/Obsidian-Task-Genius/commit/36ca266))
+
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+
 ## [9.8.6](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.5...9.8.6) (2025-09-07)
 
 ### Bug Fixes
