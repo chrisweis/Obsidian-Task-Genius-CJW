@@ -818,19 +818,21 @@ export class TaskListItemComponent extends Component {
 	private registerContentClickHandler() {
 		// Make content clickable for editing or navigation
 		this.registerDomEvent(this.contentEl, "click", async (e) => {
-			e.stopPropagation();
-
 			// Check if modifier key is pressed (Cmd/Ctrl)
 			if (Keymap.isModEvent(e)) {
 				// Open task in file
+				e.stopPropagation();
 				await this.openTaskInFile();
 			} else if (
 				this.plugin.settings.enableInlineEditor &&
 				!this.isCurrentlyEditing()
 			) {
+				// Only stop propagation if we're actually going to show the editor
+				e.stopPropagation();
 				// Show inline editor only if enabled
 				this.getInlineEditor().showContentEditor(this.contentEl);
 			}
+			// If inline editor is disabled, let the click bubble up to select the task
 		});
 	}
 
