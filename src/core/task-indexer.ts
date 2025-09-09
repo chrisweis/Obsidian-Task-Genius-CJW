@@ -116,10 +116,14 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 						this.fileFilterManager,
 						"inline"
 					);
-					console.log("[TaskIndexer] modify event inline filter", {
-						path: file.path,
-						include,
-					});
+					// Reduce log spam: only log when include=true (actual work),
+					// or randomly sample the false cases.
+					if (include || Math.random() < 0.1) {
+						console.log("[TaskIndexer] modify event inline filter", {
+							path: file.path,
+							include,
+						});
+					}
 					if (include) this.queueFileForIndexing(file);
 				}
 			})

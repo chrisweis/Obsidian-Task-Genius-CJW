@@ -1,4 +1,4 @@
-import type { App, TFile, Vault, MetadataCache, EventRef } from "obsidian";
+import { debounce, type App, type TFile, type Vault, type MetadataCache, type EventRef } from "obsidian";
 import { Events, emit, on } from "../events/Events";
 
 /**
@@ -22,11 +22,11 @@ export class ObsidianSource {
 	private readonly DEBOUNCE_DELAY = 300; // ms
 	private readonly BATCH_DELAY = 150; // ms for batch operations
 
-	// Debouncing maps
-	private pendingFileChanges = new Map<string, NodeJS.Timeout>();
-	private pendingMetadataChanges = new Map<string, NodeJS.Timeout>();
+	// Debouncing maps (use Obsidian's debounce per path)
+	private pendingFileChanges = new Map<string, () => void>();
+	private pendingMetadataChanges = new Map<string, () => void>();
 	private pendingBatch = new Set<string>();
-	private batchTimeout: NodeJS.Timeout | null = null;
+	private debouncedBatch: (() => void) | null = null;
 
 	// Event filtering
 	private readonly IGNORED_EXTENSIONS = new Set([".tmp", ".swp", ".log"]);
@@ -126,19 +126,19 @@ export class ObsidianSource {
 			return;
 		}
 
-		// Clear existing timeout for this file
-		const existingTimeout = this.pendingFileChanges.get(file.path);
-		if (existingTimeout) {
-			clearTimeout(existingTimeout);
+		// Debounced emit per path using Obsidian's debounce
+		let debounced = this.pendingFileChanges.get(file.path);
+		if (!debounced) {
+			debounced = debounce(
+				() => {
+					this.emitFileUpdated(file.path, "modify");
+				},
+				this.DEBOUNCE_DELAY,
+				false
+			);
+			this.pendingFileChanges.set(file.path, debounced);
 		}
-
-		// Set new debounced timeout
-		const timeout = setTimeout(() => {
-			this.pendingFileChanges.delete(file.path);
-			this.emitFileUpdated(file.path, "modify");
-		}, this.DEBOUNCE_DELAY);
-
-		this.pendingFileChanges.set(file.path, timeout);
+		debounced();
 	}
 
 	/**
@@ -151,10 +151,8 @@ export class ObsidianSource {
 
 		console.log(`ObsidianSource: File deleted - ${file.path}`);
 
-		// Clear any pending changes for this file
-		const existingTimeout = this.pendingFileChanges.get(file.path);
-		if (existingTimeout) {
-			clearTimeout(existingTimeout);
+		// Clear any pending debounced action for this file (drop reference)
+		if (this.pendingFileChanges.has(file.path)) {
 			this.pendingFileChanges.delete(file.path);
 		}
 
@@ -178,10 +176,8 @@ export class ObsidianSource {
 			`ObsidianSource: File renamed - ${oldPath} -> ${file.path}`
 		);
 
-		// Clear any pending changes for the old path
-		const existingTimeout = this.pendingFileChanges.get(oldPath);
-		if (existingTimeout) {
-			clearTimeout(existingTimeout);
+		// Clear any pending debounced action for the old path (drop reference)
+		if (this.pendingFileChanges.has(oldPath)) {
 			this.pendingFileChanges.delete(oldPath);
 		}
 
@@ -216,19 +212,19 @@ export class ObsidianSource {
 			return;
 		}
 
-		// Clear existing timeout for this file
-		const existingTimeout = this.pendingMetadataChanges.get(file.path);
-		if (existingTimeout) {
-			clearTimeout(existingTimeout);
+		// Debounced emit per path using Obsidian's debounce
+		let debounced = this.pendingMetadataChanges.get(file.path);
+		if (!debounced) {
+			debounced = debounce(
+				() => {
+					this.emitFileUpdated(file.path, "frontmatter");
+				},
+				this.DEBOUNCE_DELAY,
+				false
+			);
+			this.pendingMetadataChanges.set(file.path, debounced);
 		}
-
-		// Set new debounced timeout
-		const timeout = setTimeout(() => {
-			this.pendingMetadataChanges.delete(file.path);
-			this.emitFileUpdated(file.path, "frontmatter");
-		}, this.DEBOUNCE_DELAY);
-
-		this.pendingMetadataChanges.set(file.path, timeout);
+		debounced();
 	}
 
 	/**
@@ -249,15 +245,15 @@ export class ObsidianSource {
 	private addToBatch(filePath: string): void {
 		this.pendingBatch.add(filePath);
 
-		// Clear existing batch timeout
-		if (this.batchTimeout) {
-			clearTimeout(this.batchTimeout);
+		// Debounced batch processing using Obsidian's debounce
+		if (!this.debouncedBatch) {
+			this.debouncedBatch = debounce(
+				() => this.processBatch(),
+				this.BATCH_DELAY,
+				false
+			);
 		}
-
-		// Set new batch timeout
-		this.batchTimeout = setTimeout(() => {
-			this.processBatch();
-		}, this.BATCH_DELAY);
+		this.debouncedBatch();
 	}
 
 	/**
@@ -270,7 +266,6 @@ export class ObsidianSource {
 
 		const files = Array.from(this.pendingBatch);
 		this.pendingBatch.clear();
-		this.batchTimeout = null;
 
 		console.log(
 			`ObsidianSource: Processing batch of ${files.length} files`
@@ -378,25 +373,20 @@ export class ObsidianSource {
 	flush(): void {
 		console.log("ObsidianSource: Flushing all pending changes");
 
-		// Process all pending file changes
-		for (const [filePath, timeout] of this.pendingFileChanges) {
-			clearTimeout(timeout);
+		// Process all pending file changes (invoke immediately and drop references)
+		for (const filePath of Array.from(this.pendingFileChanges.keys())) {
+			this.pendingFileChanges.delete(filePath);
 			this.emitFileUpdated(filePath, "modify");
 		}
-		this.pendingFileChanges.clear();
 
-		// Process all pending metadata changes
-		for (const [filePath, timeout] of this.pendingMetadataChanges) {
-			clearTimeout(timeout);
+		// Process all pending metadata changes (invoke immediately and drop references)
+		for (const filePath of Array.from(this.pendingMetadataChanges.keys())) {
+			this.pendingMetadataChanges.delete(filePath);
 			this.emitFileUpdated(filePath, "frontmatter");
 		}
-		this.pendingMetadataChanges.clear();
 
-		// Process pending batch
-		if (this.batchTimeout) {
-			clearTimeout(this.batchTimeout);
-			this.processBatch();
-		}
+		// Process pending batch immediately
+		this.processBatch();
 	}
 
 	/**
@@ -407,7 +397,7 @@ export class ObsidianSource {
 			pendingFileChanges: this.pendingFileChanges.size,
 			pendingMetadataChanges: this.pendingMetadataChanges.size,
 			pendingBatchSize: this.pendingBatch.size,
-			hasBatchTimeout: this.batchTimeout !== null,
+			hasBatchDebounce: this.debouncedBatch !== null,
 		};
 	}
 
@@ -417,22 +407,10 @@ export class ObsidianSource {
 	destroy(): void {
 		console.log("ObsidianSource: Cleaning up event subscriptions");
 
-		// Clear all debouncing timeouts
-		for (const timeout of this.pendingFileChanges.values()) {
-			clearTimeout(timeout);
-		}
+		// Drop references to all pending debounced actions
 		this.pendingFileChanges.clear();
-
-		for (const timeout of this.pendingMetadataChanges.values()) {
-			clearTimeout(timeout);
-		}
 		this.pendingMetadataChanges.clear();
-
-		if (this.batchTimeout) {
-			clearTimeout(this.batchTimeout);
-			this.batchTimeout = null;
-		}
-
+		this.debouncedBatch = null;
 		this.pendingBatch.clear();
 
 		// Unsubscribe from all events
