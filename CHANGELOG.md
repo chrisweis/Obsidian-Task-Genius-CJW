@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.8](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.7...9.8.8) (2025-09-11)
+
+### Bug Fixes
+
+* **file-filter:** correct folder rule matching for nested paths ([895444c](https://github.com/Quorafind/Obsidian-Task-Genius/commit/895444c))
+
 ## [9.8.7](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.6...9.8.7) (2025-09-09)
 
 ### Bug Fixes
