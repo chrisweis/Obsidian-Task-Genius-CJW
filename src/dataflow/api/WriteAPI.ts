@@ -22,6 +22,8 @@ import {
 } from "@/utils/file/file-operations";
 import { Events, emit } from "../events/Events";
 import { CanvasTaskUpdater } from "../../parsers/canvas-task-updater";
+import { rrulestr } from "rrule";
+import { localDateStringToTimestamp } from "../../utils/date/date-display-helper";
 
 /**
  * Arguments for creating a task
@@ -287,6 +289,32 @@ export class WriteAPI {
 			}
 
 			lines[originalTask.line] = taskLine;
+
+			// Check if this is a completion of a recurring task
+			const isCompletingRecurringTask =
+				!originalTask.completed &&
+				args.updates.completed === true &&
+				originalTask.metadata?.recurrence;
+
+			// If this is a completed recurring task, create a new task with updated dates
+			if (isCompletingRecurringTask) {
+				try {
+					const indentMatch = taskLine.match(/^(\s*)/);
+					const indentation = indentMatch ? indentMatch[0] : "";
+					const newTaskLine = this.createRecurringTask(
+						{...originalTask, ...args.updates} as Task,
+						indentation
+					);
+
+					// Insert the new task line after the current task
+					lines.splice(originalTask.line + 1, 0, newTaskLine);
+					console.log(
+						`Created new recurring task after line ${originalTask.line}`
+					);
+				} catch (error) {
+					console.error("Error creating recurring task:", error);
+				}
+			}
 
 			// Notify about write operation
 			emit(this.app, Events.WRITE_OPERATION_START, {
@@ -1800,5 +1828,317 @@ export class WriteAPI {
 	 */
 	getCanvasTaskUpdater(): CanvasTaskUpdater {
 		return this.canvasTaskUpdater;
+	}
+
+	/**
+	 * Creates a new task line based on a completed recurring task
+	 */
+	private createRecurringTask(
+		completedTask: Task,
+		indentation: string
+	): string {
+		// Calculate the next due date based on the recurrence pattern
+		const nextDate = this.calculateNextDueDate(completedTask);
+
+		// Create a new task with the same content but updated dates
+		const newTask = { ...completedTask };
+
+		// Reset completion status and date
+		newTask.completed = false;
+		newTask.metadata.completedDate = undefined;
+
+		// Determine where to apply the next date based on what the original task had
+		if (completedTask.metadata.dueDate) {
+			// If original task had due date, update due date
+			newTask.metadata.dueDate = nextDate;
+		} else if (completedTask.metadata.scheduledDate) {
+			// If original task only had scheduled date, update scheduled date
+			newTask.metadata.scheduledDate = nextDate;
+			newTask.metadata.dueDate = undefined; // Make sure due date is not set
+		} else {
+			newTask.metadata.dueDate = nextDate;
+		}
+
+		// Extract the original list marker (-, *, 1., etc.) from the original markdown
+		let listMarker = "- ";
+		if (completedTask.originalMarkdown) {
+			// Match the list marker pattern: could be "- ", "* ", "1. ", etc.
+			const listMarkerMatch = completedTask.originalMarkdown.match(
+				/^(\s*)([*\-+]|\d+\.)\s+\[/
+			);
+			if (listMarkerMatch && listMarkerMatch[2]) {
+				listMarker = listMarkerMatch[2] + " ";
+
+				// If it's a numbered list, increment the number
+				if (/^\d+\.$/.test(listMarkerMatch[2])) {
+					const numberStr = listMarkerMatch[2].replace(/\.$/, "");
+					const number = parseInt(numberStr);
+					listMarker = number + 1 + ". ";
+				}
+			}
+		}
+
+		// Start with the basic task using the extracted list marker and clean content
+		let newTaskLine = `${indentation}${listMarker}[ ] ${completedTask.content}`;
+
+		// Generate metadata for the new task
+		const metadata = this.generateMetadata({
+			tags: newTask.metadata.tags,
+			project: newTask.metadata.project,
+			context: newTask.metadata.context,
+			priority: newTask.metadata.priority,
+			startDate: newTask.metadata.startDate,
+			dueDate: newTask.metadata.dueDate,
+			scheduledDate: newTask.metadata.scheduledDate,
+			recurrence: newTask.metadata.recurrence,
+		});
+
+		if (metadata) {
+			newTaskLine = `${newTaskLine} ${metadata}`;
+		}
+
+		return newTaskLine;
+	}
+
+	/**
+	 * Calculates the next due date based on recurrence pattern
+	 */
+	private calculateNextDueDate(task: Task): number | undefined {
+		if (!task.metadata?.recurrence) return undefined;
+
+		// Determine base date based on user settings
+		let baseDate: Date;
+		const recurrenceDateBase =
+			this.plugin.settings.recurrenceDateBase || "due";
+
+		if (recurrenceDateBase === "current") {
+			// Always use current date
+			baseDate = new Date();
+		} else if (
+			recurrenceDateBase === "scheduled" &&
+			task.metadata.scheduledDate
+		) {
+			// Use scheduled date if available
+			baseDate = new Date(task.metadata.scheduledDate);
+		} else if (recurrenceDateBase === "due" && task.metadata.dueDate) {
+			// Use due date if available (default behavior)
+			baseDate = new Date(task.metadata.dueDate);
+		} else {
+			// Fallback to current date if the specified date type is not available
+			baseDate = new Date();
+		}
+
+		// Ensure baseDate is at the beginning of the day for date-based recurrence
+		baseDate.setHours(0, 0, 0, 0);
+
+		try {
+			// Try parsing with rrule first
+			try {
+				const rule = rrulestr(task.metadata.recurrence, {
+					dtstart: baseDate,
+				});
+
+				// Get current date for comparison
+				const now = new Date();
+				const todayStart = new Date(now);
+				todayStart.setHours(0, 0, 0, 0);
+				
+				// We want the first occurrence strictly after today (not just after baseDate)
+				// This ensures the next task is always in the future
+				const afterDate = new Date(Math.max(baseDate.getTime(), todayStart.getTime()) + 1000); // 1 second after the later of baseDate or today
+				const nextOccurrence = rule.after(afterDate);
+
+				if (nextOccurrence) {
+					// Set time to start of day
+					nextOccurrence.setHours(0, 0, 0, 0);
+					// Ensure it's in the future
+					if (nextOccurrence.getTime() > todayStart.getTime()) {
+						// Convert to UTC noon timestamp for consistent storage
+						const year = nextOccurrence.getFullYear();
+						const month = nextOccurrence.getMonth();
+						const day = nextOccurrence.getDate();
+						return Date.UTC(year, month, day, 12, 0, 0);
+					}
+					// If somehow still not in future, try getting the next occurrence
+					const futureOccurrence = rule.after(new Date(todayStart.getTime() + 86400000)); // Tomorrow
+					if (futureOccurrence) {
+						futureOccurrence.setHours(0, 0, 0, 0);
+						// Convert to UTC noon timestamp
+						const year = futureOccurrence.getFullYear();
+						const month = futureOccurrence.getMonth();
+						const day = futureOccurrence.getDate();
+						return Date.UTC(year, month, day, 12, 0, 0);
+					}
+				}
+			} catch (e) {
+				// rrulestr failed, fall back to simple parsing
+				console.log(
+					`Failed to parse recurrence '${task.metadata.recurrence}' with rrule. Falling back to simple logic.`
+				);
+			}
+
+			// --- Fallback Simple Parsing Logic ---
+			const recurrence = task.metadata.recurrence.trim().toLowerCase();
+			let nextDate = new Date(baseDate);
+
+			// Parse "every X days/weeks/months/years" format
+			if (recurrence.startsWith("every")) {
+				const parts = recurrence.split(" ");
+				if (parts.length >= 2) {
+					let interval = 1;
+					let unit = parts[1];
+					if (parts.length >= 3 && !isNaN(parseInt(parts[1]))) {
+						interval = parseInt(parts[1]);
+						unit = parts[2];
+					}
+					if (unit.endsWith("s")) {
+						unit = unit.substring(0, unit.length - 1);
+					}
+					switch (unit) {
+						case "day":
+							nextDate.setDate(baseDate.getDate() + interval);
+							break;
+						case "week":
+							nextDate.setDate(baseDate.getDate() + interval * 7);
+							break;
+						case "month":
+							nextDate.setMonth(baseDate.getMonth() + interval);
+							break;
+						case "year":
+							nextDate.setFullYear(baseDate.getFullYear() + interval);
+							break;
+						default:
+							// Default to days
+							nextDate.setDate(baseDate.getDate() + interval);
+					}
+				} else {
+					// Malformed "every" rule, fallback to +1 day
+					nextDate.setDate(baseDate.getDate() + 1);
+				}
+			}
+			// Handle specific weekday recurrences like "every Monday"
+			else if (
+				recurrence.includes("monday") ||
+				recurrence.includes("tuesday") ||
+				recurrence.includes("wednesday") ||
+				recurrence.includes("thursday") ||
+				recurrence.includes("friday") ||
+				recurrence.includes("saturday") ||
+				recurrence.includes("sunday")
+			) {
+				const weekdays: { [key: string]: number } = {
+					sunday: 0,
+					monday: 1,
+					tuesday: 2,
+					wednesday: 3,
+					thursday: 4,
+					friday: 5,
+					saturday: 6,
+				};
+				let targetDay = -1;
+				for (const [day, value] of Object.entries(weekdays)) {
+					if (recurrence.includes(day)) {
+						targetDay = value;
+						break;
+					}
+				}
+				if (targetDay >= 0) {
+					// Start calculation from the day *after* the baseDate
+					nextDate.setDate(baseDate.getDate() + 1);
+					while (nextDate.getDay() !== targetDay) {
+						nextDate.setDate(nextDate.getDate() + 1);
+					}
+				} else {
+					// Fallback to +1 day
+					nextDate.setDate(baseDate.getDate() + 1);
+				}
+			} else {
+				// Unknown format, fallback to +1 day
+				nextDate.setDate(baseDate.getDate() + 1);
+			}
+
+			// Ensure the calculated date is at the start of the day
+			nextDate.setHours(0, 0, 0, 0);
+			
+			// IMPORTANT: If the calculated next date is not in the future (could be today or in the past),
+			// we need to calculate the next occurrence after today
+			const now = new Date();
+			const todayStart = new Date(now);
+			todayStart.setHours(0, 0, 0, 0);
+			
+			// If the next date is today or in the past, we need to find the next valid occurrence
+			if (nextDate.getTime() <= todayStart.getTime()) {
+				// For daily recurrence, just add intervals until we get a future date
+				if (recurrence.startsWith("every")) {
+					const parts = recurrence.split(" ");
+					let interval = 1;
+					let unit = parts[1];
+					if (parts.length >= 3 && !isNaN(parseInt(parts[1]))) {
+						interval = parseInt(parts[1]);
+						unit = parts[2];
+					}
+					if (unit.endsWith("s")) {
+						unit = unit.substring(0, unit.length - 1);
+					}
+					
+					// Keep adding intervals until we get a future date
+					while (nextDate.getTime() <= todayStart.getTime()) {
+						switch (unit) {
+							case "day":
+								nextDate.setDate(nextDate.getDate() + interval);
+								break;
+							case "week":
+								nextDate.setDate(nextDate.getDate() + interval * 7);
+								break;
+							case "month":
+								nextDate.setMonth(nextDate.getMonth() + interval);
+								break;
+							case "year":
+								nextDate.setFullYear(nextDate.getFullYear() + interval);
+								break;
+							default:
+								nextDate.setDate(nextDate.getDate() + interval);
+						}
+					}
+				}
+				// For weekday recurrence, find the next occurrence
+				else if (
+					recurrence.includes("monday") ||
+					recurrence.includes("tuesday") ||
+					recurrence.includes("wednesday") ||
+					recurrence.includes("thursday") ||
+					recurrence.includes("friday") ||
+					recurrence.includes("saturday") ||
+					recurrence.includes("sunday")
+				) {
+					// Already handled above, but if still in past, add a week
+					if (nextDate.getTime() <= todayStart.getTime()) {
+						nextDate.setDate(nextDate.getDate() + 7);
+					}
+				}
+			}
+			
+			// Convert to UTC noon timestamp for consistent storage
+			// This follows the same pattern as date-display-helper.ts
+			const year = nextDate.getFullYear();
+			const month = nextDate.getMonth(); // 0-based
+			const day = nextDate.getDate();
+			
+			// Create UTC noon timestamp
+			const utcNoonTimestamp = Date.UTC(year, month, day, 12, 0, 0);
+			return utcNoonTimestamp;
+		} catch (error) {
+			console.error("Error calculating next date:", error);
+			// Default fallback: add one day to current date
+			const tomorrow = new Date();
+			tomorrow.setDate(tomorrow.getDate() + 1);
+			tomorrow.setHours(0, 0, 0, 0);
+			
+			// Convert to UTC noon timestamp
+			const year = tomorrow.getFullYear();
+			const month = tomorrow.getMonth();
+			const day = tomorrow.getDate();
+			return Date.UTC(year, month, day, 12, 0, 0);
+		}
 	}
 }
