@@ -89,9 +89,12 @@ export class DataflowOrchestrator {
 		// Initial sync of settings to Augmentor to ensure correct inheritance behavior on startup
 		try {
 			const initFmi = this.plugin?.settings?.fileMetadataInheritance;
-			this.augmentor.updateSettings({fileMetadataInheritance: initFmi});
+			this.augmentor.updateSettings({ fileMetadataInheritance: initFmi });
 		} catch (e) {
-			console.warn('[DataflowOrchestrator][init] Failed to sync settings to Augmentor', e);
+			console.warn(
+				"[DataflowOrchestrator][init] Failed to sync settings to Augmentor",
+				e
+			);
 		}
 		this.storage = this.repository.getStorage();
 
@@ -151,9 +154,9 @@ export class DataflowOrchestrator {
 				focusHeading: this.plugin.settings.focusHeading || "",
 				fileParsingConfig: undefined,
 				fileMetadataInheritance:
-				this.plugin.settings.fileMetadataInheritance,
+					this.plugin.settings.fileMetadataInheritance,
 				enableCustomDateFormats:
-				this.plugin.settings.enableCustomDateFormats,
+					this.plugin.settings.enableCustomDateFormats,
 				customDateFormats: this.plugin.settings.customDateFormats,
 				// Include tag prefixes for custom dataview field support
 				projectTagPrefix: this.plugin.settings.projectTagPrefix,
@@ -177,7 +180,7 @@ export class DataflowOrchestrator {
 		this.workerOrchestrator = new WorkerOrchestrator(
 			taskWorkerManager,
 			projectWorkerManager,
-			{enableWorkerProcessing}
+			{ enableWorkerProcessing }
 		);
 
 		// Initialize Obsidian event source
@@ -189,28 +192,28 @@ export class DataflowOrchestrator {
 		// Initialize TimeParsingService with plugin settings
 		this.timeParsingService = new TimeParsingService(
 			this.plugin.settings?.timeParsing ||
-			({
-				enabled: true,
-				supportedLanguages: ["en", "zh"],
-				dateKeywords: {
-					start: ["start", "begin", "from"],
-					due: ["due", "deadline", "by", "until"],
-					scheduled: ["scheduled", "on", "at"],
-				},
-				removeOriginalText: true,
-				perLineProcessing: true,
-				realTimeReplacement: true,
-				timePatterns: {
-					singleTime: [],
-					timeRange: [],
-					rangeSeparators: ["-", "~", "～"],
-				},
-				timeDefaults: {
-					preferredFormat: "24h",
-					defaultPeriod: "AM",
-					midnightCrossing: "next-day",
-				},
-			} as EnhancedTimeParsingConfig)
+				({
+					enabled: true,
+					supportedLanguages: ["en", "zh"],
+					dateKeywords: {
+						start: ["start", "begin", "from"],
+						due: ["due", "deadline", "by", "until"],
+						scheduled: ["scheduled", "on", "at"],
+					},
+					removeOriginalText: true,
+					perLineProcessing: true,
+					realTimeReplacement: true,
+					timePatterns: {
+						singleTime: [],
+						timeRange: [],
+						rangeSeparators: ["-", "~", "～"],
+					},
+					timeDefaults: {
+						preferredFormat: "24h",
+						defaultPeriod: "AM",
+						midnightCrossing: "next-day",
+					},
+				} as EnhancedTimeParsingConfig)
 		);
 
 		// Initialize FileSource (conditionally based on settings)
@@ -409,7 +412,7 @@ export class DataflowOrchestrator {
 		// Listen for ICS events updates
 		this.eventRefs.push(
 			on(this.app, Events.ICS_EVENTS_UPDATED, async (payload: any) => {
-				const {events, seq} = payload;
+				const { events, seq } = payload;
 				console.log(
 					`[DataflowOrchestrator] ICS_EVENTS_UPDATED: ${
 						events?.length || 0
@@ -426,7 +429,7 @@ export class DataflowOrchestrator {
 		// Listen for file updates from ObsidianSource
 		this.eventRefs.push(
 			on(this.app, Events.FILE_UPDATED, async (payload: any) => {
-				const {path, reason} = payload;
+				const { path, reason } = payload;
 				console.log(
 					`[DataflowOrchestrator] FILE_UPDATED event: ${path} (${reason})`
 				);
@@ -450,7 +453,7 @@ export class DataflowOrchestrator {
 		// ObsidianSource uses FILE_UPDATED events instead
 		this.eventRefs.push(
 			on(this.app, Events.TASK_CACHE_UPDATED, async (payload: any) => {
-				const {changedFiles, sourceSeq} = payload;
+				const { changedFiles, sourceSeq } = payload;
 
 				// Skip if this is our own event (avoid infinite loop)
 				// Check sourceSeq to identify origin from our own processing
@@ -490,7 +493,7 @@ export class DataflowOrchestrator {
 				this.app,
 				Events.WRITE_OPERATION_COMPLETE,
 				async (payload: any) => {
-					const {path, taskId} = payload;
+					const { path, taskId } = payload;
 					console.log(
 						`[DataflowOrchestrator] WRITE_OPERATION_COMPLETE: ${path}, taskId: ${taskId}`
 					);
@@ -515,7 +518,7 @@ export class DataflowOrchestrator {
 		// Listen for direct task updates (from inline editing)
 		this.eventRefs.push(
 			on(this.app, Events.TASK_UPDATED, async (payload: any) => {
-				const {task} = payload;
+				const { task } = payload;
 				if (task) {
 					console.log(
 						`[DataflowOrchestrator] TASK_UPDATED: ${task.id} in ${task.filePath}`
@@ -529,7 +532,7 @@ export class DataflowOrchestrator {
 		// Listen for task deletion events
 		this.eventRefs.push(
 			on(this.app, Events.TASK_DELETED, async (payload: any) => {
-				const {taskId, filePath, deletedTaskIds, mode} = payload;
+				const { taskId, filePath, deletedTaskIds, mode } = payload;
 				console.log(
 					`[DataflowOrchestrator] TASK_DELETED: ${taskId} in ${filePath}, mode: ${mode}, deleted: ${
 						deletedTaskIds?.length || 1
@@ -557,7 +560,7 @@ export class DataflowOrchestrator {
 		if (this.fileSource) {
 			this.eventRefs.push(
 				on(this.app, Events.FILE_TASK_UPDATED, async (payload: any) => {
-					const {task} = payload;
+					const { task } = payload;
 					console.log(
 						`[DataflowOrchestrator] FILE_TASK_UPDATED: ${task?.filePath}`
 					);
@@ -570,7 +573,7 @@ export class DataflowOrchestrator {
 
 			this.eventRefs.push(
 				on(this.app, Events.FILE_TASK_REMOVED, async (payload: any) => {
-					const {filePath} = payload;
+					const { filePath } = payload;
 					console.log(
 						`[DataflowOrchestrator] FILE_TASK_REMOVED: ${filePath}`
 					);
@@ -649,13 +652,13 @@ export class DataflowOrchestrator {
 				// Apply inline filter even when using cached augmented tasks
 				const includeInlineCached = this.fileFilterManager
 					? this.fileFilterManager.shouldIncludePath(
-						filePath,
-						"inline"
-					)
+							filePath,
+							"inline"
+					  )
 					: true;
 				console.log(
 					"[DataflowOrchestrator] Inline filter decision (cached augmented)",
-					{filePath, includeInline: includeInlineCached}
+					{ filePath, includeInline: includeInlineCached }
 				);
 				if (!includeInlineCached) {
 					augmentedTasks = [];
@@ -683,13 +686,13 @@ export class DataflowOrchestrator {
 					);
 					const includeInlineReaugment = this.fileFilterManager
 						? this.fileFilterManager.shouldIncludePath(
-							filePath,
-							"inline"
-						)
+								filePath,
+								"inline"
+						  )
 						: true;
 					console.log(
 						"[DataflowOrchestrator] Inline filter decision (re-augment cached raw)",
-						{filePath, includeInline: includeInlineReaugment}
+						{ filePath, includeInline: includeInlineReaugment }
 					);
 					rawTasks = includeInlineReaugment ? rawCached.data : [];
 					projectData = await this.projectResolver.get(filePath);
@@ -712,27 +715,27 @@ export class DataflowOrchestrator {
 					try {
 						const taskWorkerManager = this.workerOrchestrator[
 							"taskWorkerManager"
-							] as TaskWorkerManager | undefined;
+						] as TaskWorkerManager | undefined;
 						if (taskWorkerManager) {
 							taskWorkerManager.updateSettings({
 								preferMetadataFormat:
 									this.plugin.settings.preferMetadataFormat ||
 									"tasks",
 								customDateFormats:
-								this.plugin.settings.customDateFormats,
+									this.plugin.settings.customDateFormats,
 								fileMetadataInheritance:
-								this.plugin.settings
-									.fileMetadataInheritance,
+									this.plugin.settings
+										.fileMetadataInheritance,
 								ignoreHeading:
-								this.plugin.settings.ignoreHeading,
+									this.plugin.settings.ignoreHeading,
 								focusHeading: this.plugin.settings.focusHeading,
 								// Include tag prefixes for custom dataview field support
 								projectTagPrefix:
-								this.plugin.settings.projectTagPrefix,
+									this.plugin.settings.projectTagPrefix,
 								contextTagPrefix:
-								this.plugin.settings.contextTagPrefix,
+									this.plugin.settings.contextTagPrefix,
 								areaTagPrefix:
-								this.plugin.settings.areaTagPrefix,
+									this.plugin.settings.areaTagPrefix,
 							});
 						}
 					} catch (e) {
@@ -745,13 +748,13 @@ export class DataflowOrchestrator {
 					// Apply inline filter for parse path
 					const includeInlineParse = this.fileFilterManager
 						? this.fileFilterManager.shouldIncludePath(
-							filePath,
-							"inline"
-						)
+								filePath,
+								"inline"
+						  )
 						: true;
 					console.log(
 						"[DataflowOrchestrator] Inline filter decision (parse path)",
-						{filePath, includeInline: includeInlineParse}
+						{ filePath, includeInline: includeInlineParse }
 					);
 					if (includeInlineParse) {
 						// Parse the file using workers (single-file path)
@@ -869,12 +872,18 @@ export class DataflowOrchestrator {
 
 		// Sync inheritance toggle to augmentor so it can respect disabling file frontmatter inheritance
 		try {
-			console.debug('[DataflowOrchestrator][updateSettings] fileMetadataInheritance =', settings.fileMetadataInheritance);
+			console.debug(
+				"[DataflowOrchestrator][updateSettings] fileMetadataInheritance =",
+				settings.fileMetadataInheritance
+			);
 			this.augmentor.updateSettings({
 				fileMetadataInheritance: settings.fileMetadataInheritance,
 			});
 		} catch (e) {
-			console.warn("[DataflowOrchestrator] Failed to sync settings to Augmentor", e);
+			console.warn(
+				"[DataflowOrchestrator] Failed to sync settings to Augmentor",
+				e
+			);
 		}
 
 		// Update FileSource if needed
@@ -926,7 +935,7 @@ export class DataflowOrchestrator {
 		try {
 			const taskWorkerManager = this.workerOrchestrator?.[
 				"taskWorkerManager"
-				] as
+			] as
 				| import("./workers/TaskWorkerManager").TaskWorkerManager
 				| undefined;
 			if (taskWorkerManager) {
@@ -970,7 +979,7 @@ export class DataflowOrchestrator {
 			const newEnabled: boolean = Boolean(settings?.fileFilter?.enabled);
 			const rulesCount = Array.isArray(settings?.fileFilter?.rules)
 				? settings.fileFilter.rules.filter((r: any) => r?.enabled)
-					.length
+						.length
 				: 0;
 			console.log("[TG Index Filter] settingsChange", {
 				enabled: newEnabled,
@@ -1107,7 +1116,7 @@ export class DataflowOrchestrator {
 					);
 					console.log(
 						"[DataflowOrchestrator] restoreByFilter fallback candidates",
-						{extra: inlineCandidates.length}
+						{ extra: inlineCandidates.length }
 					);
 				} catch (e) {
 					console.warn(
@@ -1140,7 +1149,7 @@ export class DataflowOrchestrator {
 								path,
 								augmented.data,
 								undefined,
-								{forceEmit: true}
+								{ forceEmit: true }
 							);
 							restoredFromAugmented++;
 							this.suppressedInline.delete(path);
@@ -1199,7 +1208,7 @@ export class DataflowOrchestrator {
 
 						console.warn(
 							"[DataflowOrchestrator] restore inline failed",
-							{path, e}
+							{ path, e }
 						);
 					}
 				}
@@ -1235,7 +1244,7 @@ export class DataflowOrchestrator {
 				} catch (e) {
 					console.warn(
 						"[DataflowOrchestrator] restore file-task emit failed",
-						{path, e}
+						{ path, e }
 					);
 				}
 			}
@@ -1259,7 +1268,7 @@ export class DataflowOrchestrator {
 	 */
 	getWorkerStatus(): { enabled: boolean; metrics?: any } {
 		if (!this.workerOrchestrator) {
-			return {enabled: false};
+			return { enabled: false };
 		}
 
 		return {
@@ -1358,16 +1367,16 @@ export class DataflowOrchestrator {
 				// Configure worker manager with plugin settings
 				const taskWorkerManager = this.workerOrchestrator[
 					"taskWorkerManager"
-					] as TaskWorkerManager;
+				] as TaskWorkerManager;
 				if (taskWorkerManager) {
 					taskWorkerManager.updateSettings({
 						preferMetadataFormat:
 							this.plugin.settings.preferMetadataFormat ||
 							"tasks",
 						customDateFormats:
-						this.plugin.settings.customDateFormats,
+							this.plugin.settings.customDateFormats,
 						fileMetadataInheritance:
-						this.plugin.settings.fileMetadataInheritance,
+							this.plugin.settings.fileMetadataInheritance,
 						projectConfig: this.plugin.settings.projectConfig,
 						ignoreHeading: this.plugin.settings.ignoreHeading,
 						focusHeading: this.plugin.settings.focusHeading,
@@ -1401,6 +1410,17 @@ export class DataflowOrchestrator {
 					try {
 						const file = files.find((f) => f.path === filePath);
 						if (!file) continue;
+						// Apply inline file filter early in worker path
+						const includeInline = this.fileFilterManager
+							? this.fileFilterManager.shouldIncludePath(
+									filePath,
+									"inline"
+							  )
+							: true;
+						if (!includeInline) {
+							updates.set(filePath, []);
+							continue;
+						}
 
 						// Get file modification time for caching
 						const fileStat = await this.vault.adapter.stat(
@@ -1434,9 +1454,9 @@ export class DataflowOrchestrator {
 							projectName: projectData?.tgProject?.name,
 							projectMeta: projectData
 								? {
-									...(projectData.enhancedMetadata || {}),
-									tgProject: projectData.tgProject, // Include tgProject in projectMeta
-								}
+										...(projectData.enhancedMetadata || {}),
+										tgProject: projectData.tgProject, // Include tgProject in projectMeta
+								  }
 								: {},
 							tasks: rawTasks,
 						};
@@ -1508,6 +1528,19 @@ export class DataflowOrchestrator {
 				const rawCached = await this.storage.loadRaw(filePath);
 				const fileContent = await this.vault.cachedRead(file);
 
+				// Apply inline file filter early for all branches
+				const includeInlineEarly = this.fileFilterManager
+					? this.fileFilterManager.shouldIncludePath(
+							filePath,
+							"inline"
+					  )
+					: true;
+				if (!includeInlineEarly) {
+					updates.set(filePath, []);
+					localSkippedCount++;
+					continue;
+				}
+
 				// Check both raw and augmented cache
 				const augmentedCached = await this.storage.loadAugmented(
 					filePath
@@ -1574,13 +1607,13 @@ export class DataflowOrchestrator {
 					// Apply file filter scope: skip inline parsing when scope === 'file'
 					const includeInline = this.fileFilterManager
 						? this.fileFilterManager.shouldIncludePath(
-							filePath,
-							"inline"
-						)
+								filePath,
+								"inline"
+						  )
 						: true;
 					console.log(
 						"[DataflowOrchestrator] Inline filter decision",
-						{filePath, includeInline}
+						{ filePath, includeInline }
 					);
 					const rawTasks = includeInline
 						? await this.parseFile(file, projectData.tgProject)

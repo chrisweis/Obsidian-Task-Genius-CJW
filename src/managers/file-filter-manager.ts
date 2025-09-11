@@ -5,7 +5,7 @@
  * Provides efficient path matching and caching mechanisms.
  */
 
-import { TFile, TFolder } from "obsidian";
+import { normalizePath, TFile, TFolder } from "obsidian";
 import { FilterMode } from "../common/setting-definition";
 
 /**
@@ -46,7 +46,7 @@ class PathTrie {
 	 * Insert a path into the trie
 	 */
 	insert(path: string, isFolder: boolean = true): void {
-		const parts = this.normalizePath(path)
+		const parts = normalizePath(path)
 			.split("/")
 			.filter((part) => part.length > 0);
 		let current = this.root;
@@ -66,29 +66,30 @@ class PathTrie {
 	 * Check if a path or its parent is in the trie
 	 */
 	contains(path: string): boolean {
-		const parts = this.normalizePath(path)
+		const parts = normalizePath(path)
 			.split("/")
 			.filter((part) => part.length > 0);
-		let current = this.root;
 
-		for (let i = 0; i < parts.length; i++) {
-			const part = parts[i];
+		console.log(parts, path);
 
-			// Check if current path segment matches a folder rule
-			if (current.children.has(part)) {
+		// Try to match the rule starting at any segment in the input path
+		for (let start = 0; start < parts.length; start++) {
+			let current = this.root;
+			for (let i = start; i < parts.length; i++) {
+				const part = parts[i];
+				if (!current.children.has(part)) {
+					break; // mismatch at this starting position; try next start
+				}
 				current = current.children.get(part)!;
-
-				// If this is a folder rule and we're checking a path under it
+				// If this is a folder rule and we're checking a path under it (or exact folder)
 				if (current.isEndOfPath && current.isFolder) {
 					return true;
 				}
-			} else {
-				return false;
 			}
 		}
 
-		// Check if the exact path matches
-		return current.isEndOfPath;
+		// No folder rule matched anywhere in the path
+		return false;
 	}
 
 	/**
@@ -96,13 +97,6 @@ class PathTrie {
 	 */
 	clear(): void {
 		this.root = new PathTrieNode();
-	}
-
-	/**
-	 * Normalize path for consistent matching
-	 */
-	private normalizePath(path: string): string {
-		return path.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
 	}
 }
 
@@ -152,14 +146,14 @@ export class FileFilterManager {
 		}
 
 		const filePath = file.path;
-
+		const key = this.getCacheKey("file", filePath, scope);
 		// Check cache first
-		if (this.cache.has(filePath)) {
-			return this.cache.get(filePath)!;
+		if (this.cache.has(key)) {
+			return this.cache.get(key)!;
 		}
 
 		const result = this.evaluateFile(filePath, scope);
-		this.cache.set(filePath, result);
+		this.cache.set(key, result);
 		return result;
 	}
 
@@ -175,14 +169,14 @@ export class FileFilterManager {
 		}
 
 		const folderPath = folder.path;
-
+		const key = this.getCacheKey("folder", folderPath, scope);
 		// Check cache first
-		if (this.cache.has(folderPath)) {
-			return this.cache.get(folderPath)!;
+		if (this.cache.has(key)) {
+			return this.cache.get(key)!;
 		}
 
 		const result = this.evaluateFolder(folderPath, scope);
-		this.cache.set(folderPath, result);
+		this.cache.set(key, result);
 		return result;
 	}
 
@@ -197,13 +191,14 @@ export class FileFilterManager {
 			return true;
 		}
 
+		const key = this.getCacheKey("path", path, scope);
 		// Check cache first
-		if (this.cache.has(path)) {
-			return this.cache.get(path)!;
+		if (this.cache.has(key)) {
+			return this.cache.get(key)!;
 		}
 
 		const result = this.evaluatePath(path, scope);
-		this.cache.set(path, result);
+		this.cache.set(key, result);
 		return result;
 	}
 
@@ -223,6 +218,16 @@ export class FileFilterManager {
 	 */
 	clearCache(): void {
 		this.cache.clear();
+	}
+	/**
+	 * Build a cache key that is scoped by kind and scope to avoid cross-scope pollution
+	 */
+	private getCacheKey(
+		kind: "file" | "folder" | "path",
+		path: string,
+		scope: "both" | "inline" | "file"
+	): string {
+		return `${kind}:${scope}:${this.normalizePath(path)}`;
 	}
 
 	/**
