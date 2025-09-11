@@ -135,11 +135,79 @@ class DatePickerWidget extends WidgetType {
 		}
 	}
 
+	private escapeRegex(str: string): string {
+		return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	}
+
+	// Resolve the current range of this widget's date in the live document
+	private resolveCurrentRange(): { from: number; to: number } | null {
+		try {
+			const state = this.view?.state;
+			if (!state) return null;
+			const line = state.doc.lineAt(this.from);
+			const text = line.text;
+			const useDataviewFormat =
+				this.plugin.settings.preferMetadataFormat === "dataview";
+			if (useDataviewFormat) {
+				// Match [field:: YYYY-MM-DD] on this line only
+				const regex = /\[[^\]]+::\s*\d{4}-\d{2}-\d{2}\]/g;
+				let m: RegExpExecArray | null;
+				while ((m = regex.exec(text)) !== null) {
+					const absFrom = line.from + m.index;
+					const absTo = absFrom + m[0].length;
+					// Prefer the one starting with the same prefix as dateMark
+					if (
+						m[0].startsWith(this.dateMark) ||
+						(this.from >= absFrom && this.from <= absTo)
+					) {
+						return { from: absFrom, to: absTo };
+					}
+				}
+			} else {
+				// Match the specific emoji marker followed by date
+				const pattern = new RegExp(
+					`${this.escapeRegex(
+						this.dateMark
+					)}\\s*\\d{4}-\\d{2}-\\d{2}`,
+					"g"
+				);
+				let m: RegExpExecArray | null;
+				while ((m = pattern.exec(text)) !== null) {
+					const absFrom = line.from + m.index;
+					const absTo = absFrom + m[0].length;
+					if (this.from >= absFrom && this.from <= absTo) {
+						return { from: absFrom, to: absTo };
+					}
+				}
+			}
+			return null;
+		} catch (e) {
+			console.warn("Failed to resolve current date range:", e);
+			return null;
+		}
+	}
+
 	private setDate(date: string) {
 		try {
-			// Validate view state before making changes
-			if (!this.view || this.view.state.doc.length < this.to) {
+			// Validate the view
+			if (!this.view) {
 				console.warn("Invalid view state, skipping date update");
+				return;
+			}
+
+			// Re-resolve the current range in case the document changed since widget creation
+			const range = this.resolveCurrentRange();
+			if (!range) {
+				console.warn(
+					"Could not locate current date range; skipping update"
+				);
+				return;
+			}
+			// Extra safety: ensure single-line range
+			const fromLine = this.view.state.doc.lineAt(range.from);
+			const toLine = this.view.state.doc.lineAt(range.to);
+			if (fromLine.number !== toLine.number) {
+				console.warn("Refusing to replace multi-line range for date");
 				return;
 			}
 
@@ -150,21 +218,17 @@ class DatePickerWidget extends WidgetType {
 			if (date) {
 				if (useDataviewFormat) {
 					// For dataview format: reconstruct [xxx:: date] pattern
-					// dateMark contains the prefix like "[due:: " so we add date and closing bracket
 					newText = `${this.dateMark}${date}]`;
 				} else {
-					// For tasks format: reconstruct emoji + date pattern
-					// dateMark contains the emoji, so we add space and date
+					// For tasks format: emoji + space + date
 					newText = `${this.dateMark} ${date}`;
 				}
 			}
-			// If date is empty, newText remains empty which will clear the date
 
 			const transaction = this.view.state.update({
-				changes: { from: this.from, to: this.to, insert: newText },
+				changes: { from: range.from, to: range.to, insert: newText },
 				annotations: [dateChangeAnnotation.of(true)],
 			});
-
 			this.view.dispatch(transaction);
 		} catch (error) {
 			console.error("Error setting date:", error);
@@ -251,9 +315,9 @@ export function datePickerExtension(app: App, plugin: TaskProgressBarPlugin) {
 			const useDataviewFormat = preferMetadataFormat === "dataview";
 
 			if (useDataviewFormat) {
-				// For dataview format: match [xxx:: yyyy-mm-dd] pattern
+				// For dataview format: match [xxx:: yyyy-mm-dd] pattern on a single line (no line breaks)
 				return new RegExp(
-					`(\\[[^\\]]+::\\s*)(\\d{4}-\\d{2}-\\d{2})\\]`,
+					`(\\[[^\\]\\\n]+::\\s*)(\\d{4}-\\d{2}-\\d{2})\\]`,
 					"g"
 				);
 			} else {
