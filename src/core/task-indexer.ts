@@ -119,10 +119,13 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 					// Reduce log spam: only log when include=true (actual work),
 					// or randomly sample the false cases.
 					if (include || Math.random() < 0.1) {
-						console.log("[TaskIndexer] modify event inline filter", {
-							path: file.path,
-							include,
-						});
+						console.log(
+							"[TaskIndexer] modify event inline filter",
+							{
+								path: file.path,
+								include,
+							}
+						);
 					}
 					if (include) this.queueFileForIndexing(file);
 				}
@@ -148,22 +151,27 @@ export class TaskIndexer extends Component implements TaskIndexerInterface {
 		);
 
 		// Watch for new files
-		this.registerEvent(
-			this.vault.on("create", (file) => {
-				if (file instanceof TFile) {
-					const include = isSupportedFileWithFilter(
-						file,
-						this.fileFilterManager,
-						"inline"
-					);
-					console.log("[TaskIndexer] create event inline filter", {
-						path: file.path,
-						include,
-					});
-					if (include) this.queueFileForIndexing(file);
-				}
-			})
-		);
+		this.app.workspace.onLayoutReady(() => {
+			this.registerEvent(
+				this.vault.on("create", (file) => {
+					if (file instanceof TFile) {
+						const include = isSupportedFileWithFilter(
+							file,
+							this.fileFilterManager,
+							"inline"
+						);
+						console.log(
+							"[TaskIndexer] create event inline filter",
+							{
+								path: file.path,
+								include,
+							}
+						);
+						if (include) this.queueFileForIndexing(file);
+					}
+				})
+			);
+		});
 	}
 
 	/**

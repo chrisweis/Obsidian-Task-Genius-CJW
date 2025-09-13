@@ -367,7 +367,7 @@ export class DataflowOrchestrator {
 			console.log(
 				"[DataflowOrchestrator] Initializing ObsidianSource..."
 			);
-			this.obsidianSource.initialize();
+			this.obsidianSource.onload();
 
 			// Initialize IcsSource to start listening for calendar events
 			console.log("[DataflowOrchestrator] Initializing IcsSource...");

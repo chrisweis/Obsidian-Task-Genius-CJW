@@ -1,4 +1,12 @@
-import { debounce, type App, type TFile, type Vault, type MetadataCache, type EventRef } from "obsidian";
+import {
+	debounce,
+	type App,
+	type TFile,
+	type Vault,
+	type MetadataCache,
+	type EventRef,
+	Component,
+} from "obsidian";
 import { Events, emit, on } from "../events/Events";
 
 /**
@@ -10,7 +18,7 @@ import { Events, emit, on } from "../events/Events";
  * - Event transformation and filtering
  * - Independent lifecycle management
  */
-export class ObsidianSource {
+export class ObsidianSource extends Component {
 	private app: App;
 	private vault: Vault;
 	private metadataCache: MetadataCache;
@@ -36,9 +44,14 @@ export class ObsidianSource {
 	private skipNextModify = new Set<string>();
 
 	constructor(app: App, vault: Vault, metadataCache: MetadataCache) {
+		super();
 		this.app = app;
 		this.vault = vault;
 		this.metadataCache = metadataCache;
+	}
+
+	onload(): void {
+		this.initialize();
 	}
 
 	/**
@@ -47,8 +60,7 @@ export class ObsidianSource {
 	initialize(): void {
 		console.log("ObsidianSource: Initializing event subscriptions");
 
-		// Listen for WriteAPI operations to skip their modifications
-		this.eventRefs.push(
+		this.registerEvent(
 			on(this.app, Events.WRITE_OPERATION_START, ({ path }) => {
 				this.skipNextModify.add(path);
 				// Auto cleanup after 5 seconds to prevent memory leaks
@@ -56,8 +68,7 @@ export class ObsidianSource {
 			})
 		);
 
-		// Clean up skip flag when write operation completes
-		this.eventRefs.push(
+		this.registerEvent(
 			on(this.app, Events.WRITE_OPERATION_COMPLETE, ({ path }) => {
 				// Delay cleanup slightly to ensure metadata changes are also skipped
 				setTimeout(() => {
@@ -66,20 +77,13 @@ export class ObsidianSource {
 			})
 		);
 
-		// Defer vault and metadata event subscriptions until workspace layout is ready
-		// File system events
-		this.eventRefs.push(
-			this.vault.on("create", this.onFileCreate.bind(this)),
-			this.vault.on("modify", this.onFileModify.bind(this)),
-			this.vault.on("delete", this.onFileDelete.bind(this)),
-			this.vault.on("rename", this.onFileRename.bind(this))
-		);
+		this.registerEvent(this.vault.on("create", this.onFileCreate.bind(this)))
+		this.registerEvent(this.vault.on("modify", this.onFileModify.bind(this)))
+		this.registerEvent(this.vault.on("delete", this.onFileDelete.bind(this)))
+		this.registerEvent(this.vault.on("rename", this.onFileRename.bind(this)))
 
-		// Metadata cache events
-		this.eventRefs.push(
-			this.metadataCache.on("changed", this.onMetadataChange.bind(this)),
-			this.metadataCache.on("resolve", this.onMetadataResolve.bind(this))
-		);
+		this.registerEvent(this.metadataCache.on("changed", this.onMetadataChange.bind(this)))
+		this.registerEvent(this.metadataCache.on("resolve", this.onMetadataResolve.bind(this)))
 
 		console.log(
 			`ObsidianSource: Subscribed to ${this.eventRefs.length} event types`
@@ -413,12 +417,9 @@ export class ObsidianSource {
 		this.debouncedBatch = null;
 		this.pendingBatch.clear();
 
-		// Unsubscribe from all events
-		this.eventRefs.forEach((ref) => {
-			this.app.vault.offref(ref);
-		});
-		this.eventRefs.length = 0;
-
 		console.log("ObsidianSource: Cleanup complete");
+
+
+		this.unload();
 	}
 }
