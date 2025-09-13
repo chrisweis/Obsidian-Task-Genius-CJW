@@ -103,7 +103,7 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Check if this is a Canvas task
@@ -121,45 +121,83 @@ export class WriteAPI {
 				task.filePath
 			) as TFile;
 			if (!file) {
-				return {success: false, error: "File not found"};
+				return { success: false, error: "File not found" };
 			}
 
 			const content = await this.vault.read(file);
 			const lines = content.split("\n");
 
 			if (task.line < 0 || task.line >= lines.length) {
-				return {success: false, error: "Invalid line number"};
+				return { success: false, error: "Invalid line number" };
 			}
 
 			let taskLine = lines[task.line];
 
-			// Update status or completion
-			if (args.status !== undefined) {
-				taskLine = taskLine.replace(
-					/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
-					`$1${args.status}$2`
-				);
-			} else if (args.completed !== undefined) {
-				const statusMark = args.completed ? "x" : " ";
-				taskLine = taskLine.replace(
-					/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
-					`$1${statusMark}$2`
-				);
-
-				// Add completion date if completing
-				if (args.completed && !task.metadata.completedDate) {
-					const completionDate = moment().format("YYYY-MM-DD");
-					const useDataviewFormat =
-						this.plugin.settings.preferMetadataFormat ===
-						"dataview";
-					const completionMeta = useDataviewFormat
-						? `[completion:: ${completionDate}]`
-						: `✅ ${completionDate}`;
-					taskLine = `${taskLine} ${completionMeta}`;
-				}
+			// Update status or completion (support both status symbol and completed boolean)
+			const configuredCompleted = (
+				this.plugin.settings.taskStatuses?.completed || "x"
+			).split("|")[0];
+			const willComplete =
+				args.completed === true ||
+				(args.status !== undefined &&
+					((typeof (args.status as any).toLowerCase === "function" &&
+						(args.status as any).toLowerCase() === "x") ||
+						args.status === configuredCompleted));
+			// Determine mark to write to checkbox
+			const markToWrite =
+				args.status !== undefined
+					? (args.status as string)
+					: willComplete
+					? "x"
+					: " ";
+			taskLine = taskLine.replace(
+				/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
+				`$1${markToWrite}$2`
+			);
+			// Add completion date if completing and not already present
+			const hasCompletionMeta = /(\[completion::|✅)/.test(taskLine);
+			if (
+				willComplete &&
+				!task.metadata.completedDate &&
+				!hasCompletionMeta
+			) {
+				const completionDate = moment().format("YYYY-MM-DD");
+				const useDataviewFormat =
+					this.plugin.settings.preferMetadataFormat === "dataview";
+				const completionMeta = useDataviewFormat
+					? `[completion:: ${completionDate}]`
+					: `✅ ${completionDate}`;
+				taskLine = `${taskLine} ${completionMeta}`;
 			}
 
 			lines[task.line] = taskLine;
+
+			// If completing a recurring task, insert the next occurrence right after
+			const isCompletingRecurringTask =
+				willComplete && !task.completed && task.metadata?.recurrence;
+			if (isCompletingRecurringTask) {
+				try {
+					const indentMatch = taskLine.match(/^(\s*)/);
+					const indentation = indentMatch ? indentMatch[0] : "";
+					const newTaskLine = this.createRecurringTask(
+						{
+							...task,
+							completed: true,
+							metadata: {
+								...task.metadata,
+								completedDate: Date.now(),
+							},
+						} as Task,
+						indentation
+					);
+					lines.splice(task.line + 1, 0, newTaskLine);
+				} catch (e) {
+					console.error(
+						"WriteAPI: failed to create next recurring task from updateTaskStatus:",
+						e
+					);
+				}
+			}
 
 			// Notify about write operation
 			emit(this.app, Events.WRITE_OPERATION_START, {
@@ -174,17 +212,17 @@ export class WriteAPI {
 
 			// Trigger task-completed event if task was just completed
 			if (args.completed === true && !task.completed) {
-				const updatedTask = {...task, completed: true};
+				const updatedTask = { ...task, completed: true };
 				this.app.workspace.trigger(
 					"task-genius:task-completed",
 					updatedTask
 				);
 			}
 
-			return {success: true};
+			return { success: true };
 		} catch (error) {
 			console.error("WriteAPI: Error updating task status:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -199,7 +237,7 @@ export class WriteAPI {
 				this.getTaskById(args.taskId)
 			);
 			if (!originalTask) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Check if this is a Canvas task
@@ -223,17 +261,17 @@ export class WriteAPI {
 				originalTask.filePath
 			) as TFile;
 			if (!file) {
-				return {success: false, error: "File not found"};
+				return { success: false, error: "File not found" };
 			}
 
 			const content = await this.vault.read(file);
 			const lines = content.split("\n");
 
 			if (originalTask.line < 0 || originalTask.line >= lines.length) {
-				return {success: false, error: "Invalid line number"};
+				return { success: false, error: "Invalid line number" };
 			}
 
-			const updatedTask = {...originalTask, ...args.updates};
+			const updatedTask = { ...originalTask, ...args.updates };
 			let taskLine = lines[originalTask.line];
 
 			// Update checkbox status or status mark
@@ -272,15 +310,34 @@ export class WriteAPI {
 
 			// Update metadata if changed
 			if (args.updates.metadata) {
-				// Remove existing metadata and regenerate
+				// Remove existing metadata and regenerate from merged values
 				const prefixMatch = taskLine.match(
 					/^(\s*[-*+]\s*\[[^\]]*\]\s*[^🔺⏫🔼🔽⏬🛫⏳📅✅🔁\[#@+]*)/
 				);
 				if (prefixMatch) {
 					const taskPrefix = prefixMatch[0];
-					const newMetadata = this.generateMetadata({
+					const mergedMd = {
 						...originalTask.metadata,
 						...args.updates.metadata,
+					} as any;
+					const completedFlag =
+						args.updates.completed !== undefined
+							? !!args.updates.completed
+							: !!originalTask.completed;
+					const newMetadata = this.generateMetadata({
+						tags: mergedMd.tags,
+						project: mergedMd.project,
+						context: mergedMd.context,
+						priority: mergedMd.priority,
+						startDate: mergedMd.startDate,
+						dueDate: mergedMd.dueDate,
+						scheduledDate: mergedMd.scheduledDate,
+						recurrence: mergedMd.recurrence,
+						completed: completedFlag,
+						completedDate: mergedMd.completedDate,
+						onCompletion: mergedMd.onCompletion,
+						dependsOn: mergedMd.dependsOn,
+						id: mergedMd.id,
 					});
 					taskLine = `${taskPrefix}${
 						newMetadata ? ` ${newMetadata}` : ""
@@ -302,7 +359,7 @@ export class WriteAPI {
 					const indentMatch = taskLine.match(/^(\s*)/);
 					const indentation = indentMatch ? indentMatch[0] : "";
 					const newTaskLine = this.createRecurringTask(
-						{...originalTask, ...args.updates} as Task,
+						{ ...originalTask, ...args.updates } as Task,
 						indentation
 					);
 
@@ -334,7 +391,7 @@ export class WriteAPI {
 			};
 
 			// Emit task updated event for direct update in dataflow
-			emit(this.app, Events.TASK_UPDATED, {task: updatedTaskObj});
+			emit(this.app, Events.TASK_UPDATED, { task: updatedTaskObj });
 
 			// Trigger task-completed event if task was just completed
 			if (args.updates.completed === true && !originalTask.completed) {
@@ -350,10 +407,10 @@ export class WriteAPI {
 				taskId: args.taskId,
 			});
 
-			return {success: true, task: updatedTaskObj};
+			return { success: true, task: updatedTaskObj };
 		} catch (error) {
 			console.error("WriteAPI: Error updating task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -370,7 +427,7 @@ export class WriteAPI {
 			originalTask.filePath
 		) as TFile;
 		if (!file) {
-			return {success: false, error: "File not found"};
+			return { success: false, error: "File not found" };
 		}
 
 		let newFilePath = originalTask.filePath;
@@ -495,7 +552,7 @@ export class WriteAPI {
 						(fm as any).priority = md.priority;
 						console.log(
 							"[WriteAPI][FileSource] wrote fm.priority",
-							{priority: md.priority}
+							{ priority: md.priority }
 						);
 					}
 					if (
@@ -506,8 +563,8 @@ export class WriteAPI {
 						(fm as any).tags = Array.isArray(md.tags)
 							? md.tags
 							: typeof md.tags === "string"
-								? [md.tags]
-								: md.tags;
+							? [md.tags]
+							: md.tags;
 					}
 					if (md.project !== undefined) {
 						(fm as any).project = md.project;
@@ -531,7 +588,7 @@ export class WriteAPI {
 						(fm as any).startDate = formatDate(md.startDate);
 						console.log(
 							"[WriteAPI。][FileSource] wrote fm.startDate",
-							{startDate: (fm as any).startDate}
+							{ startDate: (fm as any).startDate }
 						);
 					}
 					if (md.scheduledDate !== undefined) {
@@ -540,7 +597,7 @@ export class WriteAPI {
 						);
 						console.log(
 							"[WriteAPI][FileSource] wrote fm.scheduledDate",
-							{scheduledDate: (fm as any).scheduledDate}
+							{ scheduledDate: (fm as any).scheduledDate }
 						);
 					}
 				});
@@ -556,7 +613,7 @@ export class WriteAPI {
 				"WriteAPI: Error updating file-source task frontmatter:",
 				error
 			);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 
 		// Handle content/title change
@@ -590,13 +647,13 @@ export class WriteAPI {
 							);
 							console.log(
 								"[WriteAPI][FileSource] wrote fm.title (branch: title)",
-								{title: updates.content}
+								{ title: updates.content }
 							);
 							const cacheAfter =
 								this.app.metadataCache.getFileCache(file);
 							console.log(
 								"[WriteAPI][FileSource] cache fm.title after write (branch: title)",
-								{title: cacheAfter?.frontmatter?.title}
+								{ title: cacheAfter?.frontmatter?.title }
 							);
 						} else {
 							newFilePath = await this.renameFile(
@@ -605,7 +662,7 @@ export class WriteAPI {
 							);
 							console.log(
 								"[WriteAPI][FileSource] renamed file (branch: title)",
-								{newFilePath}
+								{ newFilePath }
 							);
 						}
 						break;
@@ -638,7 +695,7 @@ export class WriteAPI {
 									field: customContentField,
 									value: cacheAfter?.frontmatter?.[
 										customContentField
-										],
+									],
 								}
 							);
 						} else if (preferFrontmatterTitle) {
@@ -650,13 +707,13 @@ export class WriteAPI {
 							);
 							console.log(
 								"[WriteAPI][FileSource] wrote fm.title (branch: custom fallback)",
-								{title: updates.content}
+								{ title: updates.content }
 							);
 							const cacheAfter2 =
 								this.app.metadataCache.getFileCache(file);
 							console.log(
 								"[WriteAPI][FileSource] cache fm.title after write (branch: custom fallback)",
-								{title: cacheAfter2?.frontmatter?.title}
+								{ title: cacheAfter2?.frontmatter?.title }
 							);
 						} else {
 							newFilePath = await this.renameFile(
@@ -665,7 +722,7 @@ export class WriteAPI {
 							);
 							console.log(
 								"[WriteAPI][FileSource] renamed file (branch: custom fallback)",
-								{newFilePath}
+								{ newFilePath }
 							);
 						}
 						break;
@@ -681,13 +738,13 @@ export class WriteAPI {
 							);
 							console.log(
 								"[WriteAPI][FileSource] wrote fm.title (branch: filename/default)",
-								{title: updates.content}
+								{ title: updates.content }
 							);
 							const cacheAfter =
 								this.app.metadataCache.getFileCache(file);
 							console.log(
 								"[WriteAPI][FileSource] cache fm.title after write (branch: filename/default)",
-								{title: cacheAfter?.frontmatter?.title}
+								{ title: cacheAfter?.frontmatter?.title }
 							);
 						} else {
 							newFilePath = await this.renameFile(
@@ -696,7 +753,7 @@ export class WriteAPI {
 							);
 							console.log(
 								"[WriteAPI][FileSource] renamed file (branch: filename/default)",
-								{newFilePath}
+								{ newFilePath }
 							);
 						}
 						break;
@@ -713,7 +770,7 @@ export class WriteAPI {
 					"WriteAPI: Error updating file-source task content:",
 					error
 				);
-				return {success: false, error: String(error)};
+				return { success: false, error: String(error) };
 			}
 		}
 
@@ -734,9 +791,9 @@ export class WriteAPI {
 		};
 
 		// Emit file-task update so repository updates fileTasks map directly
-		emit(this.app, Events.FILE_TASK_UPDATED, {task: updatedTaskObj});
+		emit(this.app, Events.FILE_TASK_UPDATED, { task: updatedTaskObj });
 
-		return {success: true, task: updatedTaskObj};
+		return { success: true, task: updatedTaskObj };
 	}
 
 	private async updateH1Heading(
@@ -868,10 +925,10 @@ export class WriteAPI {
 				});
 			}
 
-			return {success: true};
+			return { success: true };
 		} catch (error) {
 			console.error("WriteAPI: Error creating task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -912,7 +969,7 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Check if this is a Canvas task
@@ -924,7 +981,7 @@ export class WriteAPI {
 				task.filePath
 			) as TFile;
 			if (!file) {
-				return {success: false, error: "File not found"};
+				return { success: false, error: "File not found" };
 			}
 
 			// Collect all tasks to delete
@@ -984,10 +1041,10 @@ export class WriteAPI {
 				mode: args.deleteChildren ? "subtree" : "single",
 			});
 
-			return {success: true};
+			return { success: true };
 		} catch (error) {
 			console.error("WriteAPI: Error deleting task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -1022,7 +1079,7 @@ export class WriteAPI {
 			}
 		}
 
-		return {updated, failed};
+		return { updated, failed };
 	}
 
 	/**
@@ -1066,7 +1123,7 @@ export class WriteAPI {
 			}
 		}
 
-		return {updated, failed};
+		return { updated, failed };
 	}
 
 	/**
@@ -1087,7 +1144,7 @@ export class WriteAPI {
 			);
 			const result = await this.updateTask({
 				taskId,
-				updates: {content: newContent},
+				updates: { content: newContent },
 			});
 
 			if (result.success) {
@@ -1100,7 +1157,7 @@ export class WriteAPI {
 			}
 		}
 
-		return {tasks: updatedTasks};
+		return { tasks: updatedTasks };
 	}
 
 	/**
@@ -1113,7 +1170,7 @@ export class WriteAPI {
 			this.getTaskById(args.parentTaskId)
 		);
 		if (!parentTask) {
-			return {tasks: []};
+			return { tasks: [] };
 		}
 
 		const createdTasks: Task[] = [];
@@ -1130,7 +1187,7 @@ export class WriteAPI {
 			}
 		}
 
-		return {tasks: createdTasks};
+		return { tasks: createdTasks };
 	}
 
 	/**
@@ -1256,18 +1313,18 @@ export class WriteAPI {
 			}
 
 			// Notify about write operation
-			emit(this.app, Events.WRITE_OPERATION_START, {path: file.path});
+			emit(this.app, Events.WRITE_OPERATION_START, { path: file.path });
 			await this.vault.modify(file, newContent);
 			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
 				path: file.path,
 			});
-			return {success: true};
+			return { success: true };
 		} catch (error) {
 			console.error(
 				"WriteAPI: Error creating task in daily note:",
 				error
 			);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -1340,13 +1397,13 @@ export class WriteAPI {
 				dailyNoteSettings: qc.dailyNoteSettings,
 			});
 
-			return {filePath, success: true};
+			return { filePath, success: true };
 		} catch (error) {
 			console.error(
 				"WriteAPI: Error adding project task to quick capture:",
 				error
 			);
-			return {filePath: "", success: false};
+			return { filePath: "", success: false };
 		}
 	}
 
@@ -1364,6 +1421,9 @@ export class WriteAPI {
 		recurrence?: string;
 		completed?: boolean;
 		completedDate?: number;
+		onCompletion?: string;
+		dependsOn?: string[] | string;
+		id?: string;
 	}): string {
 		const metadata: string[] = [];
 		const useDataviewFormat =
@@ -1506,6 +1566,37 @@ export class WriteAPI {
 			);
 		}
 
+		// On Completion action
+		if (args.onCompletion) {
+			metadata.push(
+				useDataviewFormat
+					? `[onCompletion:: ${args.onCompletion}]`
+					: `🏁 ${args.onCompletion}`
+			);
+		}
+
+		// Depends On
+		if (
+			args.dependsOn &&
+			(Array.isArray(args.dependsOn) ? args.dependsOn.length > 0 : true)
+		) {
+			const dependsStr = Array.isArray(args.dependsOn)
+				? args.dependsOn.join(", ")
+				: args.dependsOn;
+			metadata.push(
+				useDataviewFormat
+					? `[dependsOn:: ${dependsStr}]`
+					: `⛔ ${dependsStr}`
+			);
+		}
+
+		// ID
+		if (args.id) {
+			metadata.push(
+				useDataviewFormat ? `[id:: ${args.id}]` : `🆔 ${args.id}`
+			);
+		}
+
 		return metadata.join(" ");
 	}
 
@@ -1542,7 +1633,7 @@ export class WriteAPI {
 	): { line: number } | null {
 		for (let i = 0; i < lines.length; i++) {
 			if (lines[i].includes(taskId)) {
-				return {line: i};
+				return { line: i };
 			}
 		}
 		return null;
@@ -1605,12 +1696,12 @@ export class WriteAPI {
 				this.getTaskById(args.taskId)
 			);
 			if (!originalTask) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(originalTask)) {
-				return {success: false, error: "Task is not a Canvas task"};
+				return { success: false, error: "Task is not a Canvas task" };
 			}
 
 			// Create updated task object (deep-merge metadata to preserve unchanged fields)
@@ -1631,7 +1722,7 @@ export class WriteAPI {
 
 			if (result.success) {
 				// Emit task updated event for dataflow
-				emit(this.app, Events.TASK_UPDATED, {task: updatedTask});
+				emit(this.app, Events.TASK_UPDATED, { task: updatedTask });
 
 				// Trigger task-completed event if task was just completed
 				if (
@@ -1644,13 +1735,13 @@ export class WriteAPI {
 					);
 				}
 
-				return {success: true, task: updatedTask};
+				return { success: true, task: updatedTask };
 			} else {
-				return {success: false, error: result.error};
+				return { success: false, error: result.error };
 			}
 		} catch (error) {
 			console.error("WriteAPI: Error updating Canvas task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -1663,12 +1754,12 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(task)) {
-				return {success: false, error: "Task is not a Canvas task"};
+				return { success: false, error: "Task is not a Canvas task" };
 			}
 
 			// Collect all tasks to delete
@@ -1701,7 +1792,7 @@ export class WriteAPI {
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error deleting Canvas task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -1717,12 +1808,12 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(task)) {
-				return {success: false, error: "Task is not a Canvas task"};
+				return { success: false, error: "Task is not a Canvas task" };
 			}
 
 			// Use CanvasTaskUpdater to move the task
@@ -1736,7 +1827,7 @@ export class WriteAPI {
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error moving Canvas task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -1753,12 +1844,12 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(task)) {
-				return {success: false, error: "Task is not a Canvas task"};
+				return { success: false, error: "Task is not a Canvas task" };
 			}
 
 			// Use CanvasTaskUpdater to duplicate the task
@@ -1773,7 +1864,7 @@ export class WriteAPI {
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error duplicating Canvas task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -1812,7 +1903,7 @@ export class WriteAPI {
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error adding task to Canvas node:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -1942,10 +2033,12 @@ export class WriteAPI {
 				const now = new Date();
 				const todayStart = new Date(now);
 				todayStart.setHours(0, 0, 0, 0);
-				
+
 				// We want the first occurrence strictly after today (not just after baseDate)
 				// This ensures the next task is always in the future
-				const afterDate = new Date(Math.max(baseDate.getTime(), todayStart.getTime()) + 1000); // 1 second after the later of baseDate or today
+				const afterDate = new Date(
+					Math.max(baseDate.getTime(), todayStart.getTime()) + 1000
+				); // 1 second after the later of baseDate or today
 				const nextOccurrence = rule.after(afterDate);
 
 				if (nextOccurrence) {
@@ -1960,7 +2053,9 @@ export class WriteAPI {
 						return Date.UTC(year, month, day, 12, 0, 0);
 					}
 					// If somehow still not in future, try getting the next occurrence
-					const futureOccurrence = rule.after(new Date(todayStart.getTime() + 86400000)); // Tomorrow
+					const futureOccurrence = rule.after(
+						new Date(todayStart.getTime() + 86400000)
+					); // Tomorrow
 					if (futureOccurrence) {
 						futureOccurrence.setHours(0, 0, 0, 0);
 						// Convert to UTC noon timestamp
@@ -2005,7 +2100,9 @@ export class WriteAPI {
 							nextDate.setMonth(baseDate.getMonth() + interval);
 							break;
 						case "year":
-							nextDate.setFullYear(baseDate.getFullYear() + interval);
+							nextDate.setFullYear(
+								baseDate.getFullYear() + interval
+							);
 							break;
 						default:
 							// Default to days
@@ -2059,13 +2156,13 @@ export class WriteAPI {
 
 			// Ensure the calculated date is at the start of the day
 			nextDate.setHours(0, 0, 0, 0);
-			
+
 			// IMPORTANT: If the calculated next date is not in the future (could be today or in the past),
 			// we need to calculate the next occurrence after today
 			const now = new Date();
 			const todayStart = new Date(now);
 			todayStart.setHours(0, 0, 0, 0);
-			
+
 			// If the next date is today or in the past, we need to find the next valid occurrence
 			if (nextDate.getTime() <= todayStart.getTime()) {
 				// For daily recurrence, just add intervals until we get a future date
@@ -2080,7 +2177,7 @@ export class WriteAPI {
 					if (unit.endsWith("s")) {
 						unit = unit.substring(0, unit.length - 1);
 					}
-					
+
 					// Keep adding intervals until we get a future date
 					while (nextDate.getTime() <= todayStart.getTime()) {
 						switch (unit) {
@@ -2088,13 +2185,19 @@ export class WriteAPI {
 								nextDate.setDate(nextDate.getDate() + interval);
 								break;
 							case "week":
-								nextDate.setDate(nextDate.getDate() + interval * 7);
+								nextDate.setDate(
+									nextDate.getDate() + interval * 7
+								);
 								break;
 							case "month":
-								nextDate.setMonth(nextDate.getMonth() + interval);
+								nextDate.setMonth(
+									nextDate.getMonth() + interval
+								);
 								break;
 							case "year":
-								nextDate.setFullYear(nextDate.getFullYear() + interval);
+								nextDate.setFullYear(
+									nextDate.getFullYear() + interval
+								);
 								break;
 							default:
 								nextDate.setDate(nextDate.getDate() + interval);
@@ -2117,13 +2220,13 @@ export class WriteAPI {
 					}
 				}
 			}
-			
+
 			// Convert to UTC noon timestamp for consistent storage
 			// This follows the same pattern as date-display-helper.ts
 			const year = nextDate.getFullYear();
 			const month = nextDate.getMonth(); // 0-based
 			const day = nextDate.getDate();
-			
+
 			// Create UTC noon timestamp
 			const utcNoonTimestamp = Date.UTC(year, month, day, 12, 0, 0);
 			return utcNoonTimestamp;
@@ -2133,7 +2236,7 @@ export class WriteAPI {
 			const tomorrow = new Date();
 			tomorrow.setDate(tomorrow.getDate() + 1);
 			tomorrow.setHours(0, 0, 0, 0);
-			
+
 			// Convert to UTC noon timestamp
 			const year = tomorrow.getFullYear();
 			const month = tomorrow.getMonth();

@@ -287,10 +287,30 @@ function handleMonitorTaskCompletionTransaction(
 					);
 					console.log(task);
 
-					// Optionally, trigger a custom event that other parts of the plugin or Obsidian could listen to
+					// Trigger a custom event and also ensure WriteAPI handles completion side-effects (completion date + recurrence)
 					if (task) {
 						console.log("trigger task-completed event");
 						debounceTrigger(app, task);
+						// Best-effort: if we can identify the taskId, call WriteAPI to append completion metadata and create next recurring instance
+						try {
+							if (plugin.writeAPI && task.id) {
+								void plugin.writeAPI.updateTask({
+									taskId: task.id,
+									updates: {
+										completed: true,
+										status: "x",
+										metadata: {
+											completedDate: Date.now(),
+										} as any,
+									},
+								});
+							}
+						} catch (e) {
+							console.warn(
+								"completion-monitor: failed to call WriteAPI.updateTask for completion",
+								e
+							);
+						}
 					}
 
 					// Optimization: If we've confirmed completion for this line,
