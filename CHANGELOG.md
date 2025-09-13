@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.10](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.9...9.8.10) (2025-09-13)
+
+### Bug Fixes
+
+* **tasks:** restore recurring task creation on completion ([e3a9f69](https://github.com/Quorafind/Obsidian-Task-Genius/commit/e3a9f69))
+
+### Refactors
+
+* **dataflow:** improve ObsidianSource lifecycle management ([0da0bd8](https://github.com/Quorafind/Obsidian-Task-Genius/commit/0da0bd8))
+
 ## [9.8.9](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.8...9.8.9) (2025-09-11)
 
 ### Bug Fixes
