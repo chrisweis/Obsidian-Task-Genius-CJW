@@ -293,9 +293,12 @@ function handleMonitorTaskCompletionTransaction(
 						debounceTrigger(app, task);
 						// Best-effort: if we can identify the taskId, call WriteAPI to append completion metadata and create next recurring instance
 						try {
-							if (plugin.writeAPI && task.id) {
+							if (plugin.writeAPI) {
+								// Prefer parsed id; fallback to file+line pattern used by indexer
+								const taskId =
+									task.id || `${filePath}-L${newLine.number}`;
 								void plugin.writeAPI.updateTask({
-									taskId: task.id,
+									taskId,
 									updates: {
 										completed: true,
 										status: "x",

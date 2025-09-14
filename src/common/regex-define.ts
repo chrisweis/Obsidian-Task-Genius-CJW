@@ -4,7 +4,7 @@ const TASK_REGEX = /^(([\s>]*)?(-|\d+\.|\*|\+)\s\[([^\[\]]{1})\])\s+(.*)$/m;
 // --- Emoji/Tasks Style Regexes ---
 const EMOJI_START_DATE_REGEX = /🛫\s*(\d{4}-\d{2}-\d{2})/;
 const EMOJI_COMPLETED_DATE_REGEX = /✅\s*(\d{4}-\d{2}-\d{2})/;
-const EMOJI_DUE_DATE_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})/;
+const EMOJI_DUE_DATE_REGEX = /(?:📅|🗓️|📆)\s*(\d{4}-\d{2}-\d{2})/;
 const EMOJI_SCHEDULED_DATE_REGEX = /⏳\s*(\d{4}-\d{2}-\d{2})/;
 const EMOJI_CREATED_DATE_REGEX = /➕\s*(\d{4}-\d{2}-\d{2})/;
 const EMOJI_CANCELLED_DATE_REGEX = /❌\s*(\d{4}-\d{2}-\d{2})/;
@@ -12,7 +12,7 @@ const EMOJI_ID_REGEX = /🆔\s*([^\s]+)/;
 const EMOJI_DEPENDS_ON_REGEX = /⛔\s*([^\s]+)/;
 const EMOJI_ON_COMPLETION_REGEX = /🏁\s*([^\s]+)/;
 const EMOJI_RECURRENCE_REGEX =
-	/🔁\s*(.*?)(?=\s(?:🗓️|🛫|⏳|✅|➕|❌|🆔|⛔|🏁|🔁|@|#)|$)/u;
+	/🔁\s*(.*?)(?=\s(?:📅|🗓️|📆|🛫|⏳|✅|➕|❌|🆔|⛔|🏁|🔁|@|#|\[)|$)/u;
 const EMOJI_PRIORITY_REGEX = /(([🔺⏫🔼🔽⏬️⏬])|(\[#[A-E]\]))/u; // Using the corrected variant selector
 const EMOJI_CONTEXT_REGEX = /@([\w-]+)/g;
 const EMOJI_TAG_REGEX =

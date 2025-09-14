@@ -1238,19 +1238,16 @@ export class TaskView extends ItemView {
 						});
 						item.onClick(async () => {
 							console.log("status", status, mark);
+							const willComplete = this.isCompletedMark(mark);
 							const updatedTask = {
 								...task,
 								status: mark,
-								completed:
-									mark.toLowerCase() === "x" ? true : false,
+								completed: willComplete,
 							};
 
-							if (!task.completed && mark.toLowerCase() === "x") {
+							if (!task.completed && willComplete) {
 								updatedTask.metadata.completedDate = Date.now();
-							} else if (
-								task.completed &&
-								mark.toLowerCase() !== "x"
-							) {
+							} else if (task.completed && !willComplete) {
 								updatedTask.metadata.completedDate = undefined;
 							}
 
@@ -1459,6 +1456,37 @@ export class TaskView extends ItemView {
 		}
 	}
 
+	private isCompletedMark(mark: string): boolean {
+		if (!mark) return false;
+		try {
+			const lower = mark.toLowerCase();
+			const completedCfg = String(
+				this.plugin.settings.taskStatuses?.completed || "x"
+			);
+			const completedSet = completedCfg
+				.split("|")
+				.map((s) => s.trim().toLowerCase())
+				.filter(Boolean);
+			if (completedSet.includes(lower)) return true;
+			const all = this.plugin.settings.taskStatuses as Record<
+				string,
+				string
+			>;
+			if (all) {
+				for (const [type, symbols] of Object.entries(all)) {
+					const set = String(symbols)
+						.split("|")
+						.map((s) => s.trim().toLowerCase())
+						.filter(Boolean);
+					if (set.includes(lower)) {
+						return type.toLowerCase() === "completed";
+					}
+				}
+			}
+		} catch (_) {}
+		return false;
+	}
+
 	private async toggleTaskCompletion(task: Task) {
 		const updatedTask = { ...task, completed: !task.completed };
 
@@ -1474,7 +1502,7 @@ export class TaskView extends ItemView {
 			updatedTask.metadata.completedDate = undefined;
 			const notStartedMark =
 				this.plugin.settings.taskStatuses.notStarted || " ";
-			if (updatedTask.status.toLowerCase() === "x") {
+			if (this.isCompletedMark(updatedTask.status)) {
 				updatedTask.status = notStartedMark;
 			}
 		}
@@ -1865,11 +1893,7 @@ export class TaskView extends ItemView {
 		const taskToUpdate = this.tasks.find((t) => t.id === taskId);
 
 		if (taskToUpdate) {
-			const isCompleted =
-				newStatusMark.toLowerCase() ===
-				(this.plugin.settings.taskStatuses.completed || "x")
-					.split("|")[0]
-					.toLowerCase();
+			const isCompleted = this.isCompletedMark(newStatusMark);
 			const completedDate = isCompleted ? Date.now() : undefined;
 
 			if (

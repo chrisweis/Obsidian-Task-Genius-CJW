@@ -310,38 +310,64 @@ export class WriteAPI {
 
 			// Update metadata if changed
 			if (args.updates.metadata) {
-				// Remove existing metadata and regenerate from merged values
-				const prefixMatch = taskLine.match(
-					/^(\s*[-*+]\s*\[[^\]]*\]\s*[^🔺⏫🔼🔽⏬🛫⏳📅✅🔁\[#@+]*)/
-				);
-				if (prefixMatch) {
-					const taskPrefix = prefixMatch[0];
-					const mergedMd = {
-						...originalTask.metadata,
-						...args.updates.metadata,
-					} as any;
-					const completedFlag =
-						args.updates.completed !== undefined
-							? !!args.updates.completed
-							: !!originalTask.completed;
-					const newMetadata = this.generateMetadata({
-						tags: mergedMd.tags,
-						project: mergedMd.project,
-						context: mergedMd.context,
-						priority: mergedMd.priority,
-						startDate: mergedMd.startDate,
-						dueDate: mergedMd.dueDate,
-						scheduledDate: mergedMd.scheduledDate,
-						recurrence: mergedMd.recurrence,
-						completed: completedFlag,
-						completedDate: mergedMd.completedDate,
-						onCompletion: mergedMd.onCompletion,
-						dependsOn: mergedMd.dependsOn,
-						id: mergedMd.id,
-					});
-					taskLine = `${taskPrefix}${
-						newMetadata ? ` ${newMetadata}` : ""
-					}`;
+				const md: any = args.updates.metadata || {};
+				const mdKeys = Object.keys(md);
+				const onlyCompletionDate =
+					mdKeys.length > 0 &&
+					mdKeys.every((k) => k === "completedDate");
+				if (onlyCompletionDate) {
+					// Patch completion date in-place to avoid dropping other metadata
+					// Remove existing completion markers first
+					taskLine = taskLine
+						.replace(/\s*\[completion::\s*[^\]]+\]/i, "")
+						.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/, "");
+					if (md.completedDate) {
+						const dateStr =
+							typeof md.completedDate === "number"
+								? moment(md.completedDate).format("YYYY-MM-DD")
+								: String(md.completedDate);
+						const useDataviewFormat =
+							this.plugin.settings.preferMetadataFormat ===
+							"dataview";
+						const completionMeta = useDataviewFormat
+							? `[completion:: ${dateStr}]`
+							: `✅ ${dateStr}`;
+						taskLine = `${taskLine} ${completionMeta}`;
+					}
+				} else {
+					// Remove existing metadata and regenerate from merged values
+					const prefixMatch = taskLine.match(
+						/^(\s*[-*+]\s*\[[^\]]*\]\s*[^🔺⏫🔼🔽⏬🛫⏳📅✅🔁\[#@+]*)/
+					);
+					if (prefixMatch) {
+						const taskPrefix = prefixMatch[0];
+						const mergedMd = {
+							...originalTask.metadata,
+							...args.updates.metadata,
+						} as any;
+						const completedFlag =
+							args.updates.completed !== undefined
+								? !!args.updates.completed
+								: !!originalTask.completed;
+						const newMetadata = this.generateMetadata({
+							tags: mergedMd.tags,
+							project: mergedMd.project,
+							context: mergedMd.context,
+							priority: mergedMd.priority,
+							startDate: mergedMd.startDate,
+							dueDate: mergedMd.dueDate,
+							scheduledDate: mergedMd.scheduledDate,
+							recurrence: mergedMd.recurrence,
+							completed: completedFlag,
+							completedDate: mergedMd.completedDate,
+							onCompletion: mergedMd.onCompletion,
+							dependsOn: mergedMd.dependsOn,
+							id: mergedMd.id,
+						});
+						taskLine = `${taskPrefix}${
+							newMetadata ? ` ${newMetadata}` : ""
+						}`;
+					}
 				}
 			}
 
@@ -359,7 +385,14 @@ export class WriteAPI {
 					const indentMatch = taskLine.match(/^(\s*)/);
 					const indentation = indentMatch ? indentMatch[0] : "";
 					const newTaskLine = this.createRecurringTask(
-						{ ...originalTask, ...args.updates } as Task,
+						{
+							...originalTask,
+							...args.updates,
+							metadata: {
+								...originalTask.metadata,
+								...(args.updates.metadata || {}),
+							},
+						} as Task,
 						indentation
 					);
 
