@@ -1,7 +1,9 @@
-import { setIcon, Setting } from "obsidian";
+import { Notice, setIcon, Setting } from "obsidian";
 import { TaskProgressBarSettingTab } from "@/setting";
 import { t } from "@/translations/helper";
 import { OnboardingModal } from "@/components/features/onboarding/OnboardingModal";
+import { ConfirmModal } from "@/components/ui/modals/ConfirmModal";
+import { DEFAULT_SETTINGS } from "@/common/setting-definition";
 
 export function renderAboutSettingsTab(
 	settingTab: TaskProgressBarSettingTab,
@@ -44,11 +46,55 @@ export function renderAboutSettingsTab(
 				.onClick(async () => {
 					// Reset onboarding status
 					await settingTab.plugin.onboardingConfigManager.resetOnboarding();
-					
+
 					// Show onboarding modal
-					new OnboardingModal(settingTab.plugin.app, settingTab.plugin, () => {
-						// Optional: refresh settings display
-						settingTab.display();
+					new OnboardingModal(
+						settingTab.plugin.app,
+						settingTab.plugin,
+						() => {
+							// Optional: refresh settings display
+							settingTab.display();
+						}
+					).open();
+				});
+		});
+
+	new Setting(containerEl)
+		.setName(t("Reset All Settings"))
+		.setDesc(t("Reset all settings to their default values"))
+		.addButton((button) => {
+			button
+				.setButtonText(t("Reset Settings"))
+				.setIcon("refresh-cw")
+				.setWarning()
+				.onClick(() => {
+					new ConfirmModal(settingTab.plugin, {
+						title: t("Reset All Settings"),
+						message: t(
+							"Are you sure you want to reset all settings to their default values?\n\nThis action cannot be undone."
+						),
+						confirmText: t("Reset"),
+						cancelText: t("Cancel"),
+						onConfirm: async (confirmed) => {
+							if (confirmed) {
+								// Reset all settings to defaults
+								settingTab.plugin.settings = Object.assign(
+									{},
+									DEFAULT_SETTINGS
+								);
+								await settingTab.plugin.saveSettings();
+
+								// Refresh the settings display
+								settingTab.display();
+
+								// Show success notice
+								new Notice(
+									t(
+										"All settings have been reset to their default values"
+									)
+								);
+							}
+						},
 					}).open();
 				});
 		});
@@ -63,20 +109,28 @@ export function renderAboutSettingsTab(
 		});
 
 	const descFragment = document.createDocumentFragment();
-	descFragment.createEl("span", {
-		cls: "tg-icons-desc",
-	}, (el) => {
-		el.setText(t("Task Genius icons are designed by"))
-	});
-	descFragment.createEl("a", {
-		href: "https://github.com/jsmorabito",
-		attr: {
-			target: "_blank",
-			rel: "noopener noreferrer",
+	descFragment.createEl(
+		"span",
+		{
+			cls: "tg-icons-desc",
 		},
-	}, (el) => {
-		el.setText(" @Jsmorabito");
-	});
+		(el) => {
+			el.setText(t("Task Genius icons are designed by"));
+		}
+	);
+	descFragment.createEl(
+		"a",
+		{
+			href: "https://github.com/jsmorabito",
+			attr: {
+				target: "_blank",
+				rel: "noopener noreferrer",
+			},
+		},
+		(el) => {
+			el.setText(" @Jsmorabito");
+		}
+	);
 
 	// Task Genius Icons Settings
 	new Setting(containerEl)
@@ -84,14 +138,27 @@ export function renderAboutSettingsTab(
 		.setDesc(descFragment)
 		.setHeading();
 
-	containerEl.createDiv({
-		cls: "tg-icons-container",
-	}, (el) => {
-		for(const status of Object.keys(settingTab.plugin.settings.taskStatuses)) {
-			const iconEl = el.createSpan();
-			setIcon(iconEl, status as "notStarted" | "inProgress" | "completed" | "abandoned" | "planned")
+	containerEl.createDiv(
+		{
+			cls: "tg-icons-container",
+		},
+		(el) => {
+			for (const status of Object.keys(
+				settingTab.plugin.settings.taskStatuses
+			)) {
+				const iconEl = el.createSpan();
+				setIcon(
+					iconEl,
+					status as
+						| "notStarted"
+						| "inProgress"
+						| "completed"
+						| "abandoned"
+						| "planned"
+				);
+			}
+			const tgIconEl = el.createSpan();
+			setIcon(tgIconEl, "task-genius");
 		}
-		const tgIconEl = el.createSpan();
-		setIcon(tgIconEl, "task-genius")
-	})
+	);
 }
