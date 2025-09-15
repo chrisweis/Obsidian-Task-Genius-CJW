@@ -1,6 +1,7 @@
 import type { Task, TgProject } from "../../types/task";
 import { DateInheritanceAugmentor } from "./DateInheritanceAugmentor";
 import { App, Vault, MetadataCache } from "obsidian";
+import { ProjectConfiguration } from "../../common/setting-definition";
 
 export interface AugmentContext {
 	filePath: string;
@@ -41,6 +42,7 @@ export interface InheritanceStrategy {
 export class Augmentor {
 	private strategy: InheritanceStrategy;
 	private dateInheritanceAugmentor?: DateInheritanceAugmentor;
+	private projectConfig?: ProjectConfiguration;
 	// Respect plugin setting: file frontmatter inheritance toggle
 	private fileFrontmatterInheritanceEnabled: boolean = true;
 
@@ -68,9 +70,9 @@ export class Augmentor {
 				completed: false,
 				status: false,
 				recurrence: false,
-				onCompletion: false
+				onCompletion: false,
 			},
-			...options?.strategy
+			...options?.strategy,
 		};
 
 		// Initialize date inheritance augmentor if Obsidian context is available
@@ -86,12 +88,23 @@ export class Augmentor {
 	/**
 	 * Update settings from plugin to control inheritance behavior
 	 */
-	public updateSettings(settings: Partial<{
-		fileMetadataInheritance?: { enabled?: boolean; inheritFromFrontmatter?: boolean }
-	}>): void {
+	public updateSettings(
+		settings: Partial<{
+			fileMetadataInheritance?: {
+				enabled?: boolean;
+				inheritFromFrontmatter?: boolean;
+			};
+			projectConfig?: ProjectConfiguration;
+		}>
+	): void {
 		const f = settings.fileMetadataInheritance;
 		if (f) {
-			this.fileFrontmatterInheritanceEnabled = !!(f.enabled && f.inheritFromFrontmatter);
+			this.fileFrontmatterInheritanceEnabled = !!(
+				f.enabled && f.inheritFromFrontmatter
+			);
+		}
+		if (settings.projectConfig) {
+			this.projectConfig = settings.projectConfig;
 		}
 	}
 
@@ -100,17 +113,23 @@ export class Augmentor {
 	 */
 	async merge(ctx: AugmentContext): Promise<Task[]> {
 		// First apply standard augmentation
-		let augmentedTasks = ctx.tasks.map(task => this.augmentTask(task, ctx));
+		let augmentedTasks = ctx.tasks.map((task) =>
+			this.augmentTask(task, ctx)
+		);
 
 		// Then apply date inheritance for time-only expressions if available
 		if (this.dateInheritanceAugmentor) {
 			try {
-				augmentedTasks = await this.dateInheritanceAugmentor.augmentTasksWithDateInheritance(
-					augmentedTasks,
-					ctx.filePath
-				);
+				augmentedTasks =
+					await this.dateInheritanceAugmentor.augmentTasksWithDateInheritance(
+						augmentedTasks,
+						ctx.filePath
+					);
 			} catch (error) {
-				console.warn('[Augmentor] Date inheritance augmentation failed:', error);
+				console.warn(
+					"[Augmentor] Date inheritance augmentation failed:",
+					error
+				);
 				// Continue with standard augmentation if date inheritance fails
 			}
 		}
@@ -127,10 +146,10 @@ export class Augmentor {
 			fileMeta: ctx.fileMeta,
 			projectName: ctx.project?.name,
 			projectMeta: ctx.project?.data,
-			tasks
+			tasks,
 		};
 
-		return tasks.map(task => this.augmentTask(task, augmentCtx));
+		return tasks.map((task) => this.augmentTask(task, augmentCtx));
 	}
 
 	/**
@@ -138,25 +157,21 @@ export class Augmentor {
 	 */
 	private augmentTask(task: Task, ctx: AugmentContext): Task {
 		const originalMetadata = task.metadata || {};
-		const enhancedMetadata = {...originalMetadata};
+		const enhancedMetadata = { ...originalMetadata };
 
 		// Special handling for priority: check both task.priority and metadata.priority
 		// Priority might be at task root level (from parser) or in metadata
 		// IMPORTANT: Once priority is set, it should NOT be overridden by inheritance
 
 		// Debug logging for priority processing
-		const debug = process.env.NODE_ENV === 'development';
-		if (debug && (enhancedMetadata.priority !== undefined || (task as any).priority !== undefined)) {
-			console.log('[Augmentor] Priority processing:', {
-				metadataPriority: enhancedMetadata.priority,
-				taskPriority: (task as any).priority,
-				filePath: ctx.filePath
-			});
-		}
 
 		// First, ensure we have the priority from task-level if it exists
-		if ((enhancedMetadata.priority === undefined || enhancedMetadata.priority === null) &&
-			(task as any).priority !== undefined && (task as any).priority !== null) {
+		if (
+			(enhancedMetadata.priority === undefined ||
+				enhancedMetadata.priority === null) &&
+			(task as any).priority !== undefined &&
+			(task as any).priority !== null
+		) {
 			enhancedMetadata.priority = (task as any).priority;
 		}
 
@@ -166,15 +181,9 @@ export class Augmentor {
 			enhancedMetadata.priority = undefined;
 		} else if (enhancedMetadata.priority !== undefined) {
 			const originalPriority = enhancedMetadata.priority;
-			enhancedMetadata.priority = this.convertPriorityValue(enhancedMetadata.priority);
-
-			if (debug) {
-				console.log('[Augmentor] Priority conversion:', {
-					original: originalPriority,
-					converted: enhancedMetadata.priority,
-					filePath: ctx.filePath
-				});
-			}
+			enhancedMetadata.priority = this.convertPriorityValue(
+				enhancedMetadata.priority
+			);
 		}
 
 		// Apply inheritance for each metadata field
@@ -184,23 +193,34 @@ export class Augmentor {
 		this.applyProjectReference(enhancedMetadata, ctx);
 
 		// Handle subtask inheritance if this is a parent task
-		if (originalMetadata.children && Array.isArray(originalMetadata.children)) {
+		if (
+			originalMetadata.children &&
+			Array.isArray(originalMetadata.children)
+		) {
 			this.applySubtaskInheritance(task, enhancedMetadata, ctx);
 		}
 
 		return {
 			...task,
-			metadata: enhancedMetadata
+			metadata: enhancedMetadata,
 		} as Task;
 	}
 
 	/**
 	 * Apply scalar field inheritance: task > file > project > default
 	 */
-	private applyScalarInheritance(metadata: Record<string, any>, ctx: AugmentContext): void {
+	private applyScalarInheritance(
+		metadata: Record<string, any>,
+		ctx: AugmentContext
+	): void {
 		const scalarFields = [
-			'priority', 'context', 'area', 'estimatedTime', 'actualTime',
-			'useAsDateType', 'heading'
+			"priority",
+			"context",
+			"area",
+			"estimatedTime",
+			"actualTime",
+			"useAsDateType",
+			"heading",
 		];
 
 		for (const field of scalarFields) {
@@ -211,14 +231,14 @@ export class Augmentor {
 
 			// Special handling for priority - NEVER apply default value
 			// Priority should only come from task itself, file, or project
-			if (field === 'priority') {
+			if (field === "priority") {
 				// Only check file and project sources, skip default
-				for (const source of ['file', 'project']) {
+				for (const source of ["file", "project"]) {
 					let value: any;
 
-					if (source === 'file') {
+					if (source === "file") {
 						value = ctx.fileMeta?.[field];
-					} else if (source === 'project') {
+					} else if (source === "project") {
 						value = ctx.projectMeta?.[field];
 					}
 
@@ -233,20 +253,21 @@ export class Augmentor {
 			}
 
 			// Apply inheritance priority for other fields: file > project > default
-			for (const source of this.strategy.scalarPriority.slice(1)) { // Skip 'task' since we checked above
+			for (const source of this.strategy.scalarPriority.slice(1)) {
+				// Skip 'task' since we checked above
 				let value: any;
 
 				switch (source) {
-					case 'file':
+					case "file":
 						if (!this.fileFrontmatterInheritanceEnabled) {
 							continue; // Skip applying file-level values when inheritance is disabled
 						}
 						value = ctx.fileMeta?.[field];
 						break;
-					case 'project':
+					case "project":
 						value = ctx.projectMeta?.[field];
 						break;
-					case 'default':
+					case "default":
 						value = this.getDefaultValue(field);
 						break;
 				}
@@ -262,31 +283,39 @@ export class Augmentor {
 	/**
 	 * Apply array field inheritance with merge and deduplication
 	 */
-	private applyArrayInheritance(metadata: Record<string, any>, ctx: AugmentContext): void {
-		const arrayFields = ['tags', 'dependsOn'];
+	private applyArrayInheritance(
+		metadata: Record<string, any>,
+		ctx: AugmentContext
+	): void {
+		const arrayFields = ["tags", "dependsOn"];
 
 		for (const field of arrayFields) {
-			const taskArray = Array.isArray(metadata[field]) ? metadata[field] : [];
-			const fileArrayRaw = ctx.fileMeta && Array.isArray((ctx.fileMeta as any)[field]) ? (ctx.fileMeta as any)[field] : [];
-			const fileArray = this.fileFrontmatterInheritanceEnabled ? fileArrayRaw : [];
-			const projectArray = ctx.projectMeta && Array.isArray((ctx.projectMeta as any)[field]) ? (ctx.projectMeta as any)[field] : [];
+			const taskArray = Array.isArray(metadata[field])
+				? metadata[field]
+				: [];
+			const fileArrayRaw =
+				ctx.fileMeta && Array.isArray((ctx.fileMeta as any)[field])
+					? (ctx.fileMeta as any)[field]
+					: [];
+			const fileArray = this.fileFrontmatterInheritanceEnabled
+				? fileArrayRaw
+				: [];
+			const projectArray =
+				ctx.projectMeta &&
+				Array.isArray((ctx.projectMeta as any)[field])
+					? (ctx.projectMeta as any)[field]
+					: [];
 
 			// Normalize tags consistently (ensure leading #) before merging/dedup
 			const normalizeIfTags = (arr: any[]) => {
-				if (field !== 'tags') return arr;
+				if (field !== "tags") return arr;
 				return arr
-					.filter((t) => typeof t === 'string' && t.trim().length > 0)
+					.filter((t) => typeof t === "string" && t.trim().length > 0)
 					.map((t: string) => this.normalizeTag(t));
 			};
 
 			// If user disabled file frontmatter inheritance, do not inherit tags from file or project
-			if (field === 'tags' && !this.fileFrontmatterInheritanceEnabled) {
-				try {
-					console.debug('[Augmentor][Tags] Inheritance disabled. Keeping only task tags.', {
-						taskTags: normalizeIfTags(taskArray)
-					});
-				} catch {
-				}
+			if (field === "tags" && !this.fileFrontmatterInheritanceEnabled) {
 				metadata[field] = normalizeIfTags(taskArray);
 				continue;
 			}
@@ -299,17 +328,33 @@ export class Augmentor {
 
 			// Merge based on strategy
 			switch (this.strategy.arrayMergeStrategy) {
-				case 'task-first':
-					mergedArray = [...taskArrNorm, ...fileArrNorm, ...projectArrNorm];
+				case "task-first":
+					mergedArray = [
+						...taskArrNorm,
+						...fileArrNorm,
+						...projectArrNorm,
+					];
 					break;
-				case 'file-first':
-					mergedArray = [...fileArrNorm, ...taskArrNorm, ...projectArrNorm];
+				case "file-first":
+					mergedArray = [
+						...fileArrNorm,
+						...taskArrNorm,
+						...projectArrNorm,
+					];
 					break;
-				case 'project-first':
-					mergedArray = [...projectArrNorm, ...taskArrNorm, ...fileArrNorm];
+				case "project-first":
+					mergedArray = [
+						...projectArrNorm,
+						...taskArrNorm,
+						...fileArrNorm,
+					];
 					break;
 				default:
-					mergedArray = [...taskArrNorm, ...fileArrNorm, ...projectArrNorm];
+					mergedArray = [
+						...taskArrNorm,
+						...fileArrNorm,
+						...projectArrNorm,
+					];
 			}
 
 			// Deduplicate while preserving order
@@ -320,24 +365,27 @@ export class Augmentor {
 
 	// Normalize a tag to include leading # and trim whitespace
 	private normalizeTag(tag: any): string {
-		if (typeof tag !== 'string') return tag;
+		if (typeof tag !== "string") return tag;
 		const trimmed = tag.trim();
 		if (!trimmed) return trimmed;
-		return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+		return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
 	}
 
 	/**
 	 * Apply special field rules for status/completion and recurrence
 	 */
-	private applySpecialFieldRules(metadata: Record<string, any>, ctx: AugmentContext): void {
+	private applySpecialFieldRules(
+		metadata: Record<string, any>,
+		ctx: AugmentContext
+	): void {
 		// Status and completion: only from task level (never inherit)
-		if (this.strategy.statusCompletionSource === 'task-only') {
+		if (this.strategy.statusCompletionSource === "task-only") {
 			// These fields should only come from the task itself, never inherit
 			// (No action needed as we don't override existing task values)
 		}
 
 		// Recurrence: task explicit priority
-		if (this.strategy.recurrenceSource === 'task-explicit') {
+		if (this.strategy.recurrenceSource === "task-explicit") {
 			// Only use recurrence if explicitly set on task
 			if (!metadata.recurrence) {
 				// Don't inherit recurrence from file or project
@@ -346,7 +394,12 @@ export class Augmentor {
 		}
 
 		// Date fields: inherit only if not already set
-		const dateFields = ['dueDate', 'startDate', 'scheduledDate', 'createdDate'];
+		const dateFields = [
+			"dueDate",
+			"startDate",
+			"scheduledDate",
+			"createdDate",
+		];
 		for (const field of dateFields) {
 			if (metadata[field] === undefined || metadata[field] === null) {
 				// Try file first, then project
@@ -355,7 +408,10 @@ export class Augmentor {
 
 				if (fileValue !== undefined && fileValue !== null) {
 					metadata[field] = fileValue;
-				} else if (projectValue !== undefined && projectValue !== null) {
+				} else if (
+					projectValue !== undefined &&
+					projectValue !== null
+				) {
 					metadata[field] = projectValue;
 				}
 			}
@@ -365,37 +421,109 @@ export class Augmentor {
 	/**
 	 * Apply TgProject reference
 	 */
-	private applyProjectReference(metadata: Record<string, any>, ctx: AugmentContext): void {
+	private applyProjectReference(
+		metadata: Record<string, any>,
+		ctx: AugmentContext
+	): void {
+		// Derive project name from multiple sources with priority:
+		// 1) ctx.projectName (resolver-provided tgProject name)
+		// 2) ctx.projectMeta.project
+		// 3) ctx.fileMeta.project (frontmatter) - new fallback to avoid losing projects
+		const projectFromMeta =
+			typeof ctx.projectMeta?.project === "string" &&
+			ctx.projectMeta.project.trim()
+				? ctx.projectMeta.project.trim()
+				: undefined;
+		const projectFromFrontmatter =
+			typeof ctx.fileMeta?.project === "string" &&
+			ctx.fileMeta.project.trim()
+				? ctx.fileMeta.project.trim()
+				: undefined;
+
+		// Also consider configured metadataKey in frontmatter (e.g., projectName)
+		const metadataKeyFromConfig =
+			this.projectConfig?.metadataConfig?.metadataKey;
+		const projectFromMetadataKey =
+			metadataKeyFromConfig &&
+			typeof ctx.fileMeta?.[metadataKeyFromConfig] === "string" &&
+			String(ctx.fileMeta?.[metadataKeyFromConfig]).trim().length > 0
+				? String(ctx.fileMeta?.[metadataKeyFromConfig]).trim()
+				: undefined;
+
+		const effectiveProjectName =
+			ctx.projectName ||
+			projectFromMeta ||
+			projectFromMetadataKey ||
+			projectFromFrontmatter;
+
 		// Set project name if not already set
-		if (!metadata.project && ctx.projectName) {
-			metadata.project = ctx.projectName;
+		if (!metadata.project && effectiveProjectName) {
+			metadata.project = effectiveProjectName;
+		}
+
+		// If tgProject missing but metadataKey-derived value exists, synthesize tgProject now
+		if (!metadata.tgProject && projectFromMetadataKey) {
+			metadata.tgProject = {
+				type: "metadata",
+				name: projectFromMetadataKey,
+				source: metadataKeyFromConfig || "metadata",
+				readonly: true,
+			} as TgProject;
 		}
 
 		// Set TgProject if project metadata is available
-		// The tgProject should come from ProjectResolver which includes all necessary fields
+		// Prefer resolver-provided tgProject; otherwise synthesize from available context
 		if (ctx.projectMeta) {
-			// Check if we have a tgProject object in the project metadata
-			if (ctx.projectMeta.tgProject) {
+			// Only set from ctx.projectMeta when task doesn't already have a tgProject
+			if (ctx.projectMeta.tgProject && !metadata.tgProject) {
 				metadata.tgProject = ctx.projectMeta.tgProject;
-			} else if (ctx.projectName) {
-				// Fallback: construct from available data
+			} else if (effectiveProjectName && !metadata.tgProject) {
+				// Infer type/source when resolver didn't provide tgProject
+				const inferredType: TgProject["type"] = ctx.projectMeta
+					.configSource
+					? "config"
+					: "metadata";
 				metadata.tgProject = {
-					type: ctx.projectMeta.type || 'metadata',
-					name: ctx.projectName,
-					source: ctx.projectMeta.source || ctx.projectMeta.configSource || 'unknown',
-					readonly: ctx.projectMeta.readonly || false
+					type: inferredType,
+					name: effectiveProjectName,
+					source:
+						(ctx.projectMeta as any).source ||
+						ctx.projectMeta.configSource ||
+						"unknown",
+					readonly: (ctx.projectMeta as any).readonly || true,
 				} as TgProject;
 			}
+		}
+
+		// 2) If neither project nor tgProject are set, but we do have frontmatter project
+		//    then set both from frontmatter to restore project recognition/counting
+		if (
+			!metadata.project &&
+			!metadata.tgProject &&
+			projectFromFrontmatter
+		) {
+			metadata.project = projectFromFrontmatter;
+			metadata.tgProject = {
+				type: "metadata",
+				name: projectFromFrontmatter,
+				source: "frontmatter",
+				readonly: true,
+			} as TgProject;
 		}
 	}
 
 	/**
 	 * Apply subtask inheritance based on per-key control
 	 */
-	private applySubtaskInheritance(parentTask: Task, parentMetadata: Record<string, any>, ctx: AugmentContext): void {
+	private applySubtaskInheritance(
+		parentTask: Task,
+		parentMetadata: Record<string, any>,
+		ctx: AugmentContext
+	): void {
 		// This would typically involve finding child tasks and applying inheritance
 		// For now, we'll store the inheritance rules on the parent for child processing
-		parentMetadata._subtaskInheritanceRules = this.strategy.subtaskInheritance;
+		parentMetadata._subtaskInheritanceRules =
+			this.strategy.subtaskInheritance;
 	}
 
 	/**
@@ -445,7 +573,8 @@ export class Augmentor {
 		}
 
 		// Try priority mapping (including emojis)
-		const mappedPriority = priorityMap[strValue.toLowerCase()] || priorityMap[strValue];
+		const mappedPriority =
+			priorityMap[strValue.toLowerCase()] || priorityMap[strValue];
 		if (mappedPriority !== undefined) {
 			return mappedPriority;
 		}
@@ -465,7 +594,7 @@ export class Augmentor {
 			dependsOn: [],
 			estimatedTime: undefined,
 			actualTime: undefined,
-			useAsDateType: 'due'
+			useAsDateType: "due",
 		};
 
 		return defaults[field];
@@ -475,14 +604,14 @@ export class Augmentor {
 	 * Update inheritance strategy
 	 */
 	updateStrategy(strategy: Partial<InheritanceStrategy>): void {
-		this.strategy = {...this.strategy, ...strategy};
+		this.strategy = { ...this.strategy, ...strategy };
 	}
 
 	/**
 	 * Get current inheritance strategy
 	 */
 	getStrategy(): InheritanceStrategy {
-		return {...this.strategy};
+		return { ...this.strategy };
 	}
 
 	/**
@@ -495,20 +624,26 @@ export class Augmentor {
 		projectValue: any
 	): any {
 		// Handle arrays specially
-		if (Array.isArray(taskValue) || Array.isArray(fileValue) || Array.isArray(projectValue)) {
+		if (
+			Array.isArray(taskValue) ||
+			Array.isArray(fileValue) ||
+			Array.isArray(projectValue)
+		) {
 			const taskArray = Array.isArray(taskValue) ? taskValue : [];
 			const fileArray = Array.isArray(fileValue) ? fileValue : [];
-			const projectArray = Array.isArray(projectValue) ? projectValue : [];
+			const projectArray = Array.isArray(projectValue)
+				? projectValue
+				: [];
 
 			let merged: any[];
 			switch (this.strategy.arrayMergeStrategy) {
-				case 'task-first':
+				case "task-first":
 					merged = [...taskArray, ...fileArray, ...projectArray];
 					break;
-				case 'file-first':
+				case "file-first":
 					merged = [...fileArray, ...taskArray, ...projectArray];
 					break;
-				case 'project-first':
+				case "project-first":
 					merged = [...projectArray, ...taskArray, ...fileArray];
 					break;
 				default:
@@ -517,21 +652,21 @@ export class Augmentor {
 
 			return Array.from(new Set(merged));
 		}
- 
+
 		// Handle scalars with priority order
 		for (const source of this.strategy.scalarPriority) {
 			let value: any;
 			switch (source) {
-				case 'task':
+				case "task":
 					value = taskValue;
 					break;
-				case 'file':
+				case "file":
 					value = fileValue;
 					break;
-				case 'project':
+				case "project":
 					value = projectValue;
 					break;
-				case 'default':
+				case "default":
 					value = this.getDefaultValue(field);
 					break;
 			}
@@ -544,4 +679,3 @@ export class Augmentor {
 		return undefined;
 	}
 }
-

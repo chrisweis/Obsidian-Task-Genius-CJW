@@ -89,7 +89,11 @@ export class DataflowOrchestrator {
 		// Initial sync of settings to Augmentor to ensure correct inheritance behavior on startup
 		try {
 			const initFmi = this.plugin?.settings?.fileMetadataInheritance;
-			this.augmentor.updateSettings({ fileMetadataInheritance: initFmi });
+			const initProjectConfig = this.plugin?.settings?.projectConfig;
+			this.augmentor.updateSettings({
+				fileMetadataInheritance: initFmi,
+				projectConfig: initProjectConfig,
+			});
 		} catch (e) {
 			console.warn(
 				"[DataflowOrchestrator][init] Failed to sync settings to Augmentor",
@@ -164,6 +168,12 @@ export class DataflowOrchestrator {
 				areaTagPrefix: this.plugin.settings.areaTagPrefix,
 			},
 		});
+
+		// Ensure worker parser receives enhanced project config at init
+		taskWorkerManager.updateSettings({
+			projectConfig: this.plugin.settings.projectConfig,
+		});
+
 		const projectWorkerManager = new ProjectDataWorkerManager({
 			vault,
 			metadataCache,

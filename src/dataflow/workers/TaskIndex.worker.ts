@@ -81,6 +81,7 @@ function parseTasksWithConfigurableParser(
 
 		// Raw parsing only - no project enhancement per dataflow architecture
 		// Project data will be handled by Augmentor in main thread
+
 		const tasks = parser.parseLegacy(
 			content,
 			filePath,
