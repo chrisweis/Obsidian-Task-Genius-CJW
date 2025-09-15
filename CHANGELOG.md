@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.11](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.10...9.8.11) (2025-09-15)
+
+### Features
+
+* **dataflow:** enhance project configuration and metadata handling ([ab5b945](https://github.com/Quorafind/Obsidian-Task-Genius/commit/ab5b945))
+* **settings:** add reset all settings functionality ([fd6df16](https://github.com/Quorafind/Obsidian-Task-Genius/commit/fd6df16))
+
+### Bug Fixes
+
+* **tasks:** improve task completion handling and metadata updates ([46197db](https://github.com/Quorafind/Obsidian-Task-Genius/commit/46197db))
+
+### Refactors
+
+* **projects:** optimize popover creation with Obsidian APIs ([574fbc8](https://github.com/Quorafind/Obsidian-Task-Genius/commit/574fbc8))
+
 ## [9.8.10](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.9...9.8.10) (2025-09-13)
 
 ### Bug Fixes
