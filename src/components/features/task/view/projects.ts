@@ -5,7 +5,7 @@ import {
 	ExtraButtonComponent,
 	Platform,
 } from "obsidian";
-import { Task } from "@/types/task";
+import { Task, TgProject } from "@/types/task";
 import { t } from "@/translations/helper";
 import "@/styles/project-view.css";
 import "@/styles/project-tree.css";
@@ -13,6 +13,7 @@ import { TaskListRendererComponent } from "./TaskList";
 import TaskProgressBarPlugin from "@/index";
 import { sortTasks } from "@/commands/sortTaskCommands";
 import { getEffectiveProject } from "@/utils/task/task-operations";
+import { createPopper } from "@popperjs/core";
 import { getInitialViewMode, saveViewMode } from "@/utils/ui/view-mode-utils";
 import { ProjectTreeComponent } from "./ProjectTreeComponent";
 import { buildProjectTree } from "@/core/project-tree-builder";
@@ -42,6 +43,13 @@ export class ProjectsComponent extends Component {
 
 	// Child components
 	private taskRenderer: TaskListRendererComponent;
+	private headerTopRightRowEl?: HTMLElement;
+	private projectPropsBtnEl: HTMLElement | null = null;
+	private projectPropsPopoverEl: HTMLElement | null = null;
+	private projectPropsPopper: any = null;
+
+	private outsideClickHandler?: (e: MouseEvent) => void;
+	private escKeyHandler?: (e: KeyboardEvent) => void;
 
 	// State
 	private allTasks: Task[] = [];
@@ -57,6 +65,10 @@ export class ProjectsComponent extends Component {
 	private isProjectTreeView: boolean = false;
 	private projectTreeComponent?: ProjectTreeComponent;
 	private projectTree?: TreeNode<ProjectNodeData>;
+
+	private currentInfoProject: string | null = null;
+
+	private infoRenderGen: number = 0;
 
 	constructor(
 		private parentEl: HTMLElement,
@@ -251,6 +263,7 @@ export class ProjectsComponent extends Component {
 		const headerTopRightRow = headerTopRow.createDiv({
 			cls: "projects-header-top-right",
 		});
+		this.headerTopRightRowEl = headerTopRightRow;
 
 		const taskCountEl = headerTopRightRow.createDiv({
 			cls: "projects-task-count",
@@ -272,6 +285,9 @@ export class ProjectsComponent extends Component {
 		this.taskListContainerEl = this.taskContainerEl.createDiv({
 			cls: "projects-task-list",
 		});
+
+		// Initialize tgProject props button state
+		this.updateTgProjectPropsButton(null);
 	}
 
 	public setTasks(tasks: Task[]) {
@@ -344,6 +360,11 @@ export class ProjectsComponent extends Component {
 			) => {
 				this.selectedProjects.projects = Array.from(selectedNodes);
 				this.updateSelectedTasks();
+				const single =
+					this.selectedProjects.projects.length === 1
+						? this.selectedProjects.projects[0]
+						: null;
+				this.updateTgProjectPropsButton(single);
 			};
 
 			this.projectTreeComponent.onMultiSelectToggled = (
@@ -388,11 +409,11 @@ export class ProjectsComponent extends Component {
 				// Get tasks for this project
 				const projectTaskIds = this.allProjectsMap.get(project);
 				const taskCount = projectTaskIds?.size || 0;
-				
+
 				// Calculate completed tasks for this project
 				let completedCount = 0;
 				if (projectTaskIds) {
-					projectTaskIds.forEach(taskId => {
+					projectTaskIds.forEach((taskId) => {
 						const task = this.allTasksMap.get(taskId);
 						if (task && this.getTaskStatus(task) === "completed") {
 							completedCount++;
@@ -421,16 +442,19 @@ export class ProjectsComponent extends Component {
 				const countEl = projectItem.createDiv({
 					cls: "project-count",
 				});
-				
+
 				// Show completed/total format
-				if (this.plugin.settings.addProgressBarToProjectsView && taskCount > 0) {
+				if (
+					this.plugin.settings.addProgressBarToProjectsView &&
+					taskCount > 0
+				) {
 					countEl.setText(`${completedCount}/${taskCount}`);
 					// Add data attributes for styling
 					countEl.dataset.completed = completedCount.toString();
 					countEl.dataset.total = taskCount.toString();
 
-					countEl.toggleClass("has-progress", true)
-					
+					countEl.toggleClass("has-progress", true);
+
 					// Add completion class for visual feedback
 					if (completedCount === taskCount) {
 						countEl.classList.add("all-completed");
@@ -537,6 +561,7 @@ export class ProjectsComponent extends Component {
 					t("Select a project to see related tasks")
 				);
 				this.updateTaskListHeader(t("Tasks"), `0 ${t("tasks")}`);
+				this.updateTgProjectPropsButton(null);
 			}
 		}
 
@@ -728,15 +753,23 @@ export class ProjectsComponent extends Component {
 
 			// Calculate percentages
 			const completedPercentage =
-				Math.round((progressData.completed / progressData.total) * 10000) / 100;
+				Math.round(
+					(progressData.completed / progressData.total) * 10000
+				) / 100;
 			const inProgressPercentage = progressData.inProgress
-				? Math.round((progressData.inProgress / progressData.total) * 10000) / 100
+				? Math.round(
+						(progressData.inProgress / progressData.total) * 10000
+				  ) / 100
 				: 0;
 			const abandonedPercentage = progressData.abandoned
-				? Math.round((progressData.abandoned / progressData.total) * 10000) / 100
+				? Math.round(
+						(progressData.abandoned / progressData.total) * 10000
+				  ) / 100
 				: 0;
 			const plannedPercentage = progressData.planned
-				? Math.round((progressData.planned / progressData.total) * 10000) / 100
+				? Math.round(
+						(progressData.planned / progressData.total) * 10000
+				  ) / 100
 				: 0;
 
 			// Create progress segments
@@ -813,7 +846,9 @@ export class ProjectsComponent extends Component {
 					textEl.setText(progressText);
 				} else if (displayMode === "both") {
 					// Add text to the existing progress bar container
-					const progressBarEl = progressContainer.querySelector(".cm-task-progress-bar");
+					const progressBarEl = progressContainer.querySelector(
+						".cm-task-progress-bar"
+					);
 					if (progressBarEl) {
 						const textEl = progressBarEl.createDiv({
 							cls: "progress-status",
@@ -837,7 +872,7 @@ export class ProjectsComponent extends Component {
 
 		this.filteredTasks.forEach((task) => {
 			const status = this.getTaskStatus(task);
-			
+
 			switch (status) {
 				case "completed":
 					data.completed++;
@@ -921,15 +956,14 @@ export class ProjectsComponent extends Component {
 		}
 
 		const abandonedMarks =
-			this.plugin?.settings.taskStatuses?.abandoned?.split("|") || [
-				">",
-			];
+			this.plugin?.settings.taskStatuses?.abandoned?.split("|") || [">"];
 		if (abandonedMarks.includes(mark)) {
 			return "abandoned";
 		}
 
-		const plannedMarks =
-			this.plugin?.settings.taskStatuses?.planned?.split("|") || ["?"];
+		const plannedMarks = this.plugin?.settings.taskStatuses?.planned?.split(
+			"|"
+		) || ["?"];
 		if (plannedMarks.includes(mark)) {
 			return "planned";
 		}
@@ -969,24 +1003,21 @@ export class ProjectsComponent extends Component {
 		}
 
 		const abandonedMarks =
-			this.plugin?.settings.taskStatuses?.abandoned?.split("|") || [
-				">",
-			];
+			this.plugin?.settings.taskStatuses?.abandoned?.split("|") || [">"];
 		if (abandonedMarks.includes(mark)) {
 			return "abandoned";
 		}
 
-		const plannedMarks =
-			this.plugin?.settings.taskStatuses?.planned?.split("|") || ["?"];
+		const plannedMarks = this.plugin?.settings.taskStatuses?.planned?.split(
+			"|"
+		) || ["?"];
 		if (plannedMarks.includes(mark)) {
 			return "planned";
 		}
 
 		// If not matching any specific status, check if it's a not-started mark
 		const notStartedMarks =
-			this.plugin?.settings.taskStatuses?.notStarted?.split("|") || [
-				" ",
-			];
+			this.plugin?.settings.taskStatuses?.notStarted?.split("|") || [" "];
 		if (notStartedMarks.includes(mark)) {
 			return "notStarted";
 		}
@@ -1090,11 +1121,383 @@ export class ProjectsComponent extends Component {
 		// Rebuild project index and re-render
 		this.buildProjectsIndex();
 		this.renderProjectsList();
-
-		// Update selected tasks if any projects are selected
+		// Update tasks and tgProject info button based on current selection
 		if (this.selectedProjects.projects.length > 0) {
 			this.updateSelectedTasks();
 		}
+		const single =
+			this.selectedProjects.projects.length === 1
+				? this.selectedProjects.projects[0]
+				: null;
+		this.updateTgProjectPropsButton(single);
+	}
+
+	/** Create or update the tgProject info button in the right header */
+	private updateTgProjectPropsButton(selectedProject: string | null): void {
+		if (!this.headerTopRightRowEl) return;
+		// No selection: remove button and popover
+		if (!selectedProject) {
+			if (this.projectPropsBtnEl) {
+				this.projectPropsBtnEl.remove();
+				this.projectPropsBtnEl = null;
+			}
+			this.teardownProjectPropsUI();
+			return;
+		}
+		// Show info button only when there exists a task with a real tgProject AND
+		// (no metadata.project) OR (metadata.project equals tgProject.name).
+		{
+			const separator = this.plugin.settings.projectPathSeparator || "/";
+			const hasInfo = this.allTasks.some((task) => {
+				const p = getEffectiveProject(task);
+				const match =
+					p === selectedProject ||
+					(p && p.startsWith(selectedProject + separator));
+				if (!match) return false;
+				const tg = (task.metadata as any)?.tgProject as any;
+				if (!tg || typeof tg !== "object") return false;
+				const mp = task.metadata?.project;
+				return (
+					mp === undefined ||
+					mp === null ||
+					mp === "" ||
+					mp === tg.name
+				);
+			});
+			if (!hasInfo) {
+				if (this.projectPropsBtnEl) {
+					this.projectPropsBtnEl.remove();
+					this.projectPropsBtnEl = null;
+				}
+				this.teardownProjectPropsUI();
+				return;
+			}
+		}
+		// Ensure button exists
+		if (!this.projectPropsBtnEl) {
+			const btn = this.headerTopRightRowEl.createDiv({
+				cls: "projects-props-btn",
+				attr: {
+					"aria-label": t("Show project info") || "Project info",
+				},
+			});
+			setIcon(btn, "info");
+			this.projectPropsBtnEl = btn;
+			this.registerDomEvent(btn, "click", async (e) => {
+				e.stopPropagation();
+				if (this.projectPropsPopoverEl) {
+					this.teardownProjectPropsUI();
+					return;
+				}
+				// Create popover using createEl from document.body
+				this.projectPropsPopoverEl = document.body.createEl("div", {
+					cls: "tg-project-popover",
+					attr: {
+						style: "background: var(--background-secondary); border: 1px solid var(--background-modifier-border); border-radius: 8px; padding: 8px 10px; box-shadow: var(--shadow-s); max-width: 420px; z-index: 9999;"
+					}
+				});
+				const list = this.projectPropsPopoverEl.createDiv({
+					cls: "tg-project-props"
+				});
+				this.projectPropsPopper = createPopper(btn, this.projectPropsPopoverEl, {
+					placement: "bottom-end",
+					modifiers: [
+						{ name: "offset", options: { offset: [0, 8] } },
+					],
+				});
+				// Render-token to prevent stale async updates
+				const gen = ++this.infoRenderGen;
+
+				// Close on outside click or ESC
+
+				this.registerDomEvent(this.projectPropsPopoverEl, "mousedown", (ev) => ev.stopPropagation());
+
+				this.outsideClickHandler = (ev: MouseEvent) => {
+					const target = ev.target as Node;
+					if (!this.projectPropsPopoverEl) return;
+					if (this.projectPropsPopoverEl.contains(target)) return;
+					if (
+						this.projectPropsBtnEl &&
+						this.projectPropsBtnEl.contains(target)
+					)
+						return;
+					this.teardownProjectPropsUI();
+				};
+				this.registerDomEvent(
+					document,
+					"mousedown",
+					this.outsideClickHandler,
+					{ capture: true }
+				);
+
+				this.escKeyHandler = (ev: KeyboardEvent) => {
+					if (ev.key === "Escape") {
+						this.teardownProjectPropsUI();
+					}
+				};
+				this.registerDomEvent(document, "keydown", this.escKeyHandler);
+
+				// Resolve representative task and tgProject using current selection
+				const currentSelected =
+					this.selectedProjects.projects.length === 1
+						? this.selectedProjects.projects[0]
+						: null;
+				if (!currentSelected) {
+					list.textContent =
+						t("No project selected") || "No project selected";
+					return;
+				}
+				this.currentInfoProject = currentSelected;
+				// Gather tasks in this project group
+				const separator =
+					this.plugin.settings.projectPathSeparator || "/";
+				const tasksInProject = this.allTasks.filter((task) => {
+					const p = getEffectiveProject(task);
+					return (
+						p === currentSelected ||
+						(p && p.startsWith(currentSelected + separator))
+					);
+				});
+				const candidates = tasksInProject.filter((t) => {
+					const tg = (t.metadata as any)?.tgProject as any;
+					if (!tg || typeof tg !== "object") return false;
+					const mp = t.metadata?.project;
+					return (
+						mp === undefined ||
+						mp === null ||
+						mp === "" ||
+						mp === tg.name
+					);
+				});
+				const taskPrefMatch = candidates.find((t) => {
+					const mp = t.metadata?.project;
+					const tg = (t.metadata as any)?.tgProject as any;
+					return mp && tg && mp === tg.name;
+				});
+				const taskForResolve: Task | undefined =
+					taskPrefMatch || candidates[0];
+				if (!taskForResolve) {
+					list.textContent =
+						t("No task found in selection") || "No task found";
+					return;
+				}
+				list.textContent = t("Loading...") || "Loading...";
+
+				let enhanced: Record<string, any> = {};
+				let configSourcePath: string | undefined;
+				try {
+					const resolver = (this.plugin.dataflowOrchestrator as any)
+						?.projectResolver;
+					if (resolver?.get) {
+						const pdata = await resolver.get(
+							taskForResolve.filePath
+						);
+						enhanced = pdata?.enhancedMetadata || {};
+						configSourcePath = pdata?.configSource;
+					} else {
+						const repo =
+							this.plugin.dataflowOrchestrator?.getRepository();
+						const storage = (repo as any)?.getStorage?.();
+						const rec = storage
+							? await storage.loadProject(taskForResolve.filePath)
+							: null;
+						enhanced = rec?.data?.enhancedMetadata || {};
+						configSourcePath = rec?.data?.configSource;
+					}
+				} catch (err) {
+					console.warn(
+						"[Projects] Failed to load project metadata:",
+						err
+					);
+				}
+
+				// Stale-guard: if a newer render started, abort
+				if (gen !== this.infoRenderGen) {
+					return;
+				}
+
+				// Choose tg strictly from the selected candidate (must exist by button rule)
+				const tg =
+					((taskForResolve?.metadata as any)?.tgProject as any) ||
+					undefined;
+				if (!tg) {
+					this.teardownProjectPropsUI();
+					return;
+				}
+				const entries: Array<[string, any]> = [];
+				let fmKeys: Set<string> = new Set();
+				const projectName =
+					taskForResolve?.metadata?.project ??
+					(tg as any).name ??
+					currentSelected;
+				entries.push(["project", projectName]);
+				entries.push(["type", (tg as any).type]);
+				if ((tg as any).source)
+					entries.push(["source", (tg as any).source]);
+				if ((tg as any).readonly !== undefined)
+					entries.push(["readonly", (tg as any).readonly]);
+
+				// If tgProject exists (incl. type=config), load its source file frontmatter and display
+				if (tg) {
+					if (configSourcePath) {
+						entries.push(["configSource", configSourcePath]);
+					}
+					const metaPath =
+						tg && (tg as any).type === "config" && configSourcePath
+							? configSourcePath
+							: taskForResolve.filePath;
+					try {
+						const abs =
+							this.app.vault.getAbstractFileByPath(metaPath);
+						if (abs && (abs as any).extension) {
+							const file = abs as any; // TFile
+							const fm =
+								this.app.metadataCache.getFileCache(
+									file
+								)?.frontmatter;
+							if (fm && typeof fm === "object") {
+								// record fm keys for de-duplication
+								fmKeys = new Set(
+									Object.keys(fm).filter((k) => {
+										const kl = k.toLowerCase();
+										return (
+											kl !== "position" &&
+											kl !== "projectname" &&
+											kl !== "project"
+										);
+									})
+								);
+								entries.push(["—", "—"]);
+								entries.push(["sourceFile", metaPath]);
+								for (const [k, v] of Object.entries(fm)) {
+									if (k === "position") continue;
+									const kl = k.toLowerCase();
+									if (
+										kl === "projectname" ||
+										kl === "project"
+									)
+										continue;
+									entries.push([`frontmatter.${k}`, v]);
+								}
+							}
+						}
+					} catch (e) {
+						console.warn(
+							"[Projects] Failed to read source frontmatter:",
+							e
+						);
+					}
+				}
+
+				// Build details from enhanced first, fallback to task metadata
+				const sourceObj: Record<string, any> =
+					Object.keys(enhanced).length > 0
+						? enhanced
+						: taskForResolve.metadata || {};
+				const blacklist = new Set([
+					"tgProject",
+					"project",
+					"children",
+					"childrenIds",
+					"parent",
+					"parentId",
+					"listMarker",
+					"indentLevel",
+					"actualIndent",
+					"originalMarkdown",
+					"line",
+					"comment",
+					"heading",
+					"_subtaskInheritanceRules",
+					"metadata",
+				]);
+				for (const [k, vRaw] of Object.entries(sourceObj)) {
+					if (blacklist.has(k)) continue;
+					if (vRaw === undefined || vRaw === null || vRaw === "")
+						continue;
+					// avoid duplicates: if key already comes from frontmatter, skip plain key
+					if (fmKeys && fmKeys.has(k)) continue;
+					let v: any = vRaw;
+					// Format arrays/objects
+					if (Array.isArray(v)) {
+						if (v.length === 0) continue;
+						if (k === "tags" || k === "dependsOn") {
+							v = v.join(", ");
+						} else {
+							// Skip noisy arrays by default
+							continue;
+						}
+					} else if (typeof v === "object") {
+						// Skip nested objects by default to avoid noise
+						continue;
+					}
+					// Format known date-like fields
+					const kl = k.toLowerCase();
+					if (
+						(/date$/i.test(k) || kl.endsWith("date")) &&
+						typeof v !== "string"
+					) {
+						const n = Number(v);
+						if (!Number.isNaN(n) && n > 1e10) {
+							try {
+								v = new Date(n).toLocaleString();
+							} catch {}
+						}
+					}
+					entries.push([k, v]);
+				}
+
+				// Render entries
+				list.empty();
+				entries.forEach(([k, v]) => {
+					const row = list.createDiv({
+						attr: {
+							style: "display:flex; gap:8px; align-items:center; padding:2px 0"
+						}
+					});
+					const keyEl = row.createDiv({
+						attr: {
+							style: "opacity:0.7; min-width:120px;"
+						}
+					});
+					keyEl.setText(String(k));
+					const valEl = row.createDiv();
+					valEl.setText(
+						typeof v === "string" ? v : JSON.stringify(v)
+					);
+				});
+			});
+		}
+
+		// If popover is open and selection changed, refresh content
+		if (this.projectPropsPopoverEl && selectedProject) {
+			if (this.currentInfoProject !== selectedProject) {
+				this.currentInfoProject = selectedProject;
+				// Recreate the popover to reflect new selection
+				this.teardownProjectPropsUI();
+				this.projectPropsBtnEl?.click();
+			}
+		}
+	}
+
+	/** Close and cleanup the popover */
+	private teardownProjectPropsUI(): void {
+		// Clear handler references (events are auto-cleaned by registerDomEvent)
+		this.outsideClickHandler = undefined;
+		this.escKeyHandler = undefined;
+
+		// Destroy popper and remove popover
+		if (
+			this.projectPropsPopper &&
+			typeof this.projectPropsPopper.destroy === "function"
+		) {
+			this.projectPropsPopper.destroy();
+		}
+		this.projectPropsPopper = null;
+		if (this.projectPropsPopoverEl) {
+			this.projectPropsPopoverEl.remove();
+		}
+		this.projectPropsPopoverEl = null;
 	}
 
 	onunload() {
