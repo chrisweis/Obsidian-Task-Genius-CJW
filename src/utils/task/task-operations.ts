@@ -471,8 +471,24 @@ export function extractTags(
 	}
 
 	// Find all #tags in the content with links and inline code replaced by placeholders
-	const tagMatches = processedContent.match(EMOJI_TAG_REGEX) || [];
-	task.metadata.tags = tagMatches.map((tag) => tag.trim());
+	// But ignore escaped tags (\#tag)
+	const allTagMatches = processedContent.match(EMOJI_TAG_REGEX) || [];
+	// Filter out escaped tags by checking the original content
+	const validTags: string[] = [];
+	for (const tag of allTagMatches) {
+		const tagIndex = processedContent.indexOf(tag);
+		if (tagIndex > 0) {
+			// Check if the character before the # is a backslash in the original content
+			// We need to check the remainingContent (not processedContent) for the backslash
+			const originalTagIndex = remainingContent.indexOf(tag);
+			if (originalTagIndex > 0 && remainingContent[originalTagIndex - 1] === '\\') {
+				// This is an escaped tag, skip it
+				continue;
+			}
+		}
+		validTags.push(tag.trim());
+	}
+	task.metadata.tags = validTags;
 
 	// Get configurable project prefix
 	const projectPrefix =
