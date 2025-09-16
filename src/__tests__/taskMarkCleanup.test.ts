@@ -77,7 +77,7 @@ describe("Task Mark Cleanup", () => {
 
 		test("should handle complex example from user", () => {
 			const input = "今天要过去吃饭 #123-123-123 ~ 📅 2025-07-18";
-			const expected = "今天要过去吃饭 #123-123-123 2025-07-18";
+			const expected = "今天要过去吃饭 2025-07-18"; // #123-123-123 is a normal tag and should be removed
 			expect(clearAllMarks(input)).toBe(expected);
 		});
 	});

@@ -186,6 +186,37 @@ export class EditorState {
 		}
 	}
 
+	update(spec: any = {}) {
+		const changesSpec = spec.changes || {};
+		const from = changesSpec.from ?? 0;
+		const to = changesSpec.to ?? from;
+		const insert =
+			typeof changesSpec.insert === "string"
+				? changesSpec.insert
+				: changesSpec.insert?.toString?.() ?? "";
+
+		const oldText = this.doc.toString();
+		const newContent = oldText.slice(0, from) + insert + oldText.slice(to);
+		const newDoc = new Text(newContent);
+
+		const changes = new Changes();
+		(changes as any)._changes.push({
+			fromA: from,
+			toA: to,
+			fromB: from,
+			toB: from + insert.length,
+			inserted: new Text(insert),
+		});
+
+		return new Transaction({
+			startState: this,
+			newDoc,
+			changes,
+			selection: spec.selection,
+			annotations: spec.annotations,
+		});
+	}
+
 	field<T>(field: any /* StateField<T> | Facet<any, T> */): T | undefined {
 		return this._fields.get(field);
 	}

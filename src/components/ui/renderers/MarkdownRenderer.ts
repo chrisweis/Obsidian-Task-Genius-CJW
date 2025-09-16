@@ -6,12 +6,26 @@ import {
 } from "obsidian";
 import { DEFAULT_SYMBOLS, TAG_REGEX } from "../../../common/default-symbol";
 
+// Use a non-global, start-anchored tag matcher to allow index checks
+const TAG_HEAD = new RegExp("^" + TAG_REGEX.source);
+
 /**
  * Remove tags while protecting content inside wiki links
  */
 function removeTagsWithLinkProtection(text: string): string {
 	let result = "";
 	let i = 0;
+
+	// Helper: check if '#' at index i is escaped by odd number of backslashes
+	function isEscapedHash(idx: number): boolean {
+		let bs = 0;
+		let j = idx - 1;
+		while (j >= 0 && text[j] === "\\") {
+			bs++;
+			j--;
+		}
+		return bs % 2 === 1;
+	}
 
 	while (i < text.length) {
 		// Check if we're at the start of a wiki link
@@ -38,11 +52,23 @@ function removeTagsWithLinkProtection(text: string): string {
 			result += text.substring(i, linkEnd);
 			i = linkEnd;
 		} else if (text[i] === "#") {
+			// Ignore escaped \#
+			if (isEscapedHash(i)) {
+				result += text[i];
+				i++;
+				continue;
+			}
 			// Check if this is a tag (not inside a link)
-			const tagMatch = text.substring(i).match(TAG_REGEX);
-			if (tagMatch && tagMatch.index === 0) {
-				// Skip the entire tag
-				i += tagMatch[0].length;
+			const headMatch = TAG_HEAD.exec(text.substring(i));
+			if (headMatch) {
+				const full = headMatch[0];
+				const body = full.slice(1);
+				// Preserve only pure numeric tokens like #123 (not a tag by spec)
+				if (/^\d+$/.test(body)) {
+					result += full; // keep as plain text
+				}
+				// Otherwise treat as tag and remove it
+				i += full.length;
 			} else {
 				// Not a tag, keep the character
 				result += text[i];
@@ -240,10 +266,50 @@ export function clearAllMarks(markdown: string): string {
 	tempMarkdown = tempMarkdown.replace(/\s*📁\s*/g, " ");
 
 	// Remove any remaining simple tags but preserve special tags like #123-123-123
-	tempMarkdown = tempMarkdown.replace(
-		/#(?![0-9-]+\b)[^\u2000-\u206F\u2E00-\u2E7F'!"#$%&()*+,.:;<=>?@^`{|}~\[\]\\\s]+/g,
-		""
-	);
+	// Also ignore escaped \# (do not treat as tag)
+	tempMarkdown = (function removeSimpleTagsIgnoringEscapes(
+		input: string
+	): string {
+		let out = "";
+		let i = 0;
+		function isEscapedHashAt(idx: number): boolean {
+			let bs = 0;
+			let j = idx - 1;
+			while (j >= 0 && input[j] === "\\") {
+				bs++;
+				j--;
+			}
+			return bs % 2 === 1;
+		}
+		while (i < input.length) {
+			if (input[i] === "#") {
+				if (isEscapedHashAt(i)) {
+					out += "#";
+					i++;
+					continue;
+				}
+				const rest = input.substring(i);
+				const m = TAG_HEAD.exec(rest);
+				if (m) {
+					const full = m[0];
+					const body = full.slice(1);
+					// Preserve only pure numeric tokens like #123; others are tags to remove
+					if (/^\d+$/.test(body)) {
+						out += full;
+					}
+					i += full.length;
+					continue;
+				}
+				// not a tag, keep '#'
+				out += "#";
+				i++;
+				continue;
+			}
+			out += input[i];
+			i++;
+		}
+		return out;
+	})(tempMarkdown);
 
 	// Remove any remaining tilde symbols (~ symbol) that weren't handled by the special case
 	tempMarkdown = tempMarkdown.replace(/\s+~\s+/g, " ");

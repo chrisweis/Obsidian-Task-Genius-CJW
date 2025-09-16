@@ -301,7 +301,8 @@ export class MarkdownTaskParser {
 	private extractTaskLine(
 		line: string
 	): [number, number, string, string] | null {
-		const trimmed = line.trim();
+		// Preserve trailing spaces to allow parsing of empty-content tasks like "- [ ] "
+		const trimmed = line.trimStart();
 		const actualSpaces = line.length - trimmed.length;
 
 		if (this.isTaskLine(trimmed)) {
@@ -772,8 +773,6 @@ export class MarkdownTaskParser {
 
 		if (key && value) {
 			// Debug: Log dataview metadata extraction for configured prefixes
-			
-			
 
 			const before = content.substring(0, start);
 			const after = content.substring(end + 1);
@@ -944,85 +943,82 @@ export class MarkdownTaskParser {
 		const detector = new ContextDetector(content);
 		detector.detectAllProtectedRanges();
 
-		const hashPos = detector.findNextUnprotectedHash(0);
-		if (hashPos === -1) return null;
+		const tryFrom = (startPos: number): [string, string, string] | null => {
+			const hashPos = detector.findNextUnprotectedHash(startPos);
+			if (hashPos === -1) return null;
 
-		// Enhanced word boundary check
-		const isWordStart = this.isValidTagStart(content, hashPos);
-		if (!isWordStart) {
-			// Try to find the next unprotected hash
-			const nextHashPos = detector.findNextUnprotectedHash(hashPos + 1);
-			if (nextHashPos === -1) return null;
-
-			// Recursively check the remaining content
-			const remainingContent = content.substring(nextHashPos);
-			const recurseResult = this.extractTag(remainingContent);
-			if (recurseResult) {
-				const [tag, beforeTag, afterTag] = recurseResult;
-				return [
-					tag,
-					content.substring(0, nextHashPos) + beforeTag,
-					afterTag,
-				];
+			// If an odd number of backslashes immediately precede '#', it's escaped → skip
+			let bsCount = 0;
+			let j = hashPos - 1;
+			while (j >= 0 && content[j] === "\\") {
+				bsCount++;
+				j--;
 			}
-			return null;
-		}
-
-		const afterHash = content.substring(hashPos + 1);
-		let tagEnd = 0;
-
-		// Find tag end, including '/' for special tags and Unicode characters
-		for (let i = 0; i < afterHash.length; i++) {
-			const char = afterHash[i];
-			const charCode = char.charCodeAt(0);
-
-			// Check if character is valid for tags:
-			// - ASCII letters and numbers: a-z, A-Z, 0-9
-			// - Special characters: /, -, _
-			// - Unicode characters (including Chinese): > 127
-			// - Exclude common separators and punctuation
-			if (
-				(charCode >= 48 && charCode <= 57) || // 0-9
-				(charCode >= 65 && charCode <= 90) || // A-Z
-				(charCode >= 97 && charCode <= 122) || // a-z
-				char === "/" ||
-				char === "-" ||
-				char === "_" ||
-				(charCode > 127 &&
-					char !== "，" &&
-					char !== "。" &&
-					char !== "；" &&
-					char !== "：" &&
-					char !== "！" &&
-					char !== "？" &&
-					char !== "「" &&
-					char !== "」" &&
-					char !== "『" &&
-					char !== "』" &&
-					char !== "（" &&
-					char !== "）" &&
-					char !== "【" &&
-					char !== "】" &&
-					char !== '"' &&
-					char !== '"' &&
-					char !== "'" &&
-					char !== "'" &&
-					char !== " ")
-			) {
-				tagEnd = i + 1;
-			} else {
-				break;
+			if (bsCount % 2 === 1) {
+				return tryFrom(hashPos + 1);
 			}
-		}
 
-		if (tagEnd > 0) {
-			const fullTag = "#" + afterHash.substring(0, tagEnd); // Include # prefix
-			const before = content.substring(0, hashPos);
-			const after = content.substring(hashPos + 1 + tagEnd);
-			return [fullTag, before, after];
-		}
+			// Enhanced word boundary check
+			const isWordStart = this.isValidTagStart(content, hashPos);
+			if (!isWordStart) {
+				return tryFrom(hashPos + 1);
+			}
 
-		return null;
+			const afterHash = content.substring(hashPos + 1);
+			let tagEnd = 0;
+
+			// Find tag end, including '/' for special tags and Unicode characters
+			for (let i = 0; i < afterHash.length; i++) {
+				const char = afterHash[i];
+				const charCode = char.charCodeAt(0);
+
+				// Valid tag characters
+				if (
+					(charCode >= 48 && charCode <= 57) || // 0-9
+					(charCode >= 65 && charCode <= 90) || // A-Z
+					(charCode >= 97 && charCode <= 122) || // a-z
+					char === "/" ||
+					char === "-" ||
+					char === "_" ||
+					(charCode > 127 &&
+						char !== "，" &&
+						char !== "。" &&
+						char !== "；" &&
+						char !== "：" &&
+						char !== "！" &&
+						char !== "？" &&
+						char !== "「" &&
+						char !== "」" &&
+						char !== "『" &&
+						char !== "』" &&
+						char !== "（" &&
+						char !== "）" &&
+						char !== "【" &&
+						char !== "】" &&
+						char !== '"' &&
+						char !== '"' &&
+						char !== "'" &&
+						char !== "'" &&
+						char !== " ")
+				) {
+					tagEnd = i + 1;
+				} else {
+					break;
+				}
+			}
+
+			if (tagEnd > 0) {
+				const fullTag = "#" + afterHash.substring(0, tagEnd); // Include # prefix
+				const before = content.substring(0, hashPos);
+				const after = content.substring(hashPos + 1 + tagEnd);
+				return [fullTag, before, after];
+			}
+
+			// Not a valid tag, continue searching
+			return tryFrom(hashPos + 1);
+		};
+
+		return tryFrom(0);
 	}
 
 	/**
@@ -1763,9 +1759,9 @@ export class MarkdownTaskParser {
 		// Early return if enhanced project features are disabled
 		// Check if file metadata inheritance is enabled
 		if (!this.config.fileMetadataInheritance?.enabled) {
-			// Parser should not perform file-level inheritance when disabled
-			// Leave any file/frontmatter merging to Augmentor when enabled
-			return {};
+			// Inheritance disabled: preserve task-level metadata as-is
+			// (enhanced merging will be handled elsewhere when enabled)
+			return inherited;
 		}
 
 		// Check if frontmatter inheritance is enabled

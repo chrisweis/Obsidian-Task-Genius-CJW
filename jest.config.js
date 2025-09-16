@@ -2,6 +2,8 @@ module.exports = {
 	preset: "ts-jest",
 	testEnvironment: "jsdom",
 	testMatch: ["**/__tests__/**/*.test.ts"],
+	testPathIgnorePatterns: ["<rootDir>/.conductor/"],
+	modulePathIgnorePatterns: ["<rootDir>/.conductor/"],
 	moduleNameMapper: {
 		"^obsidian$": "<rootDir>/src/__mocks__/obsidian.ts",
 		"^moment$": "<rootDir>/src/__mocks__/moment.js",

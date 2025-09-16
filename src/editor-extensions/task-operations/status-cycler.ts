@@ -66,34 +66,28 @@ function isValidTaskMarkerReplacement(
 		return false;
 	}
 
-	// Check if user actively selected text before replacement
-	const startSelection = tr.startState.selection.main;
-	const hasUserSelection = startSelection && !startSelection.empty;
-
-	// If user had a selection that covers the replacement range, this is intentional replacement
-	if (hasUserSelection && startSelection && fromA >= startSelection.from && toA <= startSelection.to) {
-		console.log(
-			`User selection detected (${startSelection.from}-${startSelection.to}) covering replacement range (${fromA}-${toA}). Skipping automatic cycling as this is user-intended replacement.`
-		);
-		return false;
-	}
-
 	// Get valid task status marks from plugin settings
-	const {marks} = getTaskStatusConfig(plugin);
+	const { marks } = getTaskStatusConfig(plugin);
 	const validMarks = Object.values(marks);
 
 	// Check if both the original and inserted characters are valid task status marks
-	const isOriginalValidMark = validMarks.includes(originalText) || originalText === ' ';
-	const isInsertedValidMark = validMarks.includes(insertedText) || insertedText === ' ';
+	const isOriginalValidMark =
+		validMarks.includes(originalText) || originalText === " ";
+	const isInsertedValidMark =
+		validMarks.includes(insertedText) || insertedText === " ";
 
 	// If either character is not a valid task mark, this is likely manual input
 	if (!isOriginalValidMark || !isInsertedValidMark) {
 		return false;
 	}
-	
+
 	// IMPORTANT: Prevent triggering when typing regular letters in an empty checkbox
 	// If original is space and inserted is a letter (not a status mark), it's typing
-	if (originalText === ' ' && !validMarks.includes(insertedText) && insertedText !== ' ') {
+	if (
+		originalText === " " &&
+		!validMarks.includes(insertedText) &&
+		insertedText !== " "
+	) {
 		// User is typing in an empty checkbox, not changing status
 		return false;
 	}
@@ -181,9 +175,9 @@ export function findTaskStatusChanges(
 					change.text === "    " ||
 					(change.text === "" &&
 						(tr.startState.doc.sliceString(
-								change.fromA,
-								change.toA
-							) === "\t" ||
+							change.fromA,
+							change.toA
+						) === "\t" ||
 							tr.startState.doc.sliceString(
 								change.fromA,
 								change.toA
@@ -331,29 +325,40 @@ export function findTaskStatusChanges(
 					// Check if our insertion point is at the mark position
 					const markIndex = newLineText.indexOf("[") + 1;
 					// Don't trigger when typing the "[" character itself, only when editing the status mark within brackets
-					// Also don't trigger when typing regular letters in empty checkbox
+					// Also don't trigger when typing regular letters in empty checkbox (unless it's a valid status mark like x, /, etc.)
 					if (
 						pos === newLine.from + markIndex &&
 						insertedText !== "[" &&
-						// Don't trigger for regular letters typed in empty checkbox (space status)
-						!(match[2] === ' ' && /[a-zA-Z]/.test(insertedText))
+						!(
+							match[2] === " " &&
+							/[a-zA-Z]/.test(insertedText) &&
+							(plugin
+								? !Object.values(
+										getTaskStatusConfig(plugin).marks
+								  ).includes(insertedText)
+								: true)
+						)
 					) {
 						// Check if this is a replacement operation and validate if it's a valid task marker replacement
 						if (fromA !== toA) {
-							const originalText = tr.startState.doc.sliceString(fromA, toA);
+							const originalText = tr.startState.doc.sliceString(
+								fromA,
+								toA
+							);
 
 							// Only perform validation if plugin is provided
 							if (plugin) {
-								const isValidReplacement = isValidTaskMarkerReplacement(
-									tr,
-									fromA,
-									toA,
-									insertedText,
-									originalText,
-									pos,
-									newLineText,
-									plugin
-								);
+								const isValidReplacement =
+									isValidTaskMarkerReplacement(
+										tr,
+										fromA,
+										toA,
+										insertedText,
+										originalText,
+										pos,
+										newLineText,
+										plugin
+									);
 
 								if (!isValidReplacement) {
 									console.log(
@@ -423,13 +428,13 @@ export function findTaskStatusChanges(
 						wasCompleteTask: wasCompleteTask,
 						tasksInfo: triggerByTasks
 							? {
-								isTaskChange: triggerByTasks,
-								originalFromA: fromA,
-								originalToA: toA,
-								originalFromB: fromB,
-								originalToB: toB,
-								originalInsertedText: insertedText,
-							}
+									isTaskChange: triggerByTasks,
+									originalFromA: fromA,
+									originalToA: toA,
+									originalFromB: fromB,
+									originalToB: toB,
+									originalInsertedText: insertedText,
+							  }
 							: null,
 					});
 				}
@@ -531,13 +536,17 @@ export function handleCycleCompleteStatusTransaction(
 	}
 
 	// Check if any task statuses were changed in this transaction
-	const taskStatusChanges = findTaskStatusChanges(tr, !!getTasksAPI(plugin), plugin);
+	const taskStatusChanges = findTaskStatusChanges(
+		tr,
+		!!getTasksAPI(plugin),
+		plugin
+	);
 	if (taskStatusChanges.length === 0) {
 		return tr;
 	}
 
 	// Get the task cycle and marks from plugin settings
-	const {cycle, marks, excludeMarksFromCycle} = getTaskStatusConfig(plugin);
+	const { cycle, marks, excludeMarksFromCycle } = getTaskStatusConfig(plugin);
 	const remainingCycle = cycle.filter(
 		(state) => !excludeMarksFromCycle.includes(state)
 	);
@@ -671,7 +680,7 @@ export function handleCycleCompleteStatusTransaction(
 
 	// Process each task status change
 	for (const taskStatusInfo of taskStatusChanges) {
-		const {position, currentMark, wasCompleteTask, tasksInfo} =
+		const { position, currentMark, wasCompleteTask, tasksInfo } =
 			taskStatusInfo;
 
 		if (tasksInfo?.isTaskChange) {

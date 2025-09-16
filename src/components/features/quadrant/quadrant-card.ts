@@ -218,7 +218,8 @@ export class QuadrantCardComponent extends Component {
 					numericPriority = this.task.metadata.priority;
 				}
 
-				const sanitizedPriority = sanitizePriorityForClass(numericPriority);
+				const sanitizedPriority =
+					sanitizePriorityForClass(numericPriority);
 				const classes = ["tg-quadrant-card-priority"];
 				if (sanitizedPriority) {
 					classes.push(`priority-${sanitizedPriority}`);
@@ -422,8 +423,50 @@ export class QuadrantCardComponent extends Component {
 	}
 
 	private extractTags(): string[] {
-		const tags = this.task.content.match(/#[\w-]+/g) || [];
-		return tags;
+		const content = this.task.content || "";
+		const results: string[] = [];
+		let i = 0;
+		while (i < content.length) {
+			const hashIndex = content.indexOf("#", i);
+			if (hashIndex === -1) break;
+			// Count consecutive backslashes immediately before '#'
+			let bsCount = 0;
+			let j = hashIndex - 1;
+			while (j >= 0 && content[j] === "\\") {
+				bsCount++;
+				j--;
+			}
+			// If odd number of backslashes precede '#', it is escaped → skip
+			if (bsCount % 2 === 1) {
+				i = hashIndex + 1;
+				continue;
+			}
+			// Extract tag text: allow a-zA-Z0-9, '/', '-', '_', and non-ASCII (e.g., Chinese)
+			let k = hashIndex + 1;
+			while (k < content.length) {
+				const ch = content[k];
+				const code = ch.charCodeAt(0);
+				const isAsciiAlnum =
+					(code >= 48 && code <= 57) ||
+					(code >= 65 && code <= 90) ||
+					(code >= 97 && code <= 122);
+				const isAllowed =
+					isAsciiAlnum ||
+					ch === "/" ||
+					ch === "-" ||
+					ch === "_" ||
+					code > 127;
+				if (!isAllowed) break;
+				k++;
+			}
+			if (k > hashIndex + 1) {
+				results.push(content.substring(hashIndex, k));
+				i = k;
+			} else {
+				i = hashIndex + 1;
+			}
+		}
+		return results;
 	}
 
 	private getPriorityClass(): string {

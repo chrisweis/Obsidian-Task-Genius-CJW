@@ -71,7 +71,7 @@ function handleAutoDateManagerTransaction(
 		return tr;
 	}
 
-	const {doc, lineNumber, oldStatus, newStatus} = taskStatusChangeInfo;
+	const { doc, lineNumber, oldStatus, newStatus } = taskStatusChangeInfo;
 
 	// Determine what date operations need to be performed
 	const dateOperations = determineDateOperations(
@@ -463,7 +463,9 @@ function applyDateOperations(
 	let lineText = line.text;
 	const changes = [];
 
-	console.log(`[AutoDateManager] applyDateOperations - Working with line: "${lineText}"`);
+	console.log(
+		`[AutoDateManager] applyDateOperations - Working with line: "${lineText}"`
+	);
 
 	for (const operation of operations) {
 		if (operation.type === "add") {
@@ -499,12 +501,18 @@ function applyDateOperations(
 
 			const absolutePosition = line.from + insertPosition;
 
-			console.log(`[AutoDateManager] Inserting ${operation.dateType} date:`);
+			console.log(
+				`[AutoDateManager] Inserting ${operation.dateType} date:`
+			);
 			console.log(`  - Insert position (relative): ${insertPosition}`);
 			console.log(`  - Line.from: ${line.from}`);
 			console.log(`  - Absolute position: ${absolutePosition}`);
 			console.log(`  - Date text: "${dateText}"`);
-			console.log(`  - Text at insert point: "${lineText.substring(insertPosition)}"`);
+			console.log(
+				`  - Text at insert point: "${lineText.substring(
+					insertPosition
+				)}"`
+			);
 
 			changes.push({
 				from: absolutePosition,
@@ -529,8 +537,8 @@ function applyDateOperations(
 					operation.dateType === "completed"
 						? "completion"
 						: operation.dateType === "cancelled"
-							? "cancelled"
-							: "unknown";
+						? "cancelled"
+						: "unknown";
 				datePattern = new RegExp(
 					`\\s*\\[${fieldName}::\\s*\\d{4}-\\d{2}-\\d{2}(?:\\s+\\d{2}:\\d{2}(?::\\d{2})?)?\\]`,
 					"g"
@@ -671,7 +679,8 @@ function findMetadataInsertPosition(
 
 	// For cancelled date, we need special handling to insert after all metadata and start dates
 	if (dateType === "cancelled") {
-		const useDataviewFormat = plugin.settings.preferMetadataFormat === "dataview";
+		const useDataviewFormat =
+			plugin.settings.preferMetadataFormat === "dataview";
 
 		// Find the last occurrence of either:
 		// 1. Start date marker (🛫 or [start::)
@@ -700,11 +709,15 @@ function findMetadataInsertPosition(
 				const commonStartEmojis = ["🚀", "🛫", "▶️", "⏰", "🏁"];
 				for (const emoji of commonStartEmojis) {
 					const pattern = new RegExp(
-						`${escapeRegex(emoji)}\\s*\\d{4}-\\d{2}-\\d{2}(?:\\s+\\d{2}:\\d{2}(?::\\d{2})?)?`
+						`${escapeRegex(
+							emoji
+						)}\\s*\\d{4}-\\d{2}-\\d{2}(?:\\s+\\d{2}:\\d{2}(?::\\d{2})?)?`
 					);
 					startDateMatch = lineText.match(pattern);
 					if (startDateMatch) {
-						console.log(`[AutoDateManager] Found start date with emoji ${emoji}`);
+						console.log(
+							`[AutoDateManager] Found start date with emoji ${emoji}`
+						);
 						break;
 					}
 				}
@@ -713,11 +726,15 @@ function findMetadataInsertPosition(
 			if (startDateMatch && startDateMatch.index !== undefined) {
 				position = startDateMatch.index + startDateMatch[0].length;
 				startDateFound = true;
-				console.log(`[AutoDateManager] Found start date at index ${startDateMatch.index}, length ${startDateMatch[0].length}, new position: ${position}`);
+				console.log(
+					`[AutoDateManager] Found start date at index ${startDateMatch.index}, length ${startDateMatch[0].length}, new position: ${position}`
+				);
 			}
 		}
 
-		console.log(`[AutoDateManager] Start date found: ${startDateFound}, position: ${position}`);
+		console.log(
+			`[AutoDateManager] Start date found: ${startDateFound}, position: ${position}`
+		);
 
 		if (!startDateFound) {
 			// No start date found, find the end of all metadata
@@ -728,7 +745,7 @@ function findMetadataInsertPosition(
 			const metadataRegexes = [
 				/#[\w-]+/g, // Tags
 				/\[[a-zA-Z]+::[^\]]*\]/g, // Dataview fields
-				/[📅🚀✅❌🛫▶️⏰🏁]\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?/g // Date markers (including all common start emojis)
+				/[📅🚀✅❌🛫▶️⏰🏁]\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?/g, // Date markers (including all common start emojis)
 			];
 
 			for (const regex of metadataRegexes) {
@@ -747,7 +764,7 @@ function findMetadataInsertPosition(
 		}
 
 		// Ensure we have a space before the cancelled date
-		if (position > 0 && lineText[position - 1] !== ' ') {
+		if (position > 0 && lineText[position - 1] !== " ") {
 			// No need to add space here, it will be added with the date
 		}
 	} else if (dateType === "completed") {
@@ -759,7 +776,7 @@ function findMetadataInsertPosition(
 		if (blockRef) {
 			position = blockRef.index;
 			// Remove trailing space if exists
-			if (position > 0 && lineText[position - 1] === ' ') {
+			if (position > 0 && lineText[position - 1] === " ") {
 				position--;
 			}
 		}
@@ -767,13 +784,13 @@ function findMetadataInsertPosition(
 		// For start date, find the end of main content before metadata
 		let contentEnd = position;
 		let inBrackets = false;
-		const chars = lineText.slice(position).split('');
+		const chars = lineText.slice(position).split("");
 
 		for (let i = 0; i < chars.length; i++) {
 			const char = chars[i];
 
 			// Track if we're inside dataview brackets
-			if (char === '[' && !inBrackets) {
+			if (char === "[" && !inBrackets) {
 				// Check if this is a dataview field like [due::...]
 				const remainingText = lineText.slice(position + i);
 				if (remainingText.match(/^\[[a-zA-Z]+::/)) {
@@ -782,12 +799,22 @@ function findMetadataInsertPosition(
 				}
 				inBrackets = true;
 				contentEnd = position + i + 1;
-			} else if (char === ']' && inBrackets) {
+			} else if (char === "]" && inBrackets) {
 				inBrackets = false;
 				contentEnd = position + i + 1;
 			} else if (!inBrackets) {
 				// Check for metadata markers when not inside brackets
-				if (char === '#' || char === '📅' || char === '🚀' || char === '✅' || char === '❌' || char === '🛫' || char === '▶️' || char === '⏰' || char === '🏁') {
+				if (
+					char === "#" ||
+					char === "📅" ||
+					char === "🚀" ||
+					char === "✅" ||
+					char === "❌" ||
+					char === "🛫" ||
+					char === "▶️" ||
+					char === "⏰" ||
+					char === "🏁"
+				) {
 					// This is metadata, stop here
 					break;
 				}
@@ -801,7 +828,7 @@ function findMetadataInsertPosition(
 		position = contentEnd;
 
 		// Trim any trailing whitespace from position
-		while (position > 0 && lineText[position - 1] === ' ') {
+		while (position > 0 && lineText[position - 1] === " ") {
 			position--;
 		}
 	}
@@ -810,12 +837,14 @@ function findMetadataInsertPosition(
 	if (blockRef && position > blockRef.index) {
 		position = blockRef.index;
 		// Remove trailing space if it exists
-		if (position > 0 && lineText[position - 1] === ' ') {
+		if (position > 0 && lineText[position - 1] === " ") {
 			position--;
 		}
 	}
 
-	console.log(`[AutoDateManager] Final insert position for ${dateType}: ${position}`);
+	console.log(
+		`[AutoDateManager] Final insert position for ${dateType}: ${position}`
+	);
 	return position;
 }
 
@@ -835,7 +864,7 @@ function findCompletedDateInsertPosition(
 		// Insert before the block reference ID
 		// Remove trailing space if exists
 		let position = blockRef.index;
-		if (position > 0 && lineText[position - 1] === ' ') {
+		if (position > 0 && lineText[position - 1] === " ") {
 			position--;
 		}
 		return position;
@@ -870,7 +899,7 @@ function detectBlockReference(text: string): {
 	// - Can have optional whitespace before and after
 	// - Block ID can contain letters, numbers, hyphens, and underscores
 	// - Must be at the end of the line
-	const blockRefPattern = /\s*(\^[a-zA-Z0-9-]+)$/;
+	const blockRefPattern = /\s*(\^[A-Za-z0-9_-]+)\s*$/;
 	const match = text.match(blockRefPattern);
 
 	if (match && match.index !== undefined) {
@@ -878,7 +907,7 @@ function detectBlockReference(text: string): {
 			blockId: match[1],
 			index: match.index,
 			length: match[0].length,
-			fullMatch: match[0]
+			fullMatch: match[0],
 		};
 	}
 
@@ -898,10 +927,10 @@ function extractBlockReference(text: string): {
 
 	if (blockRef) {
 		const cleanedText = text.substring(0, blockRef.index).trimEnd();
-		return {cleanedText, blockRef};
+		return { cleanedText, blockRef };
 	}
 
-	return {cleanedText: text, blockRef: null};
+	return { cleanedText: text, blockRef: null };
 }
 
 /**
