@@ -90,6 +90,13 @@ function isValidTaskMarkerReplacement(
 	if (!isOriginalValidMark || !isInsertedValidMark) {
 		return false;
 	}
+	
+	// IMPORTANT: Prevent triggering when typing regular letters in an empty checkbox
+	// If original is space and inserted is a letter (not a status mark), it's typing
+	if (originalText === ' ' && !validMarks.includes(insertedText) && insertedText !== ' ') {
+		// User is typing in an empty checkbox, not changing status
+		return false;
+	}
 
 	// Check if the replacement position is at a task marker location
 	const taskRegex = /^[\s|\t]*([-*+]|\d+\.)\s+\[(.)]/;
@@ -324,9 +331,12 @@ export function findTaskStatusChanges(
 					// Check if our insertion point is at the mark position
 					const markIndex = newLineText.indexOf("[") + 1;
 					// Don't trigger when typing the "[" character itself, only when editing the status mark within brackets
+					// Also don't trigger when typing regular letters in empty checkbox
 					if (
 						pos === newLine.from + markIndex &&
-						insertedText !== "["
+						insertedText !== "[" &&
+						// Don't trigger for regular letters typed in empty checkbox (space status)
+						!(match[2] === ' ' && /[a-zA-Z]/.test(insertedText))
 					) {
 						// Check if this is a replacement operation and validate if it's a valid task marker replacement
 						if (fromA !== toA) {
