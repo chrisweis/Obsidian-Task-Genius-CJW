@@ -1691,43 +1691,77 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 	// Helper method to set priority at cursor position
 
+	private isActivatingView = false;
+	
 	async activateTaskView() {
-		const { workspace } = this.app;
-
-		// Check if view is already open
-		const existingLeaf = workspace.getLeavesOfType(TASK_VIEW_TYPE)[0];
-
-		if (existingLeaf) {
-			// If view is already open, just reveal it
-			workspace.revealLeaf(existingLeaf);
+		// Prevent multiple simultaneous activations
+		if (this.isActivatingView) {
 			return;
 		}
+		
+		this.isActivatingView = true;
+		try {
+			const { workspace } = this.app;
 
-		// Otherwise, create a new leaf in the right split and open the view
-		const leaf = workspace.getLeaf("tab");
-		await leaf.setViewState({ type: TASK_VIEW_TYPE });
-		workspace.revealLeaf(leaf);
+			// Check if view is already open
+			const existingLeaves = workspace.getLeavesOfType(TASK_VIEW_TYPE);
+			
+			if (existingLeaves.length > 0) {
+				// If view is already open, just reveal the first one
+				workspace.revealLeaf(existingLeaves[0]);
+				
+				// Close any duplicate views
+				for (let i = 1; i < existingLeaves.length; i++) {
+					existingLeaves[i].detach();
+				}
+				return;
+			}
+
+			// Otherwise, create a new leaf and open the view
+			const leaf = workspace.getLeaf("tab");
+			await leaf.setViewState({ type: TASK_VIEW_TYPE });
+			workspace.revealLeaf(leaf);
+		} finally {
+			this.isActivatingView = false;
+		}
 	}
 
+	private isActivatingSidebar = false;
+	
 	async activateTimelineSidebarView() {
-		const { workspace } = this.app;
-
-		// Check if view is already open
-		const existingLeaf = workspace.getLeavesOfType(
-			TIMELINE_SIDEBAR_VIEW_TYPE
-		)[0];
-
-		if (existingLeaf) {
-			// If view is already open, just reveal it
-			workspace.revealLeaf(existingLeaf);
+		// Prevent multiple simultaneous activations
+		if (this.isActivatingSidebar) {
 			return;
 		}
+		
+		this.isActivatingSidebar = true;
+		try {
+			const { workspace } = this.app;
 
-		// Open in the right sidebar
-		const leaf = workspace.getRightLeaf(false);
-		if (leaf) {
-			await leaf.setViewState({ type: TIMELINE_SIDEBAR_VIEW_TYPE });
-			workspace.revealLeaf(leaf);
+			// Check if view is already open
+			const existingLeaves = workspace.getLeavesOfType(
+				TIMELINE_SIDEBAR_VIEW_TYPE
+			);
+
+			if (existingLeaves.length > 0) {
+				// If view is already open, just reveal the first one
+				workspace.revealLeaf(existingLeaves[0]);
+				
+				// Close any duplicate views
+				for (let i = 1; i < existingLeaves.length; i++) {
+					existingLeaves[i].detach();
+				}
+				return;
+			}
+
+			// Open in the right sidebar
+			const leaf = workspace.getRightLeaf(false);
+			if (leaf) {
+				await leaf.setViewState({ type: TIMELINE_SIDEBAR_VIEW_TYPE });
+				workspace.revealLeaf(leaf);
+			}
+		} finally {
+			this.isActivatingSidebar = false;
 		}
 	}
 
