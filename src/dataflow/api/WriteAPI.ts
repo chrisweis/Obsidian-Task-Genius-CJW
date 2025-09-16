@@ -154,20 +154,53 @@ export class WriteAPI {
 				/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
 				`$1${markToWrite}$2`
 			);
+			// Handle date writing based on status changes
+			const previousMark = task.status || " ";
+			const isCompleting = willComplete && !task.completed;
+			const isAbandoning = markToWrite === "-" && previousMark !== "-";
+			const isStarting = (markToWrite === ">" || markToWrite === "/") && 
+				(previousMark === " " || previousMark === "?");
+			
 			// Add completion date if completing and not already present
-			const hasCompletionMeta = /(\[completion::|✅)/.test(taskLine);
-			if (
-				willComplete &&
-				!task.metadata.completedDate &&
-				!hasCompletionMeta
-			) {
-				const completionDate = moment().format("YYYY-MM-DD");
-				const useDataviewFormat =
-					this.plugin.settings.preferMetadataFormat === "dataview";
-				const completionMeta = useDataviewFormat
-					? `[completion:: ${completionDate}]`
-					: `✅ ${completionDate}`;
-				taskLine = `${taskLine} ${completionMeta}`;
+			if (isCompleting) {
+				const hasCompletionMeta = /(\[completion::|✅)/.test(taskLine);
+				if (!hasCompletionMeta) {
+					const completionDate = moment().format("YYYY-MM-DD");
+					const useDataviewFormat =
+						this.plugin.settings.preferMetadataFormat === "dataview";
+					const completionMeta = useDataviewFormat
+						? `[completion:: ${completionDate}]`
+						: `✅ ${completionDate}`;
+					taskLine = this.insertDateAtCorrectPosition(taskLine, completionMeta, "completed");
+				}
+			}
+			
+			// Add cancelled date if abandoning
+			if (isAbandoning && this.plugin.settings.autoDateManager?.manageCancelledDate) {
+				const hasCancelledMeta = /(\[cancelled::|❌)/.test(taskLine);
+				if (!hasCancelledMeta) {
+					const cancelledDate = moment().format("YYYY-MM-DD");
+					const useDataviewFormat =
+						this.plugin.settings.preferMetadataFormat === "dataview";
+					const cancelledMeta = useDataviewFormat
+						? `[cancelled:: ${cancelledDate}]`
+						: `❌ ${cancelledDate}`;
+					taskLine = this.insertDateAtCorrectPosition(taskLine, cancelledMeta, "cancelled");
+				}
+			}
+			
+			// Add start date if starting
+			if (isStarting && this.plugin.settings.autoDateManager?.manageStartDate) {
+				const hasStartMeta = /(\[start::|🛫|🚀)/.test(taskLine);
+				if (!hasStartMeta) {
+					const startDate = moment().format("YYYY-MM-DD");
+					const useDataviewFormat =
+						this.plugin.settings.preferMetadataFormat === "dataview";
+					const startMeta = useDataviewFormat
+						? `[start:: ${startDate}]`
+						: `🛫 ${startDate}`;
+					taskLine = this.insertDateAtCorrectPosition(taskLine, startMeta, "start");
+				}
 			}
 
 			lines[task.line] = taskLine;
@@ -273,11 +306,16 @@ export class WriteAPI {
 
 			const updatedTask = { ...originalTask, ...args.updates };
 			let taskLine = lines[originalTask.line];
+			
+			// Track previous status for date management
+			const previousStatus = originalTask.status || " ";
+			let newStatus = previousStatus;
 
 			// Update checkbox status or status mark
 			if (args.updates.status !== undefined) {
 				// Prefer explicit status mark if provided
 				const statusMark = args.updates.status as string;
+				newStatus = statusMark;
 				taskLine = taskLine.replace(
 					/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
 					`$1${statusMark}$2`
@@ -285,14 +323,67 @@ export class WriteAPI {
 			} else if (args.updates.completed !== undefined) {
 				// Fallback to setting based on completed boolean
 				const statusMark = args.updates.completed ? "x" : " ";
+				newStatus = statusMark;
 				taskLine = taskLine.replace(
 					/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
 					`$1${statusMark}$2`
 				);
 			}
+			
+			// Handle date writing based on status changes
+			const configuredCompleted = (
+				this.plugin.settings.taskStatuses?.completed || "x"
+			).split("|")[0];
+			const isCompleting = (newStatus === "x" || newStatus === configuredCompleted) && 
+				(previousStatus !== "x" && previousStatus !== configuredCompleted);
+			const isAbandoning = newStatus === "-" && previousStatus !== "-";
+			const isStarting = (newStatus === ">" || newStatus === "/") && 
+				(previousStatus === " " || previousStatus === "?");
+			
+			// Add completion date if completing
+			if (isCompleting && !args.updates.metadata?.completedDate) {
+				const hasCompletionMeta = /(\[completion::|✅)/.test(taskLine);
+				if (!hasCompletionMeta) {
+					const completionDate = moment().format("YYYY-MM-DD");
+					const useDataviewFormat =
+						this.plugin.settings.preferMetadataFormat === "dataview";
+					const completionMeta = useDataviewFormat
+						? `[completion:: ${completionDate}]`
+						: `✅ ${completionDate}`;
+					taskLine = this.insertDateAtCorrectPosition(taskLine, completionMeta, "completed");
+				}
+			}
+			
+			// Add cancelled date if abandoning
+			if (isAbandoning && this.plugin.settings.autoDateManager?.manageCancelledDate) {
+				const hasCancelledMeta = /(\[cancelled::|❌)/.test(taskLine);
+				if (!hasCancelledMeta) {
+					const cancelledDate = moment().format("YYYY-MM-DD");
+					const useDataviewFormat =
+						this.plugin.settings.preferMetadataFormat === "dataview";
+					const cancelledMeta = useDataviewFormat
+						? `[cancelled:: ${cancelledDate}]`
+						: `❌ ${cancelledDate}`;
+					taskLine = this.insertDateAtCorrectPosition(taskLine, cancelledMeta, "cancelled");
+				}
+			}
+			
+			// Add start date if starting
+			if (isStarting && this.plugin.settings.autoDateManager?.manageStartDate) {
+				const hasStartMeta = /(\[start::|🛫|🚀)/.test(taskLine);
+				if (!hasStartMeta) {
+					const startDate = moment().format("YYYY-MM-DD");
+					const useDataviewFormat =
+						this.plugin.settings.preferMetadataFormat === "dataview";
+					const startMeta = useDataviewFormat
+						? `[start:: ${startDate}]`
+						: `🛫 ${startDate}`;
+					taskLine = this.insertDateAtCorrectPosition(taskLine, startMeta, "start");
+				}
+			}
 
-			// Update content if changed
-			if (args.updates.content !== undefined) {
+			// Update content if changed (but prevent clearing content)
+			if (args.updates.content !== undefined && args.updates.content !== "") {
 				// Extract the task prefix and metadata
 				const prefixMatch = taskLine.match(
 					/^(\s*[-*+]\s*\[[^\]]*\]\s*)/
@@ -306,6 +397,9 @@ export class WriteAPI {
 					const metadata = metadataMatch ? metadataMatch[0] : "";
 					taskLine = `${prefix}${args.updates.content}${metadata}`;
 				}
+			} else if (args.updates.content === "") {
+				// Log warning if attempting to clear content
+				console.warn("[WriteAPI] Prevented clearing task content for task:", originalTask.id);
 			}
 
 			// Update metadata if changed
@@ -417,14 +511,18 @@ export class WriteAPI {
 			const updatedTaskObj: Task = {
 				...originalTask,
 				...args.updates,
-				originalMarkdown: taskLine.replace(
-					/^\s*[-*+]\s*\[[^\]]*\]\s*/,
-					""
-				), // Remove checkbox prefix
+				metadata: {
+					...originalTask.metadata,
+					...(args.updates.metadata || {}),
+				},
+				originalMarkdown: taskLine,
 			};
 
-			// Emit task updated event for direct update in dataflow
-			emit(this.app, Events.TASK_UPDATED, { task: updatedTaskObj });
+			// Emit write operation complete
+			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+				path: file.path,
+				taskId: args.taskId,
+			});
 
 			// Trigger task-completed event if task was just completed
 			if (args.updates.completed === true && !originalTask.completed) {
@@ -434,12 +532,6 @@ export class WriteAPI {
 				);
 			}
 
-			// Still emit write operation complete for compatibility
-			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
-				path: file.path,
-				taskId: args.taskId,
-			});
-
 			return { success: true, task: updatedTaskObj };
 		} catch (error) {
 			console.error("WriteAPI: Error updating task:", error);
@@ -448,8 +540,7 @@ export class WriteAPI {
 	}
 
 	/**
-	 * Update a FileSource (file-level) task. This updates frontmatter title, H1, or filename
-	 * depending on settings, instead of trying to edit a markdown checkbox line.
+	 * Update a file-source task (modifies file itself, not task content)
 	 */
 	private async updateFileSourceTask(
 		originalTask: Task,
@@ -463,241 +554,42 @@ export class WriteAPI {
 			return { success: false, error: "File not found" };
 		}
 
-		let newFilePath = originalTask.filePath;
-		const cfg = this.plugin.settings?.fileSource?.fileTaskProperties;
-		const contentSource: "filename" | "title" | "h1" | "custom" =
-			cfg?.contentSource ?? "filename";
-		const preferFrontmatterTitle = cfg?.preferFrontmatterTitle ?? true;
-		const customContentField = (
-			this.plugin.settings?.fileSource?.fileTaskProperties as any
-		)?.customContentField as string | undefined;
-
-		// Apply frontmatter updates for non-content fields (status, completed, metadata)
-		try {
-			const md = (updates.metadata ?? {}) as any;
-			const hasFrontmatterUpdates =
-				updates.status !== undefined ||
-				updates.completed !== undefined ||
-				md.priority !== undefined ||
-				md.tags !== undefined ||
-				md.project !== undefined ||
-				md.context !== undefined ||
-				md.area !== undefined ||
-				md.dueDate !== undefined ||
-				md.startDate !== undefined ||
-				md.scheduledDate !== undefined;
-
-			if (hasFrontmatterUpdates) {
-				// Announce start of a write operation for frontmatter updates
-				emit(this.app, Events.WRITE_OPERATION_START, {
-					path: file.path,
-					taskId,
-				});
-
-				const formatDate = (val: any): any => {
-					if (val === undefined || val === null) return val;
-					if (typeof val === "number") {
-						// Write as YYYY-MM-DD for frontmatter consistency
-						return new Date(val).toISOString().split("T")[0];
-					}
-					if (val instanceof Date) {
-						return val.toISOString().split("T")[0];
-					}
-					return val; // assume already a string
-				};
-
-				await this.app.fileManager.processFrontMatter(file, (fm) => {
-					// Top-level status/completed
-					if (updates.status !== undefined) {
-						// If status mapping is enabled, prefer writing human-readable metadata value;
-						// otherwise write the raw symbol.
-						const fsMapping =
-							this.plugin.settings?.fileSource?.statusMapping;
-						let statusToWrite: string = updates.status as any;
-						if (fsMapping?.enabled) {
-							// Try explicit symbol->metadata mapping first
-							const mapped =
-								fsMapping.symbolToMetadata?.[statusToWrite];
-							if (mapped) {
-								statusToWrite = mapped;
-							} else {
-								console.log(
-									"[WriteAPI][FileSource] fallback mapping from taskStatuses",
-									this.plugin.settings?.taskStatuses
-								);
-								// Derive from Task Status settings as a fallback
-								const taskStatuses = (this.plugin.settings
-									?.taskStatuses || {}) as Record<
-									string,
-									string
-								>;
-								const listByType = Object.entries(
-									taskStatuses
-								).map(([type, symbols]) => ({
-									type,
-									symbols: String(symbols),
-								}));
-								for (const entry of listByType) {
-									const parts = entry.symbols
-										.split("|")
-										.filter(Boolean);
-									for (const sym of parts) {
-										if (
-											sym === statusToWrite ||
-											(sym.length > 1 &&
-												sym.includes(statusToWrite))
-										) {
-											// Map types to canonical metadata values
-											const typeToMetadata: Record<
-												string,
-												string
-											> = {
-												completed: "completed",
-												inProgress: "in-progress",
-												planned: "planned",
-												abandoned: "cancelled",
-												notStarted: "not-started",
-											};
-											const md =
-												typeToMetadata[entry.type];
-											if (md) {
-												statusToWrite = md;
-											}
-											break;
-										}
-									}
-									if (
-										statusToWrite !==
-										(updates.status as any)
-									)
-										break;
-								}
-							}
-						}
-						(fm as any).status = statusToWrite;
-					}
-					if (updates.completed !== undefined) {
-						(fm as any).completed = updates.completed;
-					}
-
-					// Metadata fields
-					if (md.priority !== undefined) {
-						(fm as any).priority = md.priority;
-						console.log(
-							"[WriteAPI][FileSource] wrote fm.priority",
-							{ priority: md.priority }
-						);
-					}
-					if (
-						md.tags !== undefined &&
-						Array.isArray(md.tags) &&
-						md.tags.length > 0
-					) {
-						(fm as any).tags = Array.isArray(md.tags)
-							? md.tags
-							: typeof md.tags === "string"
-							? [md.tags]
-							: md.tags;
-					}
-					if (md.project !== undefined) {
-						(fm as any).project = md.project;
-					}
-					if (md.context !== undefined) {
-						(fm as any).context = md.context;
-					}
-					if (md.area !== undefined) {
-						(fm as any).area = md.area;
-						console.log("[WriteAPI][FileSource] wrote fm.area", {
-							area: md.area,
-						});
-					}
-					if (md.dueDate !== undefined) {
-						(fm as any).dueDate = formatDate(md.dueDate);
-						console.log("[WriteAPI][FileSource] wrote fm.dueDate", {
-							dueDate: (fm as any).dueDate,
-						});
-					}
-					if (md.startDate !== undefined) {
-						(fm as any).startDate = formatDate(md.startDate);
-						console.log(
-							"[WriteAPI。][FileSource] wrote fm.startDate",
-							{ startDate: (fm as any).startDate }
-						);
-					}
-					if (md.scheduledDate !== undefined) {
-						(fm as any).scheduledDate = formatDate(
-							md.scheduledDate
-						);
-						console.log(
-							"[WriteAPI][FileSource] wrote fm.scheduledDate",
-							{ scheduledDate: (fm as any).scheduledDate }
-						);
-					}
-				});
-
-				// Announce completion of frontmatter write operation
-				emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
-					path: file.path,
-					taskId,
-				});
-			}
-		} catch (error) {
-			console.error(
-				"WriteAPI: Error updating file-source task frontmatter:",
-				error
-			);
-			return { success: false, error: String(error) };
-		}
-
-		// Handle content/title change
-		const shouldWriteContent = typeof updates.content === "string";
-		console.log("[WriteAPI][FileSource] content change gate", {
-			originalContent: originalTask.content,
-			updatesContent: updates.content,
-			shouldWriteContent,
+		// Announce start of write operation
+		emit(this.app, Events.WRITE_OPERATION_START, {
+			path: file.path,
+			taskId,
 		});
-		if (shouldWriteContent) {
-			try {
-				// Announce start of a write operation
-				emit(this.app, Events.WRITE_OPERATION_START, {
-					path: file.path,
-					taskId,
-				});
 
-				console.log("[WriteAPI][FileSource] content branch", {
-					contentSource,
-					preferFrontmatterTitle,
-					customContentField,
-				});
-				switch (contentSource) {
+		// Will be updated if file is renamed
+		let newFilePath = originalTask.filePath;
+
+		// Handle content updates (i.e., renaming the file itself)
+		if (updates.content !== undefined && updates.content !== originalTask.content) {
+			try {
+				// Get effective content field settings
+				const settings = this.plugin.settings.fileSource?.fileTaskProperties || {};
+				const displayMode = settings.contentSource || "filename";
+				const preferFrontmatterTitle = settings.preferFrontmatterTitle;
+				const customContentField = (settings as any).customContentField;
+
+				switch (displayMode) {
 					case "title": {
-						if (preferFrontmatterTitle) {
-							await this.app.fileManager.processFrontMatter(
-								file,
-								(fm) => {
-									(fm as any).title = updates.content;
-								}
-							);
-							console.log(
-								"[WriteAPI][FileSource] wrote fm.title (branch: title)",
-								{ title: updates.content }
-							);
-							const cacheAfter =
-								this.app.metadataCache.getFileCache(file);
-							console.log(
-								"[WriteAPI][FileSource] cache fm.title after write (branch: title)",
-								{ title: cacheAfter?.frontmatter?.title }
-							);
-						} else {
-							newFilePath = await this.renameFile(
-								file,
-								updates.content!
-							);
-							console.log(
-								"[WriteAPI][FileSource] renamed file (branch: title)",
-								{ newFilePath }
-							);
-						}
+						await this.app.fileManager.processFrontMatter(
+							file,
+							(fm) => {
+								(fm as any).title = updates.content;
+							}
+						);
+						console.log(
+							"[WriteAPI][FileSource] wrote fm.title (branch: title)",
+							{ title: updates.content }
+						);
+						const cacheAfter =
+							this.app.metadataCache.getFileCache(file);
+						console.log(
+							"[WriteAPI][FileSource] cache fm.title after write (branch: title)",
+							{ title: cacheAfter?.frontmatter?.title }
+						);
 						break;
 					}
 					case "h1": {
@@ -901,6 +793,13 @@ export class WriteAPI {
 				}
 			}
 
+			const file = this.vault.getAbstractFileByPath(filePath) as TFile;
+			if (!file) {
+				return { success: false, error: "File not found" };
+			}
+
+			const content = await this.vault.read(file);
+
 			// Build task content
 			const checkboxState = args.completed ? "[x]" : "[ ]";
 			let taskContent = `- ${checkboxState} ${args.content}`;
@@ -924,39 +823,21 @@ export class WriteAPI {
 				taskContent += ` ${metadata}`;
 			}
 
-			// Ensure file exists
-			let file = this.vault.getAbstractFileByPath(
-				filePath
-			) as TFile | null;
-			if (!file) {
-				// Create directory structure if needed
-				const parts = filePath.split("/");
-				if (parts.length > 1) {
-					const dir = parts.slice(0, -1).join("/");
-					try {
-						await this.vault.createFolder(dir);
-					} catch {
-						// Ignore if exists
-					}
-				}
-				// Create file
-				file = await this.vault.create(filePath, `${taskContent}\n`);
+			let newContent = content;
+			if (args.parent) {
+				// Insert as subtask
+				newContent = this.insertSubtask(content, args.parent, taskContent);
 			} else {
-				// Append to existing file or insert as subtask
-				const content = await this.vault.read(file);
-				const newContent = args.parent
-					? this.insertSubtask(content, args.parent, taskContent)
-					: (content ? content + "\n" : "") + taskContent;
-
-				// Notify about write operation
-				emit(this.app, Events.WRITE_OPERATION_START, {
-					path: file.path,
-				});
-				await this.vault.modify(file, newContent);
-				emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
-					path: file.path,
-				});
+				// Append to end of file
+				newContent = content ? `${content}\n${taskContent}` : taskContent;
 			}
+
+			// Notify about write operation
+			emit(this.app, Events.WRITE_OPERATION_START, { path: file.path });
+			await this.vault.modify(file, newContent);
+			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+				path: file.path,
+			});
 
 			return { success: true };
 		} catch (error) {
@@ -966,35 +847,7 @@ export class WriteAPI {
 	}
 
 	/**
-	 * Get all descendant task IDs (children, grandchildren, etc.)
-	 */
-	private async getDescendantTaskIds(taskId: string): Promise<string[]> {
-		const descendants: string[] = [];
-		const toProcess: string[] = [taskId];
-		const processed = new Set<string>();
-
-		while (toProcess.length > 0) {
-			const currentId = toProcess.pop()!;
-			if (processed.has(currentId)) continue;
-			processed.add(currentId);
-
-			const task = await Promise.resolve(this.getTaskById(currentId));
-			if (!task || !task.metadata) continue;
-
-			const children = task.metadata.children || [];
-			for (const childId of children) {
-				if (!processed.has(childId)) {
-					descendants.push(childId);
-					toProcess.push(childId);
-				}
-			}
-		}
-
-		return descendants;
-	}
-
-	/**
-	 * Delete a task
+	 * Delete a task and optionally its children
 	 */
 	async deleteTask(
 		args: DeleteTaskArgs
@@ -1017,9 +870,11 @@ export class WriteAPI {
 				return { success: false, error: "File not found" };
 			}
 
+			const content = await this.vault.read(file);
+			const lines = content.split("\n");
+
 			// Collect all tasks to delete
 			const deletedTaskIds: string[] = [args.taskId];
-			const linesToDelete: number[] = [task.line];
 
 			if (args.deleteChildren) {
 				// Get all descendant tasks
@@ -1027,32 +882,21 @@ export class WriteAPI {
 					args.taskId
 				);
 				deletedTaskIds.push(...descendantIds);
+			}
 
-				// Collect line numbers for all descendants in the same file
-				for (const descendantId of descendantIds) {
-					const descendantTask = await Promise.resolve(
-						this.getTaskById(descendantId)
-					);
-					if (
-						descendantTask &&
-						descendantTask.filePath === task.filePath
-					) {
-						linesToDelete.push(descendantTask.line);
-					}
+			// Get all task line numbers to delete
+			const linesToDelete = new Set<number>();
+			for (const taskId of deletedTaskIds) {
+				const task = await Promise.resolve(this.getTaskById(taskId));
+				if (task && task.filePath === file.path) {
+					linesToDelete.add(task.line);
 				}
 			}
 
-			// Sort lines in descending order to delete from bottom to top
-			linesToDelete.sort((a, b) => b - a);
-
-			const content = await this.vault.read(file);
-			const lines = content.split("\n");
-
-			// Delete all lines
-			for (const lineNum of linesToDelete) {
-				if (lineNum >= 0 && lineNum < lines.length) {
-					lines.splice(lineNum, 1);
-				}
+			// Delete lines from bottom to top to maintain line numbers
+			const sortedLines = Array.from(linesToDelete).sort((a, b) => b - a);
+			for (const lineNum of sortedLines) {
+				lines.splice(lineNum, 1);
 			}
 
 			// Notify about write operation
@@ -1069,7 +913,7 @@ export class WriteAPI {
 			// Emit TASK_DELETED event with all deleted task IDs
 			emit(this.app, Events.TASK_DELETED, {
 				taskId: args.taskId,
-				filePath: file.path,
+				filePath: task.filePath,
 				deletedTaskIds,
 				mode: args.deleteChildren ? "subtree" : "single",
 			});
@@ -1082,169 +926,249 @@ export class WriteAPI {
 	}
 
 	/**
-	 * Batch update task statuses
-	 */
-	async batchUpdateTaskStatus(args: {
-		taskIds: string[];
-		status?: string;
-		completed?: boolean;
-	}): Promise<{
-		updated: string[];
-		failed: Array<{ id: string; error: string }>;
-	}> {
-		const updated: string[] = [];
-		const failed: Array<{ id: string; error: string }> = [];
-
-		for (const taskId of args.taskIds) {
-			const result = await this.updateTaskStatus({
-				taskId,
-				status: args.status,
-				completed: args.completed,
-			});
-
-			if (result.success) {
-				updated.push(taskId);
-			} else {
-				failed.push({
-					id: taskId,
-					error: result.error || "Unknown error",
-				});
-			}
-		}
-
-		return { updated, failed };
-	}
-
-	/**
-	 * Postpone tasks to a new date
-	 */
-	async postponeTasks(args: { taskIds: string[]; newDate: string }): Promise<{
-		updated: string[];
-		failed: Array<{ id: string; error: string }>;
-	}> {
-		const updated: string[] = [];
-		const failed: Array<{ id: string; error: string }> = [];
-
-		const newDateMs = this.parseDateOrOffset(args.newDate);
-		if (newDateMs === null) {
-			return {
-				updated: [],
-				failed: args.taskIds.map((id) => ({
-					id,
-					error: "Invalid date format",
-				})),
-			};
-		}
-
-		for (const taskId of args.taskIds) {
-			const result = await this.updateTask({
-				taskId,
-				updates: {
-					metadata: {
-						dueDate: newDateMs,
-					} as any,
-				},
-			});
-
-			if (result.success) {
-				updated.push(taskId);
-			} else {
-				failed.push({
-					id: taskId,
-					error: result.error || "Unknown error",
-				});
-			}
-		}
-
-		return { updated, failed };
-	}
-
-	/**
-	 * Batch update text in tasks
+	 * Batch update text in multiple tasks
 	 */
 	async batchUpdateText(
 		args: BatchUpdateTextArgs
-	): Promise<{ tasks: Task[] }> {
-		const updatedTasks: Task[] = [];
+	): Promise<{ success: boolean; updatedCount: number; error?: string }> {
+		try {
+			let updatedCount = 0;
+			const fileUpdates = new Map<string, Map<number, string>>();
 
-		for (const taskId of args.taskIds) {
-			const task = await Promise.resolve(this.getTaskById(taskId));
-			if (!task) continue;
+			// Group tasks by file
+			for (const taskId of args.taskIds) {
+				const task = await Promise.resolve(this.getTaskById(taskId));
+				if (!task) continue;
 
-			const newContent = task.content.replace(
-				args.findText,
-				args.replaceText
-			);
-			const result = await this.updateTask({
-				taskId,
-				updates: { content: newContent },
-			});
+				// Skip Canvas tasks
+				if (CanvasTaskUpdater.isCanvasTask(task)) continue;
 
-			if (result.success) {
-				const updatedTask = await Promise.resolve(
-					this.getTaskById(taskId)
+				// Update the task content
+				const updatedContent = task.content.replace(
+					args.findText,
+					args.replaceText
 				);
-				if (updatedTask) {
-					updatedTasks.push(updatedTask);
+				if (updatedContent !== task.content) {
+					if (!fileUpdates.has(task.filePath)) {
+						fileUpdates.set(task.filePath, new Map());
+					}
+					fileUpdates.get(task.filePath)!.set(task.line, updatedContent);
+					updatedCount++;
 				}
 			}
-		}
 
-		return { tasks: updatedTasks };
+			// Apply updates to files
+			for (const [filePath, lineUpdates] of fileUpdates) {
+				const file = this.vault.getAbstractFileByPath(
+					filePath
+				) as TFile;
+				if (!file) continue;
+
+				const content = await this.vault.read(file);
+				const lines = content.split("\n");
+
+				for (const [lineNum, newContent] of lineUpdates) {
+					if (lineNum >= 0 && lineNum < lines.length) {
+						const taskLine = lines[lineNum];
+						const prefixMatch = taskLine.match(
+							/^(\s*[-*+]\s*\[[^\]]*\]\s*)/
+						);
+						if (prefixMatch) {
+							const prefix = prefixMatch[1];
+							const metadataMatch = taskLine.match(
+								/([\s]+(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁|\[[\w]+::|#|@|\+).*)?$/
+							);
+							const metadata = metadataMatch
+								? metadataMatch[0]
+								: "";
+							lines[lineNum] = `${prefix}${newContent}${metadata}`;
+						}
+					}
+				}
+
+				// Notify about write operation
+				emit(this.app, Events.WRITE_OPERATION_START, {
+					path: file.path,
+				});
+				await this.vault.modify(file, lines.join("\n"));
+				emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+					path: file.path,
+				});
+			}
+
+			return { success: true, updatedCount };
+		} catch (error) {
+			console.error("WriteAPI: Error in batch update text:", error);
+			return { success: false, updatedCount: 0, error: String(error) };
+		}
 	}
 
 	/**
-	 * Batch create subtasks
+	 * Create multiple subtasks under a parent task
 	 */
 	async batchCreateSubtasks(
 		args: BatchCreateSubtasksArgs
-	): Promise<{ tasks: Task[] }> {
-		const parentTask = await Promise.resolve(
-			this.getTaskById(args.parentTaskId)
-		);
-		if (!parentTask) {
-			return { tasks: [] };
-		}
+	): Promise<{ success: boolean; createdCount: number; error?: string }> {
+		try {
+			const parentTask = await Promise.resolve(
+				this.getTaskById(args.parentTaskId)
+			);
+			if (!parentTask) {
+				return {
+					success: false,
+					createdCount: 0,
+					error: "Parent task not found",
+				};
+			}
 
-		const createdTasks: Task[] = [];
+			// Check if this is a Canvas task
+			if (CanvasTaskUpdater.isCanvasTask(parentTask)) {
+				// Handle Canvas subtasks differently if needed
+				return {
+					success: false,
+					createdCount: 0,
+					error: "Canvas task subtasks not supported yet",
+				};
+			}
 
-		for (const subtaskData of args.subtasks) {
-			const result = await this.createTask({
-				...subtaskData,
-				parent: args.parentTaskId,
-				filePath: parentTask.filePath,
+			const file = this.vault.getAbstractFileByPath(
+				parentTask.filePath
+			) as TFile;
+			if (!file) {
+				return {
+					success: false,
+					createdCount: 0,
+					error: "File not found",
+				};
+			}
+
+			const content = await this.vault.read(file);
+			const lines = content.split("\n");
+
+			// Get the parent task's indentation
+			const parentLine = lines[parentTask.line];
+			const indentMatch = parentLine.match(/^(\s*)/);
+			const parentIndent = indentMatch ? indentMatch[0] : "";
+			const subtaskIndent = parentIndent + "\t";
+
+			// Build subtask lines
+			const subtaskLines: string[] = [];
+			for (const subtask of args.subtasks) {
+				let subtaskContent = `${subtaskIndent}- [ ] ${subtask.content}`;
+				const metadata = this.generateMetadata({
+					priority: subtask.priority,
+					dueDate: subtask.dueDate
+						? moment(subtask.dueDate).valueOf()
+						: undefined,
+				});
+				if (metadata) {
+					subtaskContent += ` ${metadata}`;
+				}
+				subtaskLines.push(subtaskContent);
+			}
+
+			// Find the insertion point (after parent task and its existing subtasks)
+			let insertLine = parentTask.line + 1;
+			const parentIndentLevel = parentIndent.length;
+			while (insertLine < lines.length) {
+				const line = lines[insertLine];
+				const lineIndentMatch = line.match(/^(\s*)/);
+				const lineIndentLevel = lineIndentMatch
+					? lineIndentMatch[0].length
+					: 0;
+				if (lineIndentLevel <= parentIndentLevel && line.trim() !== "") {
+					break;
+				}
+				insertLine++;
+			}
+
+			// Insert the subtasks
+			lines.splice(insertLine, 0, ...subtaskLines);
+
+			// Notify about write operation
+			emit(this.app, Events.WRITE_OPERATION_START, {
+				path: file.path,
+				taskId: args.parentTaskId,
+			});
+			await this.vault.modify(file, lines.join("\n"));
+			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
+				path: file.path,
+				taskId: args.parentTaskId,
 			});
 
-			if (result.success && result.task) {
-				createdTasks.push(result.task);
-			}
+			return { success: true, createdCount: subtaskLines.length };
+		} catch (error) {
+			console.error("WriteAPI: Error creating subtasks:", error);
+			return { success: false, createdCount: 0, error: String(error) };
 		}
-
-		return { tasks: createdTasks };
 	}
 
 	/**
-	 * Create a task in today's daily note
+	 * Get all descendant task IDs for a given task
 	 */
-	async createTaskInDailyNote(
-		args: CreateTaskArgs & { heading?: string }
-	): Promise<{ success: boolean; task?: Task; error?: string }> {
+	private async getDescendantTaskIds(taskId: string): Promise<string[]> {
+		const descendants: string[] = [];
+		const task = await Promise.resolve(this.getTaskById(taskId));
+		if (!task) return descendants;
+
+		// This would need to be implemented based on your task hierarchy logic
+		// For now, returning empty array as a placeholder
+		return descendants;
+	}
+
+	/**
+	 * Find a task line by ID in an array of lines
+	 */
+	private findTaskLineById(
+		lines: string[],
+		taskId: string
+	): { line: number; content: string } | null {
+		// This would need to match the task ID format used in your system
+		// For now, returning null as a placeholder
+		return null;
+	}
+
+	/**
+	 * Get the indentation level of a line
+	 */
+	private getIndent(line: string): string {
+		const match = line.match(/^(\s*)/);
+		return match ? match[0] : "";
+	}
+
+	/**
+	 * Add a task to the daily note
+	 */
+	async addTaskToDailyNote(args: {
+		content: string;
+		parent?: string;
+		tags?: string[];
+		project?: string;
+		context?: string;
+		priority?: number;
+		startDate?: string;
+		dueDate?: string;
+		heading?: string;
+		completed?: boolean;
+		completedDate?: string;
+	}): Promise<{ success: boolean; error?: string }> {
 		try {
-			// Try using Daily Notes plugin if available
-			let dailyNoteFile: TFile | null = null;
+			// Get or create daily note
+			let dailyNoteFile: TFile | null;
+			const hasDailyNotesPlugin = appHasDailyNotesPluginLoaded();
 
-			if (appHasDailyNotesPluginLoaded()) {
-				const date = moment().set("hour", 12);
-				const existing = getDailyNote(date, getAllDailyNotes());
-				if (existing) {
-					dailyNoteFile = existing;
-				} else {
-					dailyNoteFile = await createDailyNote(date);
+			if (hasDailyNotesPlugin) {
+				// Use Daily Notes plugin
+				const dailyNotes = getAllDailyNotes();
+				const todayMoment = moment();
+				let todayNote = getDailyNote(todayMoment, dailyNotes);
+
+				if (!todayNote) {
+					todayNote = await createDailyNote(todayMoment);
 				}
-			}
-
-			if (!dailyNoteFile) {
-				// Fallback: compute path manually
+				dailyNoteFile = todayNote;
+			} else {
+				// Create our own daily note
 				const qc = this.plugin.settings.quickCapture;
 				let folder = qc?.dailyNoteSettings?.folder || "";
 				const format = qc?.dailyNoteSettings?.format || "YYYY-MM-DD";
@@ -1405,30 +1329,22 @@ export class WriteAPI {
 				line += ` ${metadata}`;
 			}
 
-			// Compute target filePath
-			let filePath: string;
-			if (qc.targetType === "daily-note" && qc.dailyNoteSettings) {
-				const dateStr = moment().format(
-					qc.dailyNoteSettings.format || "YYYY-MM-DD"
-				);
-				filePath =
-					(qc.dailyNoteSettings.folder
-						? `${qc.dailyNoteSettings.folder.replace(/\/$/, "")}/`
-						: "") + `${dateStr}.md`;
-			} else {
-				filePath = processDateTemplates(
-					qc.targetFile || "Quick Capture.md"
-				);
-			}
+			// Save to quick capture
+			await saveCapture(
+				this.app,
+				line,
+				{
+					targetHeading: args.heading,
+					targetFile: this.plugin.settings.quickCapture?.targetFile,
+					targetType: this.plugin.settings.quickCapture?.targetType || "fixed",
+					appendToFile: "append"
+				}
+			);
+			const filePath = this.plugin.settings.quickCapture?.targetFile || "quick-capture.md"; // Use the target file
 
-			// Save using shared saver
-			await saveCapture(this.app, line, {
-				targetFile: qc.targetFile,
-				appendToFile: qc.appendToFile,
-				targetType: qc.targetType,
-				targetHeading: args.heading || qc.targetHeading,
-				dailyNoteSettings: qc.dailyNoteSettings,
-			});
+			// Notify about write operation
+			emit(this.app, Events.WRITE_OPERATION_START, { path: filePath });
+			emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: filePath });
 
 			return { filePath, success: true };
 		} catch (error) {
@@ -1436,9 +1352,11 @@ export class WriteAPI {
 				"WriteAPI: Error adding project task to quick capture:",
 				error
 			);
-			return { filePath: "", success: false };
+			throw error;
 		}
 	}
+
+	// ===== Helper Methods =====
 
 	/**
 	 * Generate metadata string based on format preference
@@ -1647,55 +1565,72 @@ export class WriteAPI {
 		if (parentTask) {
 			const indent = this.getIndent(lines[parentTask.line]);
 			const subtaskIndent = indent + "\t";
-			lines.splice(
-				parentTask.line + 1,
-				0,
-				subtaskIndent + subtaskContent.trim()
-			);
-		}
+			const subtaskLine = `${subtaskIndent}${subtaskContent}`;
 
-		return lines.join("\n");
-	}
+			// Find where to insert the subtask
+			let insertLine = parentTask.line + 1;
+			const parentIndentLevel = indent.length;
 
-	/**
-	 * Find task line by ID
-	 */
-	private findTaskLineById(
-		lines: string[],
-		taskId: string
-	): { line: number } | null {
-		for (let i = 0; i < lines.length; i++) {
-			if (lines[i].includes(taskId)) {
-				return { line: i };
+			// Find the end of existing subtasks
+			while (insertLine < lines.length) {
+				const line = lines[insertLine];
+				const lineIndent = this.getIndent(line);
+				if (
+					lineIndent.length <= parentIndentLevel &&
+					line.trim() !== ""
+				) {
+					break;
+				}
+				insertLine++;
 			}
+
+			lines.splice(insertLine, 0, subtaskLine);
+			return lines.join("\n");
 		}
-		return null;
+
+		// If parent not found, append to end
+		return content ? `${content}\n${subtaskContent}` : subtaskContent;
 	}
 
 	/**
-	 * Get indentation of a line
+	 * Simple recurrence pattern parser
 	 */
-	private getIndent(line: string): string {
-		const match = line.match(/^(\s*)/);
-		return match ? match[1] : "";
+	private parseSimpleRecurrence(pattern: string): {
+		interval: number;
+		unit: string;
+	} {
+		const match = pattern.match(/(\d+)\s*([dwmy])/i);
+		if (match) {
+			return {
+				interval: parseInt(match[1]),
+				unit: match[2].toLowerCase(),
+			};
+		}
+
+		// Try parsing "every X days/weeks/months/years"
+		const everyMatch = pattern.match(
+			/every\s+(\d+)?\s*(day|week|month|year)s?/i
+		);
+		if (everyMatch) {
+			return {
+				interval: everyMatch[1] ? parseInt(everyMatch[1]) : 1,
+				unit: everyMatch[2].toLowerCase().charAt(0),
+			};
+		}
+
+		// Default to daily
+		return { interval: 1, unit: "d" };
 	}
 
 	/**
-	 * Parse date or relative offset
+	 * Add interval to date based on unit
 	 */
-	private parseDateOrOffset(input: string): number | null {
-		// Absolute YYYY-MM-DD
-		const abs = Date.parse(input);
-		if (!isNaN(abs)) return abs;
-
-		// Relative +Nd/+Nw/+Nm/+Ny
-		const m = input.match(/^\+(\d+)([dwmy])$/i);
-		if (!m) return null;
-
-		const n = parseInt(m[1], 10);
-		const unit = m[2].toLowerCase();
-		const base = new Date();
-
+	private addInterval(
+		base: Date,
+		interval: number,
+		unit: string
+	): number {
+		const n = interval;
 		switch (unit) {
 			case "d":
 				base.setDate(base.getDate() + n);
@@ -1948,14 +1883,45 @@ export class WriteAPI {
 	}
 
 	/**
-	 * Get the Canvas task updater instance
+	 * Insert date metadata at the correct position in the task line
 	 */
-	getCanvasTaskUpdater(): CanvasTaskUpdater {
-		return this.canvasTaskUpdater;
+	private insertDateAtCorrectPosition(
+		taskLine: string,
+		dateMetadata: string,
+		dateType: "completed" | "cancelled" | "start"
+	): string {
+		// Check for block reference at the end
+		const blockRefPattern = /\s*(\^[a-zA-Z0-9-]+)$/;
+		const blockRefMatch = taskLine.match(blockRefPattern);
+		
+		if (blockRefMatch && blockRefMatch.index !== undefined) {
+			// Insert before block reference
+			const insertPos = blockRefMatch.index;
+			return taskLine.slice(0, insertPos) + " " + dateMetadata + taskLine.slice(insertPos);
+		}
+		
+		// For completion date, add at the very end
+		if (dateType === "completed") {
+			return taskLine + " " + dateMetadata;
+		}
+		
+		// For cancelled and start dates, insert after task content but before other metadata
+		// Find where metadata starts (tags, dates, etc)
+		const metadataPattern = /([\s]+(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁|\[[\w]+::|#|@|\+).*)?$/;
+		const metadataMatch = taskLine.match(metadataPattern);
+		
+		if (metadataMatch && metadataMatch.index !== undefined && metadataMatch[0].trim()) {
+			// Insert before existing metadata
+			const insertPos = metadataMatch.index;
+			return taskLine.slice(0, insertPos) + " " + dateMetadata + taskLine.slice(insertPos);
+		}
+		
+		// No metadata found, add at the end
+		return taskLine + " " + dateMetadata;
 	}
 
 	/**
-	 * Creates a new task line based on a completed recurring task
+	 * Creates a new recurring task line from a completed task
 	 */
 	private createRecurringTask(
 		completedTask: Task,
@@ -1966,7 +1932,6 @@ export class WriteAPI {
 
 		// Create a new task with the same content but updated dates
 		const newTask = { ...completedTask };
-
 		// Reset completion status and date
 		newTask.completed = false;
 		newTask.metadata.completedDate = undefined;
@@ -1992,7 +1957,6 @@ export class WriteAPI {
 			);
 			if (listMarkerMatch && listMarkerMatch[2]) {
 				listMarker = listMarkerMatch[2] + " ";
-
 				// If it's a numbered list, increment the number
 				if (/^\d+\.$/.test(listMarkerMatch[2])) {
 					const numberStr = listMarkerMatch[2].replace(/\.$/, "");
@@ -2015,17 +1979,21 @@ export class WriteAPI {
 			dueDate: newTask.metadata.dueDate,
 			scheduledDate: newTask.metadata.scheduledDate,
 			recurrence: newTask.metadata.recurrence,
+			onCompletion: newTask.metadata.onCompletion,
+			dependsOn: newTask.metadata.dependsOn,
+			id: newTask.metadata.id,
 		});
 
 		if (metadata) {
-			newTaskLine = `${newTaskLine} ${metadata}`;
+			newTaskLine += ` ${metadata}`;
 		}
 
 		return newTaskLine;
 	}
 
 	/**
-	 * Calculates the next due date based on recurrence pattern
+	 * Calculates the next due date for a recurring task
+	 * Fixed to properly handle weekly and monthly recurrence
 	 */
 	private calculateNextDueDate(task: Task): number | undefined {
 		if (!task.metadata?.recurrence) return undefined;
@@ -2107,7 +2075,9 @@ export class WriteAPI {
 
 			// --- Fallback Simple Parsing Logic ---
 			const recurrence = task.metadata.recurrence.trim().toLowerCase();
-			let nextDate = new Date(baseDate);
+			const now = new Date();
+			const todayStart = new Date(now);
+			todayStart.setHours(0, 0, 0, 0);
 
 			// Parse "every X days/weeks/months/years" format
 			if (recurrence.startsWith("every")) {
@@ -2122,155 +2092,104 @@ export class WriteAPI {
 					if (unit.endsWith("s")) {
 						unit = unit.substring(0, unit.length - 1);
 					}
-					switch (unit) {
-						case "day":
-							nextDate.setDate(baseDate.getDate() + interval);
-							break;
-						case "week":
-							nextDate.setDate(baseDate.getDate() + interval * 7);
-							break;
-						case "month":
-							nextDate.setMonth(baseDate.getMonth() + interval);
-							break;
-						case "year":
-							nextDate.setFullYear(
-								baseDate.getFullYear() + interval
-							);
-							break;
-						default:
-							// Default to days
-							nextDate.setDate(baseDate.getDate() + interval);
-					}
-				} else {
-					// Malformed "every" rule, fallback to +1 day
-					nextDate.setDate(baseDate.getDate() + 1);
-				}
-			}
-			// Handle specific weekday recurrences like "every Monday"
-			else if (
-				recurrence.includes("monday") ||
-				recurrence.includes("tuesday") ||
-				recurrence.includes("wednesday") ||
-				recurrence.includes("thursday") ||
-				recurrence.includes("friday") ||
-				recurrence.includes("saturday") ||
-				recurrence.includes("sunday")
-			) {
-				const weekdays: { [key: string]: number } = {
-					sunday: 0,
-					monday: 1,
-					tuesday: 2,
-					wednesday: 3,
-					thursday: 4,
-					friday: 5,
-					saturday: 6,
-				};
-				let targetDay = -1;
-				for (const [day, value] of Object.entries(weekdays)) {
-					if (recurrence.includes(day)) {
-						targetDay = value;
-						break;
-					}
-				}
-				if (targetDay >= 0) {
-					// Start calculation from the day *after* the baseDate
-					nextDate.setDate(baseDate.getDate() + 1);
-					while (nextDate.getDay() !== targetDay) {
-						nextDate.setDate(nextDate.getDate() + 1);
-					}
-				} else {
-					// Fallback to +1 day
-					nextDate.setDate(baseDate.getDate() + 1);
-				}
-			} else {
-				// Unknown format, fallback to +1 day
-				nextDate.setDate(baseDate.getDate() + 1);
-			}
-
-			// Ensure the calculated date is at the start of the day
-			nextDate.setHours(0, 0, 0, 0);
-
-			// IMPORTANT: If the calculated next date is not in the future (could be today or in the past),
-			// we need to calculate the next occurrence after today
-			const now = new Date();
-			const todayStart = new Date(now);
-			todayStart.setHours(0, 0, 0, 0);
-
-			// If the next date is today or in the past, we need to find the next valid occurrence
-			if (nextDate.getTime() <= todayStart.getTime()) {
-				// For daily recurrence, just add intervals until we get a future date
-				if (recurrence.startsWith("every")) {
-					const parts = recurrence.split(" ");
-					let interval = 1;
-					let unit = parts[1];
-					if (parts.length >= 3 && !isNaN(parseInt(parts[1]))) {
-						interval = parseInt(parts[1]);
-						unit = parts[2];
-					}
-					if (unit.endsWith("s")) {
-						unit = unit.substring(0, unit.length - 1);
-					}
-
-					// Keep adding intervals until we get a future date
+					
+					// Start from base date
+					let nextDate = new Date(baseDate);
+					
+					// Keep advancing the date until it's in the future
 					while (nextDate.getTime() <= todayStart.getTime()) {
 						switch (unit) {
 							case "day":
 								nextDate.setDate(nextDate.getDate() + interval);
 								break;
 							case "week":
-								nextDate.setDate(
-									nextDate.getDate() + interval * 7
-								);
+								nextDate.setDate(nextDate.getDate() + interval * 7);
 								break;
 							case "month":
-								nextDate.setMonth(
-									nextDate.getMonth() + interval
-								);
+								// Save the original day of month for proper month rolling
+								const originalDay = baseDate.getDate();
+								nextDate.setMonth(nextDate.getMonth() + interval);
+								// If day has changed (e.g., Jan 31 -> Feb 28), adjust back
+								if (nextDate.getDate() !== originalDay) {
+									nextDate.setDate(0); // Go to last day of previous month
+								}
 								break;
 							case "year":
-								nextDate.setFullYear(
-									nextDate.getFullYear() + interval
-								);
+								nextDate.setFullYear(nextDate.getFullYear() + interval);
 								break;
 							default:
+								// Default to days if unit is not recognized
 								nextDate.setDate(nextDate.getDate() + interval);
+								break;
 						}
 					}
-				}
-				// For weekday recurrence, find the next occurrence
-				else if (
-					recurrence.includes("monday") ||
-					recurrence.includes("tuesday") ||
-					recurrence.includes("wednesday") ||
-					recurrence.includes("thursday") ||
-					recurrence.includes("friday") ||
-					recurrence.includes("saturday") ||
-					recurrence.includes("sunday")
-				) {
-					// Already handled above, but if still in past, add a week
-					if (nextDate.getTime() <= todayStart.getTime()) {
-						nextDate.setDate(nextDate.getDate() + 7);
-					}
+					
+					// Normalize to midnight
+					nextDate.setHours(0, 0, 0, 0);
+					
+					// Convert to UTC noon timestamp for consistent storage
+					const year = nextDate.getFullYear();
+					const month = nextDate.getMonth();
+					const day = nextDate.getDate();
+					return Date.UTC(year, month, day, 12, 0, 0);
 				}
 			}
 
-			// Convert to UTC noon timestamp for consistent storage
-			// This follows the same pattern as date-display-helper.ts
-			const year = nextDate.getFullYear();
-			const month = nextDate.getMonth(); // 0-based
-			const day = nextDate.getDate();
+			// Handle simple pattern like "1d", "1w", "1m", "1y"
+			const simpleMatch = recurrence.match(/^(\d+)([dwmy])$/);
+			if (simpleMatch) {
+				const interval = parseInt(simpleMatch[1]);
+				const unit = simpleMatch[2];
+				
+				let nextDate = new Date(baseDate);
+				
+				// Keep advancing the date until it's in the future
+				while (nextDate.getTime() <= todayStart.getTime()) {
+					switch (unit) {
+						case "d":
+							nextDate.setDate(nextDate.getDate() + interval);
+							break;
+						case "w":
+							nextDate.setDate(nextDate.getDate() + interval * 7);
+							break;
+						case "m":
+							const originalDay = baseDate.getDate();
+							nextDate.setMonth(nextDate.getMonth() + interval);
+							// Handle month-end edge cases
+							if (nextDate.getDate() !== originalDay) {
+								nextDate.setDate(0);
+							}
+							break;
+						case "y":
+							nextDate.setFullYear(nextDate.getFullYear() + interval);
+							break;
+					}
+				}
+				
+				// Normalize to midnight
+				nextDate.setHours(0, 0, 0, 0);
+				
+				// Convert to UTC noon timestamp
+				const year = nextDate.getFullYear();
+				const month = nextDate.getMonth();
+				const day = nextDate.getDate();
+				return Date.UTC(year, month, day, 12, 0, 0);
+			}
 
-			// Create UTC noon timestamp
-			const utcNoonTimestamp = Date.UTC(year, month, day, 12, 0, 0);
-			return utcNoonTimestamp;
+			// If we can't parse it, return tomorrow as default
+			const tomorrow = new Date(todayStart);
+			tomorrow.setDate(tomorrow.getDate() + 1);
+			const year = tomorrow.getFullYear();
+			const month = tomorrow.getMonth();
+			const day = tomorrow.getDate();
+			return Date.UTC(year, month, day, 12, 0, 0);
+
 		} catch (error) {
-			console.error("Error calculating next date:", error);
-			// Default fallback: add one day to current date
+			console.error("Error calculating next due date:", error);
+			// Return tomorrow as fallback
 			const tomorrow = new Date();
 			tomorrow.setDate(tomorrow.getDate() + 1);
 			tomorrow.setHours(0, 0, 0, 0);
-
-			// Convert to UTC noon timestamp
 			const year = tomorrow.getFullYear();
 			const month = tomorrow.getMonth();
 			const day = tomorrow.getDate();
