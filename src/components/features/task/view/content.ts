@@ -55,7 +55,8 @@ export class ContentComponent extends Component {
 	private isTreeView: boolean = false;
 	private isRendering: boolean = false; // Guard against concurrent renders
 	private pendingForceRefresh: boolean = false; // Track if a force refresh is pending
-
+	private pendingVisibilityRetry: boolean = false; // Queue a retry when container becomes visible
+	private visibilityRetryCount: number = 0; // Limit visibility retry loop
 	constructor(
 		private parentEl: HTMLElement,
 		private app: App,
@@ -350,18 +351,58 @@ export class ContentComponent extends Component {
 		this.taskListEl.empty();
 	}
 
+	private isContainerVisible(): boolean {
+		if (!this.containerEl) return false;
+		const inDom = document.body.contains(this.containerEl);
+		if (!inDom) return false;
+		const style = window.getComputedStyle(this.containerEl);
+		if (style.display === "none" || style.visibility === "hidden")
+			return false;
+		const rect = this.containerEl.getBoundingClientRect();
+		return rect.width > 0 && rect.height > 0;
+	}
+
 	private refreshTaskList() {
-		// Allow force refresh to override concurrent rendering
-		if (this.pendingForceRefresh) {
-			console.log("ContentComponent: Processing pending force refresh");
-			this.isRendering = false; // Cancel any ongoing render
+		// Defer rendering if container is not visible yet (e.g., view hidden during init)
+		if (!this.isContainerVisible()) {
+			console.warn(
+				"ContentComponent: Cannot render: Container not visible. Queuing refresh..."
+			);
+			this.pendingForceRefresh = true;
+			if (!this.pendingVisibilityRetry) {
+				this.pendingVisibilityRetry = true;
+				const tryAgain = () => {
+					if (this.isContainerVisible()) {
+						this.pendingVisibilityRetry = false;
+						this.visibilityRetryCount = 0;
+						if (this.pendingForceRefresh && !this.isRendering) {
+							this.pendingForceRefresh = false;
+							this.refreshTaskList();
+						}
+						return;
+					}
+					if (this.visibilityRetryCount < 30) {
+						this.visibilityRetryCount++;
+						setTimeout(tryAgain, 100);
+					} else {
+						this.pendingVisibilityRetry = false;
+						this.visibilityRetryCount = 0;
+						console.warn(
+							"ContentComponent: Container still not visible after retries; will wait for next trigger."
+						);
+					}
+				};
+				tryAgain();
+			}
+			return;
 		}
 
-		// Prevent concurrent renders (unless force refresh)
+		// If a render is already in progress, queue a refresh instead of skipping
 		if (this.isRendering) {
 			console.log(
-				"ContentComponent: Already rendering, skipping refresh"
+				"ContentComponent: Already rendering, queueing a refresh"
 			);
+			this.pendingForceRefresh = true;
 			return;
 		}
 
@@ -453,7 +494,11 @@ export class ContentComponent extends Component {
 			// Reset rendering flag after completion
 			setTimeout(() => {
 				this.isRendering = false;
-				this.pendingForceRefresh = false; // Reset force refresh flag
+				// If a refresh was queued during rendering, process it now
+				if (this.pendingForceRefresh) {
+					this.pendingForceRefresh = false;
+					this.refreshTaskList();
+				}
 			}, 50); // Small delay to prevent immediate re-entry
 		}
 	}

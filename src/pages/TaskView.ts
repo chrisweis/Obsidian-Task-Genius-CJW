@@ -158,8 +158,8 @@ export class TaskView extends ItemView {
 			const { on, Events } = await import("../dataflow/events/Events");
 			this.registerEvent(
 				on(this.app, Events.CACHE_READY, async () => {
-					// 冷启动就绪，从快照加载
-					await this.loadTasksFast(true);
+					// 冷启动就绪，从快照加载，并更新视图
+					await this.loadTasksFast(false);
 				})
 			);
 			this.registerEvent(
