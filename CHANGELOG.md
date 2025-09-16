@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.12](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.11...9.8.12) (2025-09-16)
+
+### Bug Fixes
+
+* **view:** prevent rendering when container not visible ([2d5c117](https://github.com/Quorafind/Obsidian-Task-Genius/commit/2d5c117))
+* **write:** unify status→date pipeline; correct date insert positions; prevent clearing content; improve recurring due-date calc (weekly/monthly) and new task generation; ensure single write events; safer delete/batch ops; refs #444 #446 #431 #415 ([c75f207](https://github.com/Quorafind/Obsidian-Task-Genius/commit/c75f207))
+* **tags:** ignore escaped \#tag to align with Obsidian behavior; refs #438 ([4a15c61](https://github.com/Quorafind/Obsidian-Task-Genius/commit/4a15c61))
+* **view:** ensure single-instance activation for main view and timeline sidebar; dedupe duplicate leaves; refs #428 ([a94d20d](https://github.com/Quorafind/Obsidian-Task-Genius/commit/a94d20d))
+* **status-cycler:** prevent status cycling on normal typing in empty checkbox; avoids conflicts with Easy Typing capitalization; refs #409 ([25b2349](https://github.com/Quorafind/Obsidian-Task-Genius/commit/25b2349))
+
+### Refactors
+
+* improve task parsing, date management, and tag handling ([cf51bdb](https://github.com/Quorafind/Obsidian-Task-Genius/commit/cf51bdb))
+
 ## [9.8.11](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.10...9.8.11) (2025-09-15)
 
 ### Features
