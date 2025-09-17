@@ -96,3 +96,117 @@ describe("WriteAPI.updateTask preserves links in content when regenerating metad
 		);
 	});
 });
+
+describe("WriteAPI.insert start date preserves unknown DV fields in content", () => {
+	it("keeps [projt::new] when inserting start (dataview format)", async () => {
+		let fileContent = "- [ ] 123123 [projt::new]";
+		const filePath = "StartDV.md";
+		const fakeVault: any = {
+			getAbstractFileByPath: (path: string) => ({ path }),
+			read: async () => fileContent,
+			modify: async (_f: any, s: string) => (fileContent = s),
+		};
+		const app = new App();
+		const metadataCache = new MetadataCache();
+		(app as any).workspace = {
+			...(app as any).workspace,
+			trigger: jest.fn(),
+			on: jest.fn(() => ({ unload: () => {} })),
+		};
+		const plugin: any = {
+			settings: {
+				preferMetadataFormat: "dataview",
+				projectTagPrefix: { tasks: "project", dataview: "project" },
+				contextTagPrefix: { tasks: "@", dataview: "context" },
+				taskStatuses: { completed: "x" },
+				autoDateManager: {
+					manageStartDate: true,
+					manageCancelledDate: false,
+				},
+			},
+		};
+		const getTaskById = async (id: string): Promise<Task | null> =>
+			id === "2"
+				? ({
+						id: "2",
+						content: "123123 [projt::new]",
+						filePath,
+						line: 0,
+						completed: false,
+						status: " ",
+						originalMarkdown: fileContent,
+						metadata: {} as any,
+				  } as Task)
+				: null;
+		const writeAPI = new WriteAPI(
+			app as any,
+			fakeVault,
+			metadataCache as any,
+			plugin,
+			getTaskById
+		);
+		const res = await writeAPI.updateTask({
+			taskId: "2",
+			updates: { status: ">" },
+		});
+		expect(res.success).toBe(true);
+		expect(fileContent).toContain("- [>] 123123 [projt::new]");
+		expect(fileContent).toMatch(/\[start::\s*\d{4}-\d{2}-\d{2}\]/);
+	});
+
+	it("keeps [projt::new] when inserting start (emoji format)", async () => {
+		let fileContent = "- [ ] 123123 [projt::new]";
+		const filePath = "StartEmoji.md";
+		const fakeVault: any = {
+			getAbstractFileByPath: (path: string) => ({ path }),
+			read: async () => fileContent,
+			modify: async (_f: any, s: string) => (fileContent = s),
+		};
+		const app = new App();
+		const metadataCache = new MetadataCache();
+		(app as any).workspace = {
+			...(app as any).workspace,
+			trigger: jest.fn(),
+			on: jest.fn(() => ({ unload: () => {} })),
+		};
+		const plugin: any = {
+			settings: {
+				preferMetadataFormat: "tasks",
+				projectTagPrefix: { tasks: "project", dataview: "project" },
+				contextTagPrefix: { tasks: "@", dataview: "context" },
+				taskStatuses: { completed: "x" },
+				autoDateManager: {
+					manageStartDate: true,
+					manageCancelledDate: false,
+				},
+			},
+		};
+		const getTaskById = async (id: string): Promise<Task | null> =>
+			id === "3"
+				? ({
+						id: "3",
+						content: "123123 [projt::new]",
+						filePath,
+						line: 0,
+						completed: false,
+						status: " ",
+						originalMarkdown: fileContent,
+						metadata: {} as any,
+				  } as Task)
+				: null;
+		const writeAPI = new WriteAPI(
+			app as any,
+			fakeVault,
+			metadataCache as any,
+			plugin,
+			getTaskById
+		);
+		const res = await writeAPI.updateTask({
+			taskId: "3",
+			updates: { status: ">" },
+		});
+		expect(res.success).toBe(true);
+		expect(fileContent).toContain("- [>] 123123 [projt::new]");
+		expect(fileContent).toMatch(/🛫\s*\d{4}-\d{2}-\d{2}/);
+	});
+});

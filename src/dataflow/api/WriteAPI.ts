@@ -439,12 +439,52 @@ export class WriteAPI {
 				);
 				if (prefixMatch) {
 					const prefix = prefixMatch[1];
-					// Find where metadata starts (look for emoji markers or dataview fields)
-					const metadataMatch = taskLine.match(
-						/([\s]+(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁|\[[\w]+::|#|@|\+).*)?$/
-					);
-					const metadata = metadataMatch ? metadataMatch[0] : "";
-					taskLine = `${prefix}${args.updates.content}${metadata}`;
+					// Preserve trailing metadata (strict: trailing-only, recognized keys; links/code sanitized)
+					const afterPrefix = taskLine.substring(prefix.length);
+					const sanitized2 = afterPrefix
+						.replace(/\[\[[^\]]*\]\]/g, (m) => "x".repeat(m.length))
+						.replace(/\[[^\]]*\]\([^\)]*\)/g, (m) =>
+							"x".repeat(m.length)
+						)
+						.replace(/`[^`]*`/g, (m) => "x".repeat(m.length));
+					const esc2 = (s: string) =>
+						s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+					const projectKey2 =
+						this.plugin.settings.projectTagPrefix?.dataview ||
+						"project";
+					const contextKey2 =
+						this.plugin.settings.contextTagPrefix?.dataview ||
+						"context";
+					const dvKeysGroup2 = [
+						"tags",
+						esc2(projectKey2),
+						esc2(contextKey2),
+						"priority",
+						"repeat",
+						"start",
+						"scheduled",
+						"due",
+						"completion",
+						"cancelled",
+						"onCompletion",
+						"dependsOn",
+						"id",
+					].join("|");
+					const baseEmoji2 = "(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁)";
+					const dvFieldToken2 = `\\[(?:${dvKeysGroup2})\\s*::[^\\]]*\\]`;
+					const tagToken2 = "#[A-Za-z][\\w/-]*";
+					const atToken2 = "@[A-Za-z][\\w/-]*";
+					const plusToken2 = "\\+[A-Za-z][\\w/-]*";
+					const emojiSeg2 = `(?:${baseEmoji2}[^\\n]*)`;
+					const token2 = `(?:${emojiSeg2}|${dvFieldToken2}|${tagToken2}|${atToken2}|${plusToken2})`;
+					const trailing2 = new RegExp(`(?:\\s+${token2})+$`);
+					const tm2 = sanitized2.match(trailing2);
+					const trailingMeta = tm2
+						? afterPrefix.slice(
+								afterPrefix.length - (tm2[0]?.length || 0)
+						  )
+						: "";
+					taskLine = `${prefix}${args.updates.content}${trailingMeta}`;
 				}
 			} else if (args.updates.content === "") {
 				// Log warning if attempting to clear content
@@ -481,68 +521,133 @@ export class WriteAPI {
 						taskLine = `${taskLine} ${completionMeta}`;
 					}
 				} else {
-					// Remove existing metadata and regenerate from merged values
-					// First, extract the checkbox prefix
-					const checkboxMatch = taskLine.match(
-						/^(\s*[-*+]\s*\[[^\]]*\]\s*)/
+					// Only regenerate trailing metadata when updates include managed keys.
+					const managedKeys = new Set([
+						"tags",
+						"project",
+						"context",
+						"priority",
+						"repeat",
+						"startDate",
+						"dueDate",
+						"scheduledDate",
+						"recurrence",
+						"completedDate",
+						"onCompletion",
+						"dependsOn",
+						"id",
+					]);
+					const hasManagedUpdate = mdKeys.some((k) =>
+						managedKeys.has(k)
 					);
-					if (checkboxMatch) {
-						const checkboxPrefix = checkboxMatch[1];
-						const afterCheckbox = taskLine.substring(
-							checkboxPrefix.length
+					if (!hasManagedUpdate) {
+						// Ignore unknown metadata-only updates to avoid stripping user content like [projt::new]
+						// and keep taskLine as-is.
+					} else {
+						// Remove existing metadata and regenerate from merged values
+						// First, extract the checkbox prefix
+						const checkboxMatch = taskLine.match(
+							/^(\s*[-*+]\s*\[[^\]]*\]\s*)/
 						);
+						if (checkboxMatch) {
+							const checkboxPrefix = checkboxMatch[1];
+							const afterCheckbox = taskLine.substring(
+								checkboxPrefix.length
+							);
 
-						// Find where metadata starts (look for emoji markers or dataview fields)
-						// Updated pattern to avoid matching wiki links [[...]] or markdown links [text](url)
-						// To avoid false positives, sanitize out wiki links [[...]], markdown links [text](url), and inline code `...`
-						const sanitized = afterCheckbox
-							// Use non-whitespace placeholders to prevent \s+ from consuming across links/code
-							.replace(/\[\[[^\]]*\]\]/g, (m) =>
-								"x".repeat(m.length)
-							)
-							.replace(/\[[^\]]*\]\([^\)]*\)/g, (m) =>
-								"x".repeat(m.length)
-							)
-							.replace(/`[^`]*`/g, (m) => "x".repeat(m.length));
+							// Find where metadata starts (look for emoji markers or dataview fields)
+							// Updated pattern to avoid matching wiki links [[...]] or markdown links [text](url)
+							// To avoid false positives, sanitize out wiki links [[...]], markdown links [text](url), and inline code `...`
+							const sanitized = afterCheckbox
+								// Use non-whitespace placeholders to prevent \s+ from consuming across links/code
+								.replace(/\[\[[^\]]*\]\]/g, (m) =>
+									"x".repeat(m.length)
+								)
+								.replace(/\[[^\]]*\]\([^\)]*\)/g, (m) =>
+									"x".repeat(m.length)
+								)
+								.replace(/`[^`]*`/g, (m) =>
+									"x".repeat(m.length)
+								);
 
-						const metadataMatch = sanitized.match(
-							/([\s]+(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁|\[(?!\[\])[^\[\]\r\n:]+::|#[A-Za-z][\w/-]*|@[A-Za-z][\w/-]*|\+[A-Za-z][\w/-]*).*)?$/
-						);
+							// Build strict trailing-metadata matcher using recognized Dataview keys
+							const esc = (s: string) =>
+								s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+							const projectKey =
+								this.plugin.settings.projectTagPrefix
+									?.dataview || "project";
+							const contextKey =
+								this.plugin.settings.contextTagPrefix
+									?.dataview || "context";
+							const dvKeysGroup = [
+								"tags",
+								esc(projectKey),
+								esc(contextKey),
+								"priority",
+								"repeat",
+								"start",
+								"scheduled",
+								"due",
+								"completion",
+								"cancelled",
+								"onCompletion",
+								"dependsOn",
+								"id",
+							].join("|");
+							const baseEmoji = "(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁)";
+							const dvFieldToken = `\\[(?:${dvKeysGroup})\\s*::[^\\]]*\\]`;
+							const tagToken = "#[A-Za-z][\\w/-]*";
+							const atToken = "@[A-Za-z][\\w/-]*";
+							const plusToken = "\\+[A-Za-z][\\w/-]*";
+							const emojiSeg = `(?:${baseEmoji}[^\\n]*)`;
+							const token = `(?:${emojiSeg}|${dvFieldToken}|${tagToken}|${atToken}|${plusToken})`;
+							const trailing = new RegExp(`(?:\\s+${token})+$`);
+							const tm = sanitized.match(trailing);
 
-						// Extract the task content (everything before metadata)
-						const taskContent =
-							metadataMatch && metadataMatch.index !== undefined
+							// Extract the task content (everything before trailing metadata)
+							const taskContent = tm
 								? afterCheckbox
-										.substring(0, metadataMatch.index)
+										.substring(
+											0,
+											sanitized.length -
+												(tm[0]?.length || 0)
+										)
 										.trim()
 								: afterCheckbox.trim();
 
-						const mergedMd = {
-							...originalTask.metadata,
-							...args.updates.metadata,
-						} as any;
-						const completedFlag =
-							args.updates.completed !== undefined
-								? !!args.updates.completed
-								: !!originalTask.completed;
-						const newMetadata = this.generateMetadata({
-							tags: mergedMd.tags,
-							project: mergedMd.project,
-							context: mergedMd.context,
-							priority: mergedMd.priority,
-							startDate: mergedMd.startDate,
-							dueDate: mergedMd.dueDate,
-							scheduledDate: mergedMd.scheduledDate,
-							recurrence: mergedMd.recurrence,
-							completed: completedFlag,
-							completedDate: mergedMd.completedDate,
-							onCompletion: mergedMd.onCompletion,
-							dependsOn: mergedMd.dependsOn,
-							id: mergedMd.id,
-						});
-						taskLine = `${checkboxPrefix}${taskContent}${
-							newMetadata ? ` ${newMetadata}` : ""
-						}`;
+							console.log(
+								"edit content",
+								taskContent,
+								afterCheckbox
+							);
+
+							const mergedMd = {
+								...originalTask.metadata,
+								...args.updates.metadata,
+							} as any;
+							const completedFlag =
+								args.updates.completed !== undefined
+									? !!args.updates.completed
+									: !!originalTask.completed;
+							const newMetadata = this.generateMetadata({
+								tags: mergedMd.tags,
+								project: mergedMd.project,
+								context: mergedMd.context,
+								priority: mergedMd.priority,
+								startDate: mergedMd.startDate,
+								dueDate: mergedMd.dueDate,
+								scheduledDate: mergedMd.scheduledDate,
+								recurrence: mergedMd.recurrence,
+								completed: completedFlag,
+								completedDate: mergedMd.completedDate,
+								onCompletion: mergedMd.onCompletion,
+								dependsOn: mergedMd.dependsOn,
+								id: mergedMd.id,
+							});
+							taskLine = `${checkboxPrefix}${taskContent}${
+								newMetadata ? ` ${newMetadata}` : ""
+							}`;
+						}
 					}
 				}
 			}
@@ -1069,15 +1174,62 @@ export class WriteAPI {
 						);
 						if (prefixMatch) {
 							const prefix = prefixMatch[1];
-							const metadataMatch = taskLine.match(
-								/([\s]+(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁|\[[\w]+::|#|@|\+).*)?$/
+							// Preserve trailing metadata (strict trailing-only, recognized keys)
+							const afterPrefix2 = taskLine.substring(
+								prefix.length
 							);
-							const metadata = metadataMatch
-								? metadataMatch[0]
+							const sanitized3 = afterPrefix2
+								.replace(/\[\[[^\]]*\]\]/g, (m) =>
+									"x".repeat(m.length)
+								)
+								.replace(/\[[^\]]*\]\([^\)]*\)/g, (m) =>
+									"x".repeat(m.length)
+								)
+								.replace(/`[^`]*`/g, (m) =>
+									"x".repeat(m.length)
+								);
+							const esc3 = (s: string) =>
+								s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+							const projectKey3 =
+								this.plugin.settings.projectTagPrefix
+									?.dataview || "project";
+							const contextKey3 =
+								this.plugin.settings.contextTagPrefix
+									?.dataview || "context";
+							const dvKeysGroup3 = [
+								"tags",
+								esc3(projectKey3),
+								esc3(contextKey3),
+								"priority",
+								"repeat",
+								"start",
+								"scheduled",
+								"due",
+								"completion",
+								"cancelled",
+								"onCompletion",
+								"dependsOn",
+								"id",
+							].join("|");
+							const baseEmoji3 =
+								"(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁)";
+							const dvFieldToken3 = `\\[(?:${dvKeysGroup3})\\s*::[^\\]]*\\]`;
+							const tagToken3 = "#[A-Za-z][\\w/-]*";
+							const atToken3 = "@[A-Za-z][\\w/-]*";
+							const plusToken3 = "\\+[A-Za-z][\\w/-]*";
+							const emojiSeg3 = `(?:${baseEmoji3}[^\\n]*)`;
+							const token3 = `(?:${emojiSeg3}|${dvFieldToken3}|${tagToken3}|${atToken3}|${plusToken3})`;
+							const trailing3 = new RegExp(`(?:\\s+${token3})+$`);
+							const tm3 = sanitized3.match(trailing3);
+							const trailingMeta2 = tm3
+								? afterPrefix2.slice(
+										afterPrefix2.length -
+											(tm3[0]?.length || 0)
+								  )
 								: "";
 							lines[
 								lineNum
-							] = `${prefix}${newContent}${metadata}`;
+							] = `${prefix}${newContent}${trailingMeta2}`;
 						}
 					}
 				}
@@ -2126,17 +2278,43 @@ export class WriteAPI {
 
 		// For cancelled and start dates, insert after task content but before other metadata
 		// Find where metadata starts (tags, dates, etc)
-		const metadataPattern =
-			/([\s]+(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁|\[[\w]+::|#|@|\+).*)?$/;
-		const metadataMatch = taskLine.match(metadataPattern);
+		// Detect strict trailing metadata (recognized keys) on full line
+		const sanitizedFull = taskLine
+			.replace(/\[\[[^\]]*\]\]/g, (m) => "x".repeat(m.length))
+			.replace(/\[[^\]]*\]\([^\)]*\)/g, (m) => "x".repeat(m.length))
+			.replace(/`[^`]*`/g, (m) => "x".repeat(m.length));
+		const escD = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		const projectKeyD =
+			this.plugin.settings.projectTagPrefix?.dataview || "project";
+		const contextKeyD =
+			this.plugin.settings.contextTagPrefix?.dataview || "context";
+		const dvKeysGroupD = [
+			"tags",
+			escD(projectKeyD),
+			escD(contextKeyD),
+			"priority",
+			"repeat",
+			"start",
+			"scheduled",
+			"due",
+			"completion",
+			"cancelled",
+			"onCompletion",
+			"dependsOn",
+			"id",
+		].join("|");
+		const baseEmojiD = "(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁)";
+		const dvFieldTokenD = `\\[(?:${dvKeysGroupD})\\s*::[^\\]]*\\]`;
+		const tagTokenD = "#[A-Za-z][\\w/-]*";
+		const atTokenD = "@[A-Za-z][\\w/-]*";
+		const plusTokenD = "\\+[A-Za-z][\\w/-]*";
+		const emojiSegD = `(?:${baseEmojiD}[^\\n]*)`;
+		const tokenD = `(?:${emojiSegD}|${dvFieldTokenD}|${tagTokenD}|${atTokenD}|${plusTokenD})`;
+		const trailingD = new RegExp(`(?:\\s+${tokenD})+$`);
+		const tmD = sanitizedFull.match(trailingD);
 
-		if (
-			metadataMatch &&
-			metadataMatch.index !== undefined &&
-			metadataMatch[0].trim()
-		) {
-			// Insert before existing metadata
-			const insertPos = metadataMatch.index;
+		if (tmD) {
+			const insertPos = taskLine.length - (tmD[0]?.length || 0);
 			return (
 				taskLine.slice(0, insertPos) +
 				" " +
