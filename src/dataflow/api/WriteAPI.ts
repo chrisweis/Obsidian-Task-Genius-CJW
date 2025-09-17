@@ -482,11 +482,41 @@ export class WriteAPI {
 					}
 				} else {
 					// Remove existing metadata and regenerate from merged values
-					const prefixMatch = taskLine.match(
-						/^(\s*[-*+]\s*\[[^\]]*\]\s*[^🔺⏫🔼🔽⏬🛫⏳📅✅🔁\[#@+]*)/
+					// First, extract the checkbox prefix
+					const checkboxMatch = taskLine.match(
+						/^(\s*[-*+]\s*\[[^\]]*\]\s*)/
 					);
-					if (prefixMatch) {
-						const taskPrefix = prefixMatch[0];
+					if (checkboxMatch) {
+						const checkboxPrefix = checkboxMatch[1];
+						const afterCheckbox = taskLine.substring(
+							checkboxPrefix.length
+						);
+
+						// Find where metadata starts (look for emoji markers or dataview fields)
+						// Updated pattern to avoid matching wiki links [[...]] or markdown links [text](url)
+						// To avoid false positives, sanitize out wiki links [[...]], markdown links [text](url), and inline code `...`
+						const sanitized = afterCheckbox
+							// Use non-whitespace placeholders to prevent \s+ from consuming across links/code
+							.replace(/\[\[[^\]]*\]\]/g, (m) =>
+								"x".repeat(m.length)
+							)
+							.replace(/\[[^\]]*\]\([^\)]*\)/g, (m) =>
+								"x".repeat(m.length)
+							)
+							.replace(/`[^`]*`/g, (m) => "x".repeat(m.length));
+
+						const metadataMatch = sanitized.match(
+							/([\s]+(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁|\[(?!\[\])[^\[\]\r\n:]+::|#[A-Za-z][\w/-]*|@[A-Za-z][\w/-]*|\+[A-Za-z][\w/-]*).*)?$/
+						);
+
+						// Extract the task content (everything before metadata)
+						const taskContent =
+							metadataMatch && metadataMatch.index !== undefined
+								? afterCheckbox
+										.substring(0, metadataMatch.index)
+										.trim()
+								: afterCheckbox.trim();
+
 						const mergedMd = {
 							...originalTask.metadata,
 							...args.updates.metadata,
@@ -510,7 +540,7 @@ export class WriteAPI {
 							dependsOn: mergedMd.dependsOn,
 							id: mergedMd.id,
 						});
-						taskLine = `${taskPrefix}${
+						taskLine = `${checkboxPrefix}${taskContent}${
 							newMetadata ? ` ${newMetadata}` : ""
 						}`;
 					}
