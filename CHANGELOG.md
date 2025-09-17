@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.13](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.12...9.8.13) (2025-09-17)
+
+### Bug Fixes
+
+* **write:** preserve unknown dataview fields when updating task metadata ([01613e5](https://github.com/Quorafind/Obsidian-Task-Genius/commit/01613e5))
+* **write:** preserve wiki links and inline code when updating task metadata ([a787cee](https://github.com/Quorafind/Obsidian-Task-Genius/commit/a787cee))
+
 ## [9.8.12](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.11...9.8.12) (2025-09-16)
 
 ### Bug Fixes
