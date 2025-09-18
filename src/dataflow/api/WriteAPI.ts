@@ -570,19 +570,20 @@ export class WriteAPI {
 									"x".repeat(m.length)
 								);
 
-							// Build strict trailing-metadata matcher using recognized Dataview keys
+							// Build trailing-metadata matcher. Recognize Dataview fields and
+							// tolerate spaces inside known tokens like #project/... and @context...
 							const esc = (s: string) =>
 								s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-							const projectKey =
+							const dvProjectKey =
 								this.plugin.settings.projectTagPrefix
 									?.dataview || "project";
-							const contextKey =
+							const dvContextKey =
 								this.plugin.settings.contextTagPrefix
 									?.dataview || "context";
 							const dvKeysGroup = [
 								"tags",
-								esc(projectKey),
-								esc(contextKey),
+								esc(dvProjectKey),
+								esc(dvContextKey),
 								"priority",
 								"repeat",
 								"start",
@@ -596,11 +597,26 @@ export class WriteAPI {
 							].join("|");
 							const baseEmoji = "(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁)";
 							const dvFieldToken = `\\[(?:${dvKeysGroup})\\s*::[^\\]]*\\]`;
+							// Tasks-format prefixes
+							const projectPrefixTasks =
+								this.plugin.settings.projectTagPrefix?.tasks ||
+								"project";
+							const contextPrefixTasks =
+								this.plugin.settings.contextTagPrefix?.tasks ||
+								"@";
+							// Allow spaces within project/context values when stripping trailing metadata
+							const projectWideToken = `#${esc(
+								projectPrefixTasks
+							)}/[^\\n\\r]*`;
+							const atWideToken = `${esc(
+								contextPrefixTasks
+							)}[^\\n\\r]*`;
 							const tagToken = "#[A-Za-z][\\w/-]*";
 							const atToken = "@[A-Za-z][\\w/-]*";
 							const plusToken = "\\+[A-Za-z][\\w/-]*";
 							const emojiSeg = `(?:${baseEmoji}[^\\n]*)`;
-							const token = `(?:${emojiSeg}|${dvFieldToken}|${tagToken}|${atToken}|${plusToken})`;
+							// Prefer the wide tokens first so we consume the full trailing segment
+							const token = `(?:${emojiSeg}|${dvFieldToken}|${projectWideToken}|${atWideToken}|${tagToken}|${atToken}|${plusToken})`;
 							const trailing = new RegExp(`(?:\\s+${token})+$`);
 							const tm = sanitized.match(trailing);
 
