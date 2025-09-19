@@ -23,12 +23,7 @@ import {
 import { Events, emit } from "../events/Events";
 import { CanvasTaskUpdater } from "../../parsers/canvas-task-updater";
 import { rrulestr } from "rrule";
-import { localDateStringToTimestamp } from "../../utils/date/date-display-helper";
-import {
-	EMOJI_TAG_REGEX,
-	TOKEN_CONTEXT_REGEX,
-	TOKEN_PLUS_REGEX,
-} from "@/common/regex-define";
+import { EMOJI_TAG_REGEX, TOKEN_CONTEXT_REGEX } from "@/common/regex-define";
 
 /**
  * Arguments for creating a task
@@ -479,9 +474,8 @@ export class WriteAPI {
 					const dvFieldToken2 = `\\[(?:${dvKeysGroup2})\\s*::[^\\]]*\\]`;
 					const tagToken2 = EMOJI_TAG_REGEX.source;
 					const atToken2 = TOKEN_CONTEXT_REGEX.source;
-					const plusToken2 = TOKEN_PLUS_REGEX.source;
 					const emojiSeg2 = `(?:${baseEmoji2}[^\\n]*)`;
-					const token2 = `(?:${emojiSeg2}|${dvFieldToken2}|${tagToken2}|${atToken2}|${plusToken2})`;
+					const token2 = `(?:${emojiSeg2}|${dvFieldToken2}|${tagToken2}|${atToken2})`;
 					const trailing2 = new RegExp(`(?:\\s+${token2})+$`);
 					const tm2 = sanitized2.match(trailing2);
 					const trailingMeta = tm2
@@ -618,10 +612,9 @@ export class WriteAPI {
 							)}[^\\n\\r]*`;
 							const tagToken = EMOJI_TAG_REGEX.source;
 							const atToken = TOKEN_CONTEXT_REGEX.source;
-							const plusToken = TOKEN_PLUS_REGEX.source;
 							const emojiSeg = `(?:${baseEmoji}[^\\n]*)`;
 							// Prefer the wide tokens first so we consume the full trailing segment
-							const token = `(?:${emojiSeg}|${dvFieldToken}|${projectWideToken}|${atWideToken}|${tagToken}|${atToken}|${plusToken})`;
+							const token = `(?:${emojiSeg}|${dvFieldToken}|${projectWideToken}|${atWideToken}|${tagToken}|${atToken})`;
 							const trailing = new RegExp(`(?:\\s+${token})+$`);
 							const tm = sanitized.match(trailing);
 
@@ -1275,9 +1268,8 @@ export class WriteAPI {
 							const dvFieldToken3 = `\\[(?:${dvKeysGroup3})\\s*::[^\\]]*\\]`;
 							const tagToken3 = EMOJI_TAG_REGEX.source;
 							const atToken3 = TOKEN_CONTEXT_REGEX.source;
-							const plusToken3 = TOKEN_PLUS_REGEX.source;
 							const emojiSeg3 = `(?:${baseEmoji3}[^\\n]*)`;
-							const token3 = `(?:${emojiSeg3}|${dvFieldToken3}|${tagToken3}|${atToken3}|${plusToken3})`;
+							const token3 = `(?:${emojiSeg3}|${dvFieldToken3}|${tagToken3}|${atToken3})`;
 							const trailing3 = new RegExp(`(?:\\s+${token3})+$`);
 							const tm3 = sanitized3.match(trailing3);
 							const trailingMeta2 = tm3

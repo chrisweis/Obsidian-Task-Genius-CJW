@@ -21,7 +21,6 @@ const EMOJI_PROJECT_PREFIX = "#project/"; // Keep for backward compatibility
 
 // Token regexes for inline items (Unicode-friendly)
 export const TOKEN_CONTEXT_REGEX = /@[^ \t#@+\[\]]+/u;
-export const TOKEN_PLUS_REGEX = /\+[^ \t#@+\[\]]+/u;
 
 // Format types for prefix generation
 export type MetadataFormat = "emoji" | "dataview";
