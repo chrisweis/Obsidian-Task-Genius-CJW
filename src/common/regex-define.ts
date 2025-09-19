@@ -19,6 +19,10 @@ const EMOJI_TAG_REGEX =
 	/#[^\u2000-\u206F\u2E00-\u2E7F'!"#$%&()*+,.:;<=>?@^`{|}~\[\]\\\s]+/g; // Includes #project/ tags
 const EMOJI_PROJECT_PREFIX = "#project/"; // Keep for backward compatibility
 
+// Token regexes for inline items (Unicode-friendly)
+export const TOKEN_CONTEXT_REGEX = /@[^ \t#@+\[\]]+/u;
+export const TOKEN_PLUS_REGEX = /\+[^ \t#@+\[\]]+/u;
+
 // Format types for prefix generation
 export type MetadataFormat = "emoji" | "dataview";
 

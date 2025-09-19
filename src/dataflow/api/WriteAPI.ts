@@ -24,6 +24,11 @@ import { Events, emit } from "../events/Events";
 import { CanvasTaskUpdater } from "../../parsers/canvas-task-updater";
 import { rrulestr } from "rrule";
 import { localDateStringToTimestamp } from "../../utils/date/date-display-helper";
+import {
+	EMOJI_TAG_REGEX,
+	TOKEN_CONTEXT_REGEX,
+	TOKEN_PLUS_REGEX,
+} from "@/common/regex-define";
 
 /**
  * Arguments for creating a task
@@ -472,9 +477,9 @@ export class WriteAPI {
 					].join("|");
 					const baseEmoji2 = "(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁)";
 					const dvFieldToken2 = `\\[(?:${dvKeysGroup2})\\s*::[^\\]]*\\]`;
-					const tagToken2 = "#[A-Za-z][\\w/-]*";
-					const atToken2 = "@[A-Za-z][\\w/-]*";
-					const plusToken2 = "\\+[A-Za-z][\\w/-]*";
+					const tagToken2 = EMOJI_TAG_REGEX.source;
+					const atToken2 = TOKEN_CONTEXT_REGEX.source;
+					const plusToken2 = TOKEN_PLUS_REGEX.source;
 					const emojiSeg2 = `(?:${baseEmoji2}[^\\n]*)`;
 					const token2 = `(?:${emojiSeg2}|${dvFieldToken2}|${tagToken2}|${atToken2}|${plusToken2})`;
 					const trailing2 = new RegExp(`(?:\\s+${token2})+$`);
@@ -611,9 +616,9 @@ export class WriteAPI {
 							const atWideToken = `${esc(
 								contextPrefixTasks
 							)}[^\\n\\r]*`;
-							const tagToken = "#[A-Za-z][\\w/-]*";
-							const atToken = "@[A-Za-z][\\w/-]*";
-							const plusToken = "\\+[A-Za-z][\\w/-]*";
+							const tagToken = EMOJI_TAG_REGEX.source;
+							const atToken = TOKEN_CONTEXT_REGEX.source;
+							const plusToken = TOKEN_PLUS_REGEX.source;
 							const emojiSeg = `(?:${baseEmoji}[^\\n]*)`;
 							// Prefer the wide tokens first so we consume the full trailing segment
 							const token = `(?:${emojiSeg}|${dvFieldToken}|${projectWideToken}|${atWideToken}|${tagToken}|${atToken}|${plusToken})`;
@@ -1268,9 +1273,9 @@ export class WriteAPI {
 							const baseEmoji3 =
 								"(🔺|⏫|🔼|🔽|⏬|🛫|⏳|📅|✅|🔁)";
 							const dvFieldToken3 = `\\[(?:${dvKeysGroup3})\\s*::[^\\]]*\\]`;
-							const tagToken3 = "#[A-Za-z][\\w/-]*";
-							const atToken3 = "@[A-Za-z][\\w/-]*";
-							const plusToken3 = "\\+[A-Za-z][\\w/-]*";
+							const tagToken3 = EMOJI_TAG_REGEX.source;
+							const atToken3 = TOKEN_CONTEXT_REGEX.source;
+							const plusToken3 = TOKEN_PLUS_REGEX.source;
 							const emojiSeg3 = `(?:${baseEmoji3}[^\\n]*)`;
 							const token3 = `(?:${emojiSeg3}|${dvFieldToken3}|${tagToken3}|${atToken3}|${plusToken3})`;
 							const trailing3 = new RegExp(`(?:\\s+${token3})+$`);
