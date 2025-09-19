@@ -1786,11 +1786,16 @@ export class WriteAPI {
 				const projectPrefix =
 					this.plugin.settings.projectTagPrefix?.dataview ||
 					"project";
+				// Dataview 格式保留原始空格
 				metadata.push(`[${projectPrefix}:: ${args.project}]`);
 			} else {
 				const projectPrefix =
 					this.plugin.settings.projectTagPrefix?.tasks || "project";
-				metadata.push(`#${projectPrefix}/${args.project}`);
+				// Tasks 格式：空格使用 "-" 连接
+				const sanitizedProject = String(args.project)
+					.trim()
+					.replace(/\s+/g, "-");
+				metadata.push(`#${projectPrefix}/${sanitizedProject}`);
 			}
 		}
 
@@ -1800,11 +1805,16 @@ export class WriteAPI {
 				const contextPrefix =
 					this.plugin.settings.contextTagPrefix?.dataview ||
 					"context";
+				// Dataview 格式保留原始空格
 				metadata.push(`[${contextPrefix}:: ${args.context}]`);
 			} else {
 				const contextPrefix =
 					this.plugin.settings.contextTagPrefix?.tasks || "@";
-				metadata.push(`${contextPrefix}${args.context}`);
+				// Tasks 格式：空格使用 "-" 连接
+				const sanitizedContext = String(args.context)
+					.trim()
+					.replace(/\s+/g, "-");
+				metadata.push(`${contextPrefix}${sanitizedContext}`);
 			}
 		}
 
