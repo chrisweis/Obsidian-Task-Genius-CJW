@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.8.14](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.13...9.8.14) (2025-09-19)
+
+### Bug Fixes
+
+* **write:** sanitize spaces in project and context tags for Tasks format ([3362968](https://github.com/Quorafind/Obsidian-Task-Genius/commit/3362968))
+* **write:** preserve spaces in project and context tags when updating tasks ([f770126](https://github.com/Quorafind/Obsidian-Task-Genius/commit/f770126))
+
+### Refactors
+
+* remove unused plus token regex pattern ([c8dfe57](https://github.com/Quorafind/Obsidian-Task-Genius/commit/c8dfe57))
+* extract token regexes to centralized location ([ede2379](https://github.com/Quorafind/Obsidian-Task-Genius/commit/ede2379))
+
+### Styles
+
+* **icons:** enhance checkbox hover effects ([58a22af](https://github.com/Quorafind/Obsidian-Task-Genius/commit/58a22af))
+
 ## [9.8.13](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.12...9.8.13) (2025-09-17)
 
 ### Bug Fixes
