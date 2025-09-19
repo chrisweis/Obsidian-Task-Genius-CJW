@@ -301,6 +301,20 @@ export class TaskGeniusIconManager extends Component {
 	-webkit-mask-image: url("${encodedSvg}");
 	-webkit-mask-size: 100%;
 	background-color: ${fillColor};
+	transition: filter 0.15s ease;
+}
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox]:hover:after,
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox]:hover:after,
+.${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox]:hover:after {
+	filter: brightness(0.75);
+}
+@media (hover: hover) {
+	.${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox]:hover,
+	.${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox]:hover,
+	.${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox]:hover {
+		background-color: unset;
+		border: none;
+	}
 }
 			`;
 		}
@@ -327,6 +341,20 @@ export class TaskGeniusIconManager extends Component {
 	-webkit-mask-image: url("${encodedSvg}");
 	-webkit-mask-size: 100%;
 	background-color: ${fillColor};
+	transition: filter 0.15s ease;
+}
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox]:checked:hover:after,
+.${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox]:checked:hover:after,
+.${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox]:checked:hover:after {
+	filter: brightness(0.75);
+}
+@media (hover: hover) {
+	.${this.BODY_CLASS} [data-task="${escapedChar}"] > input[type=checkbox]:checked:hover,
+	.${this.BODY_CLASS} [data-task="${escapedChar}"] > p > input[type=checkbox]:checked:hover,
+	.${this.BODY_CLASS} [data-task="${escapedChar}"][type=checkbox]:checked:hover {
+		background-color: unset;
+		border: none;
+	}
 }
 		`;
 	}

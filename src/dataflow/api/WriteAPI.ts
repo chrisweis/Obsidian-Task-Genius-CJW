@@ -621,7 +621,7 @@ export class WriteAPI {
 							const tm = sanitized.match(trailing);
 
 							// Extract the task content (everything before trailing metadata)
-							const taskContent = tm
+							const taskContentRaw = tm
 								? afterCheckbox
 										.substring(
 											0,
@@ -630,6 +630,44 @@ export class WriteAPI {
 										)
 										.trim()
 								: afterCheckbox.trim();
+
+							// If we are regenerating managed metadata, scrub inline project tokens from content
+							let taskContent = taskContentRaw;
+							try {
+								const dvProjectKeyInline =
+									this.plugin.settings.projectTagPrefix
+										?.dataview || "project";
+								const projectPrefixTasksInline =
+									this.plugin.settings.projectTagPrefix
+										?.tasks || "project";
+								// Remove Dataview-style inline project fields anywhere in content
+								const dvProjectRe = new RegExp(
+									`\\[\\s*${esc(
+										dvProjectKeyInline
+									)}\\s*::[^\\]]*\\]`,
+									"gi"
+								);
+								taskContent = taskContent
+									.replace(dvProjectRe, "")
+									.trim();
+								// Remove tasks-style inline project tags like #project/xxx (stop at next whitespace)
+								const projectInlineRe = new RegExp(
+									`(^|\\s)#${esc(
+										projectPrefixTasksInline
+									)}/[^\\s#@+]+`,
+									"g"
+								);
+								taskContent = taskContent.replace(
+									projectInlineRe,
+									"$1"
+								);
+								// Collapse extra spaces left by removals
+								taskContent = taskContent
+									.replace(/\s{2,}/g, " ")
+									.trim();
+							} catch (e) {
+								// Best-effort cleanup; ignore regex issues
+							}
 
 							console.log(
 								"edit content",

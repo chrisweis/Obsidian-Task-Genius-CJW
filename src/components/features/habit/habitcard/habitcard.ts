@@ -168,6 +168,78 @@ export class HabitCard extends Component {
 		});
 	}
 
+	// Render heatmap for a custom date range [startDateStr, endDateStr]
+	renderHeatmapRange(
+		container: HTMLElement,
+		completions: Record<string, any>,
+		startDateStr: string,
+		endDateStr: string,
+		size: "sm" | "md" | "lg",
+		getVariantCondition: (value: any) => boolean,
+		getCellValue?: (value: any) => string | HTMLElement | null
+	) {
+		const heatmapRoot = container.createDiv({
+			cls: `tg-heatmap-root heatmap-${size}`,
+		});
+		const heatmapContainer = heatmapRoot.createDiv({
+			cls: `heatmap-container-simple`,
+		});
+
+		const dates = getDatesInRange(startDateStr, endDateStr);
+
+		// Render dates in reverse chronological order (most recent first)
+		dates.reverse().forEach((date) => {
+			const cellValue = completions[date];
+			const isFilled = getVariantCondition(cellValue);
+			const customContent = getCellValue ? getCellValue(cellValue) : null;
+
+			const cell = heatmapContainer.createDiv({
+				cls: `heatmap-cell heatmap-cell-square`,
+			});
+			cell.dataset.date = date;
+
+			// Determine tooltip content
+			let tooltipText = `${date}: `;
+			if (cellValue === undefined || cellValue === null) {
+				tooltipText += "Missed";
+			} else if (typeof cellValue === "object") {
+				if (!cell.hasAttribute("aria-label")) {
+					tooltipText += "Recorded";
+				}
+			} else if (typeof cellValue === "number" && !customContent) {
+				tooltipText += `${cellValue} times`;
+			} else if (typeof cellValue === "number" && customContent) {
+				tooltipText += `${
+					customContent instanceof HTMLElement
+						? customContent.textContent
+						: customContent
+				}`;
+			} else if (isFilled) {
+				tooltipText += "Completed";
+			} else {
+				tooltipText += "Missed";
+			}
+
+			if (!cell.hasAttribute("aria-label")) {
+				cell.setAttribute("aria-label", tooltipText);
+			}
+
+			if (customContent) {
+				cell.addClass("has-custom-content");
+				if (typeof customContent === "string") {
+					cell.addClass("has-text-content");
+					cell.setText(customContent);
+				} else if (customContent instanceof HTMLElement) {
+					cell.appendChild(customContent);
+				}
+			} else if (isFilled) {
+				cell.addClass("filled");
+			} else {
+				cell.addClass("default");
+			}
+		});
+	}
+
 	toggleHabitCompletion(habitId: string, data?: any) {
 		console.log(`Toggling completion for ${habitId}`, data);
 

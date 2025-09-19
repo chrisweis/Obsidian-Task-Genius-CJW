@@ -4,7 +4,6 @@ import TaskProgressBarPlugin from "@/index";
 import { Task } from "@/types/task";
 import { createTaskCheckbox, getStatusText } from "@/components/features/task/view/details";
 import { t } from "@/translations/helper";
-import { getStatusIcon } from "../../../icon";
 
 export class StatusComponent extends Component {
 	constructor(

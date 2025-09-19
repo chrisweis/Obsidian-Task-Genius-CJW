@@ -306,7 +306,7 @@
 }
 
 .mapping-habit-card .heatmap-md .heatmap-container-simple {
-	gap: 0.5rem;
+	gap: var(--size-2-2);
 }
 
 /* Tablet/Desktop layout for Mapping Card */
@@ -379,7 +379,7 @@
 .heatmap-sm .heatmap-container-simple {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
-	gap: 3px; /* Small gap between cells */
+	gap: var(--size-2-2);
 	overflow-x: auto; /* Allow horizontal scroll if too many cells */
 	padding-bottom: 2px; /* Space for scrollbar */
 }
@@ -387,7 +387,7 @@
 .heatmap-md .heatmap-container-simple {
 	display: grid;
 	grid-template-columns: repeat(6, 1fr);
-	gap: 3px; /* Small gap between cells */
+	gap: var(--size-2-2);
 	overflow-x: auto; /* Allow horizontal scroll if too many cells */
 	padding-bottom: 2px; /* Space for scrollbar */
 	justify-items: center;
@@ -396,7 +396,7 @@
 .heatmap-lg .heatmap-container-simple {
 	display: grid;
 	grid-template-columns: repeat(10, 1fr);
-	gap: var(--size-4-2); /* Small gap between cells */
+	gap: var(--size-2-2);
 	overflow-x: auto; /* Allow horizontal scroll if too many cells */
 	padding-bottom: 2px; /* Space for scrollbar */
 	justify-items: center;
@@ -509,4 +509,64 @@
 	font-style: italic;
 	margin-right: 0.25em;
 	--icon-size: 1.5rem;
+}
+
+/* === Habit Chart Modal === */
+.habit-chart-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-bottom: 0.75rem;
+}
+.habit-chart-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+.habit-chart-filters .filter-btn {
+	padding: 0.25rem 0.6rem;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+}
+.habit-chart-filters .filter-btn:hover {
+	background: var(--background-secondary-alt);
+}
+.habit-chart-years {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.habit-chart-years .years-label {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+.habit-chart-years .years-bar {
+	display: flex;
+	flex-wrap: nowrap;
+	gap: 0.4rem;
+	overflow-x: auto;
+	padding-bottom: 2px;
+}
+.habit-chart-years .year-btn {
+	padding: 0.2rem 0.5rem;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	white-space: nowrap;
+}
+.habit-chart-years .year-btn.selected,
+.habit-chart-years .year-btn:hover {
+	background: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+.habit-chart-heatmap {
+	/* Reuse the heatmap grid styles; allow overflow */
+	max-height: 60vh;
+	overflow: auto;
 }

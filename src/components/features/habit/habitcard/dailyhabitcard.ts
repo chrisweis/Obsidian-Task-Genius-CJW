@@ -5,6 +5,8 @@ import { t } from "@/translations/helper";
 import TaskProgressBarPlugin from "@/index";
 import { getTodayLocalDateString } from "@/utils/date/date-formatter";
 
+import { HabitChartModal } from "@/components/features/habit/modals/HabitChartModal";
+
 export class DailyHabitCard extends HabitCard {
 	constructor(
 		public habit: DailyHabitProps,
@@ -39,8 +41,7 @@ export class DailyHabitCard extends HabitCard {
 		titleDiv
 			.createSpan({ text: titleText, cls: "habit-name" })
 			.onClickEvent(() => {
-				new Notice(`Chart for ${this.habit.name} (Not Implemented)`);
-				// TODO: Implement Chart Dialog
+				new HabitChartModal(this.plugin.app, this, this.habit).open();
 			});
 
 		const checkboxContainer = header.createDiv({
