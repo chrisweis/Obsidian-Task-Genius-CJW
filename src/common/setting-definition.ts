@@ -413,6 +413,25 @@ export interface BetaTestSettings {
 	enableBaseView: boolean;
 }
 
+export interface ExperimentalSettings {
+	enableV2: boolean;
+	showV2Ribbon: boolean;
+	workspaces?: Array<{
+		id: string;
+		name: string;
+		color: string;
+		settings?: any;
+	}>;
+	v2Config?: {
+		enableWorkspaces: boolean;
+		defaultWorkspace?: string;
+		showTopNavigation: boolean;
+		showNewSidebar: boolean;
+		allowViewSwitching: boolean;
+		persistViewMode: boolean;
+	};
+}
+
 /** Project path mapping configuration */
 export interface ProjectPathMapping {
 	/** Path pattern (supports glob patterns) */
@@ -577,8 +596,6 @@ export interface FileFilterRule {
 	scope?: "both" | "inline" | "file"; // per-rule scope (default both)
 }
 
-
-
 export enum FilterMode {
 	WHITELIST = "whitelist",
 	BLACKLIST = "blacklist",
@@ -650,7 +667,7 @@ export interface TaskProgressBarSettings {
 	desktopIntegration?: DesktopIntegrationSettings;
 
 	// Project Tree View Settings
-	projectViewDefaultMode: 'list' | 'tree';
+	projectViewDefaultMode: "list" | "tree";
 	projectTreeAutoExpand: boolean;
 	projectTreeShowEmptyFolders: boolean;
 	projectPathSeparator: string;
@@ -761,6 +778,9 @@ export interface TaskProgressBarSettings {
 	// Beta Test Settings
 	betaTest?: BetaTestSettings;
 
+	// Experimental Settings
+	experimental?: ExperimentalSettings;
+
 	// ICS Calendar Integration Settings
 	icsIntegration: IcsManagerConfig;
 
@@ -782,16 +802,11 @@ export interface TaskProgressBarSettings {
 	// MCP Integration Settings
 	mcpIntegration?: McpServerConfig;
 
-	// Experimental Settings
-	experimental?: {
-		// Reserved for future experimental features
-	};
-
 	// Onboarding Settings
 	onboarding?: {
 		completed: boolean;
 		version: string;
-		configMode: 'beginner' | 'advanced' | 'power' | 'custom';
+		configMode: "beginner" | "advanced" | "power" | "custom";
 		skipOnboarding?: boolean;
 		completedAt?: string;
 	};
@@ -837,10 +852,10 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	showProgressBarBasedOnHeading: "",
 
 	// Project Tree View Settings Defaults
-	projectViewDefaultMode: 'list',
+	projectViewDefaultMode: "list",
 	projectTreeAutoExpand: false,
 	projectTreeShowEmptyFolders: false,
-	projectPathSeparator: '/',
+	projectPathSeparator: "/",
 
 	// Checkbox Status Defaults
 	autoCompleteParent: false,
@@ -1047,20 +1062,20 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 				{
 					type: "metadata",
 					propertyKey: "project",
-					enabled: false
+					enabled: false,
 				},
 				{
 					type: "tag",
 					propertyKey: "project",
-					enabled: false
+					enabled: false,
 				},
 				{
 					type: "link",
 					propertyKey: "category",
 					linkFilter: "",
-					enabled: false
-				}
-			]
+					enabled: false,
+				},
+			],
 		},
 		configFile: {
 			fileName: "project.md",
@@ -1530,10 +1545,10 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		metadataDetection: {
 			frontmatter: "task-timer",
 			folders: [],
-			tags: ["timer", "tracked"]
+			tags: ["timer", "tracked"],
 		},
 		timeFormat: "{h}hrs {m}mins",
-		blockRefPrefix: "timer"
+		blockRefPrefix: "timer",
 	},
 
 	// Custom Date Format Defaults
@@ -1542,16 +1557,17 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 
 	// Experimental Defaults
 	experimental: {
-		// Reserved for future experimental features
+		enableV2: false,
+		showV2Ribbon: false,
 	},
 
 	// Onboarding Defaults
 	onboarding: {
 		completed: false,
 		version: "",
-		configMode: 'beginner',
+		configMode: "beginner",
 		skipOnboarding: false,
-		completedAt: ""
+		completedAt: "",
 	},
 
 	// FileSource Defaults - Import from FileSourceConfig
@@ -1561,75 +1577,75 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			metadata: {
 				enabled: true,
 				taskFields: ["dueDate", "status", "priority", "assigned"],
-				requireAllFields: false
+				requireAllFields: false,
 			},
 			tags: {
 				enabled: true,
 				taskTags: ["#task", "#actionable", "#todo"],
-				matchMode: "exact"
+				matchMode: "exact",
 			},
 			templates: {
 				enabled: false,
 				templatePaths: ["Templates/Task Template.md"],
-				checkTemplateMetadata: true
+				checkTemplateMetadata: true,
 			},
 			paths: {
 				enabled: false,
 				taskPaths: ["Projects/", "Tasks/"],
-				matchMode: "prefix"
-			}
+				matchMode: "prefix",
+			},
 		},
 		fileTaskProperties: {
 			contentSource: "filename",
 			stripExtension: true,
 			defaultStatus: " ",
 			defaultPriority: undefined,
-			preferFrontmatterTitle: true
+			preferFrontmatterTitle: true,
 		},
 		relationships: {
 			enableChildRelationships: true,
 			enableMetadataInheritance: true,
-			inheritanceFields: ["project", "priority", "context"]
+			inheritanceFields: ["project", "priority", "context"],
 		},
 		performance: {
 			enableWorkerProcessing: true,
 			enableCaching: true,
-			cacheTTL: 300000
+			cacheTTL: 300000,
 		},
 		statusMapping: {
 			enabled: true,
 			metadataToSymbol: {
-				'completed': 'x',
-				'done': 'x',
-				'finished': 'x',
-				'in-progress': '/',
-				'in progress': '/',
-				'doing': '/',
-				'planned': '?',
-				'todo': '?',
-				'cancelled': '-',
-				'not-started': ' ',
-				'not started': ' '
+				completed: "x",
+				done: "x",
+				finished: "x",
+				"in-progress": "/",
+				"in progress": "/",
+				doing: "/",
+				planned: "?",
+				todo: "?",
+				cancelled: "-",
+				"not-started": " ",
+				"not started": " ",
 			},
 			symbolToMetadata: {
-				'x': 'completed',
-				'X': 'completed',
-				'/': 'in-progress',
-				'>': 'in-progress',
-				'?': 'planned',
-				'-': 'cancelled',
-				' ': 'not-started'
+				x: "completed",
+				X: "completed",
+				"/": "in-progress",
+				">": "in-progress",
+				"?": "planned",
+				"-": "cancelled",
+				" ": "not-started",
 			},
 			autoDetect: true,
-			caseSensitive: false
-		}
-	}
+			caseSensitive: false,
+		},
+	},
 };
 
 // Helper function to get view settings safely
 export function getViewSettingOrDefault(
 	plugin: TaskProgressBarPlugin,
-	viewId: ViewMode
+	viewId: ViewMode,
 ): ViewConfig {
 	const viewConfiguration =
 		plugin.settings.viewConfiguration || DEFAULT_SETTINGS.viewConfiguration;
@@ -1639,7 +1655,7 @@ export function getViewSettingOrDefault(
 
 	// Then check if it exists in default settings
 	const defaultConfig = DEFAULT_SETTINGS.viewConfiguration.find(
-		(v) => v.id === viewId
+		(v) => v.id === viewId,
 	);
 
 	// If neither exists, create a fallback default for custom views
@@ -1671,7 +1687,7 @@ export function getViewSettingOrDefault(
 			? {
 					...(baseConfig.filterRules || {}), // Start with base's filterRules
 					...savedConfig.filterRules, // Override with saved filterRules properties
-			  }
+				}
 			: baseConfig.filterRules || {}, // If no saved filterRules, use base's
 		// Merge specificConfig: Saved overrides default, default overrides base (which might be fallback without specificConfig)
 		// Ensure that the spread of savedConfig doesn't overwrite specificConfig object entirely if base has one and saved doesn't.
@@ -1681,7 +1697,7 @@ export function getViewSettingOrDefault(
 						// If saved has specificConfig, merge it onto base's
 						...(baseConfig.specificConfig || {}),
 						...savedConfig.specificConfig,
-				  }
+					}
 				: baseConfig.specificConfig, // Otherwise, just use base's specificConfig (could be undefined)
 	};
 

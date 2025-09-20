@@ -196,12 +196,12 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			icon: "layout",
 			category: "integration",
 		},
-		// {
-		// 	id: "beta-test",
-		// 	name: t("Beta Features"),
-		// 	icon: "flask-conical",
-		// 	category: "advanced",
-		// },
+		{
+			id: "beta-test",
+			name: t("Beta Features"),
+			icon: "flask-conical",
+			category: "advanced",
+		},
 		// {
 		// 	id: "experimental",
 		// 	name: t("Experimental"),
@@ -214,7 +214,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 	constructor(app: App, plugin: TaskProgressBarPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
-		
+
 		// Initialize debounced functions
 		this.debouncedApplySettings = debounce(
 			async () => {
@@ -224,7 +224,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				if (plugin.dataflowOrchestrator) {
 					// Call async updateSettings and await to ensure incremental reindex completes
 					await plugin.dataflowOrchestrator.updateSettings(
-						plugin.settings
+						plugin.settings,
 					);
 				}
 
@@ -235,9 +235,9 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				await plugin.triggerViewUpdate();
 			},
 			100,
-			true
+			true,
 		);
-		
+
 		this.debouncedApplyNotifications = debounce(
 			async () => {
 				await plugin.saveSettings();
@@ -246,7 +246,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				// Minimal view updates are unnecessary here
 			},
 			100,
-			true
+			true,
 		);
 	}
 
@@ -266,7 +266,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		}
 		this.searchComponent = new SettingsSearchComponent(
 			this,
-			this.containerEl
+			this.containerEl,
 		);
 	}
 
@@ -359,7 +359,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					tab.name +
 						(tab.id === "about"
 							? " v" + this.plugin.manifest.version
-							: "")
+							: ""),
 				);
 
 				// Add click handler
@@ -392,7 +392,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 		// Show active section, hide others
 		const sections = this.containerEl.querySelectorAll(
-			".settings-tab-section"
+			".settings-tab-section",
 		);
 		sections.forEach((section) => {
 			if (section.getAttribute("data-tab-id") === tabId) {
@@ -406,10 +406,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 		// Handle tab container and header visibility based on selected tab
 		const tabsContainer = this.containerEl.querySelector(
-			".settings-tabs-categorized-container"
+			".settings-tabs-categorized-container",
 		);
 		const settingsHeader = this.containerEl.querySelector(
-			".task-genius-settings-header"
+			".task-genius-settings-header",
 		);
 
 		if (tabId === "general") {
@@ -442,7 +442,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 	public navigateToTab(
 		tabId: string,
 		section?: string,
-		search?: string
+		search?: string,
 	): void {
 		// Set the current tab
 		this.currentTab = tabId;
@@ -483,7 +483,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		// Special handling for MCP sections
 		if (sectionId === "cursor" && this.currentTab === "mcp-integration") {
 			const cursorSection = this.containerEl.querySelector(
-				".mcp-client-section"
+				".mcp-client-section",
 			);
 			if (cursorSection) {
 				const header =
@@ -503,7 +503,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 	private createTabSection(tabId: string): HTMLElement {
 		// Get the sections container
 		const sectionsContainer = this.containerEl.querySelector(
-			".settings-tab-sections"
+			".settings-tab-sections",
 		);
 		if (!sectionsContainer) return this.containerEl;
 
@@ -536,7 +536,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					new IframeModal(
 						this.app,
 						url,
-						`How to use — ${tabInfo?.name ?? tabId}`
+						`How to use — ${tabInfo?.name ?? tabId}`,
 					).open();
 				} catch (e) {
 					window.open(url);
@@ -660,7 +660,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 		// Notifications Tab
 		const notificationsSection = this.createTabSection(
-			"desktop-integration"
+			"desktop-integration",
 		);
 		this.displayDesktopIntegrationSettings(notificationsSection);
 
@@ -676,8 +676,8 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		}
 
 		// Beta Test Tab
-		// const betaTestSection = this.createTabSection("beta-test");
-		// this.displayBetaTestSettings(betaTestSection);
+		const betaTestSection = this.createTabSection("beta-test");
+		this.displayBetaTestSettings(betaTestSection);
 
 		// // Experimental Tab
 		// const experimentalSection = this.createTabSection("experimental");
@@ -812,7 +812,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			() => {
 				this.currentTab = "general";
 				this.display();
-			}
+			},
 		);
 		icsSettingsComponent.display();
 	}
@@ -823,7 +823,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 	private displayMcpSettings(containerEl: HTMLElement): void {
 		renderMcpIntegrationSettingsTab(containerEl, this.plugin, () =>
-			this.applySettingsUpdate()
+			this.applySettingsUpdate(),
 		);
 	}
 
@@ -844,9 +844,9 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		renderHabitSettingsTab(this, containerEl);
 	}
 
-	// private displayBetaTestSettings(containerEl: HTMLElement): void {
-	// 	renderBetaTestSettingsTab(this, containerEl);
-	// }
+	private displayBetaTestSettings(containerEl: HTMLElement): void {
+		renderBetaTestSettingsTab(this, containerEl);
+	}
 
 	// private displayExperimentalSettings(containerEl: HTMLElement): void {
 	// 	this.renderExperimentalSettingsTab(containerEl);
@@ -871,14 +871,14 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		warningEl.addClass("experimental-warning");
 		warningEl.createEl("strong").setText("⚠️ Warning: ");
 		warningEl.appendText(
-			"These features are experimental and may not be stable. Use at your own risk."
+			"These features are experimental and may not be stable. Use at your own risk.",
 		);
 
 		// Future experimental features will be added here
 		const placeholderEl = experimentalSection.createDiv();
 		placeholderEl.addClass("experimental-placeholder");
 		placeholderEl.setText(
-			"No experimental features are currently available. Check back in future updates for new experimental functionality."
+			"No experimental features are currently available. Check back in future updates for new experimental functionality.",
 		);
 	}
 }

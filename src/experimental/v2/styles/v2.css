@@ -1,0 +1,473 @@
+/* V2 View Main Layout */
+.task-genius-v2-view {
+	height: 100%;
+	overflow: hidden;
+	padding: 0;
+}
+
+.tg-v2-container {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.tg-v2-layout {
+	display: flex;
+	height: 100%;
+	overflow: hidden;
+}
+
+/* Sidebar Styles */
+.tg-v2-sidebar-container {
+	width: 260px;
+	min-width: 200px;
+	max-width: 400px;
+	background-color: var(--background-secondary);
+	border-right: 1px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.v2-sidebar {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.v2-sidebar-header {
+	padding: 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* Workspace Selector */
+.workspace-selector-button {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	padding: 8px;
+	background: transparent;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+
+.workspace-selector-button:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.workspace-info {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.workspace-icon {
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+}
+
+.workspace-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.workspace-details {
+	text-align: left;
+}
+
+.workspace-name {
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+.workspace-label {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.workspace-dropdown-icon {
+	color: var(--text-muted);
+}
+
+/* New Task Button */
+.v2-new-task-btn {
+	width: 100%;
+	margin-top: 12px;
+	padding: 10px;
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: 6px;
+	font-weight: 500;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+
+.v2-new-task-btn:hover {
+	background-color: var(--interactive-accent-hover);
+}
+
+.v2-new-task-icon {
+	display: flex;
+}
+
+/* Sidebar Content */
+.v2-sidebar-content {
+	flex: 1;
+	overflow-y: auto;
+	padding: 8px 0;
+}
+
+.v2-sidebar-section {
+	padding: 8px 0;
+}
+
+.v2-sidebar-section + .v2-sidebar-section {
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.v2-section-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 4px 16px;
+	margin-bottom: 4px;
+}
+
+.v2-section-header span {
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+.v2-add-project-btn {
+	cursor: pointer;
+	color: var(--text-muted);
+	transition: color 0.15s;
+}
+
+.v2-add-project-btn:hover {
+	color: var(--text-normal);
+}
+
+/* Navigation Items */
+.v2-navigation-list {
+	padding: 0 8px;
+}
+
+.v2-navigation-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 6px 8px;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: background-color 0.15s;
+	position: relative;
+}
+
+.v2-navigation-item:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.v2-navigation-item.is-active {
+	background-color: var(--background-modifier-active-hover);
+}
+
+.v2-navigation-icon {
+	width: 20px;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+}
+
+.v2-navigation-item.is-active .v2-navigation-icon {
+	color: var(--text-normal);
+}
+
+.v2-navigation-label {
+	flex: 1;
+	font-size: 14px;
+	color: var(--text-normal);
+}
+
+.v2-navigation-badge {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 6px;
+	border-radius: 10px;
+	min-width: 18px;
+	text-align: center;
+}
+
+/* Project List */
+.v2-project-scroll {
+	max-height: 300px;
+	overflow-y: auto;
+	padding: 0 8px;
+}
+
+.v2-project-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 8px;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+
+.v2-project-item:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.v2-project-item.is-active {
+	background-color: var(--background-modifier-active-hover);
+}
+
+.v2-project-color {
+	width: 12px;
+	height: 12px;
+	border-radius: 3px;
+	flex-shrink: 0;
+}
+
+.v2-project-color-dashed {
+	width: 12px;
+	height: 12px;
+	border: 1.5px dashed var(--text-muted);
+	border-radius: 3px;
+}
+
+.v2-project-name {
+	flex: 1;
+	font-size: 14px;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.v2-add-project .v2-project-name {
+	color: var(--text-muted);
+}
+
+.v2-project-count {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+/* Main Container */
+.tg-v2-main-container {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+/* Top Navigation */
+.tg-v2-top-nav {
+	border-bottom: 1px solid var(--background-modifier-border);
+	background-color: var(--background-primary);
+}
+
+.v2-top-navigation {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 56px;
+	padding: 0 20px;
+	gap: 20px;
+}
+
+.v2-nav-left {
+	flex: 0 1 400px;
+}
+
+.v2-search-container {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.v2-search-icon {
+	position: absolute;
+	left: 12px;
+	color: var(--text-muted);
+	pointer-events: none;
+}
+
+.v2-search-input {
+	width: 100%;
+	padding: 8px 12px 8px 36px;
+	background-color: var(--background-modifier-form-field);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	font-size: 14px;
+	color: var(--text-normal);
+}
+
+.v2-search-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+/* Center Navigation */
+.v2-nav-center {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.v2-view-tabs {
+	display: flex;
+	background-color: var(--background-modifier-form-field);
+	border-radius: 6px;
+	padding: 2px;
+}
+
+.v2-view-tab {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	background: none;
+	border: none;
+	border-radius: 4px;
+	font-size: 14px;
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: all 0.15s;
+}
+
+.v2-view-tab:hover {
+	color: var(--text-normal);
+}
+
+.v2-view-tab.is-active {
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.v2-view-tab-icon {
+	width: 16px;
+	height: 16px;
+	display: flex;
+}
+
+.v2-nav-separator {
+	width: 1px;
+	height: 24px;
+	background-color: var(--background-modifier-border);
+}
+
+.v2-nav-button {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	background: none;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	font-size: 14px;
+	color: var(--text-normal);
+	cursor: pointer;
+	transition: all 0.15s;
+}
+
+.v2-nav-button:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.v2-nav-button-icon {
+	width: 16px;
+	height: 16px;
+	display: flex;
+}
+
+/* Right Navigation */
+.v2-nav-right {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.v2-nav-icon-button {
+	position: relative;
+	width: 36px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 6px;
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: all 0.15s;
+}
+
+.v2-nav-icon-button:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.v2-notification-badge {
+	position: absolute;
+	top: -2px;
+	right: -2px;
+	background-color: var(--text-error);
+	color: white;
+	font-size: 10px;
+	font-weight: 600;
+	padding: 2px 5px;
+	border-radius: 10px;
+	min-width: 16px;
+	text-align: center;
+}
+
+/* Content Area */
+.tg-v2-content {
+	flex: 1;
+	overflow: auto;
+	padding: 20px;
+}
+
+/* View-specific styles */
+.tg-v2-list-view,
+.tg-v2-kanban-view,
+.tg-v2-tree-view,
+.tg-v2-calendar-view {
+	height: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.tg-v2-sidebar-container {
+		width: 200px;
+	}
+
+	.v2-nav-center {
+		display: none;
+	}
+
+	.v2-search-container {
+		flex: 1;
+	}
+}
