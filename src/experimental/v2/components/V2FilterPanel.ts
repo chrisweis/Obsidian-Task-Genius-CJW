@@ -27,7 +27,6 @@ export class V2FilterPanel {
 		private onFilterChange: (filters: FilterOptions) => void,
 		private tasks: Task[] = [],
 	) {
-		this.createPanel();
 		this.extractAvailableOptions();
 	}
 

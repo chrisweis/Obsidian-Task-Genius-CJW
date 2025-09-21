@@ -13,7 +13,6 @@ import "./styles/v2.css";
 import "./styles/v2-enhanced.css";
 import "./styles/v2-content-header.css";
 import { TopNavigation, ViewMode } from "./components/V2TopNavigation";
-import { V2FilterPanel, FilterOptions } from "./components/V2FilterPanel";
 import { Workspace, V2ViewState } from "./types";
 import { TaskListItemComponent } from "../../components/features/task/view/listItem";
 import { TaskTreeItemComponent } from "../../components/features/task/view/treeItem";
@@ -57,7 +56,6 @@ export class TaskViewV2 extends ItemView {
 	private sidebar: V2Sidebar;
 	private topNavigation: TopNavigation;
 	private contentArea: HTMLElement;
-	private filterPanel: V2FilterPanel;
 
 	// View components - using existing components from the main plugin
 	private contentComponent: ContentComponent;
@@ -100,7 +98,7 @@ export class TaskViewV2 extends ItemView {
 	// State management
 	private viewState: V2ViewState = {
 		currentWorkspace: "default",
-		viewMode: "list",
+		viewMode: "list", // Default should be list, not calendar
 		searchQuery: "",
 		filters: {},
 	};
@@ -112,6 +110,9 @@ export class TaskViewV2 extends ItemView {
 	private currentViewId: string = "inbox";
 	private isLoading: boolean = false;
 	private loadError: string | null = null;
+
+	// Track the current active component for view mode switching
+	private currentActiveComponent: any = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: TaskProgressBarPlugin) {
 		super(leaf);
@@ -135,13 +136,19 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	async onOpen() {
+		console.log("[TG-V2] onOpen started");
 		this.contentEl.empty();
 		this.contentEl.addClass("task-genius-v2-view");
 
+		// Initialize default view mode to list
+		console.log("[TG-V2] Initial viewMode:", this.viewState.viewMode);
+		this.viewState.viewMode = "list"; // Force list mode for now
+
 		// Load saved filter state
 		const savedFilterState = this.app.loadLocalStorage(
-			"task-genius-view-filter",
+			"task-genius-view-filter"
 		) as RootFilterState;
+		console.log("[TG-V2] Loaded saved filter state:", savedFilterState);
 
 		if (
 			savedFilterState &&
@@ -155,6 +162,15 @@ export class TaskViewV2 extends ItemView {
 
 		// Load workspace layout
 		this.loadWorkspaceLayout();
+
+		// For content-based views, default to list mode
+		// Calendar/kanban should only be used when explicitly selected from top navigation
+		if (this.isContentBasedView("inbox")) {
+			console.log(
+				"[TG-V2] Resetting view mode to list for content-based view"
+			);
+			this.viewState.viewMode = "list";
+		}
 
 		// Create main container with layout structure
 		this.rootContainerEl = this.contentEl.createDiv({
@@ -192,26 +208,58 @@ export class TaskViewV2 extends ItemView {
 		});
 
 		// Initialize components
+		console.log("[TG-V2] Initializing sidebar");
 		this.initializeSidebar(sidebarEl);
+		console.log("[TG-V2] Initializing top navigation");
 		this.initializeTopNavigation(topNavEl);
+		console.log("[TG-V2] Initializing view components");
 		this.initializeViewComponents();
-		this.initializeFilterPanel();
 
 		// Register dataflow event listeners first for real-time updates
+		console.log("[TG-V2] Registering dataflow listeners");
 		await this.registerDataflowListeners();
 
-		// Load initial data
-		await this.loadTasks();
-		this.switchView(this.currentViewId);
+		// Load initial data - first try to use preloaded tasks like TaskView does
+		console.log("[TG-V2] Checking for preloaded tasks");
+		if (
+			this.plugin.preloadedTasks &&
+			this.plugin.preloadedTasks.length > 0
+		) {
+			console.log(
+				"[TG-V2] Using preloaded tasks:",
+				this.plugin.preloadedTasks.length
+			);
+			this.tasks = this.plugin.preloadedTasks;
+			console.log("[TG-V2] Applying filters");
+			this.applyFilters();
+			console.log(
+				"[TG-V2] After applying filters, tasks:",
+				this.tasks.length,
+				"filtered:",
+				this.filteredTasks.length
+			);
+			console.log("[TG-V2] Calling switchView with:", this.currentViewId);
+			this.switchView(this.currentViewId);
+		} else {
+			// If no preloaded tasks, load them
+			console.log("[TG-V2] No preloaded tasks, loading from dataflow");
+			await this.loadTasks();
+			console.log("[TG-V2] Loaded tasks:", this.tasks.length);
+			// Always call switchView to properly initialize the view
+			console.log("[TG-V2] Calling switchView with:", this.currentViewId);
+			this.switchView(this.currentViewId);
+		}
 
 		// Create action buttons in Obsidian view header
+		console.log("[TG-V2] Creating action buttons");
 		this.createActionButtons();
+		console.log("[TG-V2] onOpen completed");
 	}
 
 	private initializeSidebar(containerEl: HTMLElement) {
 		const currentWorkspace =
 			this.workspaces.find(
-				(w) => w.id === this.viewState.currentWorkspace,
+				(w) => w.id === this.viewState.currentWorkspace
 			) || this.workspaces[0];
 
 		this.sidebar = new V2Sidebar(
@@ -221,7 +269,7 @@ export class TaskViewV2 extends ItemView {
 			this.workspaces,
 			(viewId) => this.handleNavigate(viewId),
 			(workspace) => this.handleWorkspaceChange(workspace),
-			(projectId) => this.handleProjectSelect(projectId),
+			(projectId) => this.handleProjectSelect(projectId)
 		);
 	}
 
@@ -233,11 +281,12 @@ export class TaskViewV2 extends ItemView {
 			(mode) => this.handleViewModeChange(mode),
 			() => {}, // Filter is now in Obsidian view header
 			() => {}, // Sort is now in Obsidian view header
-			() => this.handleSettingsClick(),
+			() => this.handleSettingsClick()
 		);
 	}
 
 	private initializeViewComponents() {
+		console.log("[TG-V2] initializeViewComponents started");
 		// Initialize ViewComponentManager for special views
 		const viewHandlers = {
 			onTaskSelected: (task: Task) => this.handleTaskSelection(task),
@@ -253,11 +302,12 @@ export class TaskViewV2 extends ItemView {
 			this.app,
 			this.plugin,
 			this.contentArea,
-			viewHandlers,
+			viewHandlers
 		);
 		this.addChild(this.viewComponentManager);
 
 		// Initialize ContentComponent (handles inbox, today, upcoming, flagged)
+		console.log("[TG-V2] Creating ContentComponent");
 		this.contentComponent = new ContentComponent(
 			this.contentArea,
 			this.app,
@@ -267,10 +317,16 @@ export class TaskViewV2 extends ItemView {
 				onTaskCompleted: (task) => this.toggleTaskCompletion(task),
 				onTaskContextMenu: (event, task) =>
 					this.handleTaskContextMenu(event, task),
-			},
+			}
 		);
+		console.log("[TG-V2] Adding ContentComponent as child");
 		this.addChild(this.contentComponent);
+		console.log("[TG-V2] Loading ContentComponent");
 		this.contentComponent.load();
+		console.log(
+			"[TG-V2] ContentComponent loaded, containerEl exists:",
+			!!this.contentComponent.containerEl
+		);
 
 		// Initialize ForecastComponent
 		this.forecastComponent = new ForecastComponent(
@@ -285,7 +341,7 @@ export class TaskViewV2 extends ItemView {
 				},
 				onTaskContextMenu: (event, task) =>
 					this.handleTaskContextMenu(event, task),
-			},
+			}
 		);
 		this.addChild(this.forecastComponent);
 		this.forecastComponent.load();
@@ -303,7 +359,7 @@ export class TaskViewV2 extends ItemView {
 				},
 				onTaskContextMenu: (event, task) =>
 					this.handleTaskContextMenu(event, task),
-			},
+			}
 		);
 		this.addChild(this.tagsComponent);
 		this.tagsComponent.load();
@@ -321,7 +377,7 @@ export class TaskViewV2 extends ItemView {
 				},
 				onTaskContextMenu: (event, task) =>
 					this.handleTaskContextMenu(event, task),
-			},
+			}
 		);
 		this.addChild(this.projectsComponent);
 		this.projectsComponent.load();
@@ -339,7 +395,7 @@ export class TaskViewV2 extends ItemView {
 				},
 				onTaskContextMenu: (event, task) =>
 					this.handleTaskContextMenu(event, task),
-			},
+			}
 		);
 		this.addChild(this.reviewComponent);
 		this.reviewComponent.load();
@@ -363,7 +419,7 @@ export class TaskViewV2 extends ItemView {
 				onEventContextMenu: (ev: MouseEvent, event: CalendarEvent) => {
 					this.handleTaskContextMenu(ev, event as any);
 				},
-			},
+			}
 		);
 		this.addChild(this.calendarComponent);
 
@@ -379,7 +435,7 @@ export class TaskViewV2 extends ItemView {
 				onTaskSelected: this.handleTaskSelection.bind(this),
 				onTaskCompleted: this.toggleTaskCompletion.bind(this),
 				onTaskContextMenu: this.handleTaskContextMenu.bind(this),
-			},
+			}
 		);
 		this.addChild(this.kanbanComponent);
 
@@ -393,7 +449,7 @@ export class TaskViewV2 extends ItemView {
 					this.toggleTaskCompletion(task),
 				onTaskContextMenu: (event: MouseEvent, task: Task) =>
 					this.handleTaskContextMenu(event, task),
-			},
+			}
 		);
 		this.addChild(this.ganttComponent);
 		this.ganttComponent.load();
@@ -410,7 +466,9 @@ export class TaskViewV2 extends ItemView {
 		});
 
 		// Hide all components initially
+		console.log("[TG-V2] Hiding all components initially");
 		this.hideAllComponents();
+		console.log("[TG-V2] initializeViewComponents completed");
 	}
 
 	private hideAllComponents() {
@@ -435,24 +493,11 @@ export class TaskViewV2 extends ItemView {
 		this.treeContainer?.hide();
 	}
 
-	private initializeFilterPanel() {
-		// Create filter panel
-		this.filterPanel = new V2FilterPanel(
-			this.rootContainerEl,
-			(filters: FilterOptions) => {
-				// Apply filters when changed
-				this.viewState.filters = filters;
-				this.applyFilters();
-				this.updateView();
-			},
-			this.tasks,
-		);
-	}
-
 	private async registerDataflowListeners() {
 		// Add debounced view update to prevent rapid successive refreshes
 		const debouncedViewUpdate = debounce(async () => {
-			await this.loadTasks();
+			console.log("[TG-V2] debouncedViewUpdate triggered");
+			await this.loadTasks(false); // Don't show loading state for updates
 			this.switchView(this.currentViewId);
 			// Also refresh project list when tasks update
 			this.sidebar?.projectList?.refresh();
@@ -476,20 +521,20 @@ export class TaskViewV2 extends ItemView {
 				on(this.app, Events.CACHE_READY, async () => {
 					await this.loadTasks();
 					this.switchView(this.currentViewId);
-				}),
+				})
 			);
 
 			// Listen for task cache updates
 			this.registerEvent(
-				on(this.app, Events.TASK_CACHE_UPDATED, debouncedViewUpdate),
+				on(this.app, Events.TASK_CACHE_UPDATED, debouncedViewUpdate)
 			);
 		} else {
 			// Legacy event support
 			this.registerEvent(
 				this.app.workspace.on(
 					"task-genius:task-cache-updated",
-					debouncedViewUpdate,
-				),
+					debouncedViewUpdate
+				)
 			);
 		}
 
@@ -505,7 +550,7 @@ export class TaskViewV2 extends ItemView {
 						leafId !== "global-filter"
 					) {
 						console.log(
-							"[TaskViewV2] Filter changed from live component",
+							"[TaskViewV2] Filter changed from live component"
 						);
 						this.liveFilterState = filterState;
 						this.currentFilterState = filterState;
@@ -518,49 +563,70 @@ export class TaskViewV2 extends ItemView {
 
 					// Apply filters with debouncing
 					debouncedApplyFilter();
-				},
-			),
+				}
+			)
 		);
 	}
 
-	private async loadTasks() {
+	private async loadTasks(showLoading: boolean = true) {
 		try {
-			console.log("[TaskViewV2] Starting to load tasks...");
-			this.isLoading = true;
-			this.loadError = null;
-			this.updateView(); // Show loading state
+			console.log("[TG-V2] loadTasks started, showLoading:", showLoading);
+			// Only show loading state if requested and we don't have tasks
+			if (showLoading && (!this.tasks || this.tasks.length === 0)) {
+				console.log("[TG-V2] Setting isLoading to true");
+				this.isLoading = true;
+				this.loadError = null;
+				this.renderLoadingState(); // Directly show loading state
+			}
 
 			if (this.plugin.dataflowOrchestrator) {
 				console.log(
-					"[TaskViewV2] Using dataflow orchestrator to load tasks",
+					"[TG-V2] Using dataflow orchestrator to load tasks"
 				);
 				const queryAPI = this.plugin.dataflowOrchestrator.getQueryAPI();
+				console.log("[TG-V2] Getting all tasks from queryAPI...");
 				this.tasks = await queryAPI.getAllTasks();
 				console.log(
-					`[TaskViewV2] Loaded ${this.tasks.length} tasks from dataflow`,
+					`[TG-V2] Loaded ${this.tasks.length} tasks from dataflow`
 				);
 			} else {
-				console.log("[TaskViewV2] Using preloaded tasks");
+				console.log(
+					"[TG-V2] Dataflow not available, using preloaded tasks"
+				);
 				this.tasks = this.plugin.preloadedTasks || [];
 				console.log(
-					`[TaskViewV2] Loaded ${this.tasks.length} preloaded tasks`,
+					`[TG-V2] Loaded ${this.tasks.length} preloaded tasks`
 				);
 			}
 
+			console.log("[TG-V2] Calling applyFilters from loadTasks");
 			this.applyFilters();
 			console.log(
-				`[TaskViewV2] After filtering: ${this.filteredTasks.length} tasks`,
+				`[TG-V2] After filtering: ${this.filteredTasks.length} tasks`
 			);
 		} catch (error) {
-			console.error("[TaskViewV2] Failed to load tasks:", error);
+			console.error("[TG-V2] Failed to load tasks:", error);
 			this.loadError = error.message || "Failed to load tasks";
 			this.tasks = [];
 			this.filteredTasks = [];
-		} finally {
 			this.isLoading = false;
-			this.updateView();
+		} finally {
+			// Always set loading to false
+			console.log(
+				"[TG-V2] loadTasks finally block, isLoading was:",
+				this.isLoading
+			);
+			if (this.isLoading) {
+				this.isLoading = false;
+				console.log("[TG-V2] Set isLoading to false");
+			}
+			// Don't call updateView here - it will be called by switchView
+			// this.updateView();
 			// Refresh sidebar project list with new data
-			this.sidebar?.projectList?.refresh();
+			if (this.sidebar?.projectList) {
+				console.log("[TG-V2] Refreshing project list");
+				this.sidebar.projectList.refresh();
+			}
 		}
 	}
 
@@ -602,24 +668,24 @@ export class TaskViewV2 extends ItemView {
 			this.tasks,
 			this.currentViewId as any,
 			this.plugin,
-			filterOptions,
+			filterOptions
 		);
 
 		// Apply additional V2-specific filters if needed
 		if (filterOptions.v2Filters) {
-			const filters = filterOptions.v2Filters as FilterOptions;
+			const filters = filterOptions.v2Filters as any;
 
 			// Status filter
 			if (filters.status && filters.status !== "all") {
 				switch (filters.status) {
 					case "active":
 						this.filteredTasks = this.filteredTasks.filter(
-							(task) => !task.completed,
+							(task) => !task.completed
 						);
 						break;
 					case "completed":
 						this.filteredTasks = this.filteredTasks.filter(
-							(task) => task.completed,
+							(task) => task.completed
 						);
 						break;
 					case "overdue":
@@ -630,7 +696,7 @@ export class TaskViewV2 extends ItemView {
 								return (
 									new Date(task.metadata.dueDate) < new Date()
 								);
-							},
+							}
 						);
 						break;
 				}
@@ -651,7 +717,7 @@ export class TaskViewV2 extends ItemView {
 			// Project filter
 			if (filters.project) {
 				this.filteredTasks = this.filteredTasks.filter(
-					(task) => task.metadata?.project === filters.project,
+					(task) => task.metadata?.project === filters.project
 				);
 			}
 
@@ -659,8 +725,8 @@ export class TaskViewV2 extends ItemView {
 			if (filters.tags && filters.tags.length > 0) {
 				this.filteredTasks = this.filteredTasks.filter((task) => {
 					if (!task.metadata?.tags) return false;
-					return filters.tags!.some((tag) =>
-						task.metadata!.tags!.includes(tag),
+					return filters.tags!.some((tag: string) =>
+						task.metadata!.tags!.includes(tag)
 					);
 				});
 			}
@@ -690,7 +756,7 @@ export class TaskViewV2 extends ItemView {
 			// Assignee filter
 			if (filters.assignee) {
 				this.filteredTasks = this.filteredTasks.filter(
-					(task) => task.metadata?.assignee === filters.assignee,
+					(task) => task.metadata?.assignee === filters.assignee
 				);
 			}
 		}
@@ -698,24 +764,28 @@ export class TaskViewV2 extends ItemView {
 		// Update task count
 		if (this.taskCountEl) {
 			this.taskCountEl.setText(
-				`${this.filteredTasks.length} ${t("tasks")}`,
+				`${this.filteredTasks.length} ${t("tasks")}`
 			);
 		}
 
-		// Update filter panel with latest tasks
-		if (this.filterPanel) {
-			this.filterPanel.updateTasks(this.tasks);
-		}
+		// Filter panel is now handled in Obsidian view header
+		// No need to update here
 	}
 
 	private switchView(viewId: string, project?: string | null) {
+		console.log(
+			"[TG-V2] switchView called with:",
+			viewId,
+			"project:",
+			project
+		);
 		this.currentViewId = viewId;
 		this.sidebar?.setActiveItem(viewId);
 		console.log(
-			"[TaskViewV2] Switching view to:",
-			viewId,
-			"Project:",
-			project,
+			"[TG-V2] Current tasks:",
+			this.tasks.length,
+			"Current viewMode:",
+			this.viewState.viewMode
 		);
 
 		// Update content header title based on view
@@ -737,8 +807,40 @@ export class TaskViewV2 extends ItemView {
 			this.contentTitleEl.setText(t(viewTitles[viewId] || "Tasks"));
 		}
 
+		// Remove transient overlays (loading/error/empty) before showing components
+		if (this.contentArea) {
+			this.contentArea
+				.querySelectorAll(
+					".tg-v2-loading, .tg-v2-error-state, .tg-v2-empty-state"
+				)
+				.forEach((el) => el.remove());
+		}
+
 		// Hide all components first
+		console.log("[TG-V2] Hiding all components");
 		this.hideAllComponents();
+
+		// Check if current view supports multiple view modes and we're in a non-list mode
+		// For initial load with list mode, continue with normal flow
+		console.log(
+			"[TG-V2] Is content-based view?",
+			this.isContentBasedView(viewId),
+			"View mode:",
+			this.viewState.viewMode
+		);
+		if (
+			this.isContentBasedView(viewId) &&
+			this.viewState.viewMode !== "list" &&
+			this.viewState.viewMode !== "tree" // Tree is also handled by ContentComponent
+		) {
+			// For content-based views in kanban/calendar mode, use special rendering
+			console.log(
+				"[TG-V2] Using renderContentWithViewMode for non-list/tree mode:",
+				this.viewState.viewMode
+			);
+			this.renderContentWithViewMode();
+			return;
+		}
 
 		// Get view configuration to check for specific view types
 		const viewConfig = getViewSettingOrDefault(this.plugin, viewId as any);
@@ -757,7 +859,7 @@ export class TaskViewV2 extends ItemView {
 					this.app,
 					this.plugin,
 					twoColumnConfig,
-					viewId,
+					viewId
 				);
 				this.addChild(twoColumnComponent);
 
@@ -824,15 +926,41 @@ export class TaskViewV2 extends ItemView {
 			}
 		}
 
+		console.log(
+			"[TG-V2] Target component determined:",
+			targetComponent?.constructor?.name
+		);
+
 		if (targetComponent) {
 			console.log(
-				`[TaskViewV2] Activating component for view ${viewId}:`,
+				`[TG-V2] Activating component for view ${viewId}:`,
 				targetComponent.constructor.name,
+				"Container exists:",
+				!!targetComponent.containerEl,
+				"Current display:",
+				targetComponent.containerEl?.style?.display
 			);
 			targetComponent.containerEl.show();
+			console.log(
+				"[TG-V2] After show, display:",
+				targetComponent.containerEl?.style?.display
+			);
+
+			// Set view mode first for ContentComponent
+			if (typeof targetComponent.setViewMode === "function") {
+				console.log(
+					`[TG-V2] Setting view mode for ${viewId} to ${modeForComponent} with project ${project}`
+				);
+				targetComponent.setViewMode(modeForComponent as any, project);
+			}
 
 			// Apply filters
+			console.log("[TG-V2] Applying filters");
 			this.applyFilters();
+			console.log(
+				"[TG-V2] After applyFilters, filtered tasks:",
+				this.filteredTasks.length
+			);
 
 			// Set tasks on the component
 			if (typeof targetComponent.setTasks === "function") {
@@ -844,7 +972,7 @@ export class TaskViewV2 extends ItemView {
 				) {
 					console.log(
 						"[TaskViewV2] Applying advanced filter to view:",
-						viewId,
+						viewId
 					);
 					filterOptions.advancedFilter = this.currentFilterState;
 				}
@@ -853,17 +981,24 @@ export class TaskViewV2 extends ItemView {
 					this.tasks,
 					viewId as any,
 					this.plugin,
-					filterOptions,
+					filterOptions
 				);
 
 				// Filter out badge tasks for forecast view
 				if (viewId === "forecast") {
 					filteredTasks = filteredTasks.filter(
-						(task) => !(task as any).badge,
+						(task) => !(task as any).badge
 					);
 				}
 
+				console.log(
+					"[TG-V2] Calling setTasks with filtered:",
+					filteredTasks.length,
+					"all:",
+					this.tasks.length
+				);
 				targetComponent.setTasks(filteredTasks, this.tasks);
+				console.log("[TG-V2] setTasks completed");
 			}
 
 			// Handle updateTasks method for table view adapter
@@ -882,18 +1017,12 @@ export class TaskViewV2 extends ItemView {
 						this.tasks,
 						viewId as any,
 						this.plugin,
-						filterOptions,
-					),
+						filterOptions
+					)
 				);
 			}
 
-			// Set view mode for ContentComponent
-			if (typeof targetComponent.setViewMode === "function") {
-				console.log(
-					`[TaskViewV2] Setting view mode for ${viewId} to ${modeForComponent} with project ${project}`,
-				);
-				targetComponent.setViewMode(modeForComponent as any, project);
-			}
+			// View mode already set above
 
 			// Handle two column views separately
 			this.twoColumnViewComponents.forEach((component) => {
@@ -915,13 +1044,13 @@ export class TaskViewV2 extends ItemView {
 						this.tasks,
 						component.getViewId() as any,
 						this.plugin,
-						filterOptions,
+						filterOptions
 					);
 
 					// Filter out badge tasks for forecast view
 					if (component.getViewId() === "forecast") {
 						filteredTasks = filteredTasks.filter(
-							(task) => !(task as any).badge,
+							(task) => !(task as any).badge
 						);
 					}
 
@@ -938,12 +1067,110 @@ export class TaskViewV2 extends ItemView {
 			}
 		} else {
 			console.warn(
-				`[TaskViewV2] No target component found for viewId: ${viewId}`,
+				`[TG-V2] No target component found for viewId: ${viewId}`
 			);
 		}
 
 		// Clear task selection
+		console.log("[TG-V2] Clearing task selection");
 		this.handleTaskSelection(null);
+		console.log("[TG-V2] switchView completed");
+	}
+
+	private isContentBasedView(viewId: string): boolean {
+		// These views support multiple view modes (list/kanban/calendar/tree)
+		const contentBasedViews = ["inbox", "today", "upcoming", "flagged"];
+		return contentBasedViews.includes(viewId);
+	}
+
+	private renderContentWithViewMode() {
+		console.log(
+			"[TG-V2] renderContentWithViewMode called, viewMode:",
+			this.viewState.viewMode
+		);
+		// Hide all components first
+		this.hideAllComponents();
+
+		// Don't apply filters here - they should already be applied
+		// Filters are applied in switchView before calling this method
+		console.log(
+			"[TG-V2] Using existing filtered tasks:",
+			this.filteredTasks.length
+		);
+
+		// Based on the current view mode, show the appropriate component
+		switch (this.viewState.viewMode) {
+			case "list":
+			case "tree":
+				// Use ContentComponent for list and tree views
+				if (!this.contentComponent) return;
+
+				this.contentComponent.containerEl.show();
+				this.contentComponent.setViewMode(this.currentViewId as any);
+				this.contentComponent.setIsTreeView(
+					this.viewState.viewMode === "tree"
+				);
+
+				// Set filtered tasks
+				// Use the already filtered tasks instead of filtering again
+				// this.filteredTasks should already be set by applyFilters in switchView
+				console.log(
+					"[TG-V2] Setting tasks to ContentComponent, filtered:",
+					this.filteredTasks.length
+				);
+				this.contentComponent.setTasks(this.filteredTasks, this.tasks);
+				this.currentActiveComponent = this.contentComponent;
+				break;
+
+			case "kanban":
+				// Use KanbanComponent
+				if (!this.kanbanComponent) return;
+
+				this.kanbanComponent.containerEl.show();
+
+				// Use already filtered tasks
+				console.log(
+					"[TG-V2] Setting",
+					this.filteredTasks.length,
+					"tasks to kanban"
+				);
+				this.kanbanComponent.setTasks(this.filteredTasks);
+				this.currentActiveComponent = this.kanbanComponent;
+				break;
+
+			case "calendar":
+				// Use CalendarComponent
+				console.log(
+					"[TG-V2] Calendar mode in renderContentWithViewMode"
+				);
+				if (!this.calendarComponent) {
+					console.log("[TG-V2] No calendar component available!");
+					return;
+				}
+
+				console.log("[TG-V2] Showing calendar component");
+				this.calendarComponent.containerEl.show();
+
+				// Use already filtered tasks
+				console.log(
+					"[TG-V2] Setting",
+					this.filteredTasks.length,
+					"tasks to calendar"
+				);
+				this.calendarComponent.setTasks(this.filteredTasks);
+				this.currentActiveComponent = this.calendarComponent;
+				console.log("[TG-V2] Calendar mode setup complete");
+				break;
+		}
+
+		// Update task count
+		if (this.taskCountEl) {
+			this.taskCountEl.setText(
+				`${this.filteredTasks.length} ${t("tasks")}`
+			);
+		}
+
+		console.log("[TG-V2] renderContentWithViewMode completed");
 	}
 
 	private renderContent() {
@@ -956,7 +1183,7 @@ export class TaskViewV2 extends ItemView {
 				// Use content component for list view
 				if (
 					["inbox", "today", "upcoming", "flagged"].includes(
-						this.currentViewId,
+						this.currentViewId
 					)
 				) {
 					this.switchView(this.currentViewId);
@@ -1000,7 +1227,7 @@ export class TaskViewV2 extends ItemView {
 					task,
 					this.currentViewId,
 					this.app,
-					this.plugin,
+					this.plugin
 				);
 
 				// Set up event handlers
@@ -1044,7 +1271,7 @@ export class TaskViewV2 extends ItemView {
 
 			// Organize tasks by project hierarchy
 			const tasksByProject = this.organizeTasksByProject(
-				this.filteredTasks,
+				this.filteredTasks
 			);
 
 			// Render each project group
@@ -1082,7 +1309,7 @@ export class TaskViewV2 extends ItemView {
 							?.map((childId) => taskMap.get(childId))
 							.filter(Boolean) as Task[]) || [], // childTasks
 						taskMap,
-						this.plugin,
+						this.plugin
 					);
 
 					// Set up event handlers
@@ -1092,7 +1319,7 @@ export class TaskViewV2 extends ItemView {
 						this.toggleTaskCompletion(task);
 					treeItem.onTaskUpdate = async (
 						originalTask,
-						updatedTask,
+						updatedTask
 					) => {
 						await this.handleTaskUpdate(originalTask, updatedTask);
 					};
@@ -1124,39 +1351,48 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private updateView() {
-		// Show loading state if loading
+		// This method is now mainly for updating after filter changes or task updates
+		// Initial load should use switchView directly
+
+		console.log(
+			"[TG-V2] updateView called, isLoading:",
+			this.isLoading,
+			"loadError:",
+			this.loadError
+		);
+
+		// Only show loading state if actually loading
 		if (this.isLoading) {
+			console.log("[TG-V2] Still loading, showing loading state");
 			this.renderLoadingState();
 			return;
 		}
 
 		// Show error state if there's an error
 		if (this.loadError) {
+			console.log("[TG-V2] Showing error state");
 			this.renderErrorState();
 			return;
 		}
 
-		// Show empty state if no tasks (only for basic views)
-		if (
-			this.filteredTasks.length === 0 &&
-			this.viewState.searchQuery === "" &&
-			!this.viewState.filters?.status &&
-			["inbox", "today", "upcoming", "flagged"].includes(
-				this.currentViewId,
-			)
-		) {
-			this.renderEmptyState();
-			return;
-		}
-
-		// Re-render the current view with updated data
+		// Always refresh the current view with latest data
+		// This ensures components are shown and updated
+		console.log(
+			"[TG-V2] Updating view with current data, calling switchView"
+		);
 		this.switchView(this.currentViewId);
 	}
 
 	private renderLoadingState() {
+		console.log("[TG-V2] renderLoadingState called");
 		this.clearCurrentView();
 		if (this.contentArea) {
-			this.contentArea.empty();
+			console.log("[TG-V2] Preparing content area for loading state");
+			// Do not empty content area to avoid destroying components; just overlay
+			// Remove existing loading overlays
+			this.contentArea
+				.querySelectorAll(".tg-v2-loading")
+				.forEach((el) => el.remove());
 
 			const loadingEl = this.contentArea.createDiv({
 				cls: "tg-v2-loading",
@@ -1172,7 +1408,10 @@ export class TaskViewV2 extends ItemView {
 	private renderErrorState() {
 		this.clearCurrentView();
 		if (this.contentArea) {
-			this.contentArea.empty();
+			// Do not empty content area; overlay error UI
+			this.contentArea
+				.querySelectorAll(".tg-v2-error-state")
+				.forEach((el) => el.remove());
 
 			const errorEl = this.contentArea.createDiv({
 				cls: "tg-v2-error-state",
@@ -1205,7 +1444,10 @@ export class TaskViewV2 extends ItemView {
 	private renderEmptyState() {
 		this.clearCurrentView();
 		if (this.contentArea) {
-			this.contentArea.empty();
+			// Do not empty content area; overlay empty UI
+			this.contentArea
+				.querySelectorAll(".tg-v2-empty-state")
+				.forEach((el) => el.remove());
 
 			const emptyEl = this.contentArea.createDiv({
 				cls: "tg-v2-empty-state",
@@ -1221,7 +1463,7 @@ export class TaskViewV2 extends ItemView {
 			emptyEl.createDiv({
 				cls: "tg-v2-empty-description",
 				text: t(
-					"Create your first task to get started with Task Genius",
+					"Create your first task to get started with Task Genius"
 				),
 			});
 
@@ -1249,9 +1491,7 @@ export class TaskViewV2 extends ItemView {
 
 		// Sort projects alphabetically
 		return new Map(
-			[...tasksByProject.entries()].sort(([a], [b]) =>
-				a.localeCompare(b),
-			),
+			[...tasksByProject.entries()].sort(([a], [b]) => a.localeCompare(b))
 		);
 	}
 
@@ -1278,7 +1518,7 @@ export class TaskViewV2 extends ItemView {
 
 	private getProjectProgress(projectPath: string) {
 		const projectTasks = this.tasks.filter(
-			(t) => t.metadata?.project === projectPath,
+			(t) => t.metadata?.project === projectPath
 		);
 		const completed = projectTasks.filter((t) => t.completed).length;
 		const total = projectTasks.length;
@@ -1290,7 +1530,7 @@ export class TaskViewV2 extends ItemView {
 	// Workspace management
 	private saveWorkspaceLayout() {
 		const currentWorkspace = this.workspaces.find(
-			(w) => w.id === this.viewState.currentWorkspace,
+			(w) => w.id === this.viewState.currentWorkspace
 		);
 		if (!currentWorkspace) return;
 
@@ -1307,20 +1547,20 @@ export class TaskViewV2 extends ItemView {
 		// Save all workspaces to localStorage
 		localStorage.setItem(
 			"task-genius-v2-workspaces",
-			JSON.stringify(this.workspaces),
+			JSON.stringify(this.workspaces)
 		);
 
 		// Save current workspace ID
 		localStorage.setItem(
 			"task-genius-v2-current-workspace",
-			this.viewState.currentWorkspace,
+			this.viewState.currentWorkspace
 		);
 	}
 
 	private loadWorkspaceLayout() {
 		// Load workspaces from localStorage
 		const savedWorkspaces = localStorage.getItem(
-			"task-genius-v2-workspaces",
+			"task-genius-v2-workspaces"
 		);
 		if (savedWorkspaces) {
 			try {
@@ -1335,7 +1575,7 @@ export class TaskViewV2 extends ItemView {
 
 		// Load current workspace
 		const savedCurrentWorkspace = localStorage.getItem(
-			"task-genius-v2-current-workspace",
+			"task-genius-v2-current-workspace"
 		);
 		if (savedCurrentWorkspace) {
 			this.viewState.currentWorkspace = savedCurrentWorkspace;
@@ -1343,7 +1583,7 @@ export class TaskViewV2 extends ItemView {
 
 		// Apply workspace settings
 		const currentWorkspace = this.workspaces.find(
-			(w) => w.id === this.viewState.currentWorkspace,
+			(w) => w.id === this.viewState.currentWorkspace
 		);
 		if (currentWorkspace?.settings?.viewPreferences) {
 			const prefs = currentWorkspace.settings.viewPreferences;
@@ -1410,7 +1650,7 @@ export class TaskViewV2 extends ItemView {
 
 	private handleViewModeChange(mode: ViewMode) {
 		this.viewState.viewMode = mode;
-		this.updateView();
+		this.renderContentWithViewMode();
 	}
 
 	private handleSettingsClick() {
@@ -1426,7 +1666,7 @@ export class TaskViewV2 extends ItemView {
 			t("Details"),
 			() => {
 				this.toggleDetailsVisibility(!this.isDetailsVisible);
-			},
+			}
 		);
 
 		this.detailsToggleBtn.toggleClass("panel-toggle-btn", true);
@@ -1438,7 +1678,7 @@ export class TaskViewV2 extends ItemView {
 				this.app,
 				this.plugin,
 				{},
-				true,
+				true
 			);
 			modal.open();
 		});
@@ -1449,7 +1689,7 @@ export class TaskViewV2 extends ItemView {
 				const popover = new ViewTaskFilterPopover(
 					this.app,
 					undefined,
-					this.plugin,
+					this.plugin
 				);
 
 				// Set up filter state when opening
@@ -1462,7 +1702,7 @@ export class TaskViewV2 extends ItemView {
 							const filterState = this
 								.liveFilterState as RootFilterState;
 							popover.taskFilterComponent.loadFilterState(
-								filterState,
+								filterState
 							);
 						}
 					}, 100);
@@ -1473,7 +1713,7 @@ export class TaskViewV2 extends ItemView {
 				const modal = new ViewTaskFilterModal(
 					this.app,
 					this.leaf.id,
-					this.plugin,
+					this.plugin
 				);
 
 				modal.open();
@@ -1496,7 +1736,7 @@ export class TaskViewV2 extends ItemView {
 	private updateActionButtons() {
 		// Remove reset filter button if exists
 		const resetButton = this.containerEl.querySelector(
-			".view-action.task-filter-reset",
+			".view-action.task-filter-reset"
 		);
 		if (resetButton) {
 			resetButton.remove();
@@ -1521,7 +1761,7 @@ export class TaskViewV2 extends ItemView {
 			this.detailsToggleBtn.toggleClass("is-active", visible);
 			this.detailsToggleBtn.setAttribute(
 				"aria-label",
-				visible ? t("Hide Details") : t("Show Details"),
+				visible ? t("Hide Details") : t("Show Details")
 			);
 		}
 	}
@@ -1596,7 +1836,7 @@ export class TaskViewV2 extends ItemView {
 		try {
 			const updates = this.extractChangedFields(
 				originalTask,
-				updatedTask,
+				updatedTask
 			);
 			const writeResult = await this.plugin.writeAPI.updateTask({
 				taskId: originalTask.id,
@@ -1630,7 +1870,7 @@ export class TaskViewV2 extends ItemView {
 
 	private async handleKanbanTaskStatusUpdate(
 		taskId: string,
-		newStatusMark: string,
+		newStatusMark: string
 	) {
 		const task = this.tasks.find((t) => t.id === taskId);
 		if (!task) return;
@@ -1657,7 +1897,7 @@ export class TaskViewV2 extends ItemView {
 		try {
 			const lower = mark.toLowerCase();
 			const completedCfg = String(
-				this.plugin.settings.taskStatuses?.completed || "x",
+				this.plugin.settings.taskStatuses?.completed || "x"
 			);
 			const completedSet = completedCfg
 				.split("|")
@@ -1671,7 +1911,7 @@ export class TaskViewV2 extends ItemView {
 
 	private extractChangedFields(
 		originalTask: Task,
-		updatedTask: Task,
+		updatedTask: Task
 	): Partial<Task> {
 		const changes: Partial<Task> = {};
 

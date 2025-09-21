@@ -483,7 +483,9 @@ export function filterTasks(
 	if (!isCalendarView && !isForecastView) {
 		filtered = filtered.filter((task) => {
 			// 识别 ICS 事件任务（优先从 metadata.source 读取，兼容 legacy source 字段）
-			const metaSourceType = (task as any).metadata?.source?.type ?? (task as any).source?.type;
+			const metaSourceType =
+				(task as any).metadata?.source?.type ??
+				(task as any).source?.type;
 			const isIcsTask = metaSourceType === "ics";
 			// 非 ICS 保留；ICS 在此类视图中过滤掉
 			return !isIcsTask;
@@ -702,16 +704,47 @@ export function filterTasks(
 	if (Object.keys(filterRules).length === 0) {
 		// Only apply default logic if no rules were defined for this view
 		switch (viewId) {
-			case "inbox":
+			case "inbox": {
 				filtered = filtered.filter((task) => !hasProject(task));
 				break;
-			case "flagged":
+			}
+			case "today": {
+				const today = moment().startOf("day");
+				const isToday = (d?: string | number | Date) =>
+					d ? moment(d).isSame(today, "day") : false;
+				filtered = filtered.filter(
+					(task) =>
+						isToday(task.metadata?.dueDate) ||
+						isToday(task.metadata?.scheduledDate) ||
+						isToday(task.metadata?.startDate)
+				);
+				break;
+			}
+			case "upcoming": {
+				const start = moment().startOf("day");
+				const end = moment().add(7, "days").endOf("day");
+				const inNext7Days = (d?: string | number | Date) =>
+					d
+						? moment(d).isAfter(start, "day") &&
+						  moment(d).isSameOrBefore(end, "day")
+						: false;
+				filtered = filtered.filter(
+					(task) =>
+						inNext7Days(task.metadata?.dueDate) ||
+						inNext7Days(task.metadata?.scheduledDate) ||
+						inNext7Days(task.metadata?.startDate)
+				);
+				break;
+			}
+			case "flagged": {
 				filtered = filtered.filter(
 					(task) =>
 						(task.metadata.priority ?? 0) >= 3 ||
-						task.metadata.tags?.includes("flagged")
+						(task.metadata.tags?.includes("flagged") ?? false) ||
+						(task.metadata.tags?.includes("#flagged") ?? false)
 				);
 				break;
+			}
 			// Projects, Tags, Review logic are handled by their specific components / options
 		}
 	}
