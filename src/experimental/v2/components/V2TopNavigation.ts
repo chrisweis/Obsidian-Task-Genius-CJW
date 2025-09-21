@@ -19,7 +19,7 @@ export class TopNavigation {
 		private onViewModeChange: (mode: ViewMode) => void,
 		private onFilterClick: () => void,
 		private onSortClick: () => void,
-		private onSettingsClick: () => void,
+		private onSettingsClick: () => void
 	) {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
@@ -95,7 +95,7 @@ export class TopNavigation {
 			badge.hide();
 		}
 		notificationBtn.addEventListener("click", (e) =>
-			this.showNotifications(e),
+			this.showNotifications(e)
 		);
 
 		// Settings button
@@ -110,10 +110,10 @@ export class TopNavigation {
 		container: HTMLElement,
 		mode: ViewMode,
 		icon: string,
-		label: string,
+		label: string
 	) {
 		const tab = container.createEl("button", {
-			cls: "v2-view-tab",
+			cls: ["v2-view-tab", "clickable-icon"],
 			attr: { "data-mode": mode },
 		});
 
@@ -138,7 +138,7 @@ export class TopNavigation {
 		});
 
 		const activeTab = this.containerEl.querySelector(
-			`[data-mode="${mode}"]`,
+			`[data-mode="${mode}"]`
 		);
 		if (activeTab) {
 			activeTab.addClass("is-active");
@@ -175,7 +175,7 @@ export class TopNavigation {
 		} else {
 			menu.addItem((item) => {
 				item.setTitle(
-					`${overdueTasks.length} overdue tasks`,
+					`${overdueTasks.length} overdue tasks`
 				).setDisabled(true);
 			});
 

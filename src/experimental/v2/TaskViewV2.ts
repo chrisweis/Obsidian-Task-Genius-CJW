@@ -6,6 +6,8 @@ import {
 	debounce,
 	setIcon,
 	Menu,
+	TFile,
+	ButtonComponent,
 } from "obsidian";
 import TaskProgressBarPlugin from "../../index";
 import { Task, BaseTask } from "../../types/task";
@@ -36,6 +38,11 @@ import { ReviewComponent } from "../../components/features/task/view/review";
 import { Habit } from "../../components/features/habit/habit";
 import { ViewComponentManager } from "../../components/ui/behavior/ViewComponentManager";
 import { TaskPropertyTwoColumnView } from "../../components/features/task/view/TaskPropertyTwoColumnView";
+import {
+	TaskDetailsComponent,
+	createTaskCheckbox,
+} from "../../components/features/task/view/details";
+import { ConfirmModal } from "../../components/ui/modals/ConfirmModal";
 import { QuickCaptureModal } from "../../components/features/quick-capture/modals/QuickCaptureModal";
 import {
 	ViewTaskFilterPopover,
@@ -69,6 +76,7 @@ export class TaskViewV2 extends ItemView {
 	private ganttComponent: GanttComponent;
 	private habitComponent: Habit;
 	private viewComponentManager: ViewComponentManager;
+	private detailsComponent: TaskDetailsComponent;
 
 	// Two column view components
 	private twoColumnViewComponents: Map<string, TaskPropertyTwoColumnView> =
@@ -92,8 +100,14 @@ export class TaskViewV2 extends ItemView {
 
 	// View action buttons
 	private detailsToggleBtn: HTMLElement;
+	private currentSelectedTaskId: string | null = null;
+	private lastToggleTimestamp: number = 0;
 	private isDetailsVisible: boolean = false;
 	private currentFilterState: RootFilterState | null = null;
+
+	// Sidebar collapse state
+	private isSidebarCollapsed: boolean = false;
+	private sidebarToggleBtn: HTMLElement | null = null;
 
 	// V2 Details panel
 	private detailsPanelEl: HTMLElement | null = null;
@@ -213,8 +227,27 @@ export class TaskViewV2 extends ItemView {
 			cls: "tg-v2-content",
 		});
 
-		// Prepare details panel (hidden by default)
-		this.ensureDetailsPanel();
+		// Initialize details component (hidden by default)
+		this.detailsComponent = new TaskDetailsComponent(
+			this.rootContainerEl,
+			this.app,
+			this.plugin
+		);
+		this.addChild(this.detailsComponent);
+		this.detailsComponent.load();
+		this.detailsComponent.onTaskToggleComplete = (task: Task) =>
+			this.toggleTaskCompletion(task);
+		this.detailsComponent.onTaskEdit = (task: Task) => this.editTask(task);
+		this.detailsComponent.onTaskUpdate = async (
+			originalTask: Task,
+			updatedTask: Task
+		) => {
+			await this.handleTaskUpdate(originalTask, updatedTask);
+		};
+		this.detailsComponent.toggleDetailsVisibility = (visible: boolean) => {
+			this.toggleDetailsVisibility(visible);
+		};
+		this.detailsComponent.setVisible(this.isDetailsVisible);
 
 		// Initialize components
 		console.log("[TG-V2] Initializing sidebar");
@@ -257,7 +290,13 @@ export class TaskViewV2 extends ItemView {
 			// Always call switchView to properly initialize the view
 			console.log("[TG-V2] Calling switchView with:", this.currentViewId);
 			this.switchView(this.currentViewId);
+			// Refresh top navigation (badge) after tasks are loaded
+			this.topNavigation?.refresh();
 		}
+
+		// Sidebar toggle in header and responsive collapse
+		this.createSidebarToggle();
+		this.checkAndCollapseSidebar();
 
 		// Create action buttons in Obsidian view header
 		console.log("[TG-V2] Creating action buttons");
@@ -476,8 +515,55 @@ export class TaskViewV2 extends ItemView {
 
 		// Hide all components initially
 		console.log("[TG-V2] Hiding all components initially");
+
 		this.hideAllComponents();
 		console.log("[TG-V2] initializeViewComponents completed");
+	}
+
+	private createSidebarToggle() {
+		const headerBtns = this.headerEl?.find(
+			".view-header-nav-buttons"
+		) as HTMLElement | null;
+		if (!headerBtns) {
+			console.warn("[TG-V2] header buttons container not found");
+			return;
+		}
+		const container = headerBtns.createDiv({
+			cls: "panel-toggle-container",
+		});
+		this.sidebarToggleBtn = container.createDiv({
+			cls: "panel-toggle-btn",
+		});
+		const btn = new ButtonComponent(this.sidebarToggleBtn);
+		btn.setIcon("panel-left-dashed")
+			.setTooltip(t("Toggle Sidebar"))
+			.setClass("clickable-icon")
+			.onClick(() => this.toggleSidebar());
+	}
+
+	private toggleSidebar() {
+		this.isSidebarCollapsed = !this.isSidebarCollapsed;
+		this.sidebar?.setCollapsed(this.isSidebarCollapsed);
+		this.rootContainerEl?.toggleClass(
+			"v2-sidebar-collapsed",
+			this.isSidebarCollapsed
+		);
+	}
+
+	onResize(): void {
+		this.checkAndCollapseSidebar();
+	}
+
+	private checkAndCollapseSidebar() {
+		// Auto-collapse on narrow panes
+		try {
+			const width = (this.leaf as any)?.width ?? 0;
+			if (width > 0 && width < 768) {
+				this.isSidebarCollapsed = true;
+				this.sidebar?.setCollapsed(true);
+				this.rootContainerEl?.addClass("v2-sidebar-collapsed");
+			}
+		} catch (_) {}
 	}
 
 	private hideAllComponents() {
@@ -508,6 +594,8 @@ export class TaskViewV2 extends ItemView {
 			console.log("[TG-V2] debouncedViewUpdate triggered");
 			await this.loadTasks(false); // Don't show loading state for updates
 			this.switchView(this.currentViewId);
+			// Refresh top navigation (badge)
+			this.topNavigation?.refresh();
 			// Also refresh project list when tasks update
 			this.sidebar?.projectList?.refresh();
 		}, 500);
@@ -530,6 +618,8 @@ export class TaskViewV2 extends ItemView {
 				on(this.app, Events.CACHE_READY, async () => {
 					await this.loadTasks();
 					this.switchView(this.currentViewId);
+					// Refresh top navigation (badge) when cache becomes ready
+					this.topNavigation?.refresh();
 				})
 			);
 
@@ -1011,40 +1101,22 @@ export class TaskViewV2 extends ItemView {
 
 			// Set tasks on the component
 			if (typeof targetComponent.setTasks === "function") {
-				const filterOptions: any = {};
-				if (
-					this.currentFilterState &&
-					this.currentFilterState.filterGroups &&
-					this.currentFilterState.filterGroups.length > 0
-				) {
-					console.log(
-						"[TaskViewV2] Applying advanced filter to view:",
-						viewId
-					);
-					filterOptions.advancedFilter = this.currentFilterState;
-				}
-
-				let filteredTasks = filterTasks(
-					this.tasks,
-					viewId as any,
-					this.plugin,
-					filterOptions
-				);
-
-				// Filter out badge tasks for forecast view
+				// Use already computed filteredTasks from applyFilters() so text search,
+				// project selection, and advanced filters are consistently applied
+				let filteredTasksLocal = [...this.filteredTasks];
+				// Forecast view: remove badge-only items
 				if (viewId === "forecast") {
-					filteredTasks = filteredTasks.filter(
+					filteredTasksLocal = filteredTasksLocal.filter(
 						(task) => !(task as any).badge
 					);
 				}
-
 				console.log(
 					"[TG-V2] Calling setTasks with filtered:",
-					filteredTasks.length,
+					filteredTasksLocal.length,
 					"all:",
 					this.tasks.length
 				);
-				targetComponent.setTasks(filteredTasks, this.tasks);
+				targetComponent.setTasks(filteredTasksLocal, this.tasks);
 				console.log("[TG-V2] setTasks completed");
 			}
 
@@ -1810,16 +1882,17 @@ export class TaskViewV2 extends ItemView {
 
 	private toggleDetailsVisibility(visible: boolean) {
 		this.isDetailsVisible = visible;
+		this.rootContainerEl?.toggleClass("details-visible", visible);
+		this.rootContainerEl?.toggleClass("details-hidden", !visible);
+		if (this.detailsComponent) {
+			this.detailsComponent.setVisible(visible);
+		}
 		if (this.detailsToggleBtn) {
 			this.detailsToggleBtn.toggleClass("is-active", visible);
 			this.detailsToggleBtn.setAttribute(
 				"aria-label",
 				visible ? t("Hide Details") : t("Show Details")
 			);
-		}
-		if (this.detailsPanelEl) {
-			if (visible) this.detailsPanelEl.show();
-			else this.detailsPanelEl.hide();
 		}
 	}
 
@@ -1838,7 +1911,10 @@ export class TaskViewV2 extends ItemView {
 	private handleWorkspaceChange(workspace: Workspace) {
 		this.viewState.currentWorkspace = workspace.id;
 		this.sidebar?.updateWorkspace(workspace);
-		this.loadTasks();
+		this.loadTasks().then(() => {
+			this.switchView(this.currentViewId);
+			this.topNavigation?.refresh();
+		});
 		new Notice(`Switched to ${workspace.name} workspace`);
 	}
 
@@ -1918,10 +1994,27 @@ export class TaskViewV2 extends ItemView {
 
 	// Task handling methods
 	private handleTaskSelection(task: Task | null) {
-		// Handle task selection (e.g., show details panel)
 		if (task) {
-			console.log("Task selected:", task.content);
-			// TODO: Implement details panel
+			const now = Date.now();
+			const timeSinceLastToggle = now - this.lastToggleTimestamp;
+
+			if (this.currentSelectedTaskId !== task.id) {
+				this.currentSelectedTaskId = task.id;
+				this.detailsComponent?.showTaskDetails(task);
+				if (!this.isDetailsVisible) {
+					this.toggleDetailsVisibility(true);
+				}
+				this.lastToggleTimestamp = now;
+				return;
+			}
+
+			if (timeSinceLastToggle > 150) {
+				this.toggleDetailsVisibility(!this.isDetailsVisible);
+				this.lastToggleTimestamp = now;
+			}
+		} else {
+			this.toggleDetailsVisibility(false);
+			this.currentSelectedTaskId = null;
 		}
 	}
 
@@ -1990,40 +2083,95 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private handleTaskContextMenu(event: MouseEvent, task: Task) {
-		event.preventDefault();
-		event.stopPropagation();
-		const display = (task as any)?.id || task.content || "unknown";
-		// Show message in details panel as requested
-		this.showDetailsMessage(`Task context menu for: ${display}`);
-		this.toggleDetailsVisibility(true);
-
-		// Minimal context menu
 		const menu = new Menu();
-		menu.addItem((item) =>
-			item
-				.setTitle(t("Show Details"))
-				.setIcon("info")
-				.onClick(() => {
-					this.showDetailsMessage(
-						`Task context menu for: ${display}`
-					);
-					this.toggleDetailsVisibility(true);
-				})
-		);
-		if ((task as any)?.id) {
-			menu.addItem((item) =>
-				item
-					.setTitle(t("Copy Task ID"))
-					.setIcon("copy")
-					.onClick(async () => {
-						await navigator.clipboard.writeText(
-							String((task as any).id)
+
+		menu.addItem((item) => {
+			item.setTitle(t("Complete"));
+			item.setIcon("check-square");
+			item.onClick(() => {
+				this.toggleTaskCompletion(task);
+			});
+		})
+			.addItem((item) => {
+				item.setIcon("square-pen");
+				item.setTitle(t("Switch status"));
+				const submenu = item.setSubmenu();
+
+				// Get unique statuses from taskStatusMarks
+				const statusMarks = this.plugin.settings.taskStatusMarks;
+				const uniqueStatuses = new Map<string, string>();
+
+				// Build a map of unique mark -> status name to avoid duplicates
+				for (const status of Object.keys(statusMarks)) {
+					const mark =
+						statusMarks[status as keyof typeof statusMarks];
+					// If this mark is not already in the map, add it
+					// This ensures each mark appears only once in the menu
+					if (!Array.from(uniqueStatuses.values()).includes(mark)) {
+						uniqueStatuses.set(status, mark);
+					}
+				}
+
+				// Create menu items from unique statuses
+				for (const [status, mark] of uniqueStatuses) {
+					submenu.addItem((item) => {
+						item.titleEl.createEl(
+							"span",
+							{
+								cls: "status-option-checkbox",
+							},
+							(el) => {
+								createTaskCheckbox(mark, task, el);
+							}
 						);
-						new Notice(t("Copied"));
-					})
-			);
-		}
-		menu.showAtPosition({ x: event.clientX, y: event.clientY });
+						item.titleEl.createEl("span", {
+							cls: "status-option",
+							text: status,
+						});
+						item.onClick(async () => {
+							const willComplete = this.isCompletedMark(mark);
+							const updatedTask = {
+								...task,
+								status: mark,
+								completed: willComplete,
+							};
+
+							if (!task.completed && willComplete) {
+								updatedTask.metadata.completedDate = Date.now();
+							} else if (task.completed && !willComplete) {
+								updatedTask.metadata.completedDate = undefined;
+							}
+
+							await this.handleTaskUpdate(task, updatedTask);
+						});
+					});
+				}
+			})
+			.addSeparator()
+			.addItem((item) => {
+				item.setTitle(t("Edit"));
+				item.setIcon("pencil");
+				item.onClick(() => {
+					this.handleTaskSelection(task);
+				});
+			})
+			.addItem((item) => {
+				item.setTitle(t("Edit in File"));
+				item.setIcon("pencil");
+				item.onClick(() => {
+					this.editTask(task);
+				});
+			})
+			.addSeparator()
+			.addItem((item) => {
+				item.setTitle(t("Delete Task"));
+				item.setIcon("trash");
+				item.onClick(() => {
+					this.confirmAndDeleteTask(event, task);
+				});
+			});
+
+		menu.showAtMouseEvent(event);
 	}
 
 	private async handleKanbanTaskStatusUpdate(
@@ -2046,6 +2194,104 @@ export class TaskViewV2 extends ItemView {
 					completedDate: completedDate,
 				},
 			});
+		}
+	}
+	private async editTask(task: Task) {
+		const file = this.app.vault.getFileByPath(task.filePath);
+		if (!(file instanceof TFile)) return;
+		const leaf = this.app.workspace.getLeaf(false);
+		await leaf.openFile(file, {
+			eState: { line: task.line },
+		});
+	}
+
+	private async confirmAndDeleteTask(event: MouseEvent, task: Task) {
+		const hasChildren =
+			task.metadata &&
+			task.metadata.children &&
+			task.metadata.children.length > 0;
+
+		if (hasChildren) {
+			const menu = new Menu();
+			menu.addItem((item) => {
+				item.setTitle(t("Delete task only"));
+				item.setIcon("trash");
+				item.onClick(() => {
+					this.deleteTask(task, false);
+				});
+			});
+			menu.addItem((item) => {
+				item.setTitle(t("Delete task and all subtasks"));
+				item.setIcon("trash-2");
+				item.onClick(() => {
+					this.deleteTask(task, true);
+				});
+			});
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item.setTitle(t("Cancel"));
+			});
+			menu.showAtMouseEvent(event);
+		} else {
+			const modal = new ConfirmModal(this.plugin, {
+				title: t("Delete Task"),
+				message: t("Are you sure you want to delete this task?"),
+				confirmText: t("Delete"),
+				cancelText: t("Cancel"),
+				onConfirm: (confirmed) => {
+					if (confirmed) {
+						this.deleteTask(task, false);
+					}
+				},
+			});
+			modal.open();
+		}
+	}
+
+	private async deleteTask(task: Task, deleteChildren: boolean) {
+		if (!this.plugin.writeAPI) {
+			console.error("WriteAPI not available for deleteTask");
+			new Notice(t("Failed to delete task"));
+			return;
+		}
+		try {
+			const result = await this.plugin.writeAPI.deleteTask({
+				taskId: task.id,
+				deleteChildren,
+			});
+			if (result.success) {
+				new Notice(t("Task deleted"));
+				const index = this.tasks.findIndex((t) => t.id === task.id);
+				if (index !== -1) {
+					this.tasks = [...this.tasks];
+					this.tasks.splice(index, 1);
+					if (deleteChildren && task.metadata?.children) {
+						for (const childId of task.metadata.children) {
+							const childIndex = this.tasks.findIndex(
+								(t) => t.id === childId
+							);
+							if (childIndex !== -1) {
+								this.tasks.splice(childIndex, 1);
+							}
+						}
+					}
+				}
+				if (this.currentSelectedTaskId === task.id) {
+					this.handleTaskSelection(null);
+				}
+				this.switchView(this.currentViewId);
+			} else {
+				new Notice(
+					t("Failed to delete task") +
+						": " +
+						(result.error || "Unknown error")
+				);
+			}
+		} catch (error) {
+			console.error("Error deleting task:", error);
+			new Notice(
+				t("Failed to delete task") + ": " + (error as any).message
+			);
 		}
 	}
 

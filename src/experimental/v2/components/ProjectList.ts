@@ -18,7 +18,7 @@ export class ProjectList {
 	constructor(
 		containerEl: HTMLElement,
 		plugin: TaskProgressBarPlugin,
-		private onProjectSelect: (projectId: string) => void,
+		private onProjectSelect: (projectId: string) => void
 	) {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
@@ -145,12 +145,16 @@ export class ProjectList {
 
 		if (projectId) {
 			const activeEl = this.containerEl.querySelector(
-				`[data-project-id="${projectId}"]`,
+				`[data-project-id="${projectId}"]`
 			);
 			if (activeEl) {
 				activeEl.addClass("is-active");
 			}
 		}
+	}
+
+	public getProjects() {
+		return this.projects;
 	}
 
 	public refresh() {

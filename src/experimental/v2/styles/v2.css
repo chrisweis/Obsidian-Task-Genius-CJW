@@ -8,12 +8,18 @@
 .tg-v2-container {
 	height: 100%;
 	display: flex;
-	flex-direction: column;
+	flex-direction: row;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.view-content.task-genius-v2-view {
+	padding: 0;
 }
 
 .tg-v2-layout {
 	display: flex;
 	height: 100%;
+	width: 100%;
 	overflow: hidden;
 }
 
@@ -338,7 +344,7 @@
 
 .v2-view-tabs {
 	display: flex;
-	background-color: var(--background-modifier-form-field);
+	background-color: var(--background-secondary);
 	border-radius: 6px;
 	padding: 2px;
 }
@@ -446,7 +452,11 @@
 .tg-v2-content {
 	flex: 1;
 	overflow: auto;
-	padding: 20px;
+}
+
+.tg-v2-content .content-header,
+.tg-v2-content .tg-kanban-filters {
+	display: none;
 }
 
 /* View-specific styles */
@@ -470,4 +480,56 @@
 	.v2-search-container {
 		flex: 1;
 	}
+}
+
+/* ===== Collapsed Sidebar (Rail) ===== */
+.tg-v2-sidebar-container {
+	transition: width 0.2s ease, min-width 0.2s ease, max-width 0.2s ease;
+}
+
+/* When the sidebar element itself is collapsed */
+.tg-v2-sidebar-container.is-collapsed,
+/* Or when the root adds a helper class */
+.v2-sidebar-collapsed .tg-v2-sidebar-container {
+	width: 44px;
+	min-width: 44px;
+	max-width: 44px;
+}
+
+/* Rail layout */
+.v2-sidebar-rail {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 4px;
+}
+
+.v2-rail-btn {
+	width: 36px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.v2-rail-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.v2-rail-btn svg {
+	width: 16px;
+	height: 16px;
+}
+
+/* Active state for rail buttons */
+.v2-rail-btn.is-active {
+	background-color: var(--background-modifier-active-hover);
+	color: var(--text-normal);
 }
