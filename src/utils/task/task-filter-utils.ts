@@ -221,6 +221,8 @@ function applyFilter(task: Task, filter: Filter): boolean {
 			return applyTagsFilter(task.metadata.tags, condition, value);
 		case "filePath":
 			return applyFilePathFilter(task.filePath, condition, value);
+		case "project":
+			return applyProjectFilter(task.metadata.project, condition, value);
 		case "completed":
 			return applyCompletedFilter(task.completed, condition);
 		default:
@@ -437,6 +439,39 @@ function applyFilePathFilter(
 			return filePath.trim() === "";
 		case "isNotEmpty":
 			return filePath.trim() !== "";
+		default:
+			return true;
+	}
+}
+
+/**
+ * 项目过滤器实现
+ */
+function applyProjectFilter(
+	project: string | undefined,
+	condition: string,
+	value?: string
+): boolean {
+	const proj = (project ?? "").toLowerCase();
+	const val = (value ?? "").toLowerCase();
+
+	switch (condition) {
+		case "contains":
+			return proj.includes(val);
+		case "doesNotContain":
+			return !proj.includes(val);
+		case "is":
+			return proj === val;
+		case "isNot":
+			return proj !== val;
+		case "startsWith":
+			return proj.startsWith(val);
+		case "endsWith":
+			return proj.endsWith(val);
+		case "isEmpty":
+			return proj.trim() === "";
+		case "isNotEmpty":
+			return proj.trim() !== "";
 		default:
 			return true;
 	}

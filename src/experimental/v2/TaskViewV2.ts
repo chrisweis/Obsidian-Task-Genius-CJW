@@ -5,6 +5,7 @@ import {
 	Notice,
 	debounce,
 	setIcon,
+	Menu,
 } from "obsidian";
 import TaskProgressBarPlugin from "../../index";
 import { Task, BaseTask } from "../../types/task";
@@ -93,6 +94,11 @@ export class TaskViewV2 extends ItemView {
 	private detailsToggleBtn: HTMLElement;
 	private isDetailsVisible: boolean = false;
 	private currentFilterState: RootFilterState | null = null;
+
+	// V2 Details panel
+	private detailsPanelEl: HTMLElement | null = null;
+	private detailsBodyEl: HTMLElement | null = null;
+
 	private liveFilterState: RootFilterState | null = null;
 
 	// State management
@@ -206,6 +212,9 @@ export class TaskViewV2 extends ItemView {
 		this.contentArea = contentWrapper.createDiv({
 			cls: "tg-v2-content",
 		});
+
+		// Prepare details panel (hidden by default)
+		this.ensureDetailsPanel();
 
 		// Initialize components
 		console.log("[TG-V2] Initializing sidebar");
@@ -561,6 +570,34 @@ export class TaskViewV2 extends ItemView {
 						this.currentFilterState = filterState;
 					}
 
+					// Sync selectedProject with filter UI state (if project filter is present)
+					try {
+						const groups = filterState?.filterGroups || [];
+						const projectFilters: string[] = [];
+						for (const g of groups) {
+							for (const f of g.filters || []) {
+								if (
+									f.property === "project" &&
+									f.condition === "is" &&
+									typeof f.value === "string" &&
+									f.value.trim() !== ""
+								) {
+									projectFilters.push(f.value);
+								}
+							}
+						}
+						if (projectFilters.length > 0) {
+							this.viewState.selectedProject = projectFilters[0];
+						} else {
+							this.viewState.selectedProject = undefined;
+						}
+					} catch (e) {
+						console.warn(
+							"[TaskViewV2] Failed to sync selectedProject from filter state",
+							e
+						);
+					}
+
 					// Apply filters with debouncing
 					debouncedApplyFilter();
 				}
@@ -655,6 +692,14 @@ export class TaskViewV2 extends ItemView {
 			// Convert V2 filter format to RootFilterState format if needed
 			// For now, keep the simple filtering logic
 			filterOptions.v2Filters = this.viewState.filters;
+		}
+
+		// B: 全局项目筛选 - 如果存在选中的项目，将其并入 v2Filters
+		if (this.viewState.selectedProject) {
+			filterOptions.v2Filters = {
+				...(filterOptions.v2Filters || {}),
+				project: this.viewState.selectedProject,
+			};
 		}
 
 		// Use the existing filterTasks utility which handles all view-specific logic
@@ -899,7 +944,9 @@ export class TaskViewV2 extends ItemView {
 						targetComponent = this.tagsComponent;
 						break;
 					case "projects":
-						targetComponent = this.projectsComponent;
+						// In V2, Projects is treated as a content-based view using global project filters
+						targetComponent = this.contentComponent;
+						modeForComponent = viewId;
 						break;
 					case "review":
 						targetComponent = this.reviewComponent;
@@ -1079,7 +1126,14 @@ export class TaskViewV2 extends ItemView {
 
 	private isContentBasedView(viewId: string): boolean {
 		// These views support multiple view modes (list/kanban/calendar/tree)
-		const contentBasedViews = ["inbox", "today", "upcoming", "flagged"];
+		// Include 'projects' so top view tabs work inside Projects with global filters
+		const contentBasedViews = [
+			"inbox",
+			"today",
+			"upcoming",
+			"flagged",
+			"projects",
+		];
 		return contentBasedViews.includes(viewId);
 	}
 
@@ -1756,7 +1810,6 @@ export class TaskViewV2 extends ItemView {
 
 	private toggleDetailsVisibility(visible: boolean) {
 		this.isDetailsVisible = visible;
-		// TODO: Implement details panel in V2
 		if (this.detailsToggleBtn) {
 			this.detailsToggleBtn.toggleClass("is-active", visible);
 			this.detailsToggleBtn.setAttribute(
@@ -1764,12 +1817,18 @@ export class TaskViewV2 extends ItemView {
 				visible ? t("Hide Details") : t("Show Details")
 			);
 		}
+		if (this.detailsPanelEl) {
+			if (visible) this.detailsPanelEl.show();
+			else this.detailsPanelEl.hide();
+		}
 	}
 
 	private resetCurrentFilter() {
 		console.log("[TaskViewV2] Resetting filter");
 		this.liveFilterState = null;
 		this.currentFilterState = null;
+
+		this.viewState.selectedProject = undefined; // keep project state in sync when clearing via UI
 		this.app.saveLocalStorage("task-genius-view-filter", null);
 		this.applyFilters();
 		this.updateView();
@@ -1786,8 +1845,75 @@ export class TaskViewV2 extends ItemView {
 	private handleProjectSelect(projectId: string) {
 		console.log(`[TaskViewV2] Project selected: ${projectId}`);
 		this.viewState.selectedProject = projectId;
-		// Switch to projects view and show tasks for this project
+
+		// 1) Reflect selection into the Filter UI state so the top Filter button shows active and can be reset via "X"
+		try {
+			const timestamp = Date.now();
+			const nextState = this.liveFilterState || {
+				rootCondition: "all",
+				filterGroups: [],
+			};
+
+			// Remove any existing project filters to avoid duplicates
+			nextState.filterGroups = (nextState.filterGroups || []).map(
+				(g: any) => ({
+					...g,
+					filters: (g.filters || []).filter(
+						(f: any) => f.property !== "project"
+					),
+				})
+			);
+			// Append a dedicated group for project filter to enforce AND semantics
+			nextState.filterGroups.push({
+				id: `v2-proj-group-${timestamp}`,
+				groupCondition: "all",
+				filters: [
+					{
+						id: `v2-proj-filter-${timestamp}`,
+						property: "project",
+						condition: "is",
+						value: projectId,
+					},
+				],
+			});
+			this.liveFilterState = nextState as any;
+			this.currentFilterState = nextState as any;
+			this.app.saveLocalStorage("task-genius-view-filter", nextState);
+			// Broadcast so any open filter UI reacts and header button shows reset
+			this.app.workspace.trigger("task-genius:filter-changed", nextState);
+			this.updateActionButtons();
+		} catch (e) {
+			console.warn(
+				"[TaskViewV2] Failed to project-sync filter UI state",
+				e
+			);
+		}
+
+		// 2) Switch to projects view (existing behavior)
 		this.switchView("projects", projectId);
+	}
+
+	private ensureDetailsPanel() {
+		if (this.detailsPanelEl) return;
+		const wrapper = this.contentArea?.parentElement as HTMLElement;
+		if (!wrapper) return;
+		this.detailsPanelEl = wrapper.createDiv({ cls: "tg-v2-details-panel" });
+		const header = this.detailsPanelEl.createDiv({
+			cls: "tg-v2-details-header",
+		});
+		header.setText(t("Details"));
+		this.detailsBodyEl = this.detailsPanelEl.createDiv({
+			cls: "tg-v2-details-body",
+		});
+		this.detailsPanelEl.hide();
+	}
+
+	private showDetailsMessage(message: string) {
+		this.ensureDetailsPanel();
+		if (this.detailsBodyEl) {
+			this.detailsBodyEl.empty();
+			this.detailsBodyEl.createEl("div", { text: message });
+		}
 	}
 
 	// Task handling methods
@@ -1864,8 +1990,40 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private handleTaskContextMenu(event: MouseEvent, task: Task) {
-		// TODO: Implement context menu
-		console.log("Task context menu for:", task.content);
+		event.preventDefault();
+		event.stopPropagation();
+		const display = (task as any)?.id || task.content || "unknown";
+		// Show message in details panel as requested
+		this.showDetailsMessage(`Task context menu for: ${display}`);
+		this.toggleDetailsVisibility(true);
+
+		// Minimal context menu
+		const menu = new Menu();
+		menu.addItem((item) =>
+			item
+				.setTitle(t("Show Details"))
+				.setIcon("info")
+				.onClick(() => {
+					this.showDetailsMessage(
+						`Task context menu for: ${display}`
+					);
+					this.toggleDetailsVisibility(true);
+				})
+		);
+		if ((task as any)?.id) {
+			menu.addItem((item) =>
+				item
+					.setTitle(t("Copy Task ID"))
+					.setIcon("copy")
+					.onClick(async () => {
+						await navigator.clipboard.writeText(
+							String((task as any).id)
+						);
+						new Notice(t("Copied"));
+					})
+			);
+		}
+		menu.showAtPosition({ x: event.clientX, y: event.clientY });
 	}
 
 	private async handleKanbanTaskStatusUpdate(

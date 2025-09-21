@@ -735,6 +735,7 @@ export class TaskFilterComponent extends Component {
 				scheduledDate: t("Scheduled Date"),
 				tags: t("Tags"),
 				filePath: t("File Path"),
+				project: t("Project"),
 				completed: t("Completed"),
 			});
 		}
@@ -747,6 +748,7 @@ export class TaskFilterComponent extends Component {
 			case "content":
 			case "filePath":
 			case "status":
+			case "project":
 				conditionOptions = [
 					{
 						value: "contains",
