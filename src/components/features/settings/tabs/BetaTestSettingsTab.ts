@@ -4,14 +4,14 @@ import { t } from "@/translations/helper";
 
 export function renderBetaTestSettingsTab(
 	settingTab: TaskProgressBarSettingTab,
-	containerEl: HTMLElement,
+	containerEl: HTMLElement
 ) {
 	new Setting(containerEl)
 		.setName(t("Beta Test Features"))
 		.setDesc(
 			t(
-				"Experimental features that are currently in testing phase. These features may be unstable and could change or be removed in future updates.",
-			),
+				"Experimental features that are currently in testing phase. These features may be unstable and could change or be removed in future updates."
+			)
 		)
 		.setHeading();
 
@@ -37,7 +37,7 @@ export function renderBetaTestSettingsTab(
 	const warningText = warningContent.createEl("div", {
 		cls: "beta-warning-text",
 		text: t(
-			"These features are experimental and may be unstable. They could change significantly or be removed in future updates due to Obsidian API changes or other factors. Please use with caution and provide feedback to help improve these features.",
+			"These features are experimental and may be unstable. They could change significantly or be removed in future updates due to Obsidian API changes or other factors. Please use with caution and provide feedback to help improve these features."
 		),
 	});
 
@@ -48,13 +48,13 @@ export function renderBetaTestSettingsTab(
 		.setName(t("Task Genius V2 Interface"))
 		.setDesc(
 			t(
-				"Enable the experimental V2 interface with improved layout and workspace support",
-			),
+				"Enable the experimental V2 interface with improved layout and workspace support"
+			)
 		)
 		.addToggle((toggle) => {
 			toggle
 				.setValue(
-					settingTab.plugin.settings.experimental?.enableV2 ?? false,
+					settingTab.plugin.settings.experimental?.enableV2 ?? false
 				)
 				.onChange(async (value) => {
 					if (!settingTab.plugin.settings.experimental) {
@@ -70,9 +70,9 @@ export function renderBetaTestSettingsTab(
 					new Notice(
 						value
 							? t(
-									"V2 interface enabled. Use the command 'Open Task View V2' to launch.",
-								)
-							: t("V2 interface disabled."),
+									"V2 interface enabled. Use the command 'Open Task View V2' to launch."
+							  )
+							: t("V2 interface disabled.")
 					);
 				});
 		});
@@ -84,7 +84,7 @@ export function renderBetaTestSettingsTab(
 			toggle
 				.setValue(
 					settingTab.plugin.settings.experimental?.showV2Ribbon ??
-						false,
+						false
 				)
 				.onChange(async (value) => {
 					if (!settingTab.plugin.settings.experimental) {
@@ -99,9 +99,49 @@ export function renderBetaTestSettingsTab(
 
 					new Notice(
 						t(
-							"Please reload the plugin for ribbon icon changes to take effect.",
-						),
+							"Please reload the plugin for ribbon icon changes to take effect."
+						)
 					);
+				});
+		});
+
+	// V2 Sidebar Other Views overflow threshold
+	new Setting(containerEl)
+		.setName(t("V2: Max Other Views before overflow"))
+		.setDesc(
+			t(
+				"Number of 'Other Views' to show before grouping the rest into an overflow menu (ellipsis)"
+			)
+		)
+		.addText((text) => {
+			const current =
+				settingTab.plugin.settings.experimental?.v2Config
+					?.maxOtherViewsBeforeOverflow ?? 5;
+			text.setPlaceholder("5")
+				.setValue(String(current))
+				.onChange(async (value) => {
+					const n = parseInt(value, 10);
+					if (!isNaN(n) && n >= 1 && n <= 50) {
+						if (!settingTab.plugin.settings.experimental) {
+							settingTab.plugin.settings.experimental = {
+								enableV2: false,
+								showV2Ribbon: false,
+							};
+						}
+						if (!settingTab.plugin.settings.experimental.v2Config) {
+							settingTab.plugin.settings.experimental.v2Config = {
+								enableWorkspaces: true,
+								defaultWorkspace: "default",
+								showTopNavigation: true,
+								showNewSidebar: true,
+								allowViewSwitching: true,
+								persistViewMode: true,
+							};
+						}
+						settingTab.plugin.settings.experimental.v2Config.maxOtherViewsBeforeOverflow =
+							n;
+						await settingTab.plugin.saveSettings();
+					}
 				});
 		});
 
@@ -110,8 +150,8 @@ export function renderBetaTestSettingsTab(
 		.setName(t("Beta Feedback"))
 		.setDesc(
 			t(
-				"Help improve these features by providing feedback on your experience.",
-			),
+				"Help improve these features by providing feedback on your experience."
+			)
 		)
 		.setHeading();
 
@@ -119,13 +159,13 @@ export function renderBetaTestSettingsTab(
 		.setName(t("Report Issues"))
 		.setDesc(
 			t(
-				"If you encounter any issues with beta features, please report them to help improve the plugin.",
-			),
+				"If you encounter any issues with beta features, please report them to help improve the plugin."
+			)
 		)
 		.addButton((button) => {
 			button.setButtonText(t("Report Issue")).onClick(() => {
 				window.open(
-					"https://github.com/quorafind/obsidian-task-genius/issues",
+					"https://github.com/quorafind/obsidian-task-genius/issues"
 				);
 			});
 		});

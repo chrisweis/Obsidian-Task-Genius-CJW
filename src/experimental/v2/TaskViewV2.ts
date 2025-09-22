@@ -1509,6 +1509,70 @@ export class TaskViewV2 extends ItemView {
 		this.switchView(this.currentViewId);
 	}
 
+	private refreshCurrentViewData() {
+		const viewId = this.currentViewId;
+		// Update top badges and projects minimally
+		this.topNavigation?.refresh?.();
+		this.sidebar?.projectList?.refresh?.();
+		// Content-based views (list/tree/kanban/calendar under inbox/today/upcoming/flagged/projects)
+		if (this.isContentBasedView(viewId)) {
+			switch (this.viewState.viewMode) {
+				case "kanban":
+					this.kanbanComponent?.setTasks?.(this.filteredTasks);
+					break;
+				case "calendar":
+					this.calendarComponent?.setTasks?.(this.filteredTasks);
+					break;
+				case "tree":
+				case "list":
+				default:
+					// ContentComponent expects (filtered, all)
+					this.contentComponent?.setTasks?.(
+						this.filteredTasks,
+						this.tasks,
+						true
+					);
+					break;
+			}
+			return;
+		}
+
+		// Special/other views
+		if (this.viewComponentManager?.isSpecialView(viewId)) {
+			const comp: any = (
+				this.viewComponentManager as any
+			).getOrCreateComponent(viewId);
+			if (comp?.updateTasks) {
+				comp.updateTasks(this.filteredTasks);
+			} else if (comp?.setTasks) {
+				comp.setTasks(this.filteredTasks, this.tasks);
+			}
+			return;
+		}
+
+		// Direct known components fallback
+		const mapping: Record<string, any> = {
+			forecast: this.forecastComponent,
+			tags: this.tagsComponent,
+			projects: this.contentComponent,
+			review: this.reviewComponent,
+			habit: this.habitComponent,
+			gantt: this.ganttComponent,
+			kanban: this.kanbanComponent,
+			calendar: this.calendarComponent,
+		};
+		const target: any = (mapping as any)[viewId];
+		if (target?.setTasks) {
+			if (viewId === "projects" || this.isContentBasedView(viewId)) {
+				target.setTasks(this.filteredTasks, this.tasks, true);
+			} else {
+				target.setTasks(this.filteredTasks);
+			}
+		} else if (target?.updateTasks) {
+			target.updateTasks(this.filteredTasks);
+		}
+	}
+
 	private renderLoadingState() {
 		console.log("[TG-V2] renderLoadingState called");
 		this.clearCurrentView();
@@ -2073,9 +2137,23 @@ export class TaskViewV2 extends ItemView {
 				this.tasks[index] = writeResult.task || updatedTask;
 			}
 
-			// Refresh view
+			// Re-apply filters and lightly refresh current view without full rerender
 			this.applyFilters();
-			this.renderContent();
+			this.refreshCurrentViewData();
+
+			// If the updated task is currently selected, refresh the details panel only
+			const updated = writeResult.task || updatedTask;
+			if (
+				this.currentSelectedTaskId &&
+				updated &&
+				this.currentSelectedTaskId === updated.id
+			) {
+				if (this.detailsComponent?.isCurrentlyEditing?.()) {
+					(this.detailsComponent as any).currentTask = updated;
+				} else {
+					this.detailsComponent?.showTaskDetails(updated);
+				}
+			}
 		} catch (error) {
 			console.error("Failed to update task:", error);
 			new Notice("Failed to update task");

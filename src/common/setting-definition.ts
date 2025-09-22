@@ -429,6 +429,7 @@ export interface ExperimentalSettings {
 		showNewSidebar: boolean;
 		allowViewSwitching: boolean;
 		persistViewMode: boolean;
+		maxOtherViewsBeforeOverflow?: number; // how many other views to show before overflow menu
 	};
 }
 
@@ -1645,7 +1646,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 // Helper function to get view settings safely
 export function getViewSettingOrDefault(
 	plugin: TaskProgressBarPlugin,
-	viewId: ViewMode,
+	viewId: ViewMode
 ): ViewConfig {
 	const viewConfiguration =
 		plugin.settings.viewConfiguration || DEFAULT_SETTINGS.viewConfiguration;
@@ -1655,7 +1656,7 @@ export function getViewSettingOrDefault(
 
 	// Then check if it exists in default settings
 	const defaultConfig = DEFAULT_SETTINGS.viewConfiguration.find(
-		(v) => v.id === viewId,
+		(v) => v.id === viewId
 	);
 
 	// If neither exists, create a fallback default for custom views
@@ -1687,7 +1688,7 @@ export function getViewSettingOrDefault(
 			? {
 					...(baseConfig.filterRules || {}), // Start with base's filterRules
 					...savedConfig.filterRules, // Override with saved filterRules properties
-				}
+			  }
 			: baseConfig.filterRules || {}, // If no saved filterRules, use base's
 		// Merge specificConfig: Saved overrides default, default overrides base (which might be fallback without specificConfig)
 		// Ensure that the spread of savedConfig doesn't overwrite specificConfig object entirely if base has one and saved doesn't.
@@ -1697,7 +1698,7 @@ export function getViewSettingOrDefault(
 						// If saved has specificConfig, merge it onto base's
 						...(baseConfig.specificConfig || {}),
 						...savedConfig.specificConfig,
-					}
+				  }
 				: baseConfig.specificConfig, // Otherwise, just use base's specificConfig (could be undefined)
 	};
 

@@ -95,9 +95,18 @@ export class V2Sidebar {
 				});
 			});
 
-			// Other view icons
-			const otherItems = this.computeOtherItems();
-			otherItems.forEach((item: V2NavigationItem) => {
+			// Other view icons with overflow menu when > 5
+			const allOtherItems = this.computeOtherItems();
+			const visibleCount =
+				this.plugin?.settings?.experimental?.v2Config
+					?.maxOtherViewsBeforeOverflow ?? 5;
+			const displayedOther: V2NavigationItem[] = allOtherItems.slice(
+				0,
+				visibleCount
+			);
+			const remainingOther: V2NavigationItem[] =
+				allOtherItems.slice(visibleCount);
+			displayedOther.forEach((item: V2NavigationItem) => {
 				const btn = rail.createDiv({
 					cls: "v2-rail-btn",
 					attr: { "aria-label": item.label, "data-view-id": item.id },
@@ -108,6 +117,16 @@ export class V2Sidebar {
 					this.onNavigate(item.id);
 				});
 			});
+			if (remainingOther.length > 0) {
+				const moreBtn = rail.createDiv({
+					cls: "v2-rail-btn",
+					attr: { "aria-label": t("More views") },
+				});
+				setIcon(moreBtn, "more-horizontal");
+				moreBtn.addEventListener("click", (e) =>
+					this.showOtherViewsMenu(e as MouseEvent, remainingOther)
+				);
+			}
 
 			// Projects menu button
 			const projBtn = rail.createDiv({
@@ -188,8 +207,26 @@ export class V2Sidebar {
 		const otherHeader = otherSection.createDiv({
 			cls: "v2-section-header",
 		});
+		const allOtherItems = this.computeOtherItems();
+		const visibleCount = 5;
+		const displayedOther: V2NavigationItem[] = allOtherItems.slice(
+			0,
+			visibleCount
+		);
+		const remainingOther: V2NavigationItem[] =
+			allOtherItems.slice(visibleCount);
 		otherHeader.createSpan({ text: "Other Views" });
-		this.renderNavigationItems(otherSection, this.computeOtherItems());
+		if (remainingOther.length > 0) {
+			const moreBtn = otherHeader.createDiv({
+				cls: "v2-section-action",
+				attr: { "aria-label": t("More views") },
+			});
+			setIcon(moreBtn, "more-horizontal");
+			moreBtn.addEventListener("click", (e) =>
+				this.showOtherViewsMenu(e as MouseEvent, remainingOther)
+			);
+		}
+		this.renderNavigationItems(otherSection, displayedOther);
 	}
 
 	private computeOtherItems(): V2NavigationItem[] {
@@ -269,6 +306,21 @@ export class V2Sidebar {
 					.setIcon("folder")
 					.onClick(() => {
 						this.onProjectSelect(p.id);
+					});
+			});
+		});
+		menu.showAtMouseEvent(event);
+	}
+
+	private showOtherViewsMenu(event: MouseEvent, items: V2NavigationItem[]) {
+		const menu = new Menu();
+		items.forEach((it: V2NavigationItem) => {
+			menu.addItem((mi) => {
+				mi.setTitle(it.label)
+					.setIcon(it.icon)
+					.onClick(() => {
+						this.setActiveItem(it.id);
+						this.onNavigate(it.id);
 					});
 			});
 		});

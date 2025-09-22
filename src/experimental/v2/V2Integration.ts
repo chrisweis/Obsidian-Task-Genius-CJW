@@ -22,7 +22,7 @@ export class V2Integration {
 		// Register the V2 view
 		this.plugin.registerView(
 			TASK_VIEW_V2_TYPE,
-			(leaf: WorkspaceLeaf) => new TaskViewV2(leaf, this.plugin),
+			(leaf: WorkspaceLeaf) => new TaskViewV2(leaf, this.plugin)
 		);
 
 		// Add command to open V2 view
@@ -41,7 +41,7 @@ export class V2Integration {
 				"Task Genius V2",
 				() => {
 					this.openV2View();
-				},
+				}
 			);
 		}
 	}
@@ -104,6 +104,7 @@ export class V2Integration {
 				showNewSidebar: true,
 				allowViewSwitching: true,
 				persistViewMode: true,
+				maxOtherViewsBeforeOverflow: 5,
 			};
 		}
 
