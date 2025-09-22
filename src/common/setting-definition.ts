@@ -509,6 +509,15 @@ export interface ProjectNamingStrategy {
 	enabled: boolean;
 }
 
+/** Custom project definition for V2 */
+export interface CustomProject {
+	id: string;
+	name: string;
+	color: string;
+	createdAt: number;
+	updatedAt: number;
+}
+
 /** Enhanced project configuration */
 export interface ProjectConfiguration {
 	/** Path-based project mappings */
@@ -523,6 +532,8 @@ export interface ProjectConfiguration {
 	metadataMappings: MetadataMapping[];
 	/** Default project naming strategy */
 	defaultProjectNaming: ProjectNamingStrategy;
+	/** Custom projects for V2 */
+	customProjects?: CustomProject[];
 }
 
 /** File parsing configuration for extracting tasks from file metadata and tags */

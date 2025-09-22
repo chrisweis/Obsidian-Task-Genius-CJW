@@ -365,6 +365,40 @@ export class KanbanComponent extends Component {
 		});
 	}
 
+	// Allow multiple symbols to represent the same logical status (e.g., In Progress: "/" and ">")
+	private getAllowedMarksForStatusName(
+		statusName: string
+	): Set<string> | null {
+		if (!statusName) return null;
+		const s = statusName.trim().toLowerCase();
+		const ts = this.plugin.settings.taskStatuses as any;
+		if (!ts) return null;
+		// Map common status names to configured categories
+		const keyMap: Record<string, string> = {
+			"in progress": "inProgress",
+			completed: "completed",
+			abandoned: "abandoned",
+			planned: "planned",
+			"not started": "notStarted",
+			// synonyms commonly seen
+			cancelled: "abandoned",
+			canceled: "abandoned",
+			unchecked: "notStarted",
+			checked: "completed",
+		};
+		const key = keyMap[s];
+		if (!key) return null;
+		const raw: string | undefined = ts[key];
+		if (!raw || typeof raw !== "string") return null;
+		const set = new Set(
+			raw
+				.split("|")
+				.map((ch: string) => ch.trim())
+				.filter((ch: string) => ch.length === 1)
+		);
+		return set.size > 0 ? set : null;
+	}
+
 	// Handle filter application from clickable metadata
 	private handleFilterApply = (
 		filterType: string,
@@ -722,19 +756,18 @@ export class KanbanComponent extends Component {
 	}
 
 	private getTasksForStatus(statusName: string): Task[] {
+		// Prefer multi-mark mapping from settings.taskStatuses when available
+		const allowed = this.getAllowedMarksForStatusName(statusName);
 		const statusMark = this.resolveStatusMark(statusName) ?? " ";
 
 		// Filter from the already filtered list
 		const tasksForStatus = this.tasks.filter((task) => {
-			const taskStatusMark = task.status || " ";
-			return taskStatusMark === statusMark;
+			const mark = task.status || " ";
+			return allowed ? allowed.has(mark) : mark === statusMark;
 		});
 
 		// Sort tasks within the status column based on selected sort option
-		tasksForStatus.sort((a, b) => {
-			return this.compareTasks(a, b, this.sortOption);
-		});
-
+		tasksForStatus.sort((a, b) => this.compareTasks(a, b, this.sortOption));
 		return tasksForStatus;
 	}
 

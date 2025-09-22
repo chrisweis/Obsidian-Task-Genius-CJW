@@ -1,11 +1,11 @@
-import { setIcon, Menu } from "obsidian";
+import { Component, setIcon, Menu } from "obsidian";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { ProjectList } from "@/experimental/v2/components/ProjectList";
 import { Workspace, V2NavigationItem } from "@/experimental/v2/types";
 import TaskProgressBarPlugin from "@/index";
 import { t } from "@/translations/helper";
 
-export class V2Sidebar {
+export class V2Sidebar extends Component {
 	private containerEl: HTMLElement;
 	private plugin: TaskProgressBarPlugin;
 	private workspaceSelector: WorkspaceSelector;
@@ -56,11 +56,10 @@ export class V2Sidebar {
 		private onProjectSelect: (projectId: string) => void,
 		collapsed: boolean = false
 	) {
+		super();
 		this.containerEl = containerEl;
 		this.plugin = plugin;
 		this.collapsed = collapsed;
-
-		this.render();
 	}
 
 	private render() {
@@ -188,10 +187,16 @@ export class V2Sidebar {
 		});
 
 		projectHeader.createSpan({ text: "Projects" });
-		const addProjectBtn = projectHeader.createDiv({
-			cls: "v2-add-project-btn",
+		const sortProjectBtn = projectHeader.createDiv({
+			cls: "v2-sort-project-btn",
+			attr: { "aria-label": "Sort projects" }
 		});
-		setIcon(addProjectBtn, "plus");
+		setIcon(sortProjectBtn, "arrow-up-down");
+
+		// Pass sort button to project list for menu handling
+		sortProjectBtn.addEventListener("click", () => {
+			(this.projectList as any).showSortMenu?.(sortProjectBtn);
+		});
 
 		const projectListEl = projectsSection.createDiv();
 		this.projectList = new ProjectList(
@@ -199,8 +204,8 @@ export class V2Sidebar {
 			this.plugin,
 			this.onProjectSelect
 		);
-		// Load projects data
-		this.projectList.refresh();
+		// Add ProjectList as a child component
+		this.addChild(this.projectList);
 
 		// Other views section
 		const otherSection = content.createDiv({ cls: "v2-sidebar-section" });
@@ -258,6 +263,15 @@ export class V2Sidebar {
 		} catch (e) {
 			return this.otherItems;
 		}
+	}
+
+	onload() {
+		this.render();
+	}
+
+	onunload() {
+		// Clean up is handled by Component base class
+		this.containerEl.empty();
 	}
 
 	public setCollapsed(collapsed: boolean) {

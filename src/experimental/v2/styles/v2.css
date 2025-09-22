@@ -134,6 +134,7 @@
 	flex: 1;
 	overflow-y: auto;
 	padding: 8px 0;
+	--icon-size: 16px;
 }
 
 .v2-sidebar-section {
@@ -159,13 +160,15 @@
 	color: var(--text-muted);
 }
 
-.v2-add-project-btn {
+.v2-add-project-btn,
+.v2-sort-project-btn {
 	cursor: pointer;
 	color: var(--text-muted);
 	transition: color 0.15s;
 }
 
-.v2-add-project-btn:hover {
+.v2-add-project-btn:hover,
+.v2-sort-project-btn:hover {
 	color: var(--text-normal);
 }
 

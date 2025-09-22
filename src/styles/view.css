@@ -414,7 +414,8 @@
 	display: none;
 }
 
-.task-genius-view .task-empty-state {
+.task-genius-view .task-empty-state,
+.task-genius-v2-view .task-empty-state {
 	width: 100%;
 	height: 100%;
 	flex: 1;

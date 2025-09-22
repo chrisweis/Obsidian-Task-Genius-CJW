@@ -15,6 +15,7 @@ import { V2Sidebar } from "./components/V2Sidebar";
 import "./styles/v2.css";
 import "./styles/v2-enhanced.css";
 import "./styles/v2-content-header.css";
+import "@/styles/v2-project-popover.css";
 import { TopNavigation, ViewMode } from "./components/V2TopNavigation";
 import { Workspace, V2ViewState } from "./types";
 import { TaskListItemComponent } from "../../components/features/task/view/listItem";
@@ -319,6 +320,8 @@ export class TaskViewV2 extends ItemView {
 			(workspace) => this.handleWorkspaceChange(workspace),
 			(projectId) => this.handleProjectSelect(projectId)
 		);
+		// Add sidebar as a child component for proper lifecycle management
+		this.addChild(this.sidebar);
 	}
 
 	private initializeTopNavigation(containerEl: HTMLElement) {
@@ -973,6 +976,11 @@ export class TaskViewV2 extends ItemView {
 				"[TG-V2] Using renderContentWithViewMode for non-list/tree mode:",
 				this.viewState.viewMode
 			);
+			// BUGFIX: ensure filters are applied for the newly selected view (e.g., Today/Upcoming)
+			console.log(
+				"[TG-V2] Applying filters before renderContentWithViewMode"
+			);
+			this.applyFilters();
 			this.renderContentWithViewMode();
 			return;
 		}

@@ -1,30 +1,70 @@
-import { setIcon } from "obsidian";
+import { Component, Platform, setIcon, Menu } from "obsidian";
 import TaskProgressBarPlugin from "../../../index";
 import { Task } from "../../../types/task";
+import { ProjectPopover, ProjectModal } from "./ProjectPopover";
+import type { CustomProject } from "../../../common/setting-definition";
 
 interface Project {
 	id: string;
 	name: string;
 	color: string;
 	taskCount: number;
+	createdAt?: number;
+	updatedAt?: number;
 }
 
-export class ProjectList {
+type SortOption =
+	| "name-asc"
+	| "name-desc"
+	| "tasks-asc"
+	| "tasks-desc"
+	| "created-asc"
+	| "created-desc";
+
+export class ProjectList extends Component {
 	private containerEl: HTMLElement;
 	private plugin: TaskProgressBarPlugin;
 	private projects: Project[] = [];
 	private activeProjectId: string | null = null;
+	private onProjectSelect: (projectId: string) => void;
+	private currentPopover: ProjectPopover | null = null;
+	private currentSort: SortOption = "name-asc";
+	private readonly STORAGE_KEY = "task-genius-project-sort";
+	private collator: Intl.Collator;
 
 	constructor(
 		containerEl: HTMLElement,
 		plugin: TaskProgressBarPlugin,
-		private onProjectSelect: (projectId: string) => void
+		onProjectSelect: (projectId: string) => void
 	) {
+		super();
 		this.containerEl = containerEl;
 		this.plugin = plugin;
+		this.onProjectSelect = onProjectSelect;
 
-		this.loadProjects();
+		// Initialize collator with locale-sensitive sorting
+		// Use numeric option to handle numbers naturally (e.g., "Project 2" < "Project 10")
+		this.collator = new Intl.Collator(undefined, {
+			numeric: true,
+			sensitivity: "base", // Case-insensitive comparison
+		});
+	}
+
+	async onload() {
+		await this.loadSortPreference();
+		await this.loadProjects();
 		this.render();
+	}
+
+	onunload() {
+		// Clean up any open popover
+		if (this.currentPopover) {
+			this.removeChild(this.currentPopover);
+			this.currentPopover = null;
+		}
+
+		// Clear container
+		this.containerEl.empty();
 	}
 
 	private async loadProjects() {
@@ -56,7 +96,60 @@ export class ProjectList {
 		});
 
 		this.projects = Array.from(projectMap.values());
+
+		// Load custom projects
+		this.loadCustomProjects();
+
+		// Apply sorting
+		this.sortProjects();
+
 		this.render();
+	}
+
+	private async loadSortPreference() {
+		const saved = await this.plugin.app.loadLocalStorage(this.STORAGE_KEY);
+		if (saved && this.isValidSortOption(saved)) {
+			this.currentSort = saved as SortOption;
+		}
+	}
+
+	private async saveSortPreference() {
+		await this.plugin.app.saveLocalStorage(
+			this.STORAGE_KEY,
+			this.currentSort
+		);
+	}
+
+	private isValidSortOption(value: string): boolean {
+		return [
+			"name-asc",
+			"name-desc",
+			"tasks-asc",
+			"tasks-desc",
+			"created-asc",
+			"created-desc",
+		].includes(value);
+	}
+
+	private sortProjects() {
+		this.projects.sort((a, b) => {
+			switch (this.currentSort) {
+				case "name-asc":
+					return this.collator.compare(a.name, b.name);
+				case "name-desc":
+					return this.collator.compare(b.name, a.name);
+				case "tasks-asc":
+					return a.taskCount - b.taskCount;
+				case "tasks-desc":
+					return b.taskCount - a.taskCount;
+				case "created-asc":
+					return (a.createdAt || 0) - (b.createdAt || 0);
+				case "created-desc":
+					return (b.createdAt || 0) - (a.createdAt || 0);
+				default:
+					return 0;
+			}
+		});
 	}
 
 	private generateColorForProject(projectName: string): string {
@@ -112,7 +205,7 @@ export class ProjectList {
 				text: String(project.taskCount),
 			});
 
-			projectItem.addEventListener("click", () => {
+			this.registerDomEvent(projectItem, "click", () => {
 				this.setActiveProject(project.id);
 				this.onProjectSelect(project.id);
 			});
@@ -131,8 +224,8 @@ export class ProjectList {
 			text: "Add Project",
 		});
 
-		addProjectBtn.addEventListener("click", () => {
-			console.log("Add new project");
+		this.registerDomEvent(addProjectBtn, "click", () => {
+			this.handleAddProject(addProjectBtn);
 		});
 	}
 
@@ -159,5 +252,176 @@ export class ProjectList {
 
 	public refresh() {
 		this.loadProjects();
+	}
+
+	private handleAddProject(buttonEl: HTMLElement) {
+		// Clean up any existing popover
+		if (this.currentPopover) {
+			this.removeChild(this.currentPopover);
+			this.currentPopover = null;
+		}
+
+		if (Platform.isMobile) {
+			// Mobile: Use Obsidian Modal
+			const modal = new ProjectModal(
+				this.plugin.app,
+				this.plugin,
+				async (project) => {
+					await this.saveProject(project);
+				}
+			);
+			modal.open();
+		} else {
+			// Desktop: Use popover
+			this.currentPopover = new ProjectPopover(
+				this.plugin,
+				buttonEl,
+				async (project) => {
+					await this.saveProject(project);
+					if (this.currentPopover) {
+						this.removeChild(this.currentPopover);
+						this.currentPopover = null;
+					}
+				},
+				() => {
+					if (this.currentPopover) {
+						this.removeChild(this.currentPopover);
+						this.currentPopover = null;
+					}
+				}
+			);
+			this.addChild(this.currentPopover);
+		}
+	}
+
+	private async saveProject(project: CustomProject) {
+		// Initialize customProjects if it doesn't exist
+		if (!this.plugin.settings.projectConfig) {
+			this.plugin.settings.projectConfig = {
+				enableEnhancedProject: false,
+				pathMappings: [],
+				metadataConfig: {
+					metadataKey: "project",
+					enabled: false,
+				},
+				configFile: {
+					fileName: "project.md",
+					searchRecursively: true,
+					enabled: false,
+				},
+				metadataMappings: [],
+				defaultProjectNaming: {
+					strategy: "filename",
+					stripExtension: true,
+					enabled: false,
+				},
+				customProjects: [],
+			};
+		}
+
+		if (!this.plugin.settings.projectConfig.customProjects) {
+			this.plugin.settings.projectConfig.customProjects = [];
+		}
+
+		// Add the new project
+		this.plugin.settings.projectConfig.customProjects.push(project);
+
+		// Save settings
+		await this.plugin.saveSettings();
+
+		// Refresh the project list
+		this.loadProjects();
+	}
+
+	private loadCustomProjects() {
+		const customProjects =
+			this.plugin.settings.projectConfig?.customProjects || [];
+
+		// Merge custom projects into the projects array
+		customProjects.forEach((customProject) => {
+			// Check if project already exists by name
+			const existingIndex = this.projects.findIndex(
+				(p) => p.name === customProject.name
+			);
+
+			if (existingIndex === -1) {
+				// Add new custom project
+				this.projects.push({
+					id: customProject.id,
+					name: customProject.name,
+					color: customProject.color,
+					taskCount: 0, // Will be updated by task counting
+					createdAt: customProject.createdAt,
+					updatedAt: customProject.updatedAt,
+				});
+			} else {
+				// Update existing project with custom color
+				this.projects[existingIndex].id = customProject.id;
+				this.projects[existingIndex].color = customProject.color;
+				this.projects[existingIndex].createdAt =
+					customProject.createdAt;
+				this.projects[existingIndex].updatedAt =
+					customProject.updatedAt;
+			}
+		});
+	}
+
+	private showSortMenu(buttonEl: HTMLElement) {
+		const menu = new Menu();
+
+		const sortOptions: {
+			label: string;
+			value: SortOption;
+			icon: string;
+		}[] = [
+			{ label: "Name (A-Z)", value: "name-asc", icon: "arrow-up-a-z" },
+			{ label: "Name (Z-A)", value: "name-desc", icon: "arrow-down-a-z" },
+			{
+				label: "Tasks (Low to High)",
+				value: "tasks-asc",
+				icon: "arrow-up-1-0",
+			},
+			{
+				label: "Tasks (High to Low)",
+				value: "tasks-desc",
+				icon: "arrow-down-1-0",
+			},
+			{
+				label: "Created (Oldest First)",
+				value: "created-asc",
+				icon: "clock",
+			},
+			{
+				label: "Created (Newest First)",
+				value: "created-desc",
+				icon: "history",
+			},
+		];
+
+		sortOptions.forEach((option) => {
+			menu.addItem((item) => {
+				item.setTitle(option.label)
+					.setIcon(option.icon)
+					.onClick(async () => {
+						this.currentSort = option.value;
+						await this.saveSortPreference();
+						this.sortProjects();
+						this.render();
+					});
+				if (this.currentSort === option.value) {
+					item.setChecked(true);
+				}
+			});
+		});
+
+		menu.showAtMouseEvent(
+			new MouseEvent("click", {
+				view: window,
+				bubbles: true,
+				cancelable: true,
+				clientX: buttonEl.getBoundingClientRect().left,
+				clientY: buttonEl.getBoundingClientRect().bottom,
+			})
+		);
 	}
 }
