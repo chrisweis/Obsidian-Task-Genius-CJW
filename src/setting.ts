@@ -234,7 +234,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				if (plugin.dataflowOrchestrator) {
 					// Call async updateSettings and await to ensure incremental reindex completes
 					await plugin.dataflowOrchestrator.updateSettings(
-						plugin.settings,
+						plugin.settings
 					);
 				}
 
@@ -245,7 +245,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				await plugin.triggerViewUpdate();
 			},
 			100,
-			true,
+			true
 		);
 
 		this.debouncedApplyNotifications = debounce(
@@ -256,7 +256,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				// Minimal view updates are unnecessary here
 			},
 			100,
-			true,
+			true
 		);
 	}
 
@@ -276,7 +276,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		}
 		this.searchComponent = new SettingsSearchComponent(
 			this,
-			this.containerEl,
+			this.containerEl
 		);
 	}
 
@@ -369,7 +369,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					tab.name +
 						(tab.id === "about"
 							? " v" + this.plugin.manifest.version
-							: ""),
+							: "")
 				);
 
 				// Add click handler
@@ -402,7 +402,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 		// Show active section, hide others
 		const sections = this.containerEl.querySelectorAll(
-			".settings-tab-section",
+			".settings-tab-section"
 		);
 		sections.forEach((section) => {
 			if (section.getAttribute("data-tab-id") === tabId) {
@@ -416,10 +416,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 		// Handle tab container and header visibility based on selected tab
 		const tabsContainer = this.containerEl.querySelector(
-			".settings-tabs-categorized-container",
+			".settings-tabs-categorized-container"
 		);
 		const settingsHeader = this.containerEl.querySelector(
-			".task-genius-settings-header",
+			".task-genius-settings-header"
 		);
 
 		if (tabId === "general") {
@@ -452,7 +452,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 	public navigateToTab(
 		tabId: string,
 		section?: string,
-		search?: string,
+		search?: string
 	): void {
 		// Set the current tab
 		this.currentTab = tabId;
@@ -493,7 +493,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		// Special handling for MCP sections
 		if (sectionId === "cursor" && this.currentTab === "mcp-integration") {
 			const cursorSection = this.containerEl.querySelector(
-				".mcp-client-section",
+				".mcp-client-section"
 			);
 			if (cursorSection) {
 				const header =
@@ -513,7 +513,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 	private createTabSection(tabId: string): HTMLElement {
 		// Get the sections container
 		const sectionsContainer = this.containerEl.querySelector(
-			".settings-tab-sections",
+			".settings-tab-sections"
 		);
 		if (!sectionsContainer) return this.containerEl;
 
@@ -546,7 +546,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					new IframeModal(
 						this.app,
 						url,
-						`How to use — ${tabInfo?.name ?? tabId}`,
+						`How to use — ${tabInfo?.name ?? tabId}`
 					).open();
 				} catch (e) {
 					window.open(url);
@@ -670,7 +670,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 		// Notifications Tab
 		const notificationsSection = this.createTabSection(
-			"desktop-integration",
+			"desktop-integration"
 		);
 		this.displayDesktopIntegrationSettings(notificationsSection);
 
@@ -828,7 +828,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			() => {
 				this.currentTab = "general";
 				this.display();
-			},
+			}
 		);
 		icsSettingsComponent.display();
 	}
@@ -839,7 +839,7 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 	private displayMcpSettings(containerEl: HTMLElement): void {
 		renderMcpIntegrationSettingsTab(containerEl, this.plugin, () =>
-			this.applySettingsUpdate(),
+			this.applySettingsUpdate()
 		);
 	}
 
@@ -890,7 +890,9 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		const descEl = workspacesSection.createDiv();
 		descEl.addClass("workspaces-description");
 		descEl.setText(
-			t("Manage workspaces to organize different contexts with their own settings and filters.")
+			t(
+				"Manage workspaces to organize different contexts with their own settings and filters."
+			)
 		);
 
 		if (!this.plugin.workspaceManager) {
@@ -901,20 +903,23 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		}
 
 		// Current workspace info
-		const currentWorkspace = this.plugin.workspaceManager.getActiveWorkspace();
-		const isDefault = this.plugin.workspaceManager.isDefaultWorkspace(currentWorkspace.id);
+		const currentWorkspace =
+			this.plugin.workspaceManager.getActiveWorkspace();
+		const isDefault = this.plugin.workspaceManager.isDefaultWorkspace(
+			currentWorkspace.id
+		);
 
 		new Setting(workspacesSection)
 			.setName(t("Current Workspace"))
 			.setDesc(
-				`${currentWorkspace.name}${isDefault ? " (" + t("Default") + ")" : ""}`
+				`${currentWorkspace.name}${
+					isDefault ? " (" + t("Default") + ")" : ""
+				}`
 			)
 			.addButton((button) => {
-				button
-					.setButtonText(t("Switch Workspace"))
-					.onClick(() => {
-						this.showWorkspaceSelector();
-					});
+				button.setButtonText(t("Switch Workspace")).onClick(() => {
+					this.showWorkspaceSelector();
+				});
 			});
 
 		// Workspace list
@@ -931,7 +936,8 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			workspaceItemEl.addClass("workspace-item");
 
 			const isCurrentActive = workspace.id === currentWorkspace.id;
-			const isDefaultWs = this.plugin.workspaceManager!.isDefaultWorkspace(workspace.id);
+			const isDefaultWs =
+				this.plugin.workspaceManager!.isDefaultWorkspace(workspace.id);
 
 			if (isCurrentActive) {
 				workspaceItemEl.addClass("workspace-item-active");
@@ -943,7 +949,9 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					isDefaultWs
 						? t("Default workspace")
 						: t("Last updated: {{date}}", {
-								date: new Date(workspace.updatedAt).toLocaleDateString(),
+								date: new Date(
+									workspace.updatedAt
+								).toLocaleDateString(),
 						  })
 				)
 				.addButton((button) => {
@@ -951,6 +959,9 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 						button.setButtonText(t("Active")).setDisabled(true);
 					} else {
 						button.setButtonText(t("Switch")).onClick(async () => {
+							console.log("[TG-WORKSPACE] settings:switch", {
+								to: workspace.id,
+							});
 							await this.plugin.workspaceManager!.setActiveWorkspace(
 								workspace.id
 							);
@@ -959,9 +970,12 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					}
 				})
 				.addButton((button) => {
-					button.setIcon("edit").setTooltip(t("Rename")).onClick(() => {
-						this.showRenameWorkspaceDialog(workspace);
-					});
+					button
+						.setIcon("edit")
+						.setTooltip(t("Rename"))
+						.onClick(() => {
+							this.showRenameWorkspaceDialog(workspace);
+						});
 				})
 				.addButton((button) => {
 					if (isDefaultWs) {
@@ -996,7 +1010,8 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 		const menu = new Menu();
 		const workspaces = this.plugin.workspaceManager.getAllWorkspaces();
-		const currentWorkspace = this.plugin.workspaceManager.getActiveWorkspace();
+		const currentWorkspace =
+			this.plugin.workspaceManager.getActiveWorkspace();
 
 		workspaces.forEach((workspace) => {
 			menu.addItem((item) => {
@@ -1006,6 +1021,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 						await this.plugin.workspaceManager!.setActiveWorkspace(
 							workspace.id
 						);
+						console.log("[TG-WORKSPACE] settings:menu switch", {
+							to: workspace.id,
+						});
+
 						this.display();
 					});
 
@@ -1073,6 +1092,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					const baseId = this.baseSelect.value || undefined;
 
 					if (name && this.plugin.workspaceManager) {
+						console.log("[TG-WORKSPACE] settings:create", {
+							name,
+							baseId,
+						});
 						await this.plugin.workspaceManager.createWorkspace(
 							name,
 							baseId
@@ -1119,12 +1142,14 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				const { contentEl } = this;
 				contentEl.createEl("h2", { text: t("Rename Workspace") });
 
-				new Setting(contentEl).setName(t("New Name")).addText((text) => {
-					text
-						.setValue(this.workspace.name)
-						.setPlaceholder(t("Enter new name"));
-					this.nameInput = text.inputEl;
-				});
+				new Setting(contentEl)
+					.setName(t("New Name"))
+					.addText((text) => {
+						text.setValue(this.workspace.name).setPlaceholder(
+							t("Enter new name")
+						);
+						this.nameInput = text.inputEl;
+					});
 
 				const buttonContainer = contentEl.createDiv({
 					cls: "modal-button-container",
@@ -1146,6 +1171,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 						newName !== this.workspace.name &&
 						this.plugin.workspaceManager
 					) {
+						console.log("[TG-WORKSPACE] settings:rename", {
+							id: this.workspace.id,
+							to: newName,
+						});
 						await this.plugin.workspaceManager.renameWorkspace(
 							this.workspace.id,
 							newName
@@ -1215,6 +1244,9 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 				deleteButton.addEventListener("click", async () => {
 					if (this.plugin.workspaceManager) {
+						console.log("[TG-WORKSPACE] settings:delete", {
+							id: this.workspace.id,
+						});
 						await this.plugin.workspaceManager.deleteWorkspace(
 							this.workspace.id
 						);
@@ -1255,14 +1287,14 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		warningEl.addClass("experimental-warning");
 		warningEl.createEl("strong").setText("⚠️ Warning: ");
 		warningEl.appendText(
-			"These features are experimental and may not be stable. Use at your own risk.",
+			"These features are experimental and may not be stable. Use at your own risk."
 		);
 
 		// Future experimental features will be added here
 		const placeholderEl = experimentalSection.createDiv();
 		placeholderEl.addClass("experimental-placeholder");
 		placeholderEl.setText(
-			"No experimental features are currently available. Check back in future updates for new experimental functionality.",
+			"No experimental features are currently available. Check back in future updates for new experimental functionality."
 		);
 	}
 }

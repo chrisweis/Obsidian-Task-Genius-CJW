@@ -4,7 +4,7 @@ import {
 	WorkspacesConfig,
 	EffectiveSettings,
 	WORKSPACE_SCOPED_KEYS,
-	WorkspaceOverrides
+	WorkspaceOverrides,
 } from "../types/workspace";
 import {
 	emitWorkspaceSwitched,
@@ -13,7 +13,7 @@ import {
 	emitDefaultWorkspaceChanged,
 	emitWorkspaceCreated,
 	emitWorkspaceDeleted,
-	emitWorkspaceRenamed
+	emitWorkspaceRenamed,
 } from "../events/ui-event";
 import { Events } from "../../../dataflow/events/Events";
 import { emit } from "../../../dataflow/events/Events";
@@ -50,9 +50,9 @@ export class WorkspaceManager {
 					id: defaultId,
 					name: "Default",
 					updatedAt: Date.now(),
-					settings: {} // Default workspace has no overrides
-				}
-			}
+					settings: {}, // Default workspace has no overrides
+				},
+			},
 		};
 		return this.plugin.settings.workspaces;
 	}
@@ -62,14 +62,17 @@ export class WorkspaceManager {
 		const config = this.getWorkspacesConfig();
 
 		// Ensure default workspace exists
-		if (!config.defaultWorkspaceId || !config.byId[config.defaultWorkspaceId]) {
+		if (
+			!config.defaultWorkspaceId ||
+			!config.byId[config.defaultWorkspaceId]
+		) {
 			const defaultId = this.generateId();
 			config.defaultWorkspaceId = defaultId;
 			config.byId[defaultId] = {
 				id: defaultId,
 				name: "Default",
 				updatedAt: Date.now(),
-				settings: {}
+				settings: {},
 			};
 			if (!config.order.includes(defaultId)) {
 				config.order.unshift(defaultId);
@@ -85,7 +88,10 @@ export class WorkspaceManager {
 		}
 
 		// Ensure active workspace exists
-		if (!config.activeWorkspaceId || !config.byId[config.activeWorkspaceId]) {
+		if (
+			!config.activeWorkspaceId ||
+			!config.byId[config.activeWorkspaceId]
+		) {
 			config.activeWorkspaceId = config.defaultWorkspaceId;
 		}
 	}
@@ -94,7 +100,9 @@ export class WorkspaceManager {
 	private mergeIntoGlobal(overrides: WorkspaceOverrides): void {
 		for (const key of Object.keys(overrides)) {
 			if (WORKSPACE_SCOPED_KEYS.includes(key as any)) {
-				(this.plugin.settings as any)[key] = structuredClone(overrides[key as keyof WorkspaceOverrides]);
+				(this.plugin.settings as any)[key] = structuredClone(
+					overrides[key as keyof WorkspaceOverrides]
+				);
 			}
 		}
 	}
@@ -102,9 +110,21 @@ export class WorkspaceManager {
 	// Generate effective settings for a workspace
 	public getEffectiveSettings(workspaceId?: string): EffectiveSettings {
 		const config = this.getWorkspacesConfig();
-		const id = workspaceId || config.activeWorkspaceId || config.defaultWorkspaceId;
+		const id =
+			workspaceId ||
+			config.activeWorkspaceId ||
+			config.defaultWorkspaceId;
 
 		// Return from cache if available
+
+		console.log("[TG-WORKSPACE] getEffectiveSettings:start", {
+			requestId: workspaceId || null,
+			configActive: config.activeWorkspaceId,
+			defaultId: config.defaultWorkspaceId,
+			resolvedId: id,
+			cached: this.effectiveCache.has(id),
+		});
+
 		if (this.effectiveCache.has(id)) {
 			return this.effectiveCache.get(id)!;
 		}
@@ -116,8 +136,10 @@ export class WorkspaceManager {
 			return this.getEffectiveSettings(config.defaultWorkspaceId);
 		}
 
-		// Start with global settings
+		// Start with global settings, but DO NOT inherit v2FilterState from global (workspace-scoped)
 		const effective: EffectiveSettings = { ...this.plugin.settings };
+		// Explicitly drop any global v2FilterState to avoid cross-workspace leakage
+		(effective as any).v2FilterState = undefined;
 
 		// Apply workspace overrides if not default
 		if (id !== config.defaultWorkspaceId && workspace.settings) {
@@ -126,6 +148,28 @@ export class WorkspaceManager {
 					effective[key] = structuredClone(workspace.settings[key]);
 				}
 			}
+		}
+
+		console.log("[TG-WORKSPACE] getEffectiveSettings:built", {
+			resolvedId: id,
+			hasWSv2: !!(
+				workspace.settings &&
+				(workspace.settings as any).v2FilterState !== undefined
+			),
+			hasEffV2: effective.v2FilterState !== undefined,
+			effViews: effective.v2FilterState
+				? Object.keys(effective.v2FilterState as any).length
+				: 0,
+		});
+
+		// Always apply v2FilterState from workspace settings (including default)
+		if (
+			workspace.settings &&
+			workspace.settings.v2FilterState !== undefined
+		) {
+			effective.v2FilterState = structuredClone(
+				workspace.settings.v2FilterState
+			);
 		}
 
 		// Cache the result
@@ -138,8 +182,16 @@ export class WorkspaceManager {
 		const overrides: WorkspaceOverrides = {};
 
 		for (const key of WORKSPACE_SCOPED_KEYS) {
-			const effValue = effective[key];
+			const effValue = (effective as any)[key];
 			const globalValue = (this.plugin.settings as any)[key];
+
+			// v2FilterState is workspace-only. Always persist it per-workspace when defined.
+			if (key === "v2FilterState") {
+				if (effValue !== undefined) {
+					overrides[key] = structuredClone(effValue);
+				}
+				continue;
+			}
 
 			if (JSON.stringify(effValue) !== JSON.stringify(globalValue)) {
 				overrides[key] = structuredClone(effValue);
@@ -162,7 +214,10 @@ export class WorkspaceManager {
 			for (const key of WORKSPACE_SCOPED_KEYS) {
 				if (workspace.settings[key] !== undefined) {
 					const globalValue = (this.plugin.settings as any)[key];
-					if (JSON.stringify(workspace.settings[key]) === JSON.stringify(globalValue)) {
+					if (
+						JSON.stringify(workspace.settings[key]) ===
+						JSON.stringify(globalValue)
+					) {
 						delete workspace.settings[key];
 					}
 				}
@@ -178,7 +233,9 @@ export class WorkspaceManager {
 	// Get all workspaces
 	public getAllWorkspaces(): WorkspaceData[] {
 		const config = this.getWorkspacesConfig();
-		return config.order.map(id => config.byId[id]).filter(ws => ws !== undefined);
+		return config.order
+			.map((id) => config.byId[id])
+			.filter((ws) => ws !== undefined);
 	}
 
 	// Get workspace by ID
@@ -196,6 +253,11 @@ export class WorkspaceManager {
 
 	// Set active workspace
 	public async setActiveWorkspace(workspaceId: string): Promise<void> {
+		console.log("[TG-WORKSPACE] setActiveWorkspace:start", {
+			from: this.getActiveWorkspace()?.id,
+			to: workspaceId,
+		});
+
 		const config = this.getWorkspacesConfig();
 
 		if (!config.byId[workspaceId]) {
@@ -204,6 +266,10 @@ export class WorkspaceManager {
 		}
 
 		if (config.activeWorkspaceId === workspaceId) {
+			console.log(
+				"[TG-WORKSPACE] setActiveWorkspace:noop (already active)",
+				{ id: workspaceId }
+			);
 			return; // Already active
 		}
 
@@ -211,16 +277,27 @@ export class WorkspaceManager {
 		this.clearCache();
 
 		await this.plugin.saveSettings();
+
+		console.log("[TG-WORKSPACE] setActiveWorkspace:done", {
+			active: config.activeWorkspaceId,
+		});
+
 		emitWorkspaceSwitched(this.app, workspaceId);
 	}
 
 	// Create new workspace (cloned from current or default)
-	public async createWorkspace(name: string, baseWorkspaceId?: string): Promise<WorkspaceData> {
+	public async createWorkspace(
+		name: string,
+		baseWorkspaceId?: string
+	): Promise<WorkspaceData> {
 		const config = this.getWorkspacesConfig();
 		const id = this.generateId();
 
 		// Use current active workspace as base if not specified
-		const baseId = baseWorkspaceId || config.activeWorkspaceId || config.defaultWorkspaceId;
+		const baseId =
+			baseWorkspaceId ||
+			config.activeWorkspaceId ||
+			config.defaultWorkspaceId;
 		const baseWorkspace = config.byId[baseId];
 
 		// Clone settings from base workspace (if not default)
@@ -236,7 +313,7 @@ export class WorkspaceManager {
 			id,
 			name,
 			updatedAt: Date.now(),
-			settings
+			settings,
 		};
 
 		config.byId[id] = newWorkspace;
@@ -281,7 +358,10 @@ export class WorkspaceManager {
 	}
 
 	// Rename workspace
-	public async renameWorkspace(workspaceId: string, newName: string): Promise<void> {
+	public async renameWorkspace(
+		workspaceId: string,
+		newName: string
+	): Promise<void> {
 		const config = this.getWorkspacesConfig();
 		const workspace = config.byId[workspaceId];
 
@@ -297,18 +377,46 @@ export class WorkspaceManager {
 	}
 
 	// Save overrides for a workspace
-	public async saveOverrides(workspaceId: string, effective: EffectiveSettings): Promise<void> {
+	public async saveOverrides(
+		workspaceId: string,
+		effective: EffectiveSettings
+	): Promise<void> {
 		const config = this.getWorkspacesConfig();
 
 		// Cannot save overrides to default workspace
 		if (workspaceId === config.defaultWorkspaceId) {
-			// For default, write directly to global settings
+			// For default, write directly to global settings EXCEPT v2FilterState which is workspace-only
+			const changedKeys: string[] = [];
 			for (const key of WORKSPACE_SCOPED_KEYS) {
-				if (effective[key] !== undefined) {
-					(this.plugin.settings as any)[key] = structuredClone(effective[key]);
+				if (effective[key] !== undefined && key !== "v2FilterState") {
+					(this.plugin.settings as any)[key] = structuredClone(
+						effective[key]
+					);
+					changedKeys.push(key);
 				}
 			}
+			// Handle v2FilterState specially for default workspace
+			if (effective.v2FilterState !== undefined) {
+				const ws = config.byId[workspaceId];
+				ws.settings = (ws.settings || {}) as any;
+				(ws.settings as any).v2FilterState = structuredClone(
+					effective.v2FilterState
+				);
+				ws.updatedAt = Date.now();
+				changedKeys.push("v2FilterState");
+			}
+			console.log("[TG-WORKSPACE] saveOverrides(default)", {
+				workspaceId,
+				changedKeys,
+			});
+			this.clearCache();
 			await this.plugin.saveSettings();
+			// Emit overrides saved for UI to react; also emit SETTINGS_CHANGED for global changes
+			emitWorkspaceOverridesSaved(
+				this.app,
+				workspaceId,
+				changedKeys.length ? changedKeys : undefined
+			);
 			emit(this.app, Events.SETTINGS_CHANGED);
 			return;
 		}
@@ -322,6 +430,10 @@ export class WorkspaceManager {
 		const overrides = this.toOverrides(effective);
 		const changedKeys = Object.keys(overrides);
 
+		console.log("[TG-WORKSPACE] saveOverrides", {
+			workspaceId,
+			changedKeys,
+		});
 		workspace.settings = overrides;
 		workspace.updatedAt = Date.now();
 
@@ -333,17 +445,38 @@ export class WorkspaceManager {
 	}
 
 	// Save overrides quietly without triggering SETTINGS_CHANGED event
-	public async saveOverridesQuietly(workspaceId: string, effective: EffectiveSettings): Promise<void> {
+	public async saveOverridesQuietly(
+		workspaceId: string,
+		effective: EffectiveSettings
+	): Promise<void> {
 		const config = this.getWorkspacesConfig();
 
 		// Cannot save overrides to default workspace
 		if (workspaceId === config.defaultWorkspaceId) {
-			// For default, write directly to global settings
+			// For default, write directly to global settings EXCEPT v2FilterState which is workspace-only
 			for (const key of WORKSPACE_SCOPED_KEYS) {
-				if (effective[key] !== undefined) {
-					(this.plugin.settings as any)[key] = structuredClone(effective[key]);
+				if (effective[key] !== undefined && key !== "v2FilterState") {
+					(this.plugin.settings as any)[key] = structuredClone(
+						effective[key]
+					);
 				}
 			}
+			// Handle v2FilterState specially for default workspace (store under workspace.settings)
+			if (effective.v2FilterState !== undefined) {
+				const ws = config.byId[workspaceId];
+				ws.settings = (ws.settings || {}) as any;
+				(ws.settings as any).v2FilterState = structuredClone(
+					effective.v2FilterState
+				);
+				ws.updatedAt = Date.now();
+			}
+			console.log("[TG-WORKSPACE] saveOverridesQuietly(default)", {
+				workspaceId,
+				keys: WORKSPACE_SCOPED_KEYS.filter(
+					(k) => (effective as any)[k] !== undefined
+				),
+			});
+			this.clearCache();
 			await this.plugin.saveSettings();
 			return;
 		}
@@ -355,6 +488,10 @@ export class WorkspaceManager {
 
 		// Calculate overrides
 		const overrides = this.toOverrides(effective);
+		console.log("[TG-WORKSPACE] saveOverridesQuietly", {
+			workspaceId,
+			keys: Object.keys(overrides),
+		});
 
 		workspace.settings = overrides;
 		workspace.updatedAt = Date.now();
@@ -466,7 +603,7 @@ export class WorkspaceManager {
 		const config = this.getWorkspacesConfig();
 
 		// Validate that all IDs exist and default is first
-		const validOrder = newOrder.filter(id => config.byId[id]);
+		const validOrder = newOrder.filter((id) => config.byId[id]);
 
 		// Ensure default is always first
 		const defaultIndex = validOrder.indexOf(config.defaultWorkspaceId);
@@ -496,17 +633,21 @@ export class WorkspaceManager {
 			name: workspace.name,
 			settings: workspace.settings,
 			exportedAt: Date.now(),
-			version: 1
+			version: 1,
 		};
 
 		return JSON.stringify(exportData, null, 2);
 	}
 
 	// Import workspace configuration
-	public async importWorkspace(jsonData: string, name?: string): Promise<WorkspaceData | null> {
+	public async importWorkspace(
+		jsonData: string,
+		name?: string
+	): Promise<WorkspaceData | null> {
 		try {
 			const importData = JSON.parse(jsonData);
-			const workspaceName = name || importData.name || "Imported Workspace";
+			const workspaceName =
+				name || importData.name || "Imported Workspace";
 			const settings = importData.settings || {};
 
 			const newWorkspace = await this.createWorkspace(workspaceName);
