@@ -20,8 +20,15 @@ let globalCache: GlobalAutoCompleteCache | null = null;
 const CACHE_DURATION = 30000; // 30 seconds
 
 // Helper function to get cached data
-async function getCachedData(plugin: TaskProgressBarPlugin): Promise<GlobalAutoCompleteCache> {
+async function getCachedData(
+	plugin: TaskProgressBarPlugin,
+	forceRefresh: boolean = false
+): Promise<GlobalAutoCompleteCache> {
 	const now = Date.now();
+
+	if (forceRefresh) {
+		globalCache = null;
+	}
 
 	if (!globalCache || now - globalCache.lastUpdate > CACHE_DURATION) {
 		// Fetch fresh data
@@ -32,7 +39,7 @@ async function getCachedData(plugin: TaskProgressBarPlugin): Promise<GlobalAutoC
 		// Get projects and contexts from dataflow using the new convenience method
 		let projects: string[] = [];
 		let contexts: string[] = [];
-		
+
 		if (plugin.dataflowOrchestrator) {
 			try {
 				const queryAPI = plugin.dataflowOrchestrator.getQueryAPI();
@@ -40,9 +47,38 @@ async function getCachedData(plugin: TaskProgressBarPlugin): Promise<GlobalAutoC
 				projects = data.projects;
 				contexts = data.contexts;
 			} catch (error) {
-				console.warn("Failed to get projects/contexts from dataflow:", error);
+				console.warn(
+					"Failed to get projects/contexts from dataflow:",
+					error
+				);
 			}
 		}
+
+		// Merge settings-defined projects so newly added ones appear immediately
+		try {
+			const cfg = plugin.settings?.projectConfig;
+			if (cfg) {
+				// Custom projects (V2)
+				const custom = (cfg.customProjects || [])
+					.map((p) => p.name)
+					.filter(Boolean);
+				projects.push(...custom);
+				// Path mappings
+				const mapped = (cfg.pathMappings || [])
+					.filter((m) => (m as any).enabled !== false)
+					.map((m) => m.projectName)
+					.filter(Boolean);
+				projects.push(...mapped);
+			}
+		} catch (e) {
+			console.warn("Failed to merge settings-defined projects:", e);
+		}
+
+		// Deduplicate and sort
+		const uniq = (arr: string[]) =>
+			Array.from(new Set(arr.filter(Boolean)));
+		projects = uniq(projects).sort();
+		contexts = uniq(contexts).sort();
 
 		globalCache = {
 			tags,
@@ -128,10 +164,23 @@ export class ProjectSuggest extends CustomSuggest {
 	) {
 		// Initialize with empty list, will be populated asynchronously
 		super(app, inputEl, []);
-		
-		// Load cached data asynchronously
-		getCachedData(plugin).then(cachedData => {
+
+		// Load fresh data immediately so newly added projects appear
+		getCachedData(plugin, true).then((cachedData) => {
 			this.availableChoices = cachedData.projects;
+		});
+
+		// Refresh on focus to pick up recent changes (settings/index updates)
+		inputEl.addEventListener("focus", async () => {
+			try {
+				const data = await getCachedData(plugin, true);
+				this.availableChoices = data.projects;
+			} catch (e) {
+				console.warn(
+					"ProjectSuggest: failed to refresh projects on focus",
+					e
+				);
+			}
 		});
 	}
 }
@@ -147,9 +196,9 @@ export class ContextSuggest extends CustomSuggest {
 	) {
 		// Initialize with empty list, will be populated asynchronously
 		super(app, inputEl, []);
-		
+
 		// Load cached data asynchronously
-		getCachedData(plugin).then(cachedData => {
+		getCachedData(plugin).then((cachedData) => {
 			this.availableChoices = cachedData.contexts;
 		});
 	}
@@ -166,9 +215,9 @@ export class TagSuggest extends CustomSuggest {
 	) {
 		// Initialize with empty list, will be populated asynchronously
 		super(app, inputEl, []);
-		
+
 		// Load cached data asynchronously
-		getCachedData(plugin).then(cachedData => {
+		getCachedData(plugin).then((cachedData) => {
 			this.availableChoices = cachedData.tags;
 		});
 	}

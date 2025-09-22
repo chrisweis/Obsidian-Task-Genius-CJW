@@ -1,13 +1,14 @@
-import { Component, Platform, setIcon, Menu } from "obsidian";
+import { Component, Platform, setIcon, Menu, Modal, App } from "obsidian";
 import TaskProgressBarPlugin from "../../../index";
 import { Task } from "../../../types/task";
-import { ProjectPopover, ProjectModal } from "./ProjectPopover";
+import { ProjectPopover, ProjectModal, EditProjectModal } from "./ProjectPopover";
 import type { CustomProject } from "../../../common/setting-definition";
 import { t } from "@/translations/helper";
 
 interface Project {
 	id: string;
 	name: string;
+	displayName?: string;
 	color: string;
 	taskCount: number;
 	createdAt?: number;
@@ -82,9 +83,12 @@ export class ProjectList extends Component {
 			const projectName = task.metadata?.project;
 			if (projectName) {
 				if (!projectMap.has(projectName)) {
+					// Convert dashes back to spaces for display
+					const displayName = projectName.replace(/-/g, ' ');
 					projectMap.set(projectName, {
 						id: projectName,
 						name: projectName,
+						displayName: displayName,
 						color: this.generateColorForProject(projectName),
 						taskCount: 0,
 					});
@@ -136,9 +140,9 @@ export class ProjectList extends Component {
 		this.projects.sort((a, b) => {
 			switch (this.currentSort) {
 				case "name-asc":
-					return this.collator.compare(a.name, b.name);
+					return this.collator.compare(a.displayName || a.name, b.displayName || b.name);
 				case "name-desc":
-					return this.collator.compare(b.name, a.name);
+					return this.collator.compare(b.displayName || b.name, a.displayName || a.name);
 				case "tasks-asc":
 					return a.taskCount - b.taskCount;
 				case "tasks-desc":
@@ -198,7 +202,7 @@ export class ProjectList extends Component {
 
 			const projectName = projectItem.createSpan({
 				cls: "v2-project-name",
-				text: project.name,
+				text: project.displayName || project.name,
 			});
 
 			const projectCount = projectItem.createSpan({
@@ -209,6 +213,12 @@ export class ProjectList extends Component {
 			this.registerDomEvent(projectItem, "click", () => {
 				this.setActiveProject(project.id);
 				this.onProjectSelect(project.id);
+			});
+
+			// Add context menu handler
+			this.registerDomEvent(projectItem, "contextmenu", (e: MouseEvent) => {
+				e.preventDefault();
+				this.showProjectContextMenu(e, project);
 			});
 		});
 
@@ -350,6 +360,7 @@ export class ProjectList extends Component {
 				this.projects.push({
 					id: customProject.id,
 					name: customProject.name,
+					displayName: customProject.displayName || customProject.name,
 					color: customProject.color,
 					taskCount: 0, // Will be updated by task counting
 					createdAt: customProject.createdAt,
@@ -359,6 +370,7 @@ export class ProjectList extends Component {
 				// Update existing project with custom color
 				this.projects[existingIndex].id = customProject.id;
 				this.projects[existingIndex].color = customProject.color;
+				this.projects[existingIndex].displayName = customProject.displayName || customProject.name;
 				this.projects[existingIndex].createdAt =
 					customProject.createdAt;
 				this.projects[existingIndex].updatedAt =
@@ -424,5 +436,191 @@ export class ProjectList extends Component {
 				clientY: buttonEl.getBoundingClientRect().bottom,
 			})
 		);
+	}
+
+	private showProjectContextMenu(event: MouseEvent, project: Project) {
+		const menu = new Menu();
+
+		// Check if this is a custom project
+		const isCustomProject = this.plugin.settings.projectConfig?.customProjects?.some(
+			cp => cp.id === project.id || cp.name === project.name
+		);
+
+		// Edit Project option
+		menu.addItem((item) => {
+			item
+				.setTitle(t("Edit Project"))
+				.setIcon("edit");
+
+			if (isCustomProject) {
+				item.onClick(() => {
+					this.editProject(project);
+				});
+			} else {
+				item.setDisabled(true);
+			}
+		});
+
+		// Delete Project option
+		menu.addItem((item) => {
+			item
+				.setTitle(t("Delete Project"))
+				.setIcon("trash");
+
+			if (isCustomProject) {
+				item.onClick(() => {
+					this.deleteProject(project);
+				});
+			} else {
+				item.setDisabled(true);
+			}
+		});
+
+		menu.showAtMouseEvent(event);
+	}
+
+	private editProject(project: Project) {
+		// Find the custom project data
+		let customProject = this.plugin.settings.projectConfig?.customProjects?.find(
+			cp => cp.id === project.id || cp.name === project.name
+		);
+
+		if (!customProject) {
+			// Create a new custom project entry if it doesn't exist
+			customProject = {
+				id: project.id,
+				name: project.name,
+				displayName: project.displayName || project.name,
+				color: project.color,
+				createdAt: Date.now(),
+				updatedAt: Date.now()
+			};
+		}
+
+		// Open edit modal
+		const modal = new EditProjectModal(
+			this.plugin.app,
+			this.plugin,
+			customProject,
+			async (updatedProject) => {
+				await this.updateProject(updatedProject);
+			}
+		);
+		modal.open();
+	}
+
+	private async updateProject(updatedProject: CustomProject) {
+		// Initialize if needed
+		if (!this.plugin.settings.projectConfig) {
+			this.plugin.settings.projectConfig = {
+				enableEnhancedProject: false,
+				pathMappings: [],
+				metadataConfig: {
+					metadataKey: "project",
+					enabled: false,
+				},
+				configFile: {
+					fileName: "project.md",
+					searchRecursively: true,
+					enabled: false,
+				},
+				metadataMappings: [],
+				defaultProjectNaming: {
+					strategy: "filename",
+					stripExtension: true,
+					enabled: false,
+				},
+				customProjects: [],
+			};
+		}
+
+		if (!this.plugin.settings.projectConfig.customProjects) {
+			this.plugin.settings.projectConfig.customProjects = [];
+		}
+
+		// Find and update the project
+		const index = this.plugin.settings.projectConfig.customProjects.findIndex(
+			cp => cp.id === updatedProject.id
+		);
+
+		if (index !== -1) {
+			this.plugin.settings.projectConfig.customProjects[index] = updatedProject;
+		} else {
+			this.plugin.settings.projectConfig.customProjects.push(updatedProject);
+		}
+
+		// Save settings
+		await this.plugin.saveSettings();
+
+		// Refresh the project list
+		this.loadProjects();
+	}
+
+	private deleteProject(project: Project) {
+		// Confirm deletion
+		const modal = new (class extends Modal {
+			private onConfirm: () => void;
+
+			constructor(app: App, onConfirm: () => void) {
+				super(app);
+				this.onConfirm = onConfirm;
+			}
+
+			onOpen() {
+				const { contentEl } = this;
+				contentEl.createEl("h2", { text: t("Delete Project") });
+				contentEl.createEl("p", {
+					text: t(`Are you sure you want to delete "${project.displayName || project.name}"?`)
+				});
+				contentEl.createEl("p", {
+					cls: "mod-warning",
+					text: t("This action cannot be undone.")
+				});
+
+				const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
+
+				const cancelBtn = buttonContainer.createEl("button", {
+					text: t("Cancel")
+				});
+				cancelBtn.addEventListener("click", () => this.close());
+
+				const confirmBtn = buttonContainer.createEl("button", {
+					text: t("Delete"),
+					cls: "mod-warning"
+				});
+				confirmBtn.addEventListener("click", () => {
+					this.onConfirm();
+					this.close();
+				});
+			}
+
+			onClose() {
+				const { contentEl } = this;
+				contentEl.empty();
+			}
+		})(this.plugin.app, async () => {
+			// Remove from custom projects
+			if (this.plugin.settings.projectConfig?.customProjects) {
+				const index = this.plugin.settings.projectConfig.customProjects.findIndex(
+					cp => cp.id === project.id || cp.name === project.name
+				);
+
+				if (index !== -1) {
+					this.plugin.settings.projectConfig.customProjects.splice(index, 1);
+					await this.plugin.saveSettings();
+
+					// If this was the active project, clear selection
+					if (this.activeProjectId === project.id) {
+						this.setActiveProject(null);
+						this.onProjectSelect("");
+					}
+
+					// Refresh the project list
+					this.loadProjects();
+				}
+			}
+		});
+
+		modal.open();
 	}
 }

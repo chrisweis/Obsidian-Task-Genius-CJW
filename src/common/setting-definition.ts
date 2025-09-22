@@ -512,7 +512,8 @@ export interface ProjectNamingStrategy {
 /** Custom project definition for V2 */
 export interface CustomProject {
 	id: string;
-	name: string;
+	name: string; // Internal name with dashes for metadata
+	displayName?: string; // Original name with spaces for display
 	color: string;
 	createdAt: number;
 	updatedAt: number;
