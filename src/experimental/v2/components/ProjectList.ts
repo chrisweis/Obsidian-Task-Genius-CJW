@@ -3,6 +3,7 @@ import TaskProgressBarPlugin from "../../../index";
 import { Task } from "../../../types/task";
 import { ProjectPopover, ProjectModal } from "./ProjectPopover";
 import type { CustomProject } from "../../../common/setting-definition";
+import { t } from "@/translations/helper";
 
 interface Project {
 	id: string;
@@ -221,7 +222,7 @@ export class ProjectList extends Component {
 
 		addProjectBtn.createSpan({
 			cls: "v2-project-name",
-			text: "Add Project",
+			text: t("Add Project"),
 		});
 
 		this.registerDomEvent(addProjectBtn, "click", () => {
@@ -374,25 +375,25 @@ export class ProjectList extends Component {
 			value: SortOption;
 			icon: string;
 		}[] = [
-			{ label: "Name (A-Z)", value: "name-asc", icon: "arrow-up-a-z" },
-			{ label: "Name (Z-A)", value: "name-desc", icon: "arrow-down-a-z" },
+			{ label: t("Name (A-Z)"), value: "name-asc", icon: "arrow-up-a-z" },
+			{ label: t("Name (Z-A)"), value: "name-desc", icon: "arrow-down-a-z" },
 			{
-				label: "Tasks (Low to High)",
+				label: t("Tasks (Low to High)"),
 				value: "tasks-asc",
 				icon: "arrow-up-1-0",
 			},
 			{
-				label: "Tasks (High to Low)",
+				label: t("Tasks (High to Low)"),
 				value: "tasks-desc",
 				icon: "arrow-down-1-0",
 			},
 			{
-				label: "Created (Oldest First)",
+				label: t("Created (Oldest First)"),
 				value: "created-asc",
 				icon: "clock",
 			},
 			{
-				label: "Created (Newest First)",
+				label: t("Created (Newest First)"),
 				value: "created-desc",
 				icon: "history",
 			},

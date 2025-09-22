@@ -183,10 +183,10 @@ export class TopNavigation {
 
 			overdueTasks.forEach((task) => {
 				menu.addItem((item) => {
-					item.setTitle(task.content || "Untitled task")
+					item.setTitle(task.content || t("Untitled task"))
 						.setIcon("alert-circle")
 						.onClick(() => {
-							new Notice(`Task: ${task.content}`);
+							new Notice(t("Task: {{content}}", { content: task.content || "" }));
 						});
 				});
 			});

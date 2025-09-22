@@ -7,6 +7,9 @@ import {
 	Platform,
 	requireApiVersion,
 	debounce,
+	Menu,
+	Modal,
+	Notice,
 } from "obsidian";
 import TaskProgressBarPlugin from ".";
 
@@ -42,6 +45,7 @@ import { renderMcpIntegrationSettingsTab } from "./components/features/settings/
 import { IframeModal } from "@/components/ui/modals/IframeModal";
 import { renderTaskTimerSettingTab } from "./components/features/settings/tabs/TaskTimerSettingsTab";
 import { renderBasesSettingsTab } from "./components/features/settings/tabs/BasesSettingsTab";
+import { WorkspaceData } from "./experimental/v2/types/workspace";
 
 export class TaskProgressBarSettingTab extends PluginSettingTab {
 	plugin: TaskProgressBarPlugin;
@@ -194,6 +198,12 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			id: "bases-support",
 			name: t("Bases Support"),
 			icon: "layout",
+			category: "integration",
+		},
+		{
+			id: "workspaces",
+			name: t("Workspaces"),
+			icon: "layers",
 			category: "integration",
 		},
 		{
@@ -675,6 +685,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			this.displayBasesSettings(basesSection);
 		}
 
+		// Workspaces Tab
+		const workspacesSection = this.createTabSection("workspaces");
+		this.displayWorkspacesSettings(workspacesSection);
+
 		// Beta Test Tab
 		const betaTestSection = this.createTabSection("beta-test");
 		this.displayBetaTestSettings(betaTestSection);
@@ -734,6 +748,8 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				return `${base}/bases-support`;
 			case "desktop-integration":
 				return `${base}/bases-support`;
+			case "workspaces":
+				return `${base}/workspaces`;
 			case "beta-test":
 				return `${base}/getting-started`;
 			case "experimental":
@@ -848,12 +864,380 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		renderBetaTestSettingsTab(this, containerEl);
 	}
 
+	private displayWorkspacesSettings(containerEl: HTMLElement): void {
+		this.renderWorkspacesSettingsTab(containerEl);
+	}
+
 	// private displayExperimentalSettings(containerEl: HTMLElement): void {
 	// 	this.renderExperimentalSettingsTab(containerEl);
 	// }
 
 	private renderTaskTimerSettingsTab(containerEl: HTMLElement): void {
 		renderTaskTimerSettingTab(this, containerEl);
+	}
+
+	private renderWorkspacesSettingsTab(containerEl: HTMLElement): void {
+		// Create workspaces settings section
+		const workspacesSection = containerEl.createDiv();
+		workspacesSection.addClass("workspaces-settings-section");
+
+		// Section header
+		const headerEl = workspacesSection.createEl("h2");
+		headerEl.setText(t("Workspace Management"));
+		headerEl.addClass("workspaces-section-heading");
+
+		// Description
+		const descEl = workspacesSection.createDiv();
+		descEl.addClass("workspaces-description");
+		descEl.setText(
+			t("Manage workspaces to organize different contexts with their own settings and filters.")
+		);
+
+		if (!this.plugin.workspaceManager) {
+			const warningEl = workspacesSection.createDiv();
+			warningEl.addClass("workspaces-warning");
+			warningEl.setText(t("Workspace manager is not available."));
+			return;
+		}
+
+		// Current workspace info
+		const currentWorkspace = this.plugin.workspaceManager.getActiveWorkspace();
+		const isDefault = this.plugin.workspaceManager.isDefaultWorkspace(currentWorkspace.id);
+
+		new Setting(workspacesSection)
+			.setName(t("Current Workspace"))
+			.setDesc(
+				`${currentWorkspace.name}${isDefault ? " (" + t("Default") + ")" : ""}`
+			)
+			.addButton((button) => {
+				button
+					.setButtonText(t("Switch Workspace"))
+					.onClick(() => {
+						this.showWorkspaceSelector();
+					});
+			});
+
+		// Workspace list
+		const allWorkspaces = this.plugin.workspaceManager.getAllWorkspaces();
+
+		const workspaceListEl = workspacesSection.createDiv();
+		workspaceListEl.addClass("workspace-list");
+
+		const listHeaderEl = workspaceListEl.createEl("h3");
+		listHeaderEl.setText(t("All Workspaces"));
+
+		allWorkspaces.forEach((workspace) => {
+			const workspaceItemEl = workspaceListEl.createDiv();
+			workspaceItemEl.addClass("workspace-item");
+
+			const isCurrentActive = workspace.id === currentWorkspace.id;
+			const isDefaultWs = this.plugin.workspaceManager!.isDefaultWorkspace(workspace.id);
+
+			if (isCurrentActive) {
+				workspaceItemEl.addClass("workspace-item-active");
+			}
+
+			new Setting(workspaceItemEl)
+				.setName(workspace.name)
+				.setDesc(
+					isDefaultWs
+						? t("Default workspace")
+						: t("Last updated: {{date}}", {
+								date: new Date(workspace.updatedAt).toLocaleDateString(),
+						  })
+				)
+				.addButton((button) => {
+					if (isCurrentActive) {
+						button.setButtonText(t("Active")).setDisabled(true);
+					} else {
+						button.setButtonText(t("Switch")).onClick(async () => {
+							await this.plugin.workspaceManager!.setActiveWorkspace(
+								workspace.id
+							);
+							this.display();
+						});
+					}
+				})
+				.addButton((button) => {
+					button.setIcon("edit").setTooltip(t("Rename")).onClick(() => {
+						this.showRenameWorkspaceDialog(workspace);
+					});
+				})
+				.addButton((button) => {
+					if (isDefaultWs) {
+						button.setDisabled(true);
+					} else {
+						button
+							.setIcon("trash")
+							.setTooltip(t("Delete"))
+							.onClick(() => {
+								this.showDeleteWorkspaceDialog(workspace);
+							});
+					}
+				});
+		});
+
+		// Create new workspace button
+		new Setting(workspacesSection)
+			.setName(t("Create New Workspace"))
+			.setDesc(t("Create a new workspace with custom settings"))
+			.addButton((button) => {
+				button
+					.setButtonText(t("Create"))
+					.setCta()
+					.onClick(() => {
+						this.showCreateWorkspaceDialog();
+					});
+			});
+	}
+
+	private showWorkspaceSelector() {
+		if (!this.plugin.workspaceManager) return;
+
+		const menu = new Menu();
+		const workspaces = this.plugin.workspaceManager.getAllWorkspaces();
+		const currentWorkspace = this.plugin.workspaceManager.getActiveWorkspace();
+
+		workspaces.forEach((workspace) => {
+			menu.addItem((item) => {
+				item.setTitle(workspace.name)
+					.setIcon("layers")
+					.onClick(async () => {
+						await this.plugin.workspaceManager!.setActiveWorkspace(
+							workspace.id
+						);
+						this.display();
+					});
+
+				if (workspace.id === currentWorkspace.id) {
+					item.setChecked(true);
+				}
+			});
+		});
+
+		menu.showAtPosition({ x: 0, y: 0 });
+	}
+
+	private showCreateWorkspaceDialog() {
+		if (!this.plugin.workspaceManager) return;
+
+		class CreateWorkspaceModal extends Modal {
+			private nameInput: HTMLInputElement;
+			private baseSelect: HTMLSelectElement;
+
+			constructor(
+				private plugin: TaskProgressBarPlugin,
+				private onCreated: () => void
+			) {
+				super(plugin.app);
+			}
+
+			onOpen() {
+				const { contentEl } = this;
+				contentEl.createEl("h2", { text: t("Create New Workspace") });
+
+				new Setting(contentEl)
+					.setName(t("Workspace Name"))
+					.addText((text) => {
+						text.setPlaceholder(t("Enter workspace name"));
+						this.nameInput = text.inputEl;
+					});
+
+				new Setting(contentEl)
+					.setName(t("Copy Settings From"))
+					.addDropdown((dropdown) => {
+						dropdown.addOption("", t("Default settings"));
+						this.plugin.workspaceManager
+							?.getAllWorkspaces()
+							.forEach((ws) => {
+								dropdown.addOption(ws.id, ws.name);
+							});
+						this.baseSelect = dropdown.selectEl;
+					});
+
+				const buttonContainer = contentEl.createDiv({
+					cls: "modal-button-container",
+				});
+
+				const createButton = buttonContainer.createEl("button", {
+					text: t("Create"),
+					cls: "mod-cta",
+				});
+
+				const cancelButton = buttonContainer.createEl("button", {
+					text: t("Cancel"),
+				});
+
+				createButton.addEventListener("click", async () => {
+					const name = this.nameInput.value.trim();
+					const baseId = this.baseSelect.value || undefined;
+
+					if (name && this.plugin.workspaceManager) {
+						await this.plugin.workspaceManager.createWorkspace(
+							name,
+							baseId
+						);
+						new Notice(t("Workspace created"));
+						this.onCreated();
+						this.close();
+					} else {
+						new Notice(t("Please enter a workspace name"));
+					}
+				});
+
+				cancelButton.addEventListener("click", () => {
+					this.close();
+				});
+			}
+
+			onClose() {
+				const { contentEl } = this;
+				contentEl.empty();
+			}
+		}
+
+		new CreateWorkspaceModal(this.plugin, () => {
+			this.display();
+		}).open();
+	}
+
+	private showRenameWorkspaceDialog(workspace: WorkspaceData) {
+		if (!this.plugin.workspaceManager) return;
+
+		class RenameWorkspaceModal extends Modal {
+			private nameInput: HTMLInputElement;
+
+			constructor(
+				private plugin: TaskProgressBarPlugin,
+				private workspace: WorkspaceData,
+				private onRenamed: () => void
+			) {
+				super(plugin.app);
+			}
+
+			onOpen() {
+				const { contentEl } = this;
+				contentEl.createEl("h2", { text: t("Rename Workspace") });
+
+				new Setting(contentEl).setName(t("New Name")).addText((text) => {
+					text
+						.setValue(this.workspace.name)
+						.setPlaceholder(t("Enter new name"));
+					this.nameInput = text.inputEl;
+				});
+
+				const buttonContainer = contentEl.createDiv({
+					cls: "modal-button-container",
+				});
+
+				const renameButton = buttonContainer.createEl("button", {
+					text: t("Rename"),
+					cls: "mod-cta",
+				});
+
+				const cancelButton = buttonContainer.createEl("button", {
+					text: t("Cancel"),
+				});
+
+				renameButton.addEventListener("click", async () => {
+					const newName = this.nameInput.value.trim();
+					if (
+						newName &&
+						newName !== this.workspace.name &&
+						this.plugin.workspaceManager
+					) {
+						await this.plugin.workspaceManager.renameWorkspace(
+							this.workspace.id,
+							newName
+						);
+						new Notice(t("Workspace renamed"));
+						this.onRenamed();
+						this.close();
+					} else {
+						new Notice(t("Please enter a different name"));
+					}
+				});
+
+				cancelButton.addEventListener("click", () => {
+					this.close();
+				});
+
+				this.nameInput.focus();
+				this.nameInput.select();
+			}
+
+			onClose() {
+				const { contentEl } = this;
+				contentEl.empty();
+			}
+		}
+
+		new RenameWorkspaceModal(this.plugin, workspace, () => {
+			this.display();
+		}).open();
+	}
+
+	private showDeleteWorkspaceDialog(workspace: WorkspaceData) {
+		if (!this.plugin.workspaceManager) return;
+
+		class DeleteWorkspaceModal extends Modal {
+			constructor(
+				private plugin: TaskProgressBarPlugin,
+				private workspace: WorkspaceData,
+				private onDeleted: () => void
+			) {
+				super(plugin.app);
+			}
+
+			onOpen() {
+				const { contentEl } = this;
+				contentEl.createEl("h2", { text: t("Delete Workspace") });
+
+				contentEl.createEl("p", {
+					text: t(
+						'Are you sure you want to delete "{{name}}"? This action cannot be undone.',
+						{ name: this.workspace.name }
+					),
+				});
+
+				const buttonContainer = contentEl.createDiv({
+					cls: "modal-button-container",
+				});
+
+				const deleteButton = buttonContainer.createEl("button", {
+					text: t("Delete"),
+					cls: "mod-warning",
+				});
+
+				const cancelButton = buttonContainer.createEl("button", {
+					text: t("Cancel"),
+				});
+
+				deleteButton.addEventListener("click", async () => {
+					if (this.plugin.workspaceManager) {
+						await this.plugin.workspaceManager.deleteWorkspace(
+							this.workspace.id
+						);
+						new Notice(t("Workspace deleted"));
+						this.onDeleted();
+						this.close();
+					}
+				});
+
+				cancelButton.addEventListener("click", () => {
+					this.close();
+				});
+			}
+
+			onClose() {
+				const { contentEl } = this;
+				contentEl.empty();
+			}
+		}
+
+		new DeleteWorkspaceModal(this.plugin, workspace, () => {
+			this.display();
+		}).open();
 	}
 
 	private renderExperimentalSettingsTab(containerEl: HTMLElement): void {

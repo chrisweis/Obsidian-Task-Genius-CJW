@@ -17,7 +17,9 @@ import "./styles/v2-enhanced.css";
 import "./styles/v2-content-header.css";
 import "@/styles/v2-project-popover.css";
 import { TopNavigation, ViewMode } from "./components/V2TopNavigation";
-import { Workspace, V2ViewState } from "./types";
+import { V2ViewState } from "./types";
+import { onWorkspaceSwitched, onWorkspaceOverridesSaved } from "./events/ui-event";
+import { Events, on } from "../../dataflow/events/Events";
 import { TaskListItemComponent } from "../../components/features/task/view/listItem";
 import { TaskTreeItemComponent } from "../../components/features/task/view/treeItem";
 import {
@@ -118,13 +120,14 @@ export class TaskViewV2 extends ItemView {
 
 	// State management
 	private viewState: V2ViewState = {
-		currentWorkspace: "default",
+		currentWorkspace: "",
 		viewMode: "list", // Default should be list, not calendar
 		searchQuery: "",
 		filters: {},
 	};
 
-	private workspaces: Workspace[] = [];
+	private workspaceId: string = "";
+	private isSavingFilterState: boolean = false;
 
 	private tasks: Task[] = [];
 	private filteredTasks: Task[] = [];
@@ -140,8 +143,9 @@ export class TaskViewV2 extends ItemView {
 		this.plugin = plugin;
 		this.tasks = this.plugin.preloadedTasks || [];
 
-		// Load workspaces from settings or localStorage
-		this.initializeDefaultWorkspaces();
+		// Initialize workspace ID
+		this.workspaceId = plugin.workspaceManager?.getActiveWorkspace().id || "";
+		this.viewState.currentWorkspace = this.workspaceId;
 	}
 
 	getViewType(): string {
@@ -149,7 +153,7 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "Task Genius V2";
+		return t("Task Genius V2");
 	}
 
 	getIcon(): string {
@@ -160,6 +164,44 @@ export class TaskViewV2 extends ItemView {
 		console.log("[TG-V2] onOpen started");
 		this.contentEl.empty();
 		this.contentEl.addClass("task-genius-v2-view");
+
+		// Subscribe to workspace events
+		if (this.plugin.workspaceManager) {
+			this.registerEvent(
+				onWorkspaceSwitched(this.app, async (payload) => {
+					if (payload.workspaceId !== this.workspaceId) {
+						this.workspaceId = payload.workspaceId;
+						this.viewState.currentWorkspace = payload.workspaceId;
+						await this.applyWorkspaceSettings();
+						this.restoreFilterStateFromWorkspace();
+						await this.loadTasks();
+						this.switchView(this.currentViewId);
+					}
+				})
+			);
+
+			this.registerEvent(
+				onWorkspaceOverridesSaved(this.app, async (payload) => {
+					if (payload.workspaceId === this.workspaceId) {
+						await this.applyWorkspaceSettings();
+						await this.loadTasks();
+						this.switchView(this.currentViewId);
+					}
+				})
+			);
+
+			// Skip SETTINGS_CHANGED for v2FilterState changes to avoid loops
+			this.registerEvent(
+				on(this.app, Events.SETTINGS_CHANGED, async () => {
+					// Only reload if not caused by filter state save
+					if (!this.isSavingFilterState) {
+						await this.applyWorkspaceSettings();
+						await this.loadTasks();
+						this.switchView(this.currentViewId);
+					}
+				})
+			);
+		}
 
 		// Initialize default view mode to list
 		console.log("[TG-V2] Initial viewMode:", this.viewState.viewMode);
@@ -306,19 +348,12 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private initializeSidebar(containerEl: HTMLElement) {
-		const currentWorkspace =
-			this.workspaces.find(
-				(w) => w.id === this.viewState.currentWorkspace
-			) || this.workspaces[0];
-
 		this.sidebar = new V2Sidebar(
 			containerEl,
 			this.plugin,
-			currentWorkspace,
-			this.workspaces,
 			(viewId) => this.handleNavigate(viewId),
-			(workspace) => this.handleWorkspaceChange(workspace),
-			(projectId) => this.handleProjectSelect(projectId)
+			(projectId) => this.handleProjectSelect(projectId),
+			this.isSidebarCollapsed
 		);
 		// Add sidebar as a child component for proper lifecycle management
 		this.addChild(this.sidebar);
@@ -929,18 +964,18 @@ export class TaskViewV2 extends ItemView {
 		// Update content header title based on view
 		if (this.contentTitleEl) {
 			const viewTitles: Record<string, string> = {
-				inbox: "Inbox",
-				today: "Today",
-				upcoming: "Upcoming",
-				flagged: "Flagged",
-				forecast: "Forecast",
-				projects: "Projects",
-				tags: "Tags",
-				review: "Review",
-				habit: "Habit",
-				calendar: "Calendar",
-				kanban: "Kanban",
-				gantt: "Gantt",
+				inbox: t("Inbox"),
+				today: t("Today"),
+				upcoming: t("Upcoming"),
+				flagged: t("Flagged"),
+				forecast: t("Forecast"),
+				projects: t("Projects"),
+				tags: t("Tags"),
+				review: t("Review"),
+				habit: t("Habit"),
+				calendar: t("Calendar"),
+				kanban: t("Kanban"),
+				gantt: t("Gantt"),
 			};
 			this.contentTitleEl.setText(t(viewTitles[viewId] || "Tasks"));
 		}
@@ -1727,28 +1762,10 @@ export class TaskViewV2 extends ItemView {
 
 	// Workspace management
 	private saveWorkspaceLayout() {
-		const currentWorkspace = this.workspaces.find(
-			(w) => w.id === this.viewState.currentWorkspace
-		);
-		if (!currentWorkspace) return;
+		// Save filter state which includes view preferences
+		this.saveFilterStateToWorkspace();
 
-		// Update workspace settings
-		currentWorkspace.settings = {
-			...currentWorkspace.settings,
-			viewPreferences: {
-				viewMode: this.viewState.viewMode,
-				searchQuery: this.viewState.searchQuery,
-				filters: this.viewState.filters,
-			},
-		};
-
-		// Save all workspaces to localStorage
-		localStorage.setItem(
-			"task-genius-v2-workspaces",
-			JSON.stringify(this.workspaces)
-		);
-
-		// Save current workspace ID
+		// Save current workspace ID to localStorage for persistence
 		localStorage.setItem(
 			"task-genius-v2-current-workspace",
 			this.viewState.currentWorkspace
@@ -1756,48 +1773,26 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private loadWorkspaceLayout() {
-		// Load workspaces from localStorage
-		const savedWorkspaces = localStorage.getItem(
-			"task-genius-v2-workspaces"
-		);
-		if (savedWorkspaces) {
-			try {
-				this.workspaces = JSON.parse(savedWorkspaces);
-			} catch (error) {
-				console.error("Failed to load workspaces:", error);
-				this.initializeDefaultWorkspaces();
-			}
-		} else {
-			this.initializeDefaultWorkspaces();
-		}
-
-		// Load current workspace
+		// Load current workspace from localStorage
 		const savedCurrentWorkspace = localStorage.getItem(
 			"task-genius-v2-current-workspace"
 		);
 		if (savedCurrentWorkspace) {
 			this.viewState.currentWorkspace = savedCurrentWorkspace;
+			this.workspaceId = savedCurrentWorkspace;
 		}
 
-		// Apply workspace settings
-		const currentWorkspace = this.workspaces.find(
-			(w) => w.id === this.viewState.currentWorkspace
-		);
-		if (currentWorkspace?.settings?.viewPreferences) {
-			const prefs = currentWorkspace.settings.viewPreferences;
-			if (prefs.viewMode) this.viewState.viewMode = prefs.viewMode;
-			if (prefs.searchQuery !== undefined)
-				this.viewState.searchQuery = prefs.searchQuery;
-			if (prefs.filters) this.viewState.filters = prefs.filters;
-		}
+		// Restore filter state which includes view preferences
+		this.restoreFilterStateFromWorkspace();
 	}
 
-	private initializeDefaultWorkspaces() {
-		this.workspaces = [
-			{ id: "default", name: "Default", color: "#7c3aed" },
-			{ id: "personal", name: "Personal", color: "#3b82f6" },
-			{ id: "work", name: "Work", color: "#10b981" },
-		];
+	private async applyWorkspaceSettings() {
+		if (!this.plugin.workspaceManager || !this.workspaceId) return;
+
+		const settings = this.plugin.workspaceManager.getEffectiveSettings(this.workspaceId);
+
+		// Workspace settings are now restored via restoreFilterStateFromWorkspace
+		// This method is kept for future workspace-specific settings that are not filter-related
 	}
 
 	private switchWorkspace(workspaceId: string) {
@@ -1806,16 +1801,10 @@ export class TaskViewV2 extends ItemView {
 
 		// Update workspace ID
 		this.viewState.currentWorkspace = workspaceId;
+		this.workspaceId = workspaceId;
 
-		// Load new workspace settings
-		const newWorkspace = this.workspaces.find((w) => w.id === workspaceId);
-		if (newWorkspace?.settings?.viewPreferences) {
-			const prefs = newWorkspace.settings.viewPreferences;
-			if (prefs.viewMode) this.viewState.viewMode = prefs.viewMode;
-			if (prefs.searchQuery !== undefined)
-				this.viewState.searchQuery = prefs.searchQuery;
-			if (prefs.filters) this.viewState.filters = prefs.filters;
-		}
+		// Restore filter state from new workspace
+		this.restoreFilterStateFromWorkspace();
 
 		// Apply filters and update view
 		this.applyFilters();
@@ -1824,7 +1813,7 @@ export class TaskViewV2 extends ItemView {
 		// Update UI to reflect workspace change
 		if (this.sidebar) {
 			// Update sidebar workspace selection if needed
-			const workspace = this.workspaces.find((w) => w.id === workspaceId);
+			const workspace = this.plugin.workspaceManager?.getWorkspace(workspaceId);
 			if (workspace) {
 				this.sidebar.updateWorkspace(workspace);
 			}
@@ -1980,14 +1969,26 @@ export class TaskViewV2 extends ItemView {
 		this.updateActionButtons();
 	}
 
-	private handleWorkspaceChange(workspace: Workspace) {
-		this.viewState.currentWorkspace = workspace.id;
-		this.sidebar?.updateWorkspace(workspace);
-		this.loadTasks().then(() => {
-			this.switchView(this.currentViewId);
-			this.topNavigation?.refresh();
-		});
-		new Notice(`Switched to ${workspace.name} workspace`);
+	private async handleWorkspaceChange(workspaceId: string) {
+		if (!this.plugin.workspaceManager) return;
+
+		// Save to workspace manager
+		await this.plugin.workspaceManager.setActiveWorkspace(workspaceId);
+
+		// Update local state
+		this.workspaceId = workspaceId;
+		this.viewState.currentWorkspace = workspaceId;
+
+		// Update sidebar
+		this.sidebar?.updateWorkspace(workspaceId);
+
+		// Apply workspace settings and reload
+		await this.applyWorkspaceSettings();
+		await this.loadTasks();
+
+		// Refresh current view
+		this.switchView(this.currentViewId);
+		this.topNavigation?.refresh();
 	}
 
 	private handleProjectSelect(projectId: string) {
@@ -2465,9 +2466,56 @@ export class TaskViewV2 extends ItemView {
 		this.topNavigation?.refresh();
 	}
 
+	// Save filter state to workspace - debounced to avoid infinite loops
+	private saveFilterStateToWorkspace = debounce(() => {
+		if (!this.plugin.workspaceManager || !this.workspaceId) return;
+
+		const effectiveSettings = this.plugin.workspaceManager.getEffectiveSettings(this.workspaceId);
+
+		// Save current filter state
+		if (!effectiveSettings.v2FilterState) {
+			effectiveSettings.v2FilterState = {};
+		}
+
+		effectiveSettings.v2FilterState[this.currentViewId] = {
+			filters: this.viewState.filters,
+			searchQuery: this.viewState.searchQuery,
+			selectedProject: this.viewState.selectedProject,
+			advancedFilter: this.currentFilterState,
+			viewMode: this.viewState.viewMode
+		};
+
+		// Use saveOverridesQuietly to avoid triggering SETTINGS_CHANGED event
+		this.plugin.workspaceManager.saveOverridesQuietly(this.workspaceId, effectiveSettings);
+	}, 500, true)
+
+	// Restore filter state from workspace
+	private restoreFilterStateFromWorkspace() {
+		if (!this.plugin.workspaceManager || !this.workspaceId) return;
+
+		const effectiveSettings = this.plugin.workspaceManager.getEffectiveSettings(this.workspaceId);
+
+		if (effectiveSettings.v2FilterState && effectiveSettings.v2FilterState[this.currentViewId]) {
+			const savedState = effectiveSettings.v2FilterState[this.currentViewId];
+
+			// Restore filter state
+			this.viewState.filters = savedState.filters || {};
+			this.viewState.searchQuery = savedState.searchQuery || "";
+			this.viewState.selectedProject = savedState.selectedProject || null;
+			this.currentFilterState = savedState.advancedFilter || null;
+			this.viewState.viewMode = savedState.viewMode || "list";
+
+			// Update UI elements
+			if (this.filterInputEl) {
+				this.filterInputEl.value = this.viewState.searchQuery || "";
+			}
+		}
+	}
+
 	async onClose() {
-		// Save workspace layout
+		// Save workspace layout and filter state
 		this.saveWorkspaceLayout();
+		this.saveFilterStateToWorkspace();
 
 		// Clean up components
 		if (this.kanbanComponent) {

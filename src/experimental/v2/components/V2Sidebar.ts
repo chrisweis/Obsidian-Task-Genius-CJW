@@ -1,7 +1,13 @@
-import { Component, setIcon, Menu } from "obsidian";
+import { Component, setIcon, Menu, Notice, Modal } from "obsidian";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { ProjectList } from "@/experimental/v2/components/ProjectList";
-import { Workspace, V2NavigationItem } from "@/experimental/v2/types";
+import { V2NavigationItem } from "@/experimental/v2/types";
+import { WorkspaceData } from "@/experimental/v2/types/workspace";
+import {
+	onWorkspaceSwitched,
+	onWorkspaceDeleted,
+	onWorkspaceCreated,
+} from "@/experimental/v2/events/ui-event";
 import TaskProgressBarPlugin from "@/index";
 import { t } from "@/translations/helper";
 
@@ -11,6 +17,7 @@ export class V2Sidebar extends Component {
 	private workspaceSelector: WorkspaceSelector;
 	public projectList: ProjectList;
 	private collapsed: boolean = false;
+	private currentWorkspaceId: string;
 
 	private primaryItems: V2NavigationItem[] = [
 		{ id: "inbox", label: t("Inbox"), icon: "inbox", type: "primary" },
@@ -49,10 +56,7 @@ export class V2Sidebar extends Component {
 	constructor(
 		containerEl: HTMLElement,
 		plugin: TaskProgressBarPlugin,
-		private currentWorkspace: Workspace,
-		private workspaces: Workspace[],
 		private onNavigate: (viewId: string) => void,
-		private onWorkspaceChange: (workspace: Workspace) => void,
 		private onProjectSelect: (projectId: string) => void,
 		collapsed: boolean = false
 	) {
@@ -60,6 +64,8 @@ export class V2Sidebar extends Component {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
 		this.collapsed = collapsed;
+		this.currentWorkspaceId =
+			plugin.workspaceManager?.getActiveWorkspace().id || "";
 	}
 
 	private render() {
@@ -78,7 +84,7 @@ export class V2Sidebar extends Component {
 			});
 			setIcon(wsBtn, "layers");
 			wsBtn.addEventListener("click", (e) =>
-				this.showWorkspaceMenu(e as MouseEvent)
+				this.showWorkspaceMenuWithManager(e as MouseEvent)
 			);
 
 			// Primary view icons
@@ -152,17 +158,18 @@ export class V2Sidebar extends Component {
 		const header = this.containerEl.createDiv({ cls: "v2-sidebar-header" });
 
 		const workspaceSelectorEl = header.createDiv();
-		this.workspaceSelector = new WorkspaceSelector(
-			workspaceSelectorEl,
-			this.workspaces,
-			this.currentWorkspace,
-			this.onWorkspaceChange
-		);
+		if (this.plugin.workspaceManager) {
+			this.workspaceSelector = new WorkspaceSelector(
+				workspaceSelectorEl,
+				this.plugin,
+				(workspaceId: string) => this.handleWorkspaceChange(workspaceId)
+			);
+		}
 
 		// New Task Button
 		const newTaskBtn = header.createEl("button", {
 			cls: "v2-new-task-btn",
-			text: "New Task",
+			text: t("New Task"),
 		});
 		setIcon(newTaskBtn.createDiv({ cls: "v2-new-task-icon" }), "plus");
 		newTaskBtn.addEventListener("click", () => {
@@ -186,10 +193,10 @@ export class V2Sidebar extends Component {
 			cls: "v2-section-header",
 		});
 
-		projectHeader.createSpan({ text: "Projects" });
+		projectHeader.createSpan({ text: t("Projects") });
 		const sortProjectBtn = projectHeader.createDiv({
 			cls: "v2-sort-project-btn",
-			attr: { "aria-label": "Sort projects" }
+			attr: { "aria-label": t("Sort projects") },
 		});
 		setIcon(sortProjectBtn, "arrow-up-down");
 
@@ -220,7 +227,7 @@ export class V2Sidebar extends Component {
 		);
 		const remainingOther: V2NavigationItem[] =
 			allOtherItems.slice(visibleCount);
-		otherHeader.createSpan({ text: "Other Views" });
+		otherHeader.createSpan({ text: t("Other Views") });
 		if (remainingOther.length > 0) {
 			const moreBtn = otherHeader.createDiv({
 				cls: "v2-section-action",
@@ -267,6 +274,28 @@ export class V2Sidebar extends Component {
 
 	onload() {
 		this.render();
+
+		// Subscribe to workspace events
+		if (this.plugin.workspaceManager) {
+			this.registerEvent(
+				onWorkspaceSwitched(this.plugin.app, (payload) => {
+					this.currentWorkspaceId = payload.workspaceId;
+					this.render();
+				})
+			);
+
+			this.registerEvent(
+				onWorkspaceDeleted(this.plugin.app, () => {
+					this.render();
+				})
+			);
+
+			this.registerEvent(
+				onWorkspaceCreated(this.plugin.app, () => {
+					this.render();
+				})
+			);
+		}
 	}
 
 	onunload() {
@@ -279,21 +308,114 @@ export class V2Sidebar extends Component {
 		this.render();
 	}
 
-	private showWorkspaceMenu(event: MouseEvent) {
+	private async handleWorkspaceChange(workspaceId: string) {
+		if (this.plugin.workspaceManager) {
+			await this.plugin.workspaceManager.setActiveWorkspace(workspaceId);
+			this.currentWorkspaceId = workspaceId;
+		}
+	}
+
+	private showWorkspaceMenuWithManager(event: MouseEvent) {
+		if (!this.plugin.workspaceManager) return;
+
 		const menu = new Menu();
-		this.workspaces.forEach((w) => {
+		const workspaces = this.plugin.workspaceManager.getAllWorkspaces();
+		const currentWorkspace =
+			this.plugin.workspaceManager.getActiveWorkspace();
+
+		workspaces.forEach((w) => {
 			menu.addItem((item) => {
-				item.setTitle(w.name)
+				const isDefault =
+					this.plugin.workspaceManager?.isDefaultWorkspace(w.id);
+				const title = isDefault ? `${w.name} 🔒` : w.name;
+
+				item.setTitle(title)
 					.setIcon("layers")
-					.onClick(() => {
-						this.currentWorkspace = w;
-						this.onWorkspaceChange(w);
-						this.render();
+					.onClick(async () => {
+						await this.handleWorkspaceChange(w.id);
 					});
-				if (w.id === this.currentWorkspace.id) item.setChecked(true);
+				if (w.id === currentWorkspace.id) item.setChecked(true);
 			});
 		});
+
+		menu.addSeparator();
+		menu.addItem((item) => {
+			item.setTitle(t("Create Workspace"))
+				.setIcon("plus")
+				.onClick(() => this.showCreateWorkspaceDialog());
+		});
+
 		menu.showAtMouseEvent(event);
+	}
+
+	private showCreateWorkspaceDialog() {
+		class CreateWorkspaceModal extends Modal {
+			private nameInput: HTMLInputElement;
+
+			constructor(
+				private plugin: TaskProgressBarPlugin,
+				private onCreated: () => void
+			) {
+				super(plugin.app);
+			}
+
+			onOpen() {
+				const { contentEl } = this;
+				contentEl.createEl("h2", { text: t("Create New Workspace") });
+
+				const inputContainer = contentEl.createDiv();
+				inputContainer.createEl("label", {
+					text: t("Workspace Name:"),
+				});
+				this.nameInput = inputContainer.createEl("input", {
+					type: "text",
+					placeholder: t("Enter workspace name..."),
+				});
+
+				const buttonContainer = contentEl.createDiv({
+					cls: "modal-button-container",
+				});
+				const createButton = buttonContainer.createEl("button", {
+					text: t("Create"),
+				});
+				const cancelButton = buttonContainer.createEl("button", {
+					text: t("Cancel"),
+				});
+
+				createButton.addEventListener("click", async () => {
+					const name = this.nameInput.value.trim();
+					if (name && this.plugin.workspaceManager) {
+						await this.plugin.workspaceManager.createWorkspace(
+							name
+						);
+						new Notice(
+							t('Workspace "{{name}}" created', {
+								interpolation: {
+									name: name,
+								},
+							})
+						);
+						this.onCreated();
+						this.close();
+					} else {
+						new Notice(t("Please enter a workspace name"));
+					}
+				});
+
+				cancelButton.addEventListener("click", () => {
+					this.close();
+				});
+
+				this.nameInput.focus();
+			}
+
+			onClose() {
+				const { contentEl } = this;
+				contentEl.empty();
+			}
+		}
+
+		new CreateWorkspaceModal(this.plugin, () => this.render()).open();
 	}
 
 	private showProjectMenu(event: MouseEvent) {
@@ -381,9 +503,13 @@ export class V2Sidebar extends Component {
 		activeEls.forEach((el) => el.addClass("is-active"));
 	}
 
-	public updateWorkspace(workspace: Workspace) {
-		this.currentWorkspace = workspace;
-		this.workspaceSelector?.setWorkspace(workspace);
+	public updateWorkspace(workspaceOrId: string | WorkspaceData) {
+		const workspaceId =
+			typeof workspaceOrId === "string"
+				? workspaceOrId
+				: workspaceOrId.id;
+		this.currentWorkspaceId = workspaceId;
+		this.workspaceSelector?.setWorkspace(workspaceId);
 		this.projectList?.refresh();
 	}
 }

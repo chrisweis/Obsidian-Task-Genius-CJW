@@ -2,6 +2,7 @@ import { Component, Platform, Modal, App } from "obsidian";
 import { createPopper, Instance as PopperInstance } from "@popperjs/core";
 import TaskProgressBarPlugin from "../../../index";
 import type { CustomProject } from "../../../common/setting-definition";
+import { t } from "@/translations/helper";
 
 export class ProjectPopover extends Component {
 	private popoverEl: HTMLElement | null = null;
@@ -72,22 +73,22 @@ export class ProjectPopover extends Component {
 
 		// Title
 		const header = content.createDiv({ cls: "v2-popover-header" });
-		header.createEl("h3", { text: "New Project" });
+		header.createEl("h3", { text: t("New Project") });
 
 		// Name input
 		const nameSection = content.createDiv({ cls: "v2-popover-section" });
-		nameSection.createEl("label", { text: "Project Name" });
+		nameSection.createEl("label", { text: t("Project Name") });
 		this.nameInput = nameSection.createEl("input", {
 			cls: "v2-popover-input",
 			attr: {
 				type: "text",
-				placeholder: "Enter project name",
+				placeholder: t("Enter project name"),
 			}
 		});
 
 		// Color picker
 		const colorSection = content.createDiv({ cls: "v2-popover-section" });
-		colorSection.createEl("label", { text: "Choose Color" });
+		colorSection.createEl("label", { text: t("Choose Color") });
 
 		const colorGrid = colorSection.createDiv({ cls: "v2-color-grid" });
 		this.colors.forEach(color => {
@@ -111,13 +112,13 @@ export class ProjectPopover extends Component {
 
 		const cancelBtn = actions.createEl("button", {
 			cls: "v2-button v2-button-secondary",
-			text: "Cancel"
+			text: t("Cancel")
 		});
 		this.registerDomEvent(cancelBtn, "click", () => this.close());
 
 		const saveBtn = actions.createEl("button", {
 			cls: "v2-button v2-button-primary",
-			text: "Create"
+			text: t("Create")
 		});
 		this.registerDomEvent(saveBtn, "click", () => this.save());
 
@@ -312,22 +313,22 @@ export class ProjectModal extends Modal {
 		this.modalEl.addClass("v2-project-modal");
 
 		// Title
-		contentEl.createEl("h2", { text: "Create New Project" });
+		contentEl.createEl("h2", { text: t("Create New Project") });
 
 		// Name input section
 		const nameSection = contentEl.createDiv({ cls: "v2-modal-section" });
-		nameSection.createEl("label", { text: "Project Name" });
+		nameSection.createEl("label", { text: t("Project Name") });
 		this.nameInput = nameSection.createEl("input", {
 			cls: "v2-modal-input",
 			attr: {
 				type: "text",
-				placeholder: "Enter project name"
+				placeholder: t("Enter project name")
 			}
 		});
 
 		// Color picker section
 		const colorSection = contentEl.createDiv({ cls: "v2-modal-section" });
-		colorSection.createEl("label", { text: "Choose Color" });
+		colorSection.createEl("label", { text: t("Choose Color") });
 
 		const colorGrid = colorSection.createDiv({ cls: "v2-modal-color-grid" });
 		this.colors.forEach(color => {
@@ -348,7 +349,7 @@ export class ProjectModal extends Modal {
 
 		// Preview section
 		const previewSection = contentEl.createDiv({ cls: "v2-modal-section" });
-		previewSection.createEl("label", { text: "Preview" });
+		previewSection.createEl("label", { text: t("Preview") });
 		const preview = previewSection.createDiv({ cls: "v2-modal-preview" });
 		const previewItem = preview.createDiv({ cls: "v2-project-item-preview" });
 		const previewColor = previewItem.createDiv({ cls: "v2-project-color" });
@@ -357,22 +358,22 @@ export class ProjectModal extends Modal {
 
 		// Update preview on name change
 		this.addEventListener(this.nameInput, "input", () => {
-			previewName.setText(this.nameInput?.value || "Project Name");
+			previewName.setText(this.nameInput?.value || t("Project Name"));
 		});
-		previewName.setText("Project Name");
+		previewName.setText(t("Project Name"));
 
 		// Footer with action buttons
 		const footer = contentEl.createDiv({ cls: "v2-modal-footer" });
 
 		const cancelBtn = footer.createEl("button", {
 			cls: "v2-button v2-button-secondary",
-			text: "Cancel"
+			text: t("Cancel")
 		});
 		this.addEventListener(cancelBtn, "click", () => this.close());
 
 		const createBtn = footer.createEl("button", {
 			cls: "v2-button v2-button-primary",
-			text: "Create Project"
+			text: t("Create Project")
 		});
 		this.addEventListener(createBtn, "click", () => this.save());
 

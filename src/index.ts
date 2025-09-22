@@ -246,6 +246,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 	// Setting tab
 	settingTab: TaskProgressBarSettingTab;
 
+	// Workspace manager instance
+	workspaceManager?: import("./experimental/v2/managers/WorkspaceManager").WorkspaceManager;
+
 	// Task Genius Icon manager instance
 	taskGeniusIconManager: TaskGeniusIconManager;
 
@@ -285,6 +288,12 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		// Initialize global suggest manager
 		this.globalSuggestManager = new SuggestManager(this.app, this);
+
+		// Initialize workspace manager
+		const { WorkspaceManager } = await import("./experimental/v2/managers/WorkspaceManager");
+		this.workspaceManager = new WorkspaceManager(this);
+		await this.workspaceManager.migrateToV2();
+		this.workspaceManager.ensureDefaultWorkspaceInvariant();
 
 		// Initialize URI handler
 		this.uriHandler = new ObsidianUriHandler(this);

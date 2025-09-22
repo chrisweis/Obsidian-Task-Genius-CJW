@@ -1,3 +1,4 @@
+// Deprecated - use WorkspaceData from types/workspace.ts instead
 export interface Workspace {
 	id: string;
 	name: string;
@@ -14,7 +15,7 @@ export interface WorkspaceSettings {
 
 export interface V2ViewState {
 	currentWorkspace: string;
-	selectedProject?: string;
+	selectedProject?: string | null;
 	viewMode: 'list' | 'kanban' | 'tree' | 'calendar';
 	searchQuery?: string;
 	filters?: any;

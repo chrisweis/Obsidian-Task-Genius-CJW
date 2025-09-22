@@ -825,6 +825,9 @@ export interface TaskProgressBarSettings {
 
 	// FileSource Settings
 	fileSource: FileSourceConfiguration;
+
+	// Workspace Settings
+	workspaces?: import("../experimental/v2/types/workspace").WorkspacesConfig;
 }
 
 /** Define the default settings */
