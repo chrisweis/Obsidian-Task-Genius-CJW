@@ -2498,9 +2498,9 @@ export class TaskViewV2 extends ItemView {
 				effectiveSettings.v2FilterState = {};
 			}
 
+			// Do NOT persist ephemeral fields across workspaces
 			const payload = {
 				filters: this.viewState.filters,
-				searchQuery: this.viewState.searchQuery,
 				selectedProject: this.viewState.selectedProject,
 				advancedFilter: this.currentFilterState,
 				viewMode: this.viewState.viewMode,
@@ -2556,20 +2556,21 @@ export class TaskViewV2 extends ItemView {
 		if (saved) {
 			const savedState = saved;
 
-			// Restore filter state
+			// Restore filter state (ephemeral fields will be cleared below)
 			this.viewState.filters = savedState.filters || {};
-			this.viewState.searchQuery = savedState.searchQuery || "";
-			this.viewState.selectedProject = savedState.selectedProject || null;
 			this.currentFilterState = savedState.advancedFilter || null;
 			this.liveFilterState = savedState.advancedFilter || null;
 			this.viewState.viewMode = savedState.viewMode || "list";
 
+			// Clear only searchQuery on workspace restore
+			this.viewState.searchQuery = "";
+			// Keep selectedProject (and any advancedFilter changes caused by it)
 			// Update UI elements
 			if (this.filterInputEl) {
-				this.filterInputEl.value = this.viewState.searchQuery || "";
+				this.filterInputEl.value = "";
 			}
 
-			// Broadcast so any open filter UI reacts and header button shows reset
+			// Broadcast so any open filter UI reacts and header button shows reset (advanced only)
 			this.app.workspace.trigger(
 				"task-genius:filter-changed",
 				this.liveFilterState as any
@@ -2578,6 +2579,12 @@ export class TaskViewV2 extends ItemView {
 			// No saved state for this view in this workspace; clear advanced filter UI state
 			this.currentFilterState = null;
 			this.liveFilterState = null;
+
+			// Always clear searchQuery when switching workspace
+			this.viewState.searchQuery = "";
+			if (this.filterInputEl) {
+				this.filterInputEl.value = "";
+			}
 
 			// Let UI know filters are cleared
 			this.app.workspace.trigger("task-genius:filter-changed", {
