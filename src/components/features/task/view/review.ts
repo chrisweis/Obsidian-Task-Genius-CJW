@@ -331,8 +331,12 @@ export class ReviewComponent extends Component {
 				this.params.onTaskContextMenu(event, task);
 		};
 
-		// Load initial data
-		this.loadReviewSettings();
+		// Don't load initial data here - wait for setTasks to be called
+		// this.loadReviewSettings();
+		// Show empty state initially
+		this.renderEmptyTaskList(
+			t("Select a project to review its tasks.")
+		);
 	}
 
 	private createLeftColumn(parentEl: HTMLElement) {
@@ -470,6 +474,7 @@ export class ReviewComponent extends Component {
 	}
 
 	public setTasks(tasks: Task[]) {
+		console.log("ReviewComponent.setTasks called with", tasks.length, "tasks");
 		this.allTasks = tasks;
 		// Reload settings potentially, in case a project relevant to settings was added/removed
 		// Or just filter existing settings based on current tasks

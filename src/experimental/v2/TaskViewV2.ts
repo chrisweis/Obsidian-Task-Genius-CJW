@@ -156,9 +156,13 @@ export class TaskViewV2 extends ItemView {
 	private currentViewId: string = "inbox";
 	private isLoading: boolean = false;
 	private loadError: string | null = null;
+	private isInitializing: boolean = true;
+	private updateScheduled: boolean = false;
+	private pendingUpdates: Set<string> = new Set();
 
 	// Track the current active component for view mode switching
 	private currentActiveComponent: any = null;
+	private currentVisibleComponent: any = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: TaskProgressBarPlugin) {
 		super(leaf);
@@ -185,6 +189,7 @@ export class TaskViewV2 extends ItemView {
 
 	async onOpen() {
 		console.log("[TG-V2] onOpen started");
+		this.isInitializing = true;
 		this.contentEl.empty();
 		this.contentEl.toggleClass(
 			["task-genius-v2-view", "task-genius-view"],
@@ -204,7 +209,7 @@ export class TaskViewV2 extends ItemView {
 						await this.applyWorkspaceSettings();
 						this.restoreFilterStateFromWorkspace();
 						await this.loadTasks();
-						this.switchView(this.currentViewId);
+						this.scheduleUpdate('workspace-switch');
 					}
 				})
 			);
@@ -214,7 +219,7 @@ export class TaskViewV2 extends ItemView {
 					if (payload.workspaceId === this.workspaceId) {
 						await this.applyWorkspaceSettings();
 						await this.loadTasks();
-						this.switchView(this.currentViewId);
+						this.scheduleUpdate('workspace-overrides');
 					}
 				})
 			);
@@ -344,27 +349,30 @@ export class TaskViewV2 extends ItemView {
 				this.plugin.preloadedTasks.length
 			);
 			this.tasks = this.plugin.preloadedTasks;
-			console.log("[TG-V2] Applying filters");
-			this.applyFilters();
-			console.log(
-				"[TG-V2] After applying filters, tasks:",
-				this.tasks.length,
-				"filtered:",
-				this.filteredTasks.length
-			);
-			console.log("[TG-V2] Calling switchView with:", this.currentViewId);
-			this.switchView(this.currentViewId);
 		} else {
 			// If no preloaded tasks, load them
 			console.log("[TG-V2] No preloaded tasks, loading from dataflow");
-			await this.loadTasks();
+			await this.loadTasks(false); // Don't show loading state during initial load
 			console.log("[TG-V2] Loaded tasks:", this.tasks.length);
-			// Always call switchView to properly initialize the view
-			console.log("[TG-V2] Calling switchView with:", this.currentViewId);
-			this.switchView(this.currentViewId);
-			// Refresh top navigation (badge) after tasks are loaded
-			this.topNavigation?.refresh();
 		}
+
+		// Apply filters once
+		console.log("[TG-V2] Applying initial filters");
+		this.applyFilters();
+		console.log(
+			"[TG-V2] After applying filters, tasks:",
+			this.tasks.length,
+			"filtered:",
+			this.filteredTasks.length
+		);
+
+		// Single initial render
+		console.log("[TG-V2] Performing initial render with:", this.currentViewId);
+		// Keep isInitializing true during first switchView
+		this.switchView(this.currentViewId);
+
+		// Refresh top navigation (badge) after tasks are loaded
+		this.topNavigation?.refresh();
 
 		// Sidebar toggle in header and responsive collapse
 		this.createSidebarToggle();
@@ -373,6 +381,9 @@ export class TaskViewV2 extends ItemView {
 		// Create action buttons in Obsidian view header
 		console.log("[TG-V2] Creating action buttons");
 		this.createActionButtons();
+
+		// Mark initialization as complete (only set once, at the very end)
+		this.isInitializing = false;
 		console.log("[TG-V2] onOpen completed");
 	}
 
@@ -586,10 +597,9 @@ export class TaskViewV2 extends ItemView {
 			attr: { style: "display: none;" },
 		});
 
-		// Hide all components initially
+		// Hide all components initially (force hide all during initialization)
 		console.log("[TG-V2] Hiding all components initially");
-
-		this.hideAllComponents();
+		this.hideAllComponents(true); // Pass true to force hide all components
 		console.log("[TG-V2] initializeViewComponents completed");
 	}
 
@@ -639,44 +649,66 @@ export class TaskViewV2 extends ItemView {
 		} catch (_) {}
 	}
 
-	private hideAllComponents() {
-		this.contentComponent?.containerEl.hide();
-		this.forecastComponent?.containerEl.hide();
-		this.tagsComponent?.containerEl.hide();
-		this.projectsComponent?.containerEl.hide();
-		this.reviewComponent?.containerEl.hide();
-		this.habitComponent?.containerEl.hide();
-		this.calendarComponent?.containerEl.hide();
-		this.kanbanComponent?.containerEl.hide();
-		this.ganttComponent?.containerEl.hide();
-		this.viewComponentManager?.hideAllComponents();
+	private hideAllComponents(forceHideAll: boolean = false) {
+		// During initialization, we need to hide all components initially
+		// But during view switches, we can be smarter about it
+		const isInitialHide = this.isInitializing && forceHideAll;
 
-		// Hide two column views
-		this.twoColumnViewComponents.forEach((component) => {
-			component.containerEl.hide();
-		});
+		if (this.isInitializing && !forceHideAll) {
+			// Skip smart hiding during initialization unless forced
+			console.log("[TG-V2] Skipping hideAllComponents during initialization (not initial hide)");
+			return;
+		}
 
-		// Hide legacy containers
-		this.listContainer?.hide();
-		this.treeContainer?.hide();
+		// Smart hiding - only hide currently visible component (unless initial hide)
+		if (!isInitialHide && this.currentVisibleComponent) {
+			console.log("[TG-V2] Smart hide - only hiding current visible component");
+			this.currentVisibleComponent.containerEl?.hide();
+			this.currentVisibleComponent = null;
+		} else {
+			// Hide all components (during initial setup or when no current visible tracked)
+			console.log("[TG-V2] Hiding all components", isInitialHide ? "(initial hide)" : "");
+			this.contentComponent?.containerEl.hide();
+			this.forecastComponent?.containerEl.hide();
+			this.tagsComponent?.containerEl.hide();
+			this.projectsComponent?.containerEl.hide();
+			this.reviewComponent?.containerEl.hide();
+			this.habitComponent?.containerEl.hide();
+			this.calendarComponent?.containerEl.hide();
+			this.kanbanComponent?.containerEl.hide();
+			this.ganttComponent?.containerEl.hide();
+			this.viewComponentManager?.hideAllComponents();
+
+			// Hide two column views
+			this.twoColumnViewComponents.forEach((component) => {
+				component.containerEl.hide();
+			});
+
+			// Hide legacy containers
+			this.listContainer?.hide();
+			this.treeContainer?.hide();
+		}
 	}
 
 	private async registerDataflowListeners() {
 		// Add debounced view update to prevent rapid successive refreshes
 		const debouncedViewUpdate = debounce(async () => {
 			console.log("[TG-V2] debouncedViewUpdate triggered");
-			await this.loadTasks(false); // Don't show loading state for updates
-			this.switchView(this.currentViewId);
-			// Refresh top navigation (badge)
-			this.topNavigation?.refresh();
-			// Also refresh project list when tasks update
-			this.sidebar?.projectList?.refresh();
+			if (!this.isInitializing) {
+				await this.loadTasks(false); // Don't show loading state for updates
+				this.scheduleUpdate('dataflow');
+				// Refresh top navigation (badge)
+				this.topNavigation?.refresh();
+				// Also refresh project list when tasks update
+				this.sidebar?.projectList?.refresh();
+			}
 		}, 500);
 
 		// Add debounced filter application
 		const debouncedApplyFilter = debounce(() => {
-			this.applyFilters();
-			this.updateView();
+			if (!this.isInitializing) {
+				this.scheduleUpdate('filter-changed');
+			}
 		}, 400);
 
 		// Register dataflow event listeners
@@ -775,8 +807,8 @@ export class TaskViewV2 extends ItemView {
 	private async loadTasks(showLoading: boolean = true) {
 		try {
 			console.log("[TG-V2] loadTasks started, showLoading:", showLoading);
-			// Only show loading state if requested and we don't have tasks
-			if (showLoading && (!this.tasks || this.tasks.length === 0)) {
+			// Only show loading state if requested, not initializing, and we don't have tasks
+			if (showLoading && !this.isInitializing && (!this.tasks || this.tasks.length === 0)) {
 				console.log("[TG-V2] Setting isLoading to true");
 				this.isLoading = true;
 				this.loadError = null;
@@ -803,11 +835,16 @@ export class TaskViewV2 extends ItemView {
 				);
 			}
 
-			console.log("[TG-V2] Calling applyFilters from loadTasks");
-			this.applyFilters();
-			console.log(
-				`[TG-V2] After filtering: ${this.filteredTasks.length} tasks`
-			);
+			// Only apply filters if not initializing (during init, filters are applied after loadTasks)
+			if (!this.isInitializing) {
+				console.log("[TG-V2] Calling applyFilters from loadTasks");
+				this.applyFilters();
+				console.log(
+					`[TG-V2] After filtering: ${this.filteredTasks.length} tasks`
+				);
+			} else {
+				console.log("[TG-V2] Skipping filters during initialization");
+			}
 		} catch (error) {
 			console.error("[TG-V2] Failed to load tasks:", error);
 			this.loadError = error.message || "Failed to load tasks";
@@ -862,7 +899,8 @@ export class TaskViewV2 extends ItemView {
 		}
 
 		// B: 全局项目筛选 - 如果存在选中的项目，将其并入 v2Filters
-		if (this.viewState.selectedProject) {
+		// Skip project filter for Inbox view (Inbox tasks don't have projects by definition)
+		if (this.viewState.selectedProject && this.currentViewId !== "inbox") {
 			filterOptions.v2Filters = {
 				...(filterOptions.v2Filters || {}),
 				project: this.viewState.selectedProject,
@@ -926,8 +964,8 @@ export class TaskViewV2 extends ItemView {
 				});
 			}
 
-			// Project filter
-			if (filters.project) {
+			// Project filter - Skip for Inbox view (Inbox tasks don't have projects)
+			if (filters.project && this.currentViewId !== "inbox") {
 				this.filteredTasks = this.filteredTasks.filter(
 					(task) => task.metadata?.project === filters.project
 				);
@@ -989,8 +1027,17 @@ export class TaskViewV2 extends ItemView {
 			"[TG-V2] switchView called with:",
 			viewId,
 			"project:",
-			project
+			project,
+			"isInitializing:",
+			this.isInitializing
 		);
+
+		// Skip if we're switching to the same view (but never skip during initialization)
+		if (!this.isInitializing && this.currentViewId === viewId && !project && this.filteredTasks.length > 0) {
+			console.log("[TG-V2] Already on this view with data, skipping switchView");
+			return;
+		}
+
 		this.currentViewId = viewId;
 		this.sidebar?.setActiveItem(viewId);
 
@@ -1071,11 +1118,10 @@ export class TaskViewV2 extends ItemView {
 				"[TG-V2] Using renderContentWithViewMode for non-list/tree mode:",
 				this.viewState.viewMode
 			);
-			// BUGFIX: ensure filters are applied for the newly selected view (e.g., Today/Upcoming)
+			// Filters should already be applied before reaching here
 			console.log(
-				"[TG-V2] Applying filters before renderContentWithViewMode"
+				"[TG-V2] Rendering content with view mode, filters already applied"
 			);
-			this.applyFilters();
 			this.renderContentWithViewMode();
 			return;
 		}
@@ -1181,6 +1227,7 @@ export class TaskViewV2 extends ItemView {
 				targetComponent.containerEl?.style?.display
 			);
 			targetComponent.containerEl.show();
+			this.currentVisibleComponent = targetComponent; // Track visible component
 			console.log(
 				"[TG-V2] After show, display:",
 				targetComponent.containerEl?.style?.display
@@ -1194,32 +1241,54 @@ export class TaskViewV2 extends ItemView {
 				targetComponent.setViewMode(modeForComponent as any, project);
 			}
 
-			// Apply filters
-			console.log("[TG-V2] Applying filters");
-			this.applyFilters();
-			console.log(
-				"[TG-V2] After applyFilters, filtered tasks:",
-				this.filteredTasks.length
-			);
+			// Apply filters only if needed (not during initialization as they're already applied)
+			if (!this.isInitializing && (this.filteredTasks.length === 0 || project)) {
+				console.log("[TG-V2] Applying filters in switchView");
+				this.applyFilters();
+				console.log(
+					"[TG-V2] After applyFilters, filtered tasks:",
+					this.filteredTasks.length
+				);
+			} else {
+				console.log(
+					"[TG-V2] Skipping filter application, already have filtered tasks:",
+					this.filteredTasks.length
+				);
+			}
 
 			// Set tasks on the component
 			if (typeof targetComponent.setTasks === "function") {
-				// Use already computed filteredTasks from applyFilters() so text search,
-				// project selection, and advanced filters are consistently applied
-				let filteredTasksLocal = [...this.filteredTasks];
-				// Forecast view: remove badge-only items
-				if (viewId === "forecast") {
-					filteredTasksLocal = filteredTasksLocal.filter(
-						(task) => !(task as any).badge
+				// Special handling for components that need only all tasks (single parameter)
+				if (viewId === "review" || viewId === "tags") {
+					console.log(
+						`[TG-V2] Calling setTasks for ${viewId} with ALL tasks (unfiltered):`,
+						this.tasks.length,
+						"tasks, first few:",
+						this.tasks.slice(0, 3).map(t => ({ id: t.id, project: t.metadata?.project }))
 					);
+					// ReviewComponent and TagsComponent need all tasks to build their lists
+					// and only accept a single parameter
+					targetComponent.setTasks(this.tasks);
+				} else {
+					// Use already computed filteredTasks from applyFilters() so text search,
+					// project selection, and advanced filters are consistently applied
+					let filteredTasksLocal = [...this.filteredTasks];
+					// Forecast view: remove badge-only items
+					if (viewId === "forecast") {
+						filteredTasksLocal = filteredTasksLocal.filter(
+							(task) => !(task as any).badge
+						);
+					}
+					console.log(
+						"[TG-V2] Calling setTasks with filtered:",
+						filteredTasksLocal.length,
+						"all:",
+						this.tasks.length
+					);
+					// ContentComponent and others expect (filtered, all) parameters
+					// Note: "projects" view uses ContentComponent, not ProjectsComponent
+					targetComponent.setTasks(filteredTasksLocal, this.tasks);
 				}
-				console.log(
-					"[TG-V2] Calling setTasks with filtered:",
-					filteredTasksLocal.length,
-					"all:",
-					this.tasks.length
-				);
-				targetComponent.setTasks(filteredTasksLocal, this.tasks);
 				console.log("[TG-V2] setTasks completed");
 			}
 
@@ -1317,7 +1386,7 @@ export class TaskViewV2 extends ItemView {
 			"[TG-V2] renderContentWithViewMode called, viewMode:",
 			this.viewState.viewMode
 		);
-		// Hide all components first
+		// Hide current component (not all)
 		this.hideAllComponents();
 
 		// Don't apply filters here - they should already be applied
@@ -1349,6 +1418,7 @@ export class TaskViewV2 extends ItemView {
 				);
 				this.contentComponent.setTasks(this.filteredTasks, this.tasks);
 				this.currentActiveComponent = this.contentComponent;
+				this.currentVisibleComponent = this.contentComponent;
 				break;
 
 			case "kanban":
@@ -1365,6 +1435,7 @@ export class TaskViewV2 extends ItemView {
 				);
 				this.kanbanComponent.setTasks(this.filteredTasks);
 				this.currentActiveComponent = this.kanbanComponent;
+				this.currentVisibleComponent = this.kanbanComponent;
 				break;
 
 			case "calendar":
@@ -1388,6 +1459,7 @@ export class TaskViewV2 extends ItemView {
 				);
 				this.calendarComponent.setTasks(this.filteredTasks);
 				this.currentActiveComponent = this.calendarComponent;
+				this.currentVisibleComponent = this.calendarComponent;
 				console.log("[TG-V2] Calendar mode setup complete");
 				break;
 		}
@@ -1580,36 +1652,10 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private updateView() {
-		// This method is now mainly for updating after filter changes or task updates
-		// Initial load should use switchView directly
-
-		console.log(
-			"[TG-V2] updateView called, isLoading:",
-			this.isLoading,
-			"loadError:",
-			this.loadError
-		);
-
-		// Only show loading state if actually loading
-		if (this.isLoading) {
-			console.log("[TG-V2] Still loading, showing loading state");
-			this.renderLoadingState();
-			return;
+		// Schedule an update instead of immediately updating
+		if (!this.isInitializing) {
+			this.scheduleUpdate('updateView');
 		}
-
-		// Show error state if there's an error
-		if (this.loadError) {
-			console.log("[TG-V2] Showing error state");
-			this.renderErrorState();
-			return;
-		}
-
-		// Always refresh the current view with latest data
-		// This ensures components are shown and updated
-		console.log(
-			"[TG-V2] Updating view with current data, calling switchView"
-		);
-		this.switchView(this.currentViewId);
 	}
 
 	private refreshCurrentViewData() {
@@ -1667,8 +1713,13 @@ export class TaskViewV2 extends ItemView {
 		const target: any = (mapping as any)[viewId];
 		if (target?.setTasks) {
 			if (viewId === "projects" || this.isContentBasedView(viewId)) {
+				// ContentComponent expects (filtered, all, forceRefresh)
 				target.setTasks(this.filteredTasks, this.tasks, true);
+			} else if (viewId === "review" || viewId === "tags") {
+				// ReviewComponent and TagsComponent need all tasks
+				target.setTasks(this.tasks);
 			} else {
+				// Other components use filtered tasks
 				target.setTasks(this.filteredTasks);
 			}
 		} else if (target?.updateTasks) {
@@ -1888,14 +1939,14 @@ export class TaskViewV2 extends ItemView {
 		if (viewId === "new-task") {
 			new QuickCaptureModal(this.app, this.plugin).open();
 		} else {
+			console.log(`[TG-V2] handleNavigate to ${viewId}, current tasks:`, this.tasks.length);
 			this.switchView(viewId);
 		}
 	}
 
 	private handleSearch(query: string) {
 		this.viewState.searchQuery = query;
-		this.applyFilters();
-		this.updateView();
+		this.scheduleUpdate('search');
 		// Persist and update header UI
 		this.saveFilterStateToWorkspace();
 		this.updateActionButtons();
@@ -2469,6 +2520,73 @@ export class TaskViewV2 extends ItemView {
 			return completedSet.includes(lower);
 		} catch (_) {
 			return false;
+		}
+	}
+
+	private scheduleUpdate(source: string) {
+		console.log(`[TG-V2] Update scheduled from: ${source}`);
+		this.pendingUpdates.add(source);
+
+		if (!this.updateScheduled) {
+			this.updateScheduled = true;
+			// Use requestAnimationFrame for smoother updates
+			requestAnimationFrame(() => {
+				setTimeout(() => {
+					this.executeScheduledUpdate();
+				}, 100); // Small delay to batch multiple updates
+			});
+		}
+	}
+
+	private executeScheduledUpdate() {
+		if (this.isInitializing) {
+			console.log("[TG-V2] Skipping update during initialization");
+			this.updateScheduled = false;
+			this.pendingUpdates.clear();
+			return;
+		}
+
+		console.log(
+			"[TG-V2] Executing scheduled update for sources:",
+			Array.from(this.pendingUpdates)
+		);
+
+		// Check what kind of updates are pending
+		const needsFullReload = this.pendingUpdates.has('dataflow') ||
+							   this.pendingUpdates.has('workspace-switch');
+		const needsFilterRefresh = this.pendingUpdates.has('filter-changed') ||
+								  this.pendingUpdates.has('search');
+
+		this.pendingUpdates.clear();
+		this.updateScheduled = false;
+
+		// Handle loading/error states first
+		if (this.isLoading) {
+			console.log("[TG-V2] Still loading, showing loading state");
+			this.renderLoadingState();
+			return;
+		}
+
+		if (this.loadError) {
+			console.log("[TG-V2] Showing error state");
+			this.renderErrorState();
+			return;
+		}
+
+		// Apply filters if needed (only once)
+		if (needsFilterRefresh || needsFullReload) {
+			console.log("[TG-V2] Applying filters in scheduled update");
+			this.applyFilters();
+		}
+
+		// Refresh current view data without full re-render if possible
+		if (needsFilterRefresh && !needsFullReload) {
+			console.log("[TG-V2] Refreshing current view data only");
+			this.refreshCurrentViewData();
+		} else {
+			// Full view switch only when necessary
+			console.log("[TG-V2] Performing full view update");
+			this.switchView(this.currentViewId);
 		}
 	}
 

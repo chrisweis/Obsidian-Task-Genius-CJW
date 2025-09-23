@@ -575,6 +575,10 @@
 	.v2-search-container {
 		flex: 1;
 	}
+
+	.v2-nav-left .search-input-container {
+		width: 300px;
+	}
 }
 
 /* ===== Collapsed Sidebar (Rail) ===== */
