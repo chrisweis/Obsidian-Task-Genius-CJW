@@ -10,6 +10,13 @@ import {
 } from "@/experimental/v2/events/ui-event";
 import TaskProgressBarPlugin from "@/index";
 import { t } from "@/translations/helper";
+import { ViewConfigModal } from "@/components/features/task/view/modals/ViewConfigModal";
+import { TASK_SPECIFIC_VIEW_TYPE } from "@/pages/TaskSpecificView";
+import {
+	ViewConfig,
+	ViewFilterRule,
+	ViewMode,
+} from "@/common/setting-definition";
 
 export class V2Sidebar extends Component {
 	private containerEl: HTMLElement;
@@ -99,6 +106,10 @@ export class V2Sidebar extends Component {
 					this.setActiveItem(item.id);
 					this.onNavigate(item.id);
 				});
+				// Add context menu handler for rail button
+				btn.addEventListener("contextmenu", (e) => {
+					this.showViewContextMenu(e as MouseEvent, item.id);
+				});
 			});
 
 			// Other view icons with overflow menu when > 5
@@ -121,6 +132,10 @@ export class V2Sidebar extends Component {
 				btn.addEventListener("click", () => {
 					this.setActiveItem(item.id);
 					this.onNavigate(item.id);
+				});
+				// Add context menu handler for rail button
+				btn.addEventListener("contextmenu", (e) => {
+					this.showViewContextMenu(e as MouseEvent, item.id);
 				});
 			});
 			if (remainingOther.length > 0) {
@@ -197,7 +212,9 @@ export class V2Sidebar extends Component {
 		projectHeader.createSpan({ text: t("Projects") });
 
 		// Button container for tree toggle and sort
-		const buttonContainer = projectHeader.createDiv({ cls: "v2-project-header-buttons" });
+		const buttonContainer = projectHeader.createDiv({
+			cls: "v2-project-header-buttons",
+		});
 
 		// Tree/List toggle button
 		const treeToggleBtn = buttonContainer.createDiv({
@@ -205,14 +222,20 @@ export class V2Sidebar extends Component {
 			attr: { "aria-label": t("Toggle tree/list view") },
 		});
 		// Load saved view mode preference
-		this.isTreeView = this.plugin.app.loadLocalStorage("task-genius-project-view-mode") === "tree";
+		this.isTreeView =
+			this.plugin.app.loadLocalStorage(
+				"task-genius-project-view-mode"
+			) === "tree";
 		setIcon(treeToggleBtn, this.isTreeView ? "git-branch" : "list");
 
 		treeToggleBtn.addEventListener("click", () => {
 			this.isTreeView = !this.isTreeView;
 			setIcon(treeToggleBtn, this.isTreeView ? "git-branch" : "list");
 			// Save preference
-			this.plugin.app.saveLocalStorage("task-genius-project-view-mode", this.isTreeView ? "tree" : "list");
+			this.plugin.app.saveLocalStorage(
+				"task-genius-project-view-mode",
+				this.isTreeView ? "tree" : "list"
+			);
 			// Update project list view mode
 			if (this.projectList) {
 				(this.projectList as any).setViewMode?.(this.isTreeView);
@@ -490,6 +513,221 @@ export class V2Sidebar extends Component {
 		menu.showAtMouseEvent(event);
 	}
 
+	private showViewContextMenu(event: MouseEvent, viewId: string) {
+		event.preventDefault();
+		event.stopPropagation();
+
+		const menu = new Menu();
+
+		// Check if this is a primary view
+		const isPrimaryView = this.primaryItems.some(
+			(item) => item.id === viewId
+		);
+
+		// Open in new tab
+		menu.addItem((item) => {
+			item.setTitle(t("Open in new tab"))
+				.setIcon("plus-square")
+				.onClick(() => {
+					const leaf = this.plugin.app.workspace.getLeaf("tab");
+					leaf.setViewState({
+						type: TASK_SPECIFIC_VIEW_TYPE,
+						state: {
+							viewId: viewId,
+						},
+					});
+				});
+		});
+
+		// Open settings
+		menu.addItem((item) => {
+			item.setTitle(t("Open settings"))
+				.setIcon("settings")
+				.onClick(async () => {
+					// Special handling for habit view
+					if (viewId === "habit") {
+						(this.plugin.app as any).setting.open();
+						(this.plugin.app as any).setting.openTabById(
+							this.plugin.manifest.id
+						);
+						setTimeout(() => {
+							if (this.plugin.settingTab) {
+								this.plugin.settingTab.openTab("habit");
+							}
+						}, 100);
+						return;
+					}
+
+					// Normal handling for other views
+					const view = this.plugin.settings.viewConfiguration.find(
+						(v) => v.id === viewId
+					);
+					if (!view) {
+						return;
+					}
+					const currentRules = view?.filterRules || {};
+					new ViewConfigModal(
+						this.plugin.app,
+						this.plugin,
+						view,
+						currentRules,
+						(
+							updatedView: ViewConfig,
+							updatedRules: ViewFilterRule
+						) => {
+							const currentIndex =
+								this.plugin.settings.viewConfiguration.findIndex(
+									(v) => v.id === updatedView.id
+								);
+							if (currentIndex !== -1) {
+								this.plugin.settings.viewConfiguration[
+									currentIndex
+								] = {
+									...updatedView,
+									filterRules: updatedRules,
+								};
+								this.plugin.saveSettings();
+								// Re-render if visibility changed
+								if (view.visible !== updatedView.visible) {
+									this.render();
+								}
+								// Trigger view config changed event
+								this.plugin.app.workspace.trigger(
+									"task-genius:view-config-changed",
+									{ reason: "edit", viewId: viewId }
+								);
+							}
+						}
+					).open();
+				});
+		});
+
+		// Hide in sidebar - only for non-primary views
+		if (!isPrimaryView) {
+			// Copy view
+			menu.addItem((item) => {
+				item.setTitle(t("Copy view"))
+					.setIcon("copy")
+					.onClick(() => {
+						const view =
+							this.plugin.settings.viewConfiguration.find(
+								(v) => v.id === viewId
+							);
+						if (!view) {
+							return;
+						}
+						// Create a copy of the current view
+						new ViewConfigModal(
+							this.plugin.app,
+							this.plugin,
+							null, // null for create mode
+							null, // null for create mode
+							(
+								createdView: ViewConfig,
+								createdRules: ViewFilterRule
+							) => {
+								if (
+									!this.plugin.settings.viewConfiguration.some(
+										(v) => v.id === createdView.id
+									)
+								) {
+									this.plugin.settings.viewConfiguration.push(
+										{
+											...createdView,
+											filterRules: createdRules,
+										}
+									);
+									this.plugin.saveSettings();
+									// Re-render the sidebar to show the new view
+									this.render();
+									// Trigger view config changed event
+									this.plugin.app.workspace.trigger(
+										"task-genius:view-config-changed",
+										{
+											reason: "create",
+											viewId: createdView.id,
+										}
+									);
+									new Notice(
+										t("View copied successfully: ") +
+											createdView.name
+									);
+								} else {
+									new Notice(
+										t("Error: View ID already exists.")
+									);
+								}
+							},
+							view // Pass current view as copy source
+						).open();
+					});
+			});
+
+			menu.addItem((item) => {
+				item.setTitle(t("Hide in sidebar"))
+					.setIcon("eye-off")
+					.onClick(() => {
+						const view =
+							this.plugin.settings.viewConfiguration.find(
+								(v) => v.id === viewId
+							);
+						if (!view) {
+							return;
+						}
+						view.visible = false;
+						this.plugin.saveSettings();
+						// Remove the element from DOM instead of full re-render
+						const element = this.containerEl.querySelector(
+							`[data-view-id="${viewId}"]`
+						);
+						if (element) {
+							element.remove();
+						}
+						// Trigger view config changed event
+						this.plugin.app.workspace.trigger(
+							"task-genius:view-config-changed",
+							{ reason: "visibility", viewId: viewId }
+						);
+					});
+			});
+		}
+
+		// Delete (for custom views only)
+		const view = this.plugin.settings.viewConfiguration.find(
+			(v) => v.id === viewId
+		);
+		if (view?.type === "custom") {
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item.setTitle(t("Delete"))
+					.setIcon("trash")
+					.setWarning(true)
+					.onClick(() => {
+						this.plugin.settings.viewConfiguration =
+							this.plugin.settings.viewConfiguration.filter(
+								(v) => v.id !== viewId
+							);
+						this.plugin.saveSettings();
+						// Remove the element from DOM instead of full re-render
+						const element = this.containerEl.querySelector(
+							`[data-view-id="${viewId}"]`
+						);
+						if (element) {
+							element.remove();
+						}
+						// Trigger view config changed event
+						this.plugin.app.workspace.trigger(
+							"task-genius:view-config-changed",
+							{ reason: "delete", viewId: viewId }
+						);
+						new Notice(t("View deleted: ") + view.name);
+					});
+			});
+		}
+
+		menu.showAtMouseEvent(event);
+	}
+
 	private renderNavigationItems(
 		containerEl: HTMLElement,
 		items: V2NavigationItem[]
@@ -512,6 +750,10 @@ export class V2Sidebar extends Component {
 			itemEl.addEventListener("click", () => {
 				this.setActiveItem(item.id);
 				this.onNavigate(item.id);
+			});
+			// Add context menu handler
+			itemEl.addEventListener("contextmenu", (e) => {
+				this.showViewContextMenu(e as MouseEvent, item.id);
 			});
 		});
 	}
