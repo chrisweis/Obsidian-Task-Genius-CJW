@@ -11,6 +11,8 @@ export class TopNavigation {
 	private searchInput: HTMLInputElement;
 	private currentViewMode: ViewMode = "list";
 	private notificationCount = 0;
+	private availableModes: ViewMode[] = ["list", "kanban", "tree", "calendar"];
+	private viewTabsContainer: HTMLElement | null = null;
 
 	constructor(
 		containerEl: HTMLElement,
@@ -19,10 +21,18 @@ export class TopNavigation {
 		private onViewModeChange: (mode: ViewMode) => void,
 		private onFilterClick: () => void,
 		private onSortClick: () => void,
-		private onSettingsClick: () => void
+		private onSettingsClick: () => void,
+		availableModes?: ViewMode[]
 	) {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
+		if (availableModes) {
+			this.availableModes = availableModes;
+			// Ensure current mode is valid
+			if (!this.availableModes.includes(this.currentViewMode)) {
+				this.currentViewMode = this.availableModes[0] || "list";
+			}
+		}
 
 		this.updateNotificationCount();
 		this.render();
@@ -54,6 +64,15 @@ export class TopNavigation {
 		this.containerEl.empty();
 		this.containerEl.addClass("v2-top-navigation");
 
+		// Hide entire navigation if no view modes are available
+		if (this.availableModes.length === 0) {
+			this.containerEl.style.display = "none";
+			return;
+		}
+
+		// Show navigation when modes are available
+		this.containerEl.style.display = "";
+
 		// Left section - Search
 		const leftSection = this.containerEl.createDiv({ cls: "v2-nav-left" });
 		const searchContainer = leftSection.createDiv({
@@ -70,12 +89,10 @@ export class TopNavigation {
 		const centerSection = this.containerEl.createDiv({
 			cls: "v2-nav-center",
 		});
-		const viewTabs = centerSection.createDiv({ cls: "v2-view-tabs" });
 
-		this.createViewTab(viewTabs, "list", "list", "List");
-		this.createViewTab(viewTabs, "kanban", "layout-grid", "Kanban");
-		this.createViewTab(viewTabs, "tree", "git-branch", "Tree");
-		this.createViewTab(viewTabs, "calendar", "calendar", "Calendar");
+		// Render view tabs (we know modes are available at this point)
+		this.viewTabsContainer = centerSection.createDiv({ cls: "v2-view-tabs" });
+		this.renderViewTabs();
 
 		// Right section - Notifications and Settings
 		const rightSection = this.containerEl.createDiv({
@@ -220,5 +237,60 @@ export class TopNavigation {
 			this.searchInput.value = "";
 			this.onSearch("");
 		}
+	}
+
+	private renderViewTabs() {
+		if (!this.viewTabsContainer) return;
+
+		this.viewTabsContainer.empty();
+
+		const modeConfig: Record<ViewMode, { icon: string; label: string }> = {
+			list: { icon: "list", label: "List" },
+			kanban: { icon: "layout-grid", label: "Kanban" },
+			tree: { icon: "git-branch", label: "Tree" },
+			calendar: { icon: "calendar", label: "Calendar" },
+		};
+
+		for (const mode of this.availableModes) {
+			const config = modeConfig[mode];
+			if (config) {
+				this.createViewTab(this.viewTabsContainer, mode, config.icon, config.label);
+			}
+		}
+	}
+
+	public updateAvailableModes(modes: ViewMode[]) {
+		this.availableModes = modes;
+
+		// Hide entire navigation if no modes available
+		if (modes.length === 0) {
+			this.containerEl.style.display = "none";
+			return;
+		}
+
+		// Show navigation when modes are available
+		this.containerEl.style.display = "";
+
+		// If current mode is no longer available, switch to first available mode
+		if (!modes.includes(this.currentViewMode)) {
+			this.currentViewMode = modes[0];
+			// Notify about the mode change
+			this.onViewModeChange(this.currentViewMode);
+		}
+
+		// Update center section visibility (this should always be visible now since we handle empty modes above)
+		const centerSection = this.containerEl.querySelector(".v2-nav-center") as HTMLElement;
+		if (centerSection) {
+			centerSection.style.display = "";
+			// Re-render the view tabs
+			if (!this.viewTabsContainer) {
+				this.viewTabsContainer = centerSection.createDiv({ cls: "v2-view-tabs" });
+			}
+			this.renderViewTabs();
+		}
+	}
+
+	public getCurrentViewMode(): ViewMode {
+		return this.currentViewMode;
 	}
 }
