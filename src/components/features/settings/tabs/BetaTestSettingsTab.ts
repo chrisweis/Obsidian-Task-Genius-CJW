@@ -45,7 +45,7 @@ export function renderBetaTestSettingsTab(
 
 	// V2 View Settings
 	new Setting(containerEl)
-		.setName(t("Task Genius V2 Interface"))
+		.setName(t("Task Genius Fluent Interface"))
 		.setDesc(
 			t(
 				"Enable the experimental V2 interface with improved layout and workspace support"
@@ -78,8 +78,8 @@ export function renderBetaTestSettingsTab(
 		});
 
 	new Setting(containerEl)
-		.setName(t("Show V2 Ribbon Icon"))
-		.setDesc(t("Show a ribbon icon for quick access to V2 interface"))
+		.setName(t("Show Fluent(beta) View Ribbon Icon"))
+		.setDesc(t("Show a ribbon icon for quick access to Fluent interface"))
 		.addToggle((toggle) => {
 			toggle
 				.setValue(

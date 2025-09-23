@@ -16,7 +16,7 @@ import { ListConfigModal } from "@/components/ui/modals/ListConfigModal";
  */
 export function createFileSourceSettings(
 	containerEl: HTMLElement,
-	plugin: TaskProgressBarPlugin,
+	plugin: TaskProgressBarPlugin
 ): void {
 	const config = plugin.settings?.fileSource;
 
@@ -47,7 +47,7 @@ export function createFileSourceSettings(
 function createEnableToggle(
 	containerEl: HTMLElement,
 	plugin: TaskProgressBarPlugin,
-	config: FileSourceConfiguration,
+	config: FileSourceConfiguration
 ): void {
 	// Don't create duplicate header since we're now embedded in IndexSettingsTab
 
@@ -55,8 +55,8 @@ function createEnableToggle(
 		.setName(t("Enable File Task"))
 		.setDesc(
 			t(
-				"Allow files to be recognized and treated as tasks based on their metadata, tags, or file paths. This provides advanced recognition strategies beyond simple metadata parsing.",
-			),
+				"Allow files to be recognized and treated as tasks based on their metadata, tags, or file paths. This provides advanced recognition strategies beyond simple metadata parsing."
+			)
 		)
 		.addToggle((toggle) =>
 			toggle.setValue(config.enabled).onChange(async (value) => {
@@ -66,7 +66,7 @@ function createEnableToggle(
 				// Refresh the settings display
 				containerEl.empty();
 				createFileSourceSettings(containerEl, plugin);
-			}),
+			})
 		);
 }
 
@@ -76,28 +76,28 @@ function createEnableToggle(
 function createRecognitionStrategiesSection(
 	containerEl: HTMLElement,
 	plugin: TaskProgressBarPlugin,
-	config: FileSourceConfiguration,
+	config: FileSourceConfiguration
 ): void {
 	new Setting(containerEl)
 		.setHeading()
 		.setName(t("Recognition Strategies"))
 		.setDesc(
 			t(
-				"Configure how files are recognized as tasks. At least one strategy must be enabled.",
-			),
+				"Configure how files are recognized as tasks. At least one strategy must be enabled."
+			)
 		);
 
 	// Metadata strategy
 	const metadataContainer = containerEl.createDiv(
-		"file-source-strategy-container",
+		"file-source-strategy-container"
 	);
 
 	new Setting(metadataContainer)
 		.setName(t("Metadata-based Recognition"))
 		.setDesc(
 			t(
-				"Recognize files as tasks if they have specific frontmatter fields",
-			),
+				"Recognize files as tasks if they have specific frontmatter fields"
+			)
 		)
 		.addToggle((toggle) =>
 			toggle
@@ -109,7 +109,7 @@ function createRecognitionStrategiesSection(
 					// Refresh to show/hide fields
 					containerEl.empty();
 					createFileSourceSettings(containerEl, plugin);
-				}),
+				})
 		);
 
 	if (config.recognitionStrategies.metadata.enabled) {
@@ -117,12 +117,14 @@ function createRecognitionStrategiesSection(
 			.setName(t("Task Fields"))
 			.setDesc(
 				t(
-					"Configure metadata fields that indicate a file should be treated as a task (e.g., dueDate, status, priority)",
-				),
+					"Configure metadata fields that indicate a file should be treated as a task (e.g., dueDate, status, priority)"
+				)
 			)
 			.addButton((button) => {
 				const getTaskFields = () => {
-					return config.recognitionStrategies.metadata.taskFields ?? [];
+					return (
+						config.recognitionStrategies.metadata.taskFields ?? []
+					);
 				};
 
 				const updateButtonText = () => {
@@ -135,7 +137,7 @@ function createRecognitionStrategiesSection(
 								interpolation: {
 									count: fields.length.toString(),
 								},
-							}),
+							})
 						);
 					}
 				};
@@ -145,7 +147,7 @@ function createRecognitionStrategiesSection(
 					new ListConfigModal(plugin, {
 						title: t("Configure Task Fields"),
 						description: t(
-							"Add metadata fields that indicate a file should be treated as a task (e.g., dueDate, status, priority)",
+							"Add metadata fields that indicate a file should be treated as a task (e.g., dueDate, status, priority)"
 						),
 						placeholder: t("Enter metadata field name"),
 						values: getTaskFields(),
@@ -156,9 +158,9 @@ function createRecognitionStrategiesSection(
 							updateButtonText();
 							new Notice(
 								t(
-									"Task fields updated. Rebuild the task index to apply to existing files.",
+									"Task fields updated. Rebuild the task index to apply to existing files."
 								),
-								6000,
+								6000
 							);
 						},
 					}).open();
@@ -169,25 +171,25 @@ function createRecognitionStrategiesSection(
 			.setName(t("Require All Fields"))
 			.setDesc(
 				t(
-					"Require all specified fields to be present (otherwise any field is sufficient)",
-				),
+					"Require all specified fields to be present (otherwise any field is sufficient)"
+				)
 			)
 			.addToggle((toggle) =>
 				toggle
 					.setValue(
-						config.recognitionStrategies.metadata.requireAllFields,
+						config.recognitionStrategies.metadata.requireAllFields
 					)
 					.onChange(async (value) => {
 						plugin.settings.fileSource.recognitionStrategies.metadata.requireAllFields =
 							value;
 						await plugin.saveSettings();
-					}),
+					})
 			);
 	}
 
 	// Tag strategy
 	const tagContainer = containerEl.createDiv(
-		"file-source-strategy-container",
+		"file-source-strategy-container"
 	);
 
 	new Setting(tagContainer)
@@ -203,7 +205,7 @@ function createRecognitionStrategiesSection(
 					// Refresh to show/hide fields
 					containerEl.empty();
 					createFileSourceSettings(containerEl, plugin);
-				}),
+				})
 		);
 
 	if (config.recognitionStrategies.tags.enabled) {
@@ -211,8 +213,8 @@ function createRecognitionStrategiesSection(
 			.setName(t("Task Tags"))
 			.setDesc(
 				t(
-					"Configure tags that indicate a file should be treated as a task (e.g., #task, #todo, #actionable)",
-				),
+					"Configure tags that indicate a file should be treated as a task (e.g., #task, #todo, #actionable)"
+				)
 			)
 			.addButton((button) => {
 				const getTaskTags = () => {
@@ -229,7 +231,7 @@ function createRecognitionStrategiesSection(
 								interpolation: {
 									count: tags.length.toString(),
 								},
-							}),
+							})
 						);
 					}
 				};
@@ -239,7 +241,7 @@ function createRecognitionStrategiesSection(
 					new ListConfigModal(plugin, {
 						title: t("Configure Task Tags"),
 						description: t(
-							"Add tags that indicate a file should be treated as a task (e.g., #task, #todo, #actionable)",
+							"Add tags that indicate a file should be treated as a task (e.g., #task, #todo, #actionable)"
 						),
 						placeholder: t("Enter tag (e.g., #task)"),
 						values: getTaskTags(),
@@ -250,9 +252,9 @@ function createRecognitionStrategiesSection(
 							updateButtonText();
 							new Notice(
 								t(
-									"Task tags updated. Rebuild the task index to apply to existing files.",
+									"Task tags updated. Rebuild the task index to apply to existing files."
 								),
-								6000,
+								6000
 							);
 						},
 					}).open();
@@ -273,14 +275,14 @@ function createRecognitionStrategiesSection(
 							plugin.settings.fileSource.recognitionStrategies.tags.matchMode =
 								value;
 							await plugin.saveSettings();
-						},
-					),
+						}
+					)
 			);
 	}
 
 	// Path strategy
 	const pathContainer = containerEl.createDiv(
-		"file-source-strategy-container",
+		"file-source-strategy-container"
 	);
 
 	new Setting(pathContainer)
@@ -296,7 +298,7 @@ function createRecognitionStrategiesSection(
 					// Refresh settings interface
 					containerEl.empty();
 					createFileSourceSettings(containerEl, plugin);
-				}),
+				})
 		);
 
 	if (config.recognitionStrategies.paths.enabled) {
@@ -304,8 +306,8 @@ function createRecognitionStrategiesSection(
 			.setName(t("Task Paths"))
 			.setDesc(
 				t(
-					"Configure paths that contain task files (e.g., Projects/, Tasks/2024/, Work/TODO/)",
-				),
+					"Configure paths that contain task files (e.g., Projects/, Tasks/2024/, Work/TODO/)"
+				)
 			)
 			.addButton((button) => {
 				const getTaskPaths = () => {
@@ -322,7 +324,7 @@ function createRecognitionStrategiesSection(
 								interpolation: {
 									count: paths.length.toString(),
 								},
-							}),
+							})
 						);
 					}
 				};
@@ -332,9 +334,11 @@ function createRecognitionStrategiesSection(
 					new ListConfigModal(plugin, {
 						title: t("Configure Task Paths"),
 						description: t(
-							"Add paths that contain task files (e.g., Projects/, Tasks/2024/, Work/TODO/)",
+							"Add paths that contain task files (e.g., Projects/, Tasks/2024/, Work/TODO/)"
 						),
-						placeholder: t("Enter path (e.g., Projects/, Tasks/**/*.md)"),
+						placeholder: t(
+							"Enter path (e.g., Projects/, Tasks/**/*.md)"
+						),
 						values: getTaskPaths(),
 						onSave: async (values) => {
 							plugin.settings.fileSource.recognitionStrategies.paths.taskPaths =
@@ -343,9 +347,9 @@ function createRecognitionStrategiesSection(
 							updateButtonText();
 							new Notice(
 								t(
-									"Task paths updated. Rebuild the task index to apply to existing files.",
+									"Task paths updated. Rebuild the task index to apply to existing files."
 								),
-								6000,
+								6000
 							);
 						},
 					}).open();
@@ -359,11 +363,11 @@ function createRecognitionStrategiesSection(
 				dropdown
 					.addOption(
 						"prefix",
-						t("Prefix (e.g., Projects/ matches Projects/App.md)"),
+						t("Prefix (e.g., Projects/ matches Projects/App.md)")
 					)
 					.addOption(
 						"glob",
-						t("Glob pattern (e.g., Projects/**/*.md)"),
+						t("Glob pattern (e.g., Projects/**/*.md)")
 					)
 					.addOption("regex", t("Regular expression (advanced)"))
 					.setValue(config.recognitionStrategies.paths.matchMode)
@@ -374,7 +378,7 @@ function createRecognitionStrategiesSection(
 						// Refresh to show updated examples
 						containerEl.empty();
 						createFileSourceSettings(containerEl, plugin);
-					}),
+					})
 			);
 
 		// Add examples based on current mode
@@ -433,7 +437,7 @@ function createRecognitionStrategiesSection(
 function createFileTaskPropertiesSection(
 	containerEl: HTMLElement,
 	plugin: TaskProgressBarPlugin,
-	config: FileSourceConfiguration,
+	config: FileSourceConfiguration
 ): void {
 	new Setting(containerEl)
 		.setHeading()
@@ -443,8 +447,8 @@ function createFileTaskPropertiesSection(
 		.setName(t("Task Title Source"))
 		.setDesc(
 			t(
-				"What should be used as the task title when a file becomes a task",
-			),
+				"What should be used as the task title when a file becomes a task"
+			)
 		)
 		.addDropdown((dropdown) =>
 			dropdown
@@ -462,8 +466,8 @@ function createFileTaskPropertiesSection(
 						// Refresh to show/hide custom field input
 						containerEl.empty();
 						createFileSourceSettings(containerEl, plugin);
-					},
-				),
+					}
+				)
 		);
 
 	if (config.fileTaskProperties.contentSource === "custom") {
@@ -474,13 +478,13 @@ function createFileTaskPropertiesSection(
 				text
 					.setPlaceholder("taskContent")
 					.setValue(
-						config.fileTaskProperties.customContentField || "",
+						config.fileTaskProperties.customContentField || ""
 					)
 					.onChange(async (value) => {
 						plugin.settings.fileSource.fileTaskProperties.customContentField =
 							value;
 						await plugin.saveSettings();
-					}),
+					})
 			);
 	}
 
@@ -489,8 +493,8 @@ function createFileTaskPropertiesSection(
 			.setName(t("Strip File Extension"))
 			.setDesc(
 				t(
-					"Remove the .md extension from filename when using as task content",
-				),
+					"Remove the .md extension from filename when using as task content"
+				)
 			)
 			.addToggle((toggle) =>
 				toggle
@@ -499,7 +503,7 @@ function createFileTaskPropertiesSection(
 						plugin.settings.fileSource.fileTaskProperties.stripExtension =
 							value;
 						await plugin.saveSettings();
-					}),
+					})
 			);
 	}
 
@@ -507,8 +511,8 @@ function createFileTaskPropertiesSection(
 		.setName(t("Prefer Frontmatter Title"))
 		.setDesc(
 			t(
-				"When updating task content, prefer updating frontmatter title over renaming the file. This protects the original filename.",
-			),
+				"When updating task content, prefer updating frontmatter title over renaming the file. This protects the original filename."
+			)
 		)
 		.addToggle((toggle) =>
 			toggle
@@ -517,7 +521,7 @@ function createFileTaskPropertiesSection(
 					plugin.settings.fileSource.fileTaskProperties.preferFrontmatterTitle =
 						value;
 					await plugin.saveSettings();
-				}),
+				})
 		);
 
 	new Setting(containerEl)
@@ -531,7 +535,7 @@ function createFileTaskPropertiesSection(
 					plugin.settings.fileSource.fileTaskProperties.defaultStatus =
 						value;
 					await plugin.saveSettings();
-				}),
+				})
 		);
 }
 
@@ -541,28 +545,28 @@ function createFileTaskPropertiesSection(
 function createStatusMappingSection(
 	containerEl: HTMLElement,
 	plugin: TaskProgressBarPlugin,
-	config: FileSourceConfiguration,
+	config: FileSourceConfiguration
 ): void {
 	new Setting(containerEl)
 		.setName(t("Status Mapping"))
 		.setDesc(
 			t(
-				"Map between human-readable metadata values (e.g., 'completed') and task symbols (e.g., 'x').",
-			),
+				"Map between human-readable metadata values (e.g., 'completed') and task symbols (e.g., 'x')."
+			)
 		);
 
 	new Setting(containerEl)
 		.setName(t("Enable Status Mapping"))
 		.setDesc(
 			t(
-				"Automatically convert between metadata status values and task symbols",
-			),
+				"Automatically convert between metadata status values and task symbols"
+			)
 		)
 		.addToggle((toggle) =>
 			toggle
 				.setValue(config.statusMapping?.enabled || false)
 				.onChange(async (value) => {
-					if(!config.statusMapping) {
+					if (!config.statusMapping) {
 						config.statusMapping = {
 							enabled: false,
 							metadataToSymbol: {},
@@ -578,67 +582,101 @@ function createStatusMappingSection(
 					// Refresh to show/hide mapping options
 					containerEl.empty();
 					createFileSourceSettings(containerEl, plugin);
-				}),
+				})
 		);
 
 	if (config.statusMapping && config.statusMapping.enabled) {
-
-			// Sync mapping from Task Status Settings
-			new Setting(containerEl)
-				.setName(t("Sync from Task Status Settings"))
-				.setDesc(t("Populate FileSource status mapping from your checkbox status configuration"))
-				.addButton((button) =>
-					button
-						.setButtonText(t("Sync now"))
-						.setCta()
-						.onClick(async () => {
-							try {
-								const orchestrator = (plugin as any).dataflowOrchestrator;
-								if (orchestrator?.updateSettings) {
-									// Delegate to orchestrator so in-memory FileSource mapping syncs immediately
-									orchestrator.updateSettings(plugin.settings);
-									new Notice(t("FileSource status mapping synced"));
-								} else {
-									// Fallback: derive symbol->metadata mapping from Task Status settings
-									const taskStatuses = (plugin.settings.taskStatuses || {}) as Record<string, string>;
-									const symbolToType: Record<string, string> = {};
-									for (const [type, symbols] of Object.entries(taskStatuses)) {
-										const list = String(symbols).split("|").filter(Boolean);
-										for (const sym of list) {
-											if (sym === "/>") { symbolToType["/"] = type; symbolToType[">"] = type; continue; }
-											if (sym.length === 1) symbolToType[sym] = type; else {
-												for (const ch of sym) symbolToType[ch] = type;
-											}
+		// Sync mapping from Task Status Settings
+		new Setting(containerEl)
+			.setName(t("Sync from Task Status Settings"))
+			.setDesc(
+				t(
+					"Populate FileSource status mapping from your checkbox status configuration"
+				)
+			)
+			.addButton((button) =>
+				button
+					.setButtonText(t("Sync now"))
+					.setCta()
+					.onClick(async () => {
+						try {
+							const orchestrator = (plugin as any)
+								.dataflowOrchestrator;
+							if (orchestrator?.updateSettings) {
+								// Delegate to orchestrator so in-memory FileSource mapping syncs immediately
+								orchestrator.updateSettings(plugin.settings);
+								new Notice(
+									t("FileSource status mapping synced")
+								);
+							} else {
+								// Fallback: derive symbol->metadata mapping from Task Status settings
+								const taskStatuses = (plugin.settings
+									.taskStatuses || {}) as Record<
+									string,
+									string
+								>;
+								const symbolToType: Record<string, string> = {};
+								for (const [type, symbols] of Object.entries(
+									taskStatuses
+								)) {
+									const list = String(symbols)
+										.split("|")
+										.filter(Boolean);
+									for (const sym of list) {
+										if (sym === "/>") {
+											symbolToType["/"] = type;
+											symbolToType[">"] = type;
+											continue;
+										}
+										if (sym.length === 1)
+											symbolToType[sym] = type;
+										else {
+											for (const ch of sym)
+												symbolToType[ch] = type;
 										}
 									}
-									const typeToMetadata: Record<string, string> = {
-										completed: "completed",
-										inProgress: "in-progress",
-										planned: "planned",
-										abandoned: "cancelled",
-										notStarted: "not-started",
-									};
-									plugin.settings.fileSource.statusMapping = plugin.settings.fileSource.statusMapping || {
+								}
+								const typeToMetadata: Record<string, string> = {
+									completed: "completed",
+									inProgress: "in-progress",
+									planned: "planned",
+									abandoned: "cancelled",
+									notStarted: "not-started",
+								};
+								plugin.settings.fileSource.statusMapping =
+									plugin.settings.fileSource
+										.statusMapping || {
 										enabled: true,
 										metadataToSymbol: {},
 										symbolToMetadata: {},
 										autoDetect: true,
 										caseSensitive: false,
 									};
-									plugin.settings.fileSource.statusMapping.symbolToMetadata = {};
-									for (const [symbol, type] of Object.entries(symbolToType)) {
-										const md = typeToMetadata[type];
-										if (md) plugin.settings.fileSource.statusMapping.symbolToMetadata[symbol] = md;
-									}
-									await plugin.saveSettings();
-									new Notice(t("FileSource status mapping synced"));
+								plugin.settings.fileSource.statusMapping.symbolToMetadata =
+									{};
+								for (const [symbol, type] of Object.entries(
+									symbolToType
+								)) {
+									const md = typeToMetadata[type];
+									if (md)
+										plugin.settings.fileSource.statusMapping.symbolToMetadata[
+											symbol
+										] = md;
 								}
-							} catch (e) {
-								console.error("Failed to sync FileSource status mapping:", e);
-								new Notice(t("Failed to sync mapping"));
+								await plugin.saveSettings();
+								new Notice(
+									t("FileSource status mapping synced")
+								);
 							}
-						})
-				);
+						} catch (e) {
+							console.error(
+								"Failed to sync FileSource status mapping:",
+								e
+							);
+							new Notice(t("Failed to sync mapping"));
+						}
+					})
+			);
 
 		new Setting(containerEl)
 			.setName(t("Case Sensitive Matching"))
@@ -650,7 +688,7 @@ function createStatusMappingSection(
 						plugin.settings.fileSource.statusMapping.caseSensitive =
 							value;
 						await plugin.saveSettings();
-					}),
+					})
 			);
 
 		new Setting(containerEl)
@@ -663,12 +701,12 @@ function createStatusMappingSection(
 						plugin.settings.fileSource.statusMapping.autoDetect =
 							value;
 						await plugin.saveSettings();
-					}),
+					})
 			);
 
 		// Common status mappings display
 		const mappingsContainer = containerEl.createDiv(
-			"file-source-status-mappings",
+			"file-source-status-mappings"
 		);
 		mappingsContainer.createEl("h5", { text: t("Common Mappings") });
 
@@ -709,7 +747,7 @@ function createStatusMappingSection(
 
 		const customMappingDesc = containerEl.createEl("p");
 		customMappingDesc.textContent = t(
-			"Add custom status mappings for your workflow.",
+			"Add custom status mappings for your workflow."
 		);
 
 		// Add mapping input
@@ -739,7 +777,7 @@ function createStatusMappingSection(
 							text.setValue("");
 						}
 					}
-				}),
+				})
 			)
 			.addButton((button) =>
 				button
@@ -748,24 +786,27 @@ function createStatusMappingSection(
 					.onClick(() => {
 						// Trigger the text change event with the current value
 						const textInput = containerEl.querySelector(
-							".setting-item:last-child input[type='text']",
+							".setting-item:last-child input[type='text']"
 						) as HTMLInputElement;
 						if (textInput) {
 							textInput.dispatchEvent(new Event("change"));
 						}
-					}),
+					})
 			);
 
 		// Note about Task Status Settings integration
 		const integrationNote = containerEl.createDiv(
-			"setting-item-description",
+			"setting-item-description"
 		);
-		integrationNote.innerHTML =
-			`<strong>${t("Note:")}</strong> ` +
-			t("Status mappings work with your Task Status Settings. ") +
-			t(
-				"The symbols defined here should match those in your checkbox status configuration.",
-			);
+		integrationNote.createEl("strong", { text: t("Note:") });
+		integrationNote.createEl("span", {
+			text:
+				" " +
+				t("Status mappings work with your Task Status Settings. ") +
+				t(
+					"The symbols defined here should match those in your checkbox status configuration."
+				),
+		});
 	}
 }
 
@@ -775,7 +816,7 @@ function createStatusMappingSection(
 function createPerformanceSection(
 	containerEl: HTMLElement,
 	plugin: TaskProgressBarPlugin,
-	config: FileSourceConfiguration,
+	config: FileSourceConfiguration
 ): void {
 	new Setting(containerEl).setHeading().setName(t("Performance"));
 
@@ -789,7 +830,7 @@ function createPerformanceSection(
 					plugin.settings.fileSource.performance.enableCaching =
 						value;
 					await plugin.saveSettings();
-				}),
+				})
 		);
 
 	// Note: Worker Processing setting has been moved to IndexSettingsTab.ts > Performance Configuration section
@@ -797,7 +838,11 @@ function createPerformanceSection(
 
 	new Setting(containerEl)
 		.setName(t("Cache TTL"))
-		.setDesc(t("Time-to-live for cached results in milliseconds (default: 300000 = 5 minutes)"))
+		.setDesc(
+			t(
+				"Time-to-live for cached results in milliseconds (default: 300000 = 5 minutes)"
+			)
+		)
 		.addText((text) =>
 			text
 				.setPlaceholder("300000")
@@ -806,7 +851,7 @@ function createPerformanceSection(
 					const ttl = parseInt(value) || 300000;
 					plugin.settings.fileSource.performance.cacheTTL = ttl;
 					await plugin.saveSettings();
-				}),
+				})
 		);
 }
 
@@ -816,7 +861,7 @@ function createPerformanceSection(
 function createAdvancedSection(
 	containerEl: HTMLElement,
 	plugin: TaskProgressBarPlugin,
-	config: FileSourceConfiguration,
+	config: FileSourceConfiguration
 ): void {
 	new Setting(containerEl).setHeading().setName(t("Advanced"));
 

@@ -160,15 +160,28 @@
 	color: var(--text-muted);
 }
 
+.v2-project-header-buttons {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
 .v2-add-project-btn,
-.v2-sort-project-btn {
+.v2-sort-project-btn,
+.v2-tree-toggle-btn {
 	cursor: pointer;
 	color: var(--text-muted);
 	transition: color 0.15s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
 }
 
 .v2-add-project-btn:hover,
-.v2-sort-project-btn:hover {
+.v2-sort-project-btn:hover,
+.v2-tree-toggle-btn:hover {
 	color: var(--text-normal);
 }
 
@@ -281,6 +294,85 @@
 .v2-project-count {
 	font-size: 12px;
 	color: var(--text-muted);
+}
+
+/* Tree View Styles */
+.v2-project-list.is-tree-view .v2-project-item {
+	transition: all 0.15s ease;
+}
+
+.v2-project-chevron {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	margin-right: 4px;
+	cursor: pointer;
+	color: var(--text-muted);
+	transition: transform 0.15s ease;
+	flex-shrink: 0;
+}
+
+.v2-project-chevron:hover {
+	color: var(--text-normal);
+}
+
+.v2-project-chevron svg {
+	width: 12px;
+	height: 12px;
+}
+
+.v2-project-chevron-spacer {
+	width: 16px;
+	height: 16px;
+	margin-right: 4px;
+	flex-shrink: 0;
+}
+
+/* Tree indentation */
+.v2-project-list.is-tree-view .v2-project-item[data-level="1"] {
+	padding-left: 28px;
+}
+
+.v2-project-list.is-tree-view .v2-project-item[data-level="2"] {
+	padding-left: 48px;
+}
+
+.v2-project-list.is-tree-view .v2-project-item[data-level="3"] {
+	padding-left: 68px;
+}
+
+/* Tree hierarchy lines (optional - can be added later) */
+.v2-project-list.is-tree-view .v2-project-item::before {
+	content: "";
+	position: absolute;
+	left: 8px;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	background: var(--background-modifier-border);
+	opacity: 0;
+	transition: opacity 0.15s;
+}
+
+.v2-project-list.is-tree-view
+	.v2-project-item[data-level]:not([data-level="0"]):hover::before {
+	opacity: 0.3;
+}
+
+/* Virtual project nodes (intermediate folders) */
+.v2-project-item.is-virtual .v2-project-name {
+	font-style: italic;
+	opacity: 0.85;
+}
+
+.v2-project-item.is-virtual .v2-project-color {
+	opacity: 0.6;
+}
+
+.v2-project-item.is-virtual:hover {
+	background-color: var(--background-modifier-hover);
 }
 
 /* Main Container */
@@ -535,4 +627,25 @@
 .v2-rail-btn.is-active {
 	background-color: var(--background-modifier-active-hover);
 	color: var(--text-normal);
+}
+
+.tg-beta {
+	position: relative;
+}
+
+.tg-beta::after {
+	content: "beta";
+	font-size: 0.44em;
+	background: var(--color-accent);
+	color: var(--text-on-accent-inverted);
+	padding-left: 2px;
+	padding-right: 2px;
+	font-weight: bold;
+	margin-left: 4px;
+	position: absolute;
+	top: -1px;
+	right: -2px;
+	border-radius: 2px;
+	text-transform: uppercase;
+	padding-top: 1px;
 }

@@ -18,6 +18,7 @@ export class V2Sidebar extends Component {
 	public projectList: ProjectList;
 	private collapsed: boolean = false;
 	private currentWorkspaceId: string;
+	private isTreeView: boolean = false;
 
 	private primaryItems: V2NavigationItem[] = [
 		{ id: "inbox", label: t("Inbox"), icon: "inbox", type: "primary" },
@@ -194,7 +195,32 @@ export class V2Sidebar extends Component {
 		});
 
 		projectHeader.createSpan({ text: t("Projects") });
-		const sortProjectBtn = projectHeader.createDiv({
+
+		// Button container for tree toggle and sort
+		const buttonContainer = projectHeader.createDiv({ cls: "v2-project-header-buttons" });
+
+		// Tree/List toggle button
+		const treeToggleBtn = buttonContainer.createDiv({
+			cls: "v2-tree-toggle-btn",
+			attr: { "aria-label": t("Toggle tree/list view") },
+		});
+		// Load saved view mode preference
+		this.isTreeView = this.plugin.app.loadLocalStorage("task-genius-project-view-mode") === "tree";
+		setIcon(treeToggleBtn, this.isTreeView ? "git-branch" : "list");
+
+		treeToggleBtn.addEventListener("click", () => {
+			this.isTreeView = !this.isTreeView;
+			setIcon(treeToggleBtn, this.isTreeView ? "git-branch" : "list");
+			// Save preference
+			this.plugin.app.saveLocalStorage("task-genius-project-view-mode", this.isTreeView ? "tree" : "list");
+			// Update project list view mode
+			if (this.projectList) {
+				(this.projectList as any).setViewMode?.(this.isTreeView);
+			}
+		});
+
+		// Sort button
+		const sortProjectBtn = buttonContainer.createDiv({
 			cls: "v2-sort-project-btn",
 			attr: { "aria-label": t("Sort projects") },
 		});
@@ -209,7 +235,8 @@ export class V2Sidebar extends Component {
 		this.projectList = new ProjectList(
 			projectListEl,
 			this.plugin,
-			this.onProjectSelect
+			this.onProjectSelect,
+			this.isTreeView
 		);
 		// Add ProjectList as a child component
 		this.addChild(this.projectList);

@@ -2,6 +2,7 @@ import { WorkspaceLeaf } from "obsidian";
 import TaskProgressBarPlugin from "../../index";
 import { TaskViewV2, TASK_VIEW_V2_TYPE } from "./TaskViewV2";
 import "./styles/v2.css";
+import { t } from "@/translations/helper";
 
 export class V2Integration {
 	private plugin: TaskProgressBarPlugin;
@@ -11,7 +12,7 @@ export class V2Integration {
 	}
 
 	/**
-	 * Register V2 view and commands
+	 * Register Fluent view and commands
 	 */
 	public register() {
 		// Only register if experimental features are enabled
@@ -19,16 +20,16 @@ export class V2Integration {
 			return;
 		}
 
-		// Register the V2 view
+		// Register the Fluent view
 		this.plugin.registerView(
 			TASK_VIEW_V2_TYPE,
 			(leaf: WorkspaceLeaf) => new TaskViewV2(leaf, this.plugin)
 		);
 
-		// Add command to open V2 view
+		// Add command to open Fluent view
 		this.plugin.addCommand({
 			id: "open-task-view-v2",
-			name: "Open Task View V2 (Experimental)",
+			name: t("Open Task Genius Fluent View (Experimental)"),
 			callback: () => {
 				this.openV2View();
 			},
@@ -36,23 +37,25 @@ export class V2Integration {
 
 		// Add ribbon icon if enabled in settings
 		if (this.plugin.settings.experimental?.showV2Ribbon) {
-			this.plugin.addRibbonIcon(
-				"layout-dashboard",
-				"Task Genius V2",
+			const ribbonIcon = this.plugin.addRibbonIcon(
+				"task-genius",
+				t("Open Task Genius Fluent View"),
 				() => {
 					this.openV2View();
 				}
 			);
+
+			ribbonIcon.toggleClass("tg-beta", true);
 		}
 	}
 
 	/**
-	 * Open the V2 view
+	 * Open the Fluent view
 	 */
 	private async openV2View() {
 		const { workspace } = this.plugin.app;
 
-		// Check if V2 view is already open
+		// Check if Fluent view is already open
 		const leaves = workspace.getLeavesOfType(TASK_VIEW_V2_TYPE);
 		if (leaves.length > 0) {
 			// Focus existing view
@@ -60,7 +63,7 @@ export class V2Integration {
 			return;
 		}
 
-		// Create new V2 view
+		// Create new Fluent view
 		const leaf = workspace.getLeaf("tab");
 		await leaf.setViewState({
 			type: TASK_VIEW_V2_TYPE,
@@ -71,7 +74,7 @@ export class V2Integration {
 	}
 
 	/**
-	 * Check if V2 features are enabled
+	 * Check if Fluent features are enabled
 	 */
 	private isV2Enabled(): boolean {
 		return this.plugin.settings.experimental?.enableV2 ?? false;
@@ -95,7 +98,7 @@ export class V2Integration {
 			];
 		}
 
-		// Default V2 configuration
+		// Default Fluent configuration
 		if (this.plugin.settings.experimental!.v2Config === undefined) {
 			this.plugin.settings.experimental!.v2Config = {
 				enableWorkspaces: true,
@@ -112,7 +115,7 @@ export class V2Integration {
 	}
 
 	/**
-	 * Toggle between V1 and V2 views
+	 * Toggle between V1 and Fluent views
 	 */
 	public async toggleVersion() {
 		const { workspace } = this.plugin.app;
@@ -121,7 +124,7 @@ export class V2Integration {
 		const v1Leaves = workspace.getLeavesOfType("task-genius-view");
 		v1Leaves.forEach((leaf) => leaf.detach());
 
-		// Close all V2 views
+		// Close all Fluent views
 		const v2Leaves = workspace.getLeavesOfType(TASK_VIEW_V2_TYPE);
 		v2Leaves.forEach((leaf) => leaf.detach());
 

@@ -13,6 +13,17 @@ interface Project {
 	taskCount: number;
 	createdAt?: number;
 	updatedAt?: number;
+	isVirtual?: boolean; // Flag for intermediate nodes
+}
+
+interface ProjectTreeNode {
+	project: Project;
+	children: ProjectTreeNode[];
+	level: number;
+	parent?: ProjectTreeNode;
+	expanded: boolean;
+	path: string[];
+	fullPath: string;
 }
 
 type SortOption =
@@ -32,17 +43,23 @@ export class ProjectList extends Component {
 	private currentPopover: ProjectPopover | null = null;
 	private currentSort: SortOption = "name-asc";
 	private readonly STORAGE_KEY = "task-genius-project-sort";
+	private readonly EXPANDED_KEY = "task-genius-project-expanded";
 	private collator: Intl.Collator;
+	private isTreeView: boolean = false;
+	private expandedNodes: Set<string> = new Set();
+	private treeNodes: ProjectTreeNode[] = [];
 
 	constructor(
 		containerEl: HTMLElement,
 		plugin: TaskProgressBarPlugin,
-		onProjectSelect: (projectId: string) => void
+		onProjectSelect: (projectId: string) => void,
+		isTreeView: boolean = false
 	) {
 		super();
 		this.containerEl = containerEl;
 		this.plugin = plugin;
 		this.onProjectSelect = onProjectSelect;
+		this.isTreeView = isTreeView;
 
 		// Initialize collator with locale-sensitive sorting
 		// Use numeric option to handle numbers naturally (e.g., "Project 2" < "Project 10")
@@ -54,6 +71,7 @@ export class ProjectList extends Component {
 
 	async onload() {
 		await this.loadSortPreference();
+		await this.loadExpandedNodes();
 		await this.loadProjects();
 		this.render();
 	}
@@ -108,6 +126,11 @@ export class ProjectList extends Component {
 		// Apply sorting
 		this.sortProjects();
 
+		// Build tree structure if in tree view
+		if (this.isTreeView) {
+			this.buildTreeStructure();
+		}
+
 		this.render();
 	}
 
@@ -136,6 +159,25 @@ export class ProjectList extends Component {
 		].includes(value);
 	}
 
+	private async loadExpandedNodes() {
+		const saved = await this.plugin.app.loadLocalStorage(this.EXPANDED_KEY);
+		if (saved && Array.isArray(saved)) {
+			this.expandedNodes = new Set(saved);
+		}
+	}
+
+	private async saveExpandedNodes() {
+		await this.plugin.app.saveLocalStorage(
+			this.EXPANDED_KEY,
+			Array.from(this.expandedNodes)
+		);
+	}
+
+	public setViewMode(isTreeView: boolean) {
+		this.isTreeView = isTreeView;
+		this.render();
+	}
+
 	private sortProjects() {
 		this.projects.sort((a, b) => {
 			switch (this.currentSort) {
@@ -155,6 +197,164 @@ export class ProjectList extends Component {
 					return 0;
 			}
 		});
+	}
+
+	private buildTreeStructure() {
+		const nodeMap = new Map<string, ProjectTreeNode>();
+		const rootNodes: ProjectTreeNode[] = [];
+		const separator = this.plugin.settings.projectPathSeparator || "/";
+
+		// Process each project and create intermediate nodes as needed
+		this.projects.forEach(project => {
+			const segments = this.parseProjectPath(project.name);
+			if (segments.length === 0) return;
+
+			let currentPath = "";
+			let parentNode: ProjectTreeNode | undefined;
+
+			// Create or get nodes for each segment in the path
+			for (let i = 0; i < segments.length; i++) {
+				const segment = segments[i];
+				const isLeaf = i === segments.length - 1;
+
+				// Build the full path up to this segment
+				currentPath = currentPath ? `${currentPath}${separator}${segment}` : segment;
+
+				// Check if node already exists
+				let node = nodeMap.get(currentPath);
+
+				if (!node) {
+					// Create node - use actual project for leaf, virtual for intermediate
+					const nodeProject = isLeaf ? project : {
+						id: currentPath,
+						name: currentPath,
+						displayName: segment,
+						color: this.generateColorForProject(currentPath),
+						taskCount: 0,
+						isVirtual: true
+					};
+
+					node = {
+						project: nodeProject,
+						children: [],
+						level: i,
+						expanded: this.expandedNodes.has(currentPath),
+						path: segments.slice(0, i + 1),
+						fullPath: currentPath,
+						parent: parentNode
+					};
+
+					nodeMap.set(currentPath, node);
+
+					// Add to parent's children or root
+					if (parentNode) {
+						parentNode.children.push(node);
+					} else {
+						rootNodes.push(node);
+					}
+				} else if (isLeaf && node.project.isVirtual) {
+					// Update virtual node with actual project data
+					node.project = project;
+				}
+
+				parentNode = node;
+			}
+		});
+
+		// Sort tree nodes recursively
+		this.sortTreeNodes(rootNodes);
+		this.treeNodes = rootNodes;
+
+		// Update task counts for parent nodes
+		this.updateParentTaskCounts(rootNodes);
+	}
+
+	private parseProjectPath(projectName: string): string[] {
+		// Parse project path using / as separator
+		// For example: "parent/child" becomes ["parent", "child"]
+		const separator = this.plugin.settings.projectPathSeparator || "/";
+		if (!projectName || !projectName.trim()) {
+			return [];
+		}
+
+		// Normalize the path by trimming and removing duplicate separators
+		const normalized = projectName
+			.trim()
+			.replace(new RegExp(`${this.escapeRegExp(separator)}+`, 'g'), separator)
+			.replace(new RegExp(`^${this.escapeRegExp(separator)}|${this.escapeRegExp(separator)}$`, 'g'), '');
+
+		if (!normalized) {
+			return [];
+		}
+
+		return normalized.split(separator);
+	}
+
+	private escapeRegExp(string: string): string {
+		return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	}
+
+	private sortTreeNodes(nodes: ProjectTreeNode[]) {
+		nodes.forEach(node => {
+			if (node.children.length > 0) {
+				this.sortTreeNodes(node.children);
+			}
+		});
+
+		nodes.sort((a, b) => {
+			switch (this.currentSort) {
+				case "name-asc":
+					return this.collator.compare(
+						a.project.displayName || a.project.name,
+						b.project.displayName || b.project.name
+					);
+				case "name-desc":
+					return this.collator.compare(
+						b.project.displayName || b.project.name,
+						a.project.displayName || a.project.name
+					);
+				case "tasks-asc":
+					return a.project.taskCount - b.project.taskCount;
+				case "tasks-desc":
+					return b.project.taskCount - a.project.taskCount;
+				case "created-asc":
+					return (a.project.createdAt || 0) - (b.project.createdAt || 0);
+				case "created-desc":
+					return (b.project.createdAt || 0) - (a.project.createdAt || 0);
+				default:
+					return 0;
+			}
+		});
+	}
+
+	private updateParentTaskCounts(nodes: ProjectTreeNode[]) {
+		nodes.forEach(node => {
+			if (node.children.length > 0) {
+				this.updateParentTaskCounts(node.children);
+				// Sum up child task counts
+				const childTotal = node.children.reduce(
+					(sum, child) => sum + child.project.taskCount,
+					0
+				);
+				// For virtual nodes, set count to child total
+				// For real nodes, add child total to existing count
+				if (node.project.isVirtual) {
+					node.project.taskCount = childTotal;
+				} else {
+					node.project.taskCount = node.project.taskCount + childTotal;
+				}
+			}
+		});
+	}
+
+	private toggleNodeExpanded(nodePath: string) {
+		if (this.expandedNodes.has(nodePath)) {
+			this.expandedNodes.delete(nodePath);
+		} else {
+			this.expandedNodes.add(nodePath);
+		}
+		this.saveExpandedNodes();
+		this.render();
 	}
 
 	private generateColorForProject(projectName: string): string {
@@ -180,47 +380,27 @@ export class ProjectList extends Component {
 	private render() {
 		this.containerEl.empty();
 		this.containerEl.addClass("v2-project-list");
+		if (this.isTreeView) {
+			this.containerEl.addClass("is-tree-view");
+		} else {
+			this.containerEl.removeClass("is-tree-view");
+		}
 
 		const scrollArea = this.containerEl.createDiv({
 			cls: "v2-project-scroll",
 		});
 
-		this.projects.forEach((project) => {
-			const projectItem = scrollArea.createDiv({
-				cls: "v2-project-item",
-				attr: { "data-project-id": project.id },
+		if (this.isTreeView) {
+			// Build tree structure first
+			this.buildTreeStructure();
+			// Render tree view
+			this.renderTreeNodes(scrollArea, this.treeNodes, 0);
+		} else {
+			// Render flat list view
+			this.projects.forEach((project) => {
+				this.renderProjectItem(scrollArea, project, 0, false);
 			});
-
-			if (this.activeProjectId === project.id) {
-				projectItem.addClass("is-active");
-			}
-
-			const projectColor = projectItem.createDiv({
-				cls: "v2-project-color",
-			});
-			projectColor.style.backgroundColor = project.color;
-
-			const projectName = projectItem.createSpan({
-				cls: "v2-project-name",
-				text: project.displayName || project.name,
-			});
-
-			const projectCount = projectItem.createSpan({
-				cls: "v2-project-count",
-				text: String(project.taskCount),
-			});
-
-			this.registerDomEvent(projectItem, "click", () => {
-				this.setActiveProject(project.id);
-				this.onProjectSelect(project.id);
-			});
-
-			// Add context menu handler
-			this.registerDomEvent(projectItem, "contextmenu", (e: MouseEvent) => {
-				e.preventDefault();
-				this.showProjectContextMenu(e, project);
-			});
-		});
+		}
 
 		// Add new project button
 		const addProjectBtn = scrollArea.createDiv({
@@ -238,6 +418,147 @@ export class ProjectList extends Component {
 		this.registerDomEvent(addProjectBtn, "click", () => {
 			this.handleAddProject(addProjectBtn);
 		});
+	}
+
+	private renderTreeNodes(container: HTMLElement, nodes: ProjectTreeNode[], level: number) {
+		nodes.forEach(node => {
+			const hasChildren = node.children.length > 0;
+			this.renderProjectItem(container, node.project, level, hasChildren, node);
+
+			if (hasChildren && node.expanded) {
+				this.renderTreeNodes(container, node.children, level + 1);
+			}
+		});
+	}
+
+	private renderProjectItem(
+		container: HTMLElement,
+		project: Project,
+		level: number,
+		hasChildren: boolean,
+		treeNode?: ProjectTreeNode
+	) {
+		const projectItem = container.createDiv({
+			cls: "v2-project-item",
+			attr: {
+				"data-project-id": project.id,
+				"data-level": String(level)
+			},
+		});
+
+		// Add virtual class for styling
+		if (project.isVirtual) {
+			projectItem.addClass("is-virtual");
+		}
+
+		if (this.activeProjectId === project.id) {
+			projectItem.addClass("is-active");
+		}
+
+		if (this.isTreeView && level > 0) {
+			projectItem.style.paddingLeft = `${level * 20 + 8}px`;
+		}
+
+		// Expand/collapse chevron for tree view
+		if (this.isTreeView && hasChildren) {
+			const chevron = projectItem.createDiv({
+				cls: "v2-project-chevron",
+			});
+			const isExpanded = treeNode?.expanded || false;
+			setIcon(chevron, isExpanded ? "chevron-down" : "chevron-right");
+
+			this.registerDomEvent(chevron, "click", (e: MouseEvent) => {
+				e.stopPropagation();
+				// Use fullPath for virtual nodes
+				const nodeId = treeNode?.fullPath || project.id;
+				this.toggleNodeExpanded(nodeId);
+			});
+		} else if (this.isTreeView) {
+			// Add spacer for items without children to align them
+			projectItem.createDiv({ cls: "v2-project-chevron-spacer" });
+		}
+
+		const projectColor = projectItem.createDiv({
+			cls: "v2-project-color",
+		});
+		projectColor.style.backgroundColor = project.color;
+
+		// In tree view, show only the last segment of the path
+		// In list view, show the full name
+		let displayText: string;
+		if (this.isTreeView) {
+			if (project.isVirtual) {
+				// Virtual nodes already have displayName as the segment
+				displayText = project.displayName || project.name;
+			} else {
+				// For real projects, extract the last segment
+				const separator = this.plugin.settings.projectPathSeparator || "/";
+				const nameToSplit = project.name;
+				const segments = nameToSplit.split(separator);
+				const lastSegment = segments[segments.length - 1] || project.name;
+
+				// If project has a custom displayName, try to preserve it
+				// but still show only the relevant part for the tree level
+				if (project.displayName && project.displayName !== project.name) {
+					const displaySegments = project.displayName.split(separator);
+					displayText = displaySegments[displaySegments.length - 1] || lastSegment;
+				} else {
+					displayText = lastSegment;
+				}
+			}
+		} else {
+			// In list view, show full name or custom displayName
+			displayText = project.displayName || project.name;
+		}
+
+		const projectName = projectItem.createSpan({
+			cls: "v2-project-name",
+			text: displayText,
+		});
+
+		const projectCount = projectItem.createSpan({
+			cls: "v2-project-count",
+			text: String(project.taskCount),
+		});
+
+		this.registerDomEvent(projectItem, "click", (e: MouseEvent) => {
+			// Don't trigger if clicking on chevron
+			if (!(e.target as HTMLElement).closest('.v2-project-chevron')) {
+				// Virtual nodes select all their children
+				if (project.isVirtual && treeNode) {
+					this.selectVirtualNode(treeNode);
+				} else {
+					this.setActiveProject(project.id);
+					this.onProjectSelect(project.id);
+				}
+			}
+		});
+
+		// Add context menu handler (only for non-virtual projects)
+		if (!project.isVirtual) {
+			this.registerDomEvent(projectItem, "contextmenu", (e: MouseEvent) => {
+				e.preventDefault();
+				this.showProjectContextMenu(e, project);
+			});
+		}
+	}
+
+	private selectVirtualNode(node: ProjectTreeNode) {
+		// Collect all non-virtual descendant project IDs
+		const projectIds: string[] = [];
+		const collectProjects = (n: ProjectTreeNode) => {
+			if (!n.project.isVirtual) {
+				projectIds.push(n.project.id);
+			}
+			n.children.forEach(child => collectProjects(child));
+		};
+		collectProjects(node);
+
+		// Select the first real project if any
+		if (projectIds.length > 0) {
+			this.setActiveProject(projectIds[0]);
+			this.onProjectSelect(projectIds[0]);
+		}
 	}
 
 	public setActiveProject(projectId: string | null) {

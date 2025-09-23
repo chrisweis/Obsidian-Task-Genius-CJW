@@ -62,6 +62,25 @@ import { t } from "../../translations/helper";
 
 export const TASK_VIEW_V2_TYPE = "task-genius-view-v2";
 
+// View mode configuration for each view type
+const VIEW_MODE_CONFIG: Record<string, ViewMode[]> = {
+	// Content-based views - support all modes
+	inbox: ["list", "tree", "kanban", "calendar"],
+	today: ["list", "tree", "kanban", "calendar"],
+	upcoming: ["list", "tree", "kanban", "calendar"],
+	flagged: ["list", "tree", "kanban", "calendar"],
+	projects: ["list", "tree", "kanban", "calendar"],
+
+	// Specialized views with limited or no modes
+	tags: [],
+	review: [],
+	forecast: [], // Has its own specialized UI
+	habit: [], // Has its own specialized UI
+	gantt: [], // Is itself a view mode
+	calendar: [], // Is itself a calendar view
+	kanban: [], // Is itself a kanban view
+};
+
 export class TaskViewV2 extends ItemView {
 	private plugin: TaskProgressBarPlugin;
 	private rootContainerEl: HTMLElement;
@@ -157,7 +176,7 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return t("Task Genius V2");
+		return t("Task Genius Fluent");
 	}
 
 	getIcon(): string {
@@ -167,7 +186,10 @@ export class TaskViewV2 extends ItemView {
 	async onOpen() {
 		console.log("[TG-V2] onOpen started");
 		this.contentEl.empty();
-		this.contentEl.addClass("task-genius-v2-view");
+		this.contentEl.toggleClass(
+			["task-genius-v2-view", "task-genius-view"],
+			true
+		);
 
 		// Subscribe to workspace events
 		if (this.plugin.workspaceManager) {
@@ -367,6 +389,11 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private initializeTopNavigation(containerEl: HTMLElement) {
+		// Get initial available modes for the current view
+		const availableModes = this.getAvailableModesForView(
+			this.currentViewId
+		);
+
 		this.topNavigation = new TopNavigation(
 			containerEl,
 			this.plugin,
@@ -374,7 +401,8 @@ export class TaskViewV2 extends ItemView {
 			(mode) => this.handleViewModeChange(mode),
 			() => {}, // Filter is now in Obsidian view header
 			() => {}, // Sort is now in Obsidian view header
-			() => this.handleSettingsClick()
+			() => this.handleSettingsClick(),
+			availableModes
 		);
 	}
 
@@ -965,6 +993,10 @@ export class TaskViewV2 extends ItemView {
 		);
 		this.currentViewId = viewId;
 		this.sidebar?.setActiveItem(viewId);
+
+		// Update available view modes for the current view
+		const availableModes = this.getAvailableModesForView(viewId);
+		this.topNavigation?.updateAvailableModes(availableModes);
 		console.log(
 			"[TG-V2] Current tasks:",
 			this.tasks.length,
@@ -1006,14 +1038,31 @@ export class TaskViewV2 extends ItemView {
 
 		// Check if current view supports multiple view modes and we're in a non-list mode
 		// For initial load with list mode, continue with normal flow
+		const viewModes = this.getAvailableModesForView(viewId);
+
+		// If the current view mode is not available for this view, reset to first available or list
+		if (
+			viewModes.length > 0 &&
+			!viewModes.includes(this.viewState.viewMode)
+		) {
+			this.viewState.viewMode = viewModes[0];
+			// Update TopNavigation to reflect the change
+			if (this.topNavigation) {
+				// The updateAvailableModes call above should handle this
+			}
+		}
+
 		console.log(
 			"[TG-V2] Is content-based view?",
 			this.isContentBasedView(viewId),
 			"View mode:",
-			this.viewState.viewMode
+			this.viewState.viewMode,
+			"Available modes:",
+			viewModes
 		);
 		if (
 			this.isContentBasedView(viewId) &&
+			viewModes.length > 0 &&
 			this.viewState.viewMode !== "list" &&
 			this.viewState.viewMode !== "tree" // Tree is also handled by ContentComponent
 		) {
@@ -1853,8 +1902,14 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private handleViewModeChange(mode: ViewMode) {
-		this.viewState.viewMode = mode;
-		this.renderContentWithViewMode();
+		// Only change if the mode is available for the current view
+		const availableModes = this.getAvailableModesForView(
+			this.currentViewId
+		);
+		if (availableModes.includes(mode)) {
+			this.viewState.viewMode = mode;
+			this.renderContentWithViewMode();
+		}
 	}
 
 	private handleSettingsClick() {
@@ -2609,6 +2664,24 @@ export class TaskViewV2 extends ItemView {
 				"[TG-WORKSPACE] UI not ready, skip applying filters/updateView"
 			);
 		}
+	}
+
+	private getAvailableModesForView(viewId: string): ViewMode[] {
+		// Check for special two-column views
+		const viewConfig = getViewSettingOrDefault(this.plugin, viewId as any);
+		if (viewConfig?.specificConfig?.viewType === "twocolumn") {
+			// Two-column views typically support list and tree modes
+			return ["list", "tree"];
+		}
+
+		// Check for special views managed by ViewComponentManager
+		if (this.viewComponentManager?.isSpecialView(viewId)) {
+			// Special views usually have their own UI, no modes needed
+			return [];
+		}
+
+		// Return the configured modes for the view, or empty array
+		return VIEW_MODE_CONFIG[viewId] || [];
 	}
 
 	async onClose() {
