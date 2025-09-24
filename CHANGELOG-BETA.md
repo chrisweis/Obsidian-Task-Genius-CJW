@@ -4,6 +4,21 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.9.0-beta.4](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.0-beta.3...9.9.0-beta.4) (2025-09-24)
+
+### Features
+
+* **workspace:** add custom icon selection for workspaces ([b709c90](https://github.com/Quorafind/Obsidian-Task-Genius/commit/b709c90f6f513307a1afb69c1efb92896b7a6683))
+
+### Bug Fixes
+
+* **v2:** resolve filter state management issues ([6c282f9](https://github.com/Quorafind/Obsidian-Task-Genius/commit/6c282f976cdaa0da7361a8599ea6b1f092cf1418))
+
+### Chores
+
+* **settings:** update workspace settings ([c0e694b](https://github.com/Quorafind/Obsidian-Task-Genius/commit/c0e694b8ee4e153a624d5a68f12654d6891d2abe))
+* **sytles:** ignore styles css ([5c3d19e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/5c3d19e95c417718aefdb8e784054229c2e3aed2))
+
 ## [9.9.0-beta.3](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.0-beta.2...9.9.0-beta.3) (2025-09-24)
 
 ### Bug Fixes
