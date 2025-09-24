@@ -4,6 +4,44 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.9.0-beta.0](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.14...9.9.0-beta.0) (2025-09-24)
+
+### ⚠ BREAKING CHANGES
+
+* **projects:** FluentFilterPanel component removed - filter functionality moved to view header
+
+### Features
+
+* **experimental:** add Fluent interface foundation with settings infrastructure ([6b779f8](https://github.com/Quorafind/Obsidian-Task-Genius/commit/6b779f84a58edeb37411dac1842cc39f4260791c))
+* **fluent-nav:** hide entire navigation when no view tabs are needed ([1e162c2](https://github.com/Quorafind/Obsidian-Task-Genius/commit/1e162c219a570cde64d0fa7f14669ebaae77c875))
+* **fluent-sidebar:** add right-click context menu for view items ([59643c0](https://github.com/Quorafind/Obsidian-Task-Genius/commit/59643c038f38cf6435a720e316728b0f67a6d3b0))
+* **fluent:** add collapsible sidebar and full task context menu ([86f8d17](https://github.com/Quorafind/Obsidian-Task-Genius/commit/86f8d1719e042dafb940c8b1d8a0e98b4455c883))
+* **fluent:** add mobile drawer navigation and responsive design ([7721ac1](https://github.com/Quorafind/Obsidian-Task-Genius/commit/7721ac191c37a66f099746ca64db25193bc265b6))
+* **fluent:** add overflow menu for other views and optimized task updates ([c747e2b](https://github.com/Quorafind/Obsidian-Task-Genius/commit/c747e2bb141546b6fa6ff4b5ccf434f44ab8fe76))
+* **fluent:** add project creation UI with sorting capabilities ([9f008db](https://github.com/Quorafind/Obsidian-Task-Genius/commit/9f008db1a034cf39393622790d6f46a4d7ab9ee9))
+* **fluent:** add project filter integration and details panel ([c722fb4](https://github.com/Quorafind/Obsidian-Task-Genius/commit/c722fb4c88a4b2cb6f421f5b45f58423d43adec4))
+* **fluent:** implement workspace management with persistent filter states ([2b7179e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/2b7179ed9e64165c5319785d1281db857b1690d7))
+* **projects:** add context menu with edit and delete functionality ([743b9ca](https://github.com/Quorafind/Obsidian-Task-Genius/commit/743b9ca8665b215a3f2a41fcf1d7b16d83d6b756))
+* **projects:** add tree view support and improve view mode system ([f3bee5e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/f3bee5e16d28e784a5895cf9b7354c5fc54275b0))
+* **view:** add task count display in view title ([86cbad4](https://github.com/Quorafind/Obsidian-Task-Genius/commit/86cbad4a475c6be92bb84bc4e992b5d16339ccf0))
+
+### Bug Fixes
+
+* **workspace:** resolve filter state persistence and restoration issues ([f617992](https://github.com/Quorafind/Obsidian-Task-Genius/commit/f617992d804b335d577839cf9fc1c44ac902a367))
+
+### Performance
+
+* **fluent:** optimize view initialization and reduce unnecessary renders ([e08aa64](https://github.com/Quorafind/Obsidian-Task-Genius/commit/e08aa647af62b48a1c731f45de74aa085129ddcd))
+
+### Refactors
+
+* **fluent:** streamline filter panel integration and fix view mode initialization ([846d3bb](https://github.com/Quorafind/Obsidian-Task-Genius/commit/846d3bbeb69b1dc1d995ea00d6a8ba66a65de721))
+* **workspace:** make search query ephemeral across workspace switches ([adc7e3e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/adc7e3e8e042e2f6c702a8f88055f7077d61122d))
+
+### Chores
+
+* update packagejson and also release script ([a167e7d](https://github.com/Quorafind/Obsidian-Task-Genius/commit/a167e7d25626d75f4643e6db9ad2793a40496540))
+
 ## [9.8.0-beta.15](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.0-beta.14...9.8.0-beta.15) (2025-09-03)
 
 ### Features
