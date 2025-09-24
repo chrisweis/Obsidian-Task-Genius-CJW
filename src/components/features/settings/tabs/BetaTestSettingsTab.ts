@@ -70,9 +70,9 @@ export function renderBetaTestSettingsTab(
 					new Notice(
 						value
 							? t(
-									"V2 interface enabled. Use the command 'Open Task View V2' to launch."
+									"Fluent interface enabled. Use the command 'Open Task View V2' to launch."
 							  )
-							: t("V2 interface disabled.")
+							: t("Fluent interface disabled.")
 					);
 				});
 		});
@@ -107,7 +107,7 @@ export function renderBetaTestSettingsTab(
 
 	// V2 Sidebar Other Views overflow threshold
 	new Setting(containerEl)
-		.setName(t("V2: Max Other Views before overflow"))
+		.setName(t("Fluent: Max Other Views before overflow"))
 		.setDesc(
 			t(
 				"Number of 'Other Views' to show before grouping the rest into an overflow menu (ellipsis)"

@@ -29,7 +29,7 @@ export class V2Integration {
 		// Add command to open Fluent view
 		this.plugin.addCommand({
 			id: "open-task-view-v2",
-			name: t("Open Task Genius Fluent View (Experimental)"),
+			name: t("Open Fluent View (Experimental)"),
 			callback: () => {
 				this.openV2View();
 			},
@@ -39,7 +39,7 @@ export class V2Integration {
 		if (this.plugin.settings.experimental?.showV2Ribbon) {
 			const ribbonIcon = this.plugin.addRibbonIcon(
 				"task-genius",
-				t("Open Task Genius Fluent View"),
+				t("Open Fluent View"),
 				() => {
 					this.openV2View();
 				}
