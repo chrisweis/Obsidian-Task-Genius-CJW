@@ -9,6 +9,7 @@ import {
 	App,
 	Menu,
 	debounce,
+	Platform,
 } from "obsidian";
 import { Task } from "@/types/task";
 import TaskProgressBarPlugin from "@/index";
@@ -17,11 +18,21 @@ import "@/styles/task-details.css";
 import { t } from "@/translations/helper";
 import { clearAllMarks } from "@/components/ui/renderers/MarkdownRenderer";
 import { StatusComponent } from "@/components/ui/feedback/StatusIndicator";
-import { ContextSuggest, ProjectSuggest, TagSuggest } from "@/components/ui/inputs/AutoComplete";
+import {
+	ContextSuggest,
+	ProjectSuggest,
+	TagSuggest,
+} from "@/components/ui/inputs/AutoComplete";
 import { FileTask } from "@/types/file-task";
-import { getEffectiveProject, isProjectReadonly } from "@/utils/task/task-operations";
+import {
+	getEffectiveProject,
+	isProjectReadonly,
+} from "@/utils/task/task-operations";
 import { OnCompletionConfigurator } from "@/components/features/on-completion/OnCompletionConfigurator";
-import { timestampToLocalDateString, localDateStringToTimestamp } from "@/utils/date/date-display-helper";
+import {
+	timestampToLocalDateString,
+	localDateStringToTimestamp,
+} from "@/utils/date/date-display-helper";
 
 function getStatus(task: Task, settings: TaskProgressBarSettings) {
 	const status = Object.keys(settings.taskStatuses).find((key) => {
@@ -60,16 +71,16 @@ function mapTextStatusToSymbol(status: string): string {
 	if (!status) return " ";
 	if (status.length === 1) return status; // already a symbol mark
 	const map: Record<string, string> = {
-		"completed": "x",
-		"done": "x",
-		"finished": "x",
+		completed: "x",
+		done: "x",
+		finished: "x",
 		"in-progress": "/",
 		"in progress": "/",
-		"doing": "/",
-		"planned": "?",
-		"todo": "?",
-		"cancelled": "-",
-		"canceled": "-",
+		doing: "/",
+		planned: "?",
+		todo: "?",
+		cancelled: "-",
+		canceled: "-",
 		"not-started": " ",
 		"not started": " ",
 	};
@@ -155,18 +166,24 @@ export class TaskDetailsComponent extends Component {
 		const headerEl = this.containerEl.createDiv({ cls: "details-header" });
 		headerEl.setText(t("Task Details"));
 
-		headerEl.createEl(
-			"div",
-			{
-				cls: "details-close-btn",
-			},
-			(el) => {
-				new ExtraButtonComponent(el).setIcon("x").onClick(() => {
-					this.toggleDetailsVisibility &&
-						this.toggleDetailsVisibility(false);
-				});
-			}
-		);
+		// Only show close button on mobile or if explicitly requested
+		if (
+			Platform.isPhone ||
+			this.containerEl.parentElement?.hasClass("tg-v2-container")
+		) {
+			headerEl.createEl(
+				"div",
+				{
+					cls: "details-close-btn",
+				},
+				(el) => {
+					new ExtraButtonComponent(el).setIcon("x").onClick(() => {
+						this.toggleDetailsVisibility &&
+							this.toggleDetailsVisibility(false);
+					});
+				}
+			);
+		}
 
 		// Create content container
 		this.contentEl = this.containerEl.createDiv({ cls: "details-content" });
@@ -409,10 +426,12 @@ export class TaskDetailsComponent extends Component {
 		console.log("tagsInput", tagsInput, task.metadata.tags);
 		// Remove # prefix from tags when displaying them
 		tagsInput.setValue(
-			task.metadata.tags 
+			task.metadata.tags
 				? task.metadata.tags
-					.map(tag => tag.startsWith("#") ? tag.slice(1) : tag)
-					.join(", ") 
+						.map((tag) =>
+							tag.startsWith("#") ? tag.slice(1) : tag
+						)
+						.join(", ")
 				: ""
 		);
 		tagsField
@@ -462,8 +481,10 @@ export class TaskDetailsComponent extends Component {
 		});
 		if (task.metadata.dueDate) {
 			// Use helper to correctly display UTC noon timestamp as local date
-			dueDateInput.value = timestampToLocalDateString(task.metadata.dueDate);
-		}		// Start date
+			dueDateInput.value = timestampToLocalDateString(
+				task.metadata.dueDate
+			);
+		} // Start date
 		const startDateField = this.createFormField(
 			this.editFormEl,
 			t("Start Date")
@@ -474,7 +495,9 @@ export class TaskDetailsComponent extends Component {
 		});
 		if (task.metadata.startDate) {
 			// Use helper to correctly display UTC noon timestamp as local date
-			startDateInput.value = timestampToLocalDateString(task.metadata.startDate);
+			startDateInput.value = timestampToLocalDateString(
+				task.metadata.startDate
+			);
 		}
 
 		// Scheduled date
@@ -488,7 +511,9 @@ export class TaskDetailsComponent extends Component {
 		});
 		if (task.metadata.scheduledDate) {
 			// Use helper to correctly display UTC noon timestamp as local date
-			scheduledDateInput.value = timestampToLocalDateString(task.metadata.scheduledDate);
+			scheduledDateInput.value = timestampToLocalDateString(
+				task.metadata.scheduledDate
+			);
 		}
 
 		// Cancelled date
@@ -502,7 +527,9 @@ export class TaskDetailsComponent extends Component {
 		});
 		if (task.metadata.cancelledDate) {
 			// Use helper to correctly display UTC noon timestamp as local date
-			cancelledDateInput.value = timestampToLocalDateString(task.metadata.cancelledDate);
+			cancelledDateInput.value = timestampToLocalDateString(
+				task.metadata.cancelledDate
+			);
 		}
 
 		// On completion action
@@ -538,7 +565,9 @@ export class TaskDetailsComponent extends Component {
 				? tagsValue
 						.split(",")
 						.map((tag) => tag.trim())
-						.map((tag) => tag.startsWith("#") ? tag.slice(1) : tag) // Remove # prefix if present
+						.map((tag) =>
+							tag.startsWith("#") ? tag.slice(1) : tag
+						) // Remove # prefix if present
 						.filter((tag) => tag)
 				: [];
 
@@ -592,7 +621,8 @@ export class TaskDetailsComponent extends Component {
 			const scheduledDateValue = scheduledDateInput.value;
 			if (scheduledDateValue) {
 				// Use helper to convert local date string to UTC noon timestamp
-				const newScheduledDate = localDateStringToTimestamp(scheduledDateValue);
+				const newScheduledDate =
+					localDateStringToTimestamp(scheduledDateValue);
 				// Only update if the date has changed or is different from the original
 				if (task.metadata.scheduledDate !== newScheduledDate) {
 					metadata.scheduledDate = newScheduledDate;
@@ -610,7 +640,8 @@ export class TaskDetailsComponent extends Component {
 			const cancelledDateValue = cancelledDateInput.value;
 			if (cancelledDateValue) {
 				// Use helper to convert local date string to UTC noon timestamp
-				const newCancelledDate = localDateStringToTimestamp(cancelledDateValue);
+				const newCancelledDate =
+					localDateStringToTimestamp(cancelledDateValue);
 				// Only update if the date has changed or is different from the original
 				if (task.metadata.cancelledDate !== newCancelledDate) {
 					metadata.cancelledDate = newCancelledDate;

@@ -34,7 +34,8 @@
 }
 
 /* Mobile view - slide from right */
-.is-phone .task-details {
+.is-phone .task-details,
+.is-mobile .task-details {
 	position: absolute;
 	right: 0;
 	top: 0;
@@ -45,19 +46,25 @@
 	transform: translateX(100%);
 }
 
-.is-phone .task-genius-container.details-hidden .task-details {
+.is-phone .task-genius-container.details-hidden .task-details,
+.is-mobile .task-genius-container.details-hidden .task-details,
+.is-mobile .tg-v2-container.details-hidden .task-details {
 	width: 100%;
 	margin-right: 0;
 	transform: translateX(100%);
 }
 
-.is-phone .task-genius-container.details-visible .task-details {
+.is-phone .task-genius-container.details-visible .task-details,
+.is-mobile .task-genius-container.details-visible .task-details,
+.is-mobile .tg-v2-container.details-visible .task-details {
 	width: calc(100% - var(--size-4-12));
 	transform: translateX(0);
 }
 
 /* Add overlay when details are visible on mobile */
-.is-phone .task-genius-container.details-visible::before {
+.is-phone .task-genius-container.details-visible::before,
+.is-mobile .task-genius-container.details-visible::before,
+.is-mobile .tg-v2-container.details-visible::before {
 	content: "";
 	position: absolute;
 	top: 0;
@@ -70,7 +77,8 @@
 	transition: opacity 0.3s ease-in-out;
 }
 
-.is-phone .details-close-btn {
+.is-phone .details-close-btn,
+.is-mobile .details-close-btn {
 	width: 24px;
 	height: 24px;
 	display: flex;
@@ -78,7 +86,8 @@
 	justify-content: center;
 }
 
-.is-phone .details-header {
+.is-phone .details-header,
+.is-mobile .details-header {
 	padding: var(--size-4-4);
 }
 
@@ -339,6 +348,28 @@
 
 .details-edit-file-btn:hover {
 	background-color: var(--interactive-hover);
+}
+
+/* V2 Container specific styles for mobile */
+.is-mobile .tg-v2-container .task-details {
+	position: fixed;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	height: 100vh;
+	width: 85vw;
+	max-width: 400px;
+	z-index: 1001; /* Above drawer overlay */
+	background-color: var(--background-secondary);
+	box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.is-mobile .task-details .details-close-btn:hover {
+	background-color: var(--background-modifier-active-hover);
+}
+
+.is-mobile .details-content {
+	padding-bottom: var(--size-4-12);
 }
 
 /* Responsive design for mobile */

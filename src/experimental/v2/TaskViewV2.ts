@@ -133,6 +133,15 @@ export class TaskViewV2 extends ItemView {
 	// Sidebar collapse state
 	private isSidebarCollapsed: boolean = false;
 	private sidebarToggleBtn: HTMLElement | null = null;
+	private isMobileDrawerOpen: boolean = false;
+	private drawerOverlay: HTMLElement | null = null;
+
+	// Touch gesture tracking
+	private touchStartX: number = 0;
+	private touchStartY: number = 0;
+	private touchCurrentX: number = 0;
+	private isSwiping: boolean = false;
+	private swipeThreshold: number = 50;
 
 	// V2 Details panel
 	private detailsPanelEl: HTMLElement | null = null;
@@ -209,7 +218,7 @@ export class TaskViewV2 extends ItemView {
 						await this.applyWorkspaceSettings();
 						this.restoreFilterStateFromWorkspace();
 						await this.loadTasks();
-						this.scheduleUpdate('workspace-switch');
+						this.scheduleUpdate("workspace-switch");
 					}
 				})
 			);
@@ -219,7 +228,7 @@ export class TaskViewV2 extends ItemView {
 					if (payload.workspaceId === this.workspaceId) {
 						await this.applyWorkspaceSettings();
 						await this.loadTasks();
-						this.scheduleUpdate('workspace-overrides');
+						this.scheduleUpdate("workspace-overrides");
 					}
 				})
 			);
@@ -274,6 +283,11 @@ export class TaskViewV2 extends ItemView {
 			cls: "tg-v2-container",
 		});
 
+		// Add mobile class to container for proper styling
+		if (Platform.isPhone) {
+			this.rootContainerEl.addClass("is-mobile");
+		}
+
 		// Create layout structure
 		const layoutContainer = this.rootContainerEl.createDiv({
 			cls: "tg-v2-layout",
@@ -283,6 +297,22 @@ export class TaskViewV2 extends ItemView {
 		const sidebarEl = layoutContainer.createDiv({
 			cls: "tg-v2-sidebar-container",
 		});
+
+		// Add mobile-specific classes and overlay
+		if (Platform.isPhone) {
+			sidebarEl.addClass("is-mobile-drawer");
+			// Create overlay for mobile drawer
+			this.drawerOverlay = layoutContainer.createDiv({
+				cls: "drawer-overlay",
+			});
+			this.drawerOverlay.style.display = "none";
+			this.drawerOverlay.addEventListener("click", () => {
+				this.closeMobileDrawer();
+			});
+
+			// Add swipe gesture support
+			this.initializeMobileSwipeGestures();
+		}
 
 		// Main content area
 		const mainContainer = layoutContainer.createDiv({
@@ -367,16 +397,24 @@ export class TaskViewV2 extends ItemView {
 		);
 
 		// Single initial render
-		console.log("[TG-V2] Performing initial render with:", this.currentViewId);
+		console.log(
+			"[TG-V2] Performing initial render with:",
+			this.currentViewId
+		);
 		// Keep isInitializing true during first switchView
 		this.switchView(this.currentViewId);
 
 		// Refresh top navigation (badge) after tasks are loaded
 		this.topNavigation?.refresh();
 
-		// Sidebar toggle in header and responsive collapse
+		// Sidebar toggle in header (desktop) and responsive collapse
 		this.createSidebarToggle();
-		this.checkAndCollapseSidebar();
+		// Only check and collapse on desktop
+		if (!Platform.isPhone) {
+			this.checkAndCollapseSidebar();
+		}
+
+		this.createTaskMark();
 
 		// Create action buttons in Obsidian view header
 		console.log("[TG-V2] Creating action buttons");
@@ -388,12 +426,29 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private initializeSidebar(containerEl: HTMLElement) {
+		// On mobile, start with sidebar completely hidden (drawer closed)
+		const initialCollapsedState = Platform.isPhone
+			? true
+			: this.isSidebarCollapsed;
+
 		this.sidebar = new V2Sidebar(
 			containerEl,
 			this.plugin,
-			(viewId) => this.handleNavigate(viewId),
-			(projectId) => this.handleProjectSelect(projectId),
-			this.isSidebarCollapsed
+			(viewId) => {
+				this.handleNavigate(viewId);
+				// Auto-close drawer on mobile after navigation
+				if (Platform.isPhone) {
+					this.closeMobileDrawer();
+				}
+			},
+			(projectId) => {
+				this.handleProjectSelect(projectId);
+				// Auto-close drawer on mobile after selection
+				if (Platform.isPhone) {
+					this.closeMobileDrawer();
+				}
+			},
+			initialCollapsedState
 		);
 		// Add sidebar as a child component for proper lifecycle management
 		this.addChild(this.sidebar);
@@ -413,7 +468,8 @@ export class TaskViewV2 extends ItemView {
 			() => {}, // Filter is now in Obsidian view header
 			() => {}, // Sort is now in Obsidian view header
 			() => this.handleSettingsClick(),
-			availableModes
+			availableModes,
+			() => this.toggleSidebar() // Pass sidebar toggle callback
 		);
 	}
 
@@ -604,9 +660,11 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private createSidebarToggle() {
-		const headerBtns = this.headerEl?.find(
-			".view-header-nav-buttons"
-		) as HTMLElement | null;
+		const headerBtns = !Platform.isPhone
+			? (this.headerEl?.find(
+					".view-header-nav-buttons"
+			  ) as HTMLElement | null)
+			: (this.headerEl?.find(".view-header-left") as HTMLElement);
 		if (!headerBtns) {
 			console.warn("[TG-V2] header buttons container not found");
 			return;
@@ -618,27 +676,148 @@ export class TaskViewV2 extends ItemView {
 			cls: "panel-toggle-btn",
 		});
 		const btn = new ButtonComponent(this.sidebarToggleBtn);
-		btn.setIcon("panel-left-dashed")
+		btn.setIcon(Platform.isPhone ? "menu" : "panel-left-dashed")
 			.setTooltip(t("Toggle Sidebar"))
 			.setClass("clickable-icon")
 			.onClick(() => this.toggleSidebar());
 	}
 
-	private toggleSidebar() {
-		this.isSidebarCollapsed = !this.isSidebarCollapsed;
-		this.sidebar?.setCollapsed(this.isSidebarCollapsed);
-		this.rootContainerEl?.toggleClass(
-			"v2-sidebar-collapsed",
-			this.isSidebarCollapsed
+	private createTaskMark() {
+		this.titleEl.setText(
+			t("{{num}} Tasks", {
+				interpolation: {
+					num: this.tasks.length,
+				},
+			})
 		);
 	}
 
+	private toggleSidebar() {
+		if (Platform.isPhone) {
+			// On mobile, toggle the drawer open/closed
+			if (this.isMobileDrawerOpen) {
+				this.closeMobileDrawer();
+			} else {
+				this.openMobileDrawer();
+			}
+		} else {
+			// On desktop, toggle collapse state
+			this.isSidebarCollapsed = !this.isSidebarCollapsed;
+			this.sidebar?.setCollapsed(this.isSidebarCollapsed);
+			this.rootContainerEl?.toggleClass(
+				"v2-sidebar-collapsed",
+				this.isSidebarCollapsed
+			);
+		}
+	}
+
+	private openMobileDrawer() {
+		this.isMobileDrawerOpen = true;
+		this.rootContainerEl?.addClass("drawer-open");
+		if (this.drawerOverlay) {
+			this.drawerOverlay.style.display = "block";
+		}
+		// Show the sidebar
+		this.sidebar?.setCollapsed(false);
+	}
+
+	private closeMobileDrawer() {
+		this.isMobileDrawerOpen = false;
+		this.rootContainerEl?.removeClass("drawer-open");
+		if (this.drawerOverlay) {
+			this.drawerOverlay.style.display = "none";
+		}
+		// Hide the sidebar
+		this.sidebar?.setCollapsed(true);
+	}
+
+	private initializeMobileSwipeGestures() {
+		if (!Platform.isPhone) return;
+
+		// Edge swipe to open drawer
+		this.registerDomEvent(document, "touchstart", (e: TouchEvent) => {
+			if (this.isMobileDrawerOpen) {
+				// Track for swipe-to-close when drawer is open
+				const touch = e.touches[0];
+				this.touchStartX = touch.clientX;
+				this.touchStartY = touch.clientY;
+				this.isSwiping = true;
+			} else {
+				// Check if touch started from left edge
+				const touch = e.touches[0];
+				if (touch.clientX < 20) {
+					// 20px edge detection zone
+					this.touchStartX = touch.clientX;
+					this.touchStartY = touch.clientY;
+					this.isSwiping = true;
+				}
+			}
+		});
+
+		this.registerDomEvent(document, "touchmove", (e: TouchEvent) => {
+			if (!this.isSwiping) return;
+
+			const touch = e.touches[0];
+			this.touchCurrentX = touch.clientX;
+			const deltaX = this.touchCurrentX - this.touchStartX;
+			const deltaY = Math.abs(touch.clientY - this.touchStartY);
+
+			// Check if horizontal swipe (not vertical scroll)
+			if (deltaY > 50) {
+				this.isSwiping = false;
+				return;
+			}
+
+			if (!this.isMobileDrawerOpen && deltaX > this.swipeThreshold) {
+				// Swipe right from edge - open drawer
+				this.openMobileDrawer();
+				this.isSwiping = false;
+			} else if (
+				this.isMobileDrawerOpen &&
+				deltaX < -this.swipeThreshold
+			) {
+				// Swipe left when drawer is open - close it
+				const sidebarEl = this.rootContainerEl?.querySelector(
+					".tg-v2-sidebar-container"
+				);
+				if (sidebarEl) {
+					const sidebarRect = sidebarEl.getBoundingClientRect();
+					// Only close if swipe started on the sidebar
+					if (this.touchStartX < sidebarRect.right) {
+						this.closeMobileDrawer();
+						this.isSwiping = false;
+					}
+				}
+			}
+		});
+
+		this.registerDomEvent(document, "touchend", () => {
+			this.isSwiping = false;
+			this.touchStartX = 0;
+			this.touchCurrentX = 0;
+		});
+
+		this.registerDomEvent(document, "touchcancel", () => {
+			this.isSwiping = false;
+			this.touchStartX = 0;
+			this.touchCurrentX = 0;
+		});
+	}
+
 	onResize(): void {
-		this.checkAndCollapseSidebar();
+		// Only check and collapse on desktop
+		if (!Platform.isPhone) {
+			this.checkAndCollapseSidebar();
+		}
 	}
 
 	private checkAndCollapseSidebar() {
-		// Auto-collapse on narrow panes
+		// Skip auto-collapse on mobile, as we use drawer mode
+		if (Platform.isPhone) {
+			return;
+		}
+
+		// Auto-collapse on narrow panes (desktop only)
 		try {
 			const width = (this.leaf as any)?.width ?? 0;
 			if (width > 0 && width < 768) {
@@ -656,18 +835,25 @@ export class TaskViewV2 extends ItemView {
 
 		if (this.isInitializing && !forceHideAll) {
 			// Skip smart hiding during initialization unless forced
-			console.log("[TG-V2] Skipping hideAllComponents during initialization (not initial hide)");
+			console.log(
+				"[TG-V2] Skipping hideAllComponents during initialization (not initial hide)"
+			);
 			return;
 		}
 
 		// Smart hiding - only hide currently visible component (unless initial hide)
 		if (!isInitialHide && this.currentVisibleComponent) {
-			console.log("[TG-V2] Smart hide - only hiding current visible component");
+			console.log(
+				"[TG-V2] Smart hide - only hiding current visible component"
+			);
 			this.currentVisibleComponent.containerEl?.hide();
 			this.currentVisibleComponent = null;
 		} else {
 			// Hide all components (during initial setup or when no current visible tracked)
-			console.log("[TG-V2] Hiding all components", isInitialHide ? "(initial hide)" : "");
+			console.log(
+				"[TG-V2] Hiding all components",
+				isInitialHide ? "(initial hide)" : ""
+			);
 			this.contentComponent?.containerEl.hide();
 			this.forecastComponent?.containerEl.hide();
 			this.tagsComponent?.containerEl.hide();
@@ -696,7 +882,7 @@ export class TaskViewV2 extends ItemView {
 			console.log("[TG-V2] debouncedViewUpdate triggered");
 			if (!this.isInitializing) {
 				await this.loadTasks(false); // Don't show loading state for updates
-				this.scheduleUpdate('dataflow');
+				this.scheduleUpdate("dataflow");
 				// Refresh top navigation (badge)
 				this.topNavigation?.refresh();
 				// Also refresh project list when tasks update
@@ -707,7 +893,7 @@ export class TaskViewV2 extends ItemView {
 		// Add debounced filter application
 		const debouncedApplyFilter = debounce(() => {
 			if (!this.isInitializing) {
-				this.scheduleUpdate('filter-changed');
+				this.scheduleUpdate("filter-changed");
 			}
 		}, 400);
 
@@ -808,7 +994,11 @@ export class TaskViewV2 extends ItemView {
 		try {
 			console.log("[TG-V2] loadTasks started, showLoading:", showLoading);
 			// Only show loading state if requested, not initializing, and we don't have tasks
-			if (showLoading && !this.isInitializing && (!this.tasks || this.tasks.length === 0)) {
+			if (
+				showLoading &&
+				!this.isInitializing &&
+				(!this.tasks || this.tasks.length === 0)
+			) {
 				console.log("[TG-V2] Setting isLoading to true");
 				this.isLoading = true;
 				this.loadError = null;
@@ -1033,8 +1223,15 @@ export class TaskViewV2 extends ItemView {
 		);
 
 		// Skip if we're switching to the same view (but never skip during initialization)
-		if (!this.isInitializing && this.currentViewId === viewId && !project && this.filteredTasks.length > 0) {
-			console.log("[TG-V2] Already on this view with data, skipping switchView");
+		if (
+			!this.isInitializing &&
+			this.currentViewId === viewId &&
+			!project &&
+			this.filteredTasks.length > 0
+		) {
+			console.log(
+				"[TG-V2] Already on this view with data, skipping switchView"
+			);
 			return;
 		}
 
@@ -1242,7 +1439,10 @@ export class TaskViewV2 extends ItemView {
 			}
 
 			// Apply filters only if needed (not during initialization as they're already applied)
-			if (!this.isInitializing && (this.filteredTasks.length === 0 || project)) {
+			if (
+				!this.isInitializing &&
+				(this.filteredTasks.length === 0 || project)
+			) {
 				console.log("[TG-V2] Applying filters in switchView");
 				this.applyFilters();
 				console.log(
@@ -1264,7 +1464,10 @@ export class TaskViewV2 extends ItemView {
 						`[TG-V2] Calling setTasks for ${viewId} with ALL tasks (unfiltered):`,
 						this.tasks.length,
 						"tasks, first few:",
-						this.tasks.slice(0, 3).map(t => ({ id: t.id, project: t.metadata?.project }))
+						this.tasks.slice(0, 3).map((t) => ({
+							id: t.id,
+							project: t.metadata?.project,
+						}))
 					);
 					// ReviewComponent and TagsComponent need all tasks to build their lists
 					// and only accept a single parameter
@@ -1654,7 +1857,7 @@ export class TaskViewV2 extends ItemView {
 	private updateView() {
 		// Schedule an update instead of immediately updating
 		if (!this.isInitializing) {
-			this.scheduleUpdate('updateView');
+			this.scheduleUpdate("updateView");
 		}
 	}
 
@@ -1939,14 +2142,17 @@ export class TaskViewV2 extends ItemView {
 		if (viewId === "new-task") {
 			new QuickCaptureModal(this.app, this.plugin).open();
 		} else {
-			console.log(`[TG-V2] handleNavigate to ${viewId}, current tasks:`, this.tasks.length);
+			console.log(
+				`[TG-V2] handleNavigate to ${viewId}, current tasks:`,
+				this.tasks.length
+			);
 			this.switchView(viewId);
 		}
 	}
 
 	private handleSearch(query: string) {
 		this.viewState.searchQuery = query;
-		this.scheduleUpdate('search');
+		this.scheduleUpdate("search");
 		// Persist and update header UI
 		this.saveFilterStateToWorkspace();
 		this.updateActionButtons();
@@ -2077,6 +2283,40 @@ export class TaskViewV2 extends ItemView {
 				"aria-label",
 				visible ? t("Hide Details") : t("Show Details")
 			);
+		}
+
+		// On mobile, add click handler to overlay to close details
+		if (Platform.isPhone && visible) {
+			// Use setTimeout to avoid immediate close on open
+			setTimeout(() => {
+				const overlayClickHandler = (e: MouseEvent) => {
+					// Check if click is on the overlay (pseudo-element area)
+					const detailsEl =
+						this.rootContainerEl?.querySelector(".task-details");
+					if (detailsEl && !detailsEl.contains(e.target as Node)) {
+						this.toggleDetailsVisibility(false);
+						document.removeEventListener(
+							"click",
+							overlayClickHandler
+						);
+					}
+				};
+				// Add the event listener
+				document.addEventListener("click", overlayClickHandler);
+				// Store the handler to remove it later
+				(this as any).mobileDetailsOverlayHandler = overlayClickHandler;
+			}, 100);
+		} else if (
+			Platform.isPhone &&
+			!visible &&
+			(this as any).mobileDetailsOverlayHandler
+		) {
+			// Remove the event listener when closing
+			document.removeEventListener(
+				"click",
+				(this as any).mobileDetailsOverlayHandler
+			);
+			delete (this as any).mobileDetailsOverlayHandler;
 		}
 	}
 
@@ -2552,10 +2792,12 @@ export class TaskViewV2 extends ItemView {
 		);
 
 		// Check what kind of updates are pending
-		const needsFullReload = this.pendingUpdates.has('dataflow') ||
-							   this.pendingUpdates.has('workspace-switch');
-		const needsFilterRefresh = this.pendingUpdates.has('filter-changed') ||
-								  this.pendingUpdates.has('search');
+		const needsFullReload =
+			this.pendingUpdates.has("dataflow") ||
+			this.pendingUpdates.has("workspace-switch");
+		const needsFilterRefresh =
+			this.pendingUpdates.has("filter-changed") ||
+			this.pendingUpdates.has("search");
 
 		this.pendingUpdates.clear();
 		this.updateScheduled = false;
@@ -2806,6 +3048,15 @@ export class TaskViewV2 extends ItemView {
 		// Save workspace layout and filter state
 		this.saveWorkspaceLayout();
 		this.saveFilterStateToWorkspace();
+
+		// Clean up mobile event listeners
+		if (Platform.isPhone && (this as any).mobileDetailsOverlayHandler) {
+			document.removeEventListener(
+				"click",
+				(this as any).mobileDetailsOverlayHandler
+			);
+			delete (this as any).mobileDetailsOverlayHandler;
+		}
 
 		// Clean up components
 		if (this.kanbanComponent) {

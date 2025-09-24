@@ -1,4 +1,4 @@
-import { Component, setIcon, Menu, Notice, Modal } from "obsidian";
+import { Component, setIcon, Menu, Notice, Modal, Platform } from "obsidian";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { ProjectList } from "@/experimental/v2/components/ProjectList";
 import { V2NavigationItem } from "@/experimental/v2/types";
@@ -26,6 +26,8 @@ export class V2Sidebar extends Component {
 	private collapsed: boolean = false;
 	private currentWorkspaceId: string;
 	private isTreeView: boolean = false;
+	private otherViewsSection: HTMLElement | null = null;
+	private railEl: HTMLElement | null = null;
 
 	private primaryItems: V2NavigationItem[] = [
 		{ id: "inbox", label: t("Inbox"), icon: "inbox", type: "primary" },
@@ -81,92 +83,13 @@ export class V2Sidebar extends Component {
 		this.containerEl.addClass("v2-sidebar");
 		this.containerEl.toggleClass("is-collapsed", this.collapsed);
 
-		// Collapsed rail mode: show compact icons for workspace, views, projects, and add
-		if (this.collapsed) {
-			const rail = this.containerEl.createDiv({ cls: "v2-sidebar-rail" });
-
-			// Workspace menu button
-			const wsBtn = rail.createDiv({
-				cls: "v2-rail-btn",
-				attr: { "aria-label": t("Workspace") },
+		// Desktop: show rail mode when collapsed
+		// Mobile: always render full sidebar (CSS handles visibility)
+		if (this.collapsed && !Platform.isPhone) {
+			this.railEl = this.containerEl.createDiv({
+				cls: "v2-sidebar-rail",
 			});
-			setIcon(wsBtn, "layers");
-			wsBtn.addEventListener("click", (e) =>
-				this.showWorkspaceMenuWithManager(e as MouseEvent)
-			);
-
-			// Primary view icons
-			this.primaryItems.forEach((item) => {
-				const btn = rail.createDiv({
-					cls: "v2-rail-btn",
-					attr: { "aria-label": item.label, "data-view-id": item.id },
-				});
-				setIcon(btn, item.icon);
-				btn.addEventListener("click", () => {
-					this.setActiveItem(item.id);
-					this.onNavigate(item.id);
-				});
-				// Add context menu handler for rail button
-				btn.addEventListener("contextmenu", (e) => {
-					this.showViewContextMenu(e as MouseEvent, item.id);
-				});
-			});
-
-			// Other view icons with overflow menu when > 5
-			const allOtherItems = this.computeOtherItems();
-			const visibleCount =
-				this.plugin?.settings?.experimental?.v2Config
-					?.maxOtherViewsBeforeOverflow ?? 5;
-			const displayedOther: V2NavigationItem[] = allOtherItems.slice(
-				0,
-				visibleCount
-			);
-			const remainingOther: V2NavigationItem[] =
-				allOtherItems.slice(visibleCount);
-			displayedOther.forEach((item: V2NavigationItem) => {
-				const btn = rail.createDiv({
-					cls: "v2-rail-btn",
-					attr: { "aria-label": item.label, "data-view-id": item.id },
-				});
-				setIcon(btn, item.icon);
-				btn.addEventListener("click", () => {
-					this.setActiveItem(item.id);
-					this.onNavigate(item.id);
-				});
-				// Add context menu handler for rail button
-				btn.addEventListener("contextmenu", (e) => {
-					this.showViewContextMenu(e as MouseEvent, item.id);
-				});
-			});
-			if (remainingOther.length > 0) {
-				const moreBtn = rail.createDiv({
-					cls: "v2-rail-btn",
-					attr: { "aria-label": t("More views") },
-				});
-				setIcon(moreBtn, "more-horizontal");
-				moreBtn.addEventListener("click", (e) =>
-					this.showOtherViewsMenu(e as MouseEvent, remainingOther)
-				);
-			}
-
-			// Projects menu button
-			const projBtn = rail.createDiv({
-				cls: "v2-rail-btn",
-				attr: { "aria-label": t("Projects") },
-			});
-			setIcon(projBtn, "folder");
-			projBtn.addEventListener("click", (e) =>
-				this.showProjectMenu(e as MouseEvent)
-			);
-
-			// Add (New Task) button
-			const addBtn = rail.createDiv({
-				cls: "v2-rail-btn",
-				attr: { "aria-label": t("New Task") },
-			});
-			setIcon(addBtn, "plus");
-			addBtn.addEventListener("click", () => this.onNavigate("new-task"));
-
+			this.renderRailMode();
 			return;
 		}
 
@@ -265,19 +188,131 @@ export class V2Sidebar extends Component {
 		this.addChild(this.projectList);
 
 		// Other views section
-		const otherSection = content.createDiv({ cls: "v2-sidebar-section" });
-		const otherHeader = otherSection.createDiv({
-			cls: "v2-section-header",
+		this.otherViewsSection = content.createDiv({
+			cls: "v2-sidebar-section",
 		});
+		this.renderOtherViewsSection();
+	}
+
+	private renderRailMode() {
+		if (!this.railEl) {
+			return;
+		}
+
+		// Clear existing content
+		this.railEl.empty();
+
+		// Workspace menu button
+		const wsBtn = this.railEl.createDiv({
+			cls: "v2-rail-btn",
+			attr: { "aria-label": t("Workspace") },
+		});
+		setIcon(wsBtn, "layers");
+		wsBtn.addEventListener("click", (e) =>
+			this.showWorkspaceMenuWithManager(e as MouseEvent)
+		);
+
+		// Primary view icons
+		this.primaryItems.forEach((item) => {
+			const btn = this.railEl!.createDiv({
+				cls: "v2-rail-btn",
+				attr: { "aria-label": item.label, "data-view-id": item.id },
+			});
+			setIcon(btn, item.icon);
+			btn.addEventListener("click", () => {
+				this.setActiveItem(item.id);
+				this.onNavigate(item.id);
+			});
+			// Add context menu handler for rail button
+			btn.addEventListener("contextmenu", (e) => {
+				this.showViewContextMenu(e as MouseEvent, item.id);
+			});
+		});
+
+		// Other view icons with overflow menu when > 5
 		const allOtherItems = this.computeOtherItems();
-		const visibleCount = 5;
+		const visibleCount =
+			this.plugin?.settings?.experimental?.v2Config
+				?.maxOtherViewsBeforeOverflow ?? 5;
 		const displayedOther: V2NavigationItem[] = allOtherItems.slice(
 			0,
 			visibleCount
 		);
 		const remainingOther: V2NavigationItem[] =
 			allOtherItems.slice(visibleCount);
+
+		displayedOther.forEach((item: V2NavigationItem) => {
+			const btn = this.railEl!.createDiv({
+				cls: "v2-rail-btn",
+				attr: { "aria-label": item.label, "data-view-id": item.id },
+			});
+			setIcon(btn, item.icon);
+			btn.addEventListener("click", () => {
+				this.setActiveItem(item.id);
+				this.onNavigate(item.id);
+			});
+			// Add context menu handler for rail button
+			btn.addEventListener("contextmenu", (e) => {
+				this.showViewContextMenu(e as MouseEvent, item.id);
+			});
+		});
+
+		if (remainingOther.length > 0) {
+			const moreBtn = this.railEl!.createDiv({
+				cls: "v2-rail-btn",
+				attr: { "aria-label": t("More views") },
+			});
+			setIcon(moreBtn, "more-horizontal");
+			moreBtn.addEventListener("click", (e) =>
+				this.showOtherViewsMenu(e as MouseEvent, remainingOther)
+			);
+		}
+
+		// Projects menu button
+		const projBtn = this.railEl!.createDiv({
+			cls: "v2-rail-btn",
+			attr: { "aria-label": t("Projects") },
+		});
+		setIcon(projBtn, "folder");
+		projBtn.addEventListener("click", (e) =>
+			this.showProjectMenu(e as MouseEvent)
+		);
+
+		// Add (New Task) button
+		const addBtn = this.railEl!.createDiv({
+			cls: "v2-rail-btn",
+			attr: { "aria-label": t("New Task") },
+		});
+		setIcon(addBtn, "plus");
+		addBtn.addEventListener("click", () => this.onNavigate("new-task"));
+	}
+
+	private renderOtherViewsSection() {
+		if (!this.otherViewsSection || this.collapsed) {
+			return;
+		}
+
+		// Clear existing content
+		this.otherViewsSection.empty();
+
+		// Create header
+		const otherHeader = this.otherViewsSection.createDiv({
+			cls: "v2-section-header",
+		});
+
+		const allOtherItems = this.computeOtherItems();
+		const visibleCount =
+			this.plugin?.settings?.experimental?.v2Config
+				?.maxOtherViewsBeforeOverflow ?? 5;
+		const displayedOther: V2NavigationItem[] = allOtherItems.slice(
+			0,
+			visibleCount
+		);
+		const remainingOther: V2NavigationItem[] =
+			allOtherItems.slice(visibleCount);
+
 		otherHeader.createSpan({ text: t("Other Views") });
+
 		if (remainingOther.length > 0) {
 			const moreBtn = otherHeader.createDiv({
 				cls: "v2-section-action",
@@ -288,7 +323,8 @@ export class V2Sidebar extends Component {
 				this.showOtherViewsMenu(e as MouseEvent, remainingOther)
 			);
 		}
-		this.renderNavigationItems(otherSection, displayedOther);
+
+		this.renderNavigationItems(this.otherViewsSection, displayedOther);
 	}
 
 	private computeOtherItems(): V2NavigationItem[] {
@@ -323,7 +359,19 @@ export class V2Sidebar extends Component {
 	}
 
 	onload() {
-		this.render();
+		// On mobile, ensure we render the full sidebar content
+		// even though it starts "collapsed" (hidden off-screen)
+		if (Platform.isPhone && this.collapsed) {
+			// Temporarily set to not collapsed to render full content
+			const wasCollapsed = this.collapsed;
+			this.collapsed = false;
+			this.render();
+			this.collapsed = wasCollapsed;
+			// Apply the collapsed class for CSS positioning
+			this.containerEl.addClass("is-collapsed");
+		} else {
+			this.render();
+		}
 
 		// Subscribe to workspace events
 		if (this.plugin.workspaceManager) {
@@ -355,7 +403,14 @@ export class V2Sidebar extends Component {
 
 	public setCollapsed(collapsed: boolean) {
 		this.collapsed = collapsed;
-		this.render();
+		// On mobile, don't re-render when toggling collapse
+		// The CSS will handle the drawer animation
+		if (!Platform.isPhone) {
+			this.render();
+		} else {
+			// Just toggle the class for mobile
+			this.containerEl.toggleClass("is-collapsed", collapsed);
+		}
 	}
 
 	private async handleWorkspaceChange(workspaceId: string) {
@@ -676,12 +731,11 @@ export class V2Sidebar extends Component {
 						}
 						view.visible = false;
 						this.plugin.saveSettings();
-						// Remove the element from DOM instead of full re-render
-						const element = this.containerEl.querySelector(
-							`[data-view-id="${viewId}"]`
-						);
-						if (element) {
-							element.remove();
+						// Re-render based on current mode
+						if (this.collapsed) {
+							this.renderRailMode();
+						} else {
+							this.renderOtherViewsSection();
 						}
 						// Trigger view config changed event
 						this.plugin.app.workspace.trigger(
@@ -708,12 +762,11 @@ export class V2Sidebar extends Component {
 								(v) => v.id !== viewId
 							);
 						this.plugin.saveSettings();
-						// Remove the element from DOM instead of full re-render
-						const element = this.containerEl.querySelector(
-							`[data-view-id="${viewId}"]`
-						);
-						if (element) {
-							element.remove();
+						// Re-render based on current mode
+						if (this.collapsed) {
+							this.renderRailMode();
+						} else {
+							this.renderOtherViewsSection();
 						}
 						// Trigger view config changed event
 						this.plugin.app.workspace.trigger(

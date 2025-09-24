@@ -1,7 +1,11 @@
 import { Component, Platform, setIcon, Menu, Modal, App } from "obsidian";
 import TaskProgressBarPlugin from "../../../index";
 import { Task } from "../../../types/task";
-import { ProjectPopover, ProjectModal, EditProjectModal } from "./ProjectPopover";
+import {
+	ProjectPopover,
+	ProjectModal,
+	EditProjectModal,
+} from "./ProjectPopover";
 import type { CustomProject } from "../../../common/setting-definition";
 import { t } from "@/translations/helper";
 
@@ -102,7 +106,7 @@ export class ProjectList extends Component {
 			if (projectName) {
 				if (!projectMap.has(projectName)) {
 					// Convert dashes back to spaces for display
-					const displayName = projectName.replace(/-/g, ' ');
+					const displayName = projectName.replace(/-/g, " ");
 					projectMap.set(projectName, {
 						id: projectName,
 						name: projectName,
@@ -182,9 +186,15 @@ export class ProjectList extends Component {
 		this.projects.sort((a, b) => {
 			switch (this.currentSort) {
 				case "name-asc":
-					return this.collator.compare(a.displayName || a.name, b.displayName || b.name);
+					return this.collator.compare(
+						a.displayName || a.name,
+						b.displayName || b.name
+					);
 				case "name-desc":
-					return this.collator.compare(b.displayName || b.name, a.displayName || a.name);
+					return this.collator.compare(
+						b.displayName || b.name,
+						a.displayName || a.name
+					);
 				case "tasks-asc":
 					return a.taskCount - b.taskCount;
 				case "tasks-desc":
@@ -205,7 +215,7 @@ export class ProjectList extends Component {
 		const separator = this.plugin.settings.projectPathSeparator || "/";
 
 		// Process each project and create intermediate nodes as needed
-		this.projects.forEach(project => {
+		this.projects.forEach((project) => {
 			const segments = this.parseProjectPath(project.name);
 			if (segments.length === 0) return;
 
@@ -218,21 +228,27 @@ export class ProjectList extends Component {
 				const isLeaf = i === segments.length - 1;
 
 				// Build the full path up to this segment
-				currentPath = currentPath ? `${currentPath}${separator}${segment}` : segment;
+				currentPath = currentPath
+					? `${currentPath}${separator}${segment}`
+					: segment;
 
 				// Check if node already exists
 				let node = nodeMap.get(currentPath);
 
 				if (!node) {
 					// Create node - use actual project for leaf, virtual for intermediate
-					const nodeProject = isLeaf ? project : {
-						id: currentPath,
-						name: currentPath,
-						displayName: segment,
-						color: this.generateColorForProject(currentPath),
-						taskCount: 0,
-						isVirtual: true
-					};
+					const nodeProject = isLeaf
+						? project
+						: {
+								id: currentPath,
+								name: currentPath,
+								displayName: segment,
+								color: this.generateColorForProject(
+									currentPath
+								),
+								taskCount: 0,
+								isVirtual: true,
+						  };
 
 					node = {
 						project: nodeProject,
@@ -241,7 +257,7 @@ export class ProjectList extends Component {
 						expanded: this.expandedNodes.has(currentPath),
 						path: segments.slice(0, i + 1),
 						fullPath: currentPath,
-						parent: parentNode
+						parent: parentNode,
 					};
 
 					nodeMap.set(currentPath, node);
@@ -280,8 +296,19 @@ export class ProjectList extends Component {
 		// Normalize the path by trimming and removing duplicate separators
 		const normalized = projectName
 			.trim()
-			.replace(new RegExp(`${this.escapeRegExp(separator)}+`, 'g'), separator)
-			.replace(new RegExp(`^${this.escapeRegExp(separator)}|${this.escapeRegExp(separator)}$`, 'g'), '');
+			.replace(
+				new RegExp(`${this.escapeRegExp(separator)}+`, "g"),
+				separator
+			)
+			.replace(
+				new RegExp(
+					`^${this.escapeRegExp(separator)}|${this.escapeRegExp(
+						separator
+					)}$`,
+					"g"
+				),
+				""
+			);
 
 		if (!normalized) {
 			return [];
@@ -291,11 +318,11 @@ export class ProjectList extends Component {
 	}
 
 	private escapeRegExp(string: string): string {
-		return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 	}
 
 	private sortTreeNodes(nodes: ProjectTreeNode[]) {
-		nodes.forEach(node => {
+		nodes.forEach((node) => {
 			if (node.children.length > 0) {
 				this.sortTreeNodes(node.children);
 			}
@@ -318,9 +345,13 @@ export class ProjectList extends Component {
 				case "tasks-desc":
 					return b.project.taskCount - a.project.taskCount;
 				case "created-asc":
-					return (a.project.createdAt || 0) - (b.project.createdAt || 0);
+					return (
+						(a.project.createdAt || 0) - (b.project.createdAt || 0)
+					);
 				case "created-desc":
-					return (b.project.createdAt || 0) - (a.project.createdAt || 0);
+					return (
+						(b.project.createdAt || 0) - (a.project.createdAt || 0)
+					);
 				default:
 					return 0;
 			}
@@ -328,7 +359,7 @@ export class ProjectList extends Component {
 	}
 
 	private updateParentTaskCounts(nodes: ProjectTreeNode[]) {
-		nodes.forEach(node => {
+		nodes.forEach((node) => {
 			if (node.children.length > 0) {
 				this.updateParentTaskCounts(node.children);
 				// Sum up child task counts
@@ -341,7 +372,8 @@ export class ProjectList extends Component {
 				if (node.project.isVirtual) {
 					node.project.taskCount = childTotal;
 				} else {
-					node.project.taskCount = node.project.taskCount + childTotal;
+					node.project.taskCount =
+						node.project.taskCount + childTotal;
 				}
 			}
 		});
@@ -420,10 +452,20 @@ export class ProjectList extends Component {
 		});
 	}
 
-	private renderTreeNodes(container: HTMLElement, nodes: ProjectTreeNode[], level: number) {
-		nodes.forEach(node => {
+	private renderTreeNodes(
+		container: HTMLElement,
+		nodes: ProjectTreeNode[],
+		level: number
+	) {
+		nodes.forEach((node) => {
 			const hasChildren = node.children.length > 0;
-			this.renderProjectItem(container, node.project, level, hasChildren, node);
+			this.renderProjectItem(
+				container,
+				node.project,
+				level,
+				hasChildren,
+				node
+			);
 
 			if (hasChildren && node.expanded) {
 				this.renderTreeNodes(container, node.children, level + 1);
@@ -442,7 +484,7 @@ export class ProjectList extends Component {
 			cls: "v2-project-item",
 			attr: {
 				"data-project-id": project.id,
-				"data-level": String(level)
+				"data-level": String(level),
 			},
 		});
 
@@ -492,16 +534,24 @@ export class ProjectList extends Component {
 				displayText = project.displayName || project.name;
 			} else {
 				// For real projects, extract the last segment
-				const separator = this.plugin.settings.projectPathSeparator || "/";
+				const separator =
+					this.plugin.settings.projectPathSeparator || "/";
 				const nameToSplit = project.name;
 				const segments = nameToSplit.split(separator);
-				const lastSegment = segments[segments.length - 1] || project.name;
+				const lastSegment =
+					segments[segments.length - 1] || project.name;
 
 				// If project has a custom displayName, try to preserve it
 				// but still show only the relevant part for the tree level
-				if (project.displayName && project.displayName !== project.name) {
-					const displaySegments = project.displayName.split(separator);
-					displayText = displaySegments[displaySegments.length - 1] || lastSegment;
+				if (
+					project.displayName &&
+					project.displayName !== project.name
+				) {
+					const displaySegments =
+						project.displayName.split(separator);
+					displayText =
+						displaySegments[displaySegments.length - 1] ||
+						lastSegment;
 				} else {
 					displayText = lastSegment;
 				}
@@ -523,7 +573,7 @@ export class ProjectList extends Component {
 
 		this.registerDomEvent(projectItem, "click", (e: MouseEvent) => {
 			// Don't trigger if clicking on chevron
-			if (!(e.target as HTMLElement).closest('.v2-project-chevron')) {
+			if (!(e.target as HTMLElement).closest(".v2-project-chevron")) {
 				// Virtual nodes select all their children
 				if (project.isVirtual && treeNode) {
 					this.selectVirtualNode(treeNode);
@@ -536,10 +586,14 @@ export class ProjectList extends Component {
 
 		// Add context menu handler (only for non-virtual projects)
 		if (!project.isVirtual) {
-			this.registerDomEvent(projectItem, "contextmenu", (e: MouseEvent) => {
-				e.preventDefault();
-				this.showProjectContextMenu(e, project);
-			});
+			this.registerDomEvent(
+				projectItem,
+				"contextmenu",
+				(e: MouseEvent) => {
+					e.preventDefault();
+					this.showProjectContextMenu(e, project);
+				}
+			);
 		}
 	}
 
@@ -550,7 +604,7 @@ export class ProjectList extends Component {
 			if (!n.project.isVirtual) {
 				projectIds.push(n.project.id);
 			}
-			n.children.forEach(child => collectProjects(child));
+			n.children.forEach((child) => collectProjects(child));
 		};
 		collectProjects(node);
 
@@ -593,7 +647,7 @@ export class ProjectList extends Component {
 			this.currentPopover = null;
 		}
 
-		if (Platform.isMobile) {
+		if (Platform.isPhone) {
 			// Mobile: Use Obsidian Modal
 			const modal = new ProjectModal(
 				this.plugin.app,
@@ -681,7 +735,8 @@ export class ProjectList extends Component {
 				this.projects.push({
 					id: customProject.id,
 					name: customProject.name,
-					displayName: customProject.displayName || customProject.name,
+					displayName:
+						customProject.displayName || customProject.name,
 					color: customProject.color,
 					taskCount: 0, // Will be updated by task counting
 					createdAt: customProject.createdAt,
@@ -691,7 +746,8 @@ export class ProjectList extends Component {
 				// Update existing project with custom color
 				this.projects[existingIndex].id = customProject.id;
 				this.projects[existingIndex].color = customProject.color;
-				this.projects[existingIndex].displayName = customProject.displayName || customProject.name;
+				this.projects[existingIndex].displayName =
+					customProject.displayName || customProject.name;
 				this.projects[existingIndex].createdAt =
 					customProject.createdAt;
 				this.projects[existingIndex].updatedAt =
@@ -709,7 +765,11 @@ export class ProjectList extends Component {
 			icon: string;
 		}[] = [
 			{ label: t("Name (A-Z)"), value: "name-asc", icon: "arrow-up-a-z" },
-			{ label: t("Name (Z-A)"), value: "name-desc", icon: "arrow-down-a-z" },
+			{
+				label: t("Name (Z-A)"),
+				value: "name-desc",
+				icon: "arrow-down-a-z",
+			},
 			{
 				label: t("Tasks (Low to High)"),
 				value: "tasks-asc",
@@ -763,15 +823,14 @@ export class ProjectList extends Component {
 		const menu = new Menu();
 
 		// Check if this is a custom project
-		const isCustomProject = this.plugin.settings.projectConfig?.customProjects?.some(
-			cp => cp.id === project.id || cp.name === project.name
-		);
+		const isCustomProject =
+			this.plugin.settings.projectConfig?.customProjects?.some(
+				(cp) => cp.id === project.id || cp.name === project.name
+			);
 
 		// Edit Project option
 		menu.addItem((item) => {
-			item
-				.setTitle(t("Edit Project"))
-				.setIcon("edit");
+			item.setTitle(t("Edit Project")).setIcon("edit");
 
 			if (isCustomProject) {
 				item.onClick(() => {
@@ -784,9 +843,7 @@ export class ProjectList extends Component {
 
 		// Delete Project option
 		menu.addItem((item) => {
-			item
-				.setTitle(t("Delete Project"))
-				.setIcon("trash");
+			item.setTitle(t("Delete Project")).setIcon("trash");
 
 			if (isCustomProject) {
 				item.onClick(() => {
@@ -802,9 +859,10 @@ export class ProjectList extends Component {
 
 	private editProject(project: Project) {
 		// Find the custom project data
-		let customProject = this.plugin.settings.projectConfig?.customProjects?.find(
-			cp => cp.id === project.id || cp.name === project.name
-		);
+		let customProject =
+			this.plugin.settings.projectConfig?.customProjects?.find(
+				(cp) => cp.id === project.id || cp.name === project.name
+			);
 
 		if (!customProject) {
 			// Create a new custom project entry if it doesn't exist
@@ -814,7 +872,7 @@ export class ProjectList extends Component {
 				displayName: project.displayName || project.name,
 				color: project.color,
 				createdAt: Date.now(),
-				updatedAt: Date.now()
+				updatedAt: Date.now(),
 			};
 		}
 
@@ -860,14 +918,18 @@ export class ProjectList extends Component {
 		}
 
 		// Find and update the project
-		const index = this.plugin.settings.projectConfig.customProjects.findIndex(
-			cp => cp.id === updatedProject.id
-		);
+		const index =
+			this.plugin.settings.projectConfig.customProjects.findIndex(
+				(cp) => cp.id === updatedProject.id
+			);
 
 		if (index !== -1) {
-			this.plugin.settings.projectConfig.customProjects[index] = updatedProject;
+			this.plugin.settings.projectConfig.customProjects[index] =
+				updatedProject;
 		} else {
-			this.plugin.settings.projectConfig.customProjects.push(updatedProject);
+			this.plugin.settings.projectConfig.customProjects.push(
+				updatedProject
+			);
 		}
 
 		// Save settings
@@ -891,23 +953,29 @@ export class ProjectList extends Component {
 				const { contentEl } = this;
 				contentEl.createEl("h2", { text: t("Delete Project") });
 				contentEl.createEl("p", {
-					text: t(`Are you sure you want to delete "${project.displayName || project.name}"?`)
+					text: t(
+						`Are you sure you want to delete "${
+							project.displayName || project.name
+						}"?`
+					),
 				});
 				contentEl.createEl("p", {
 					cls: "mod-warning",
-					text: t("This action cannot be undone.")
+					text: t("This action cannot be undone."),
 				});
 
-				const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
+				const buttonContainer = contentEl.createDiv({
+					cls: "modal-button-container",
+				});
 
 				const cancelBtn = buttonContainer.createEl("button", {
-					text: t("Cancel")
+					text: t("Cancel"),
 				});
 				cancelBtn.addEventListener("click", () => this.close());
 
 				const confirmBtn = buttonContainer.createEl("button", {
 					text: t("Delete"),
-					cls: "mod-warning"
+					cls: "mod-warning",
 				});
 				confirmBtn.addEventListener("click", () => {
 					this.onConfirm();
@@ -922,12 +990,16 @@ export class ProjectList extends Component {
 		})(this.plugin.app, async () => {
 			// Remove from custom projects
 			if (this.plugin.settings.projectConfig?.customProjects) {
-				const index = this.plugin.settings.projectConfig.customProjects.findIndex(
-					cp => cp.id === project.id || cp.name === project.name
-				);
+				const index =
+					this.plugin.settings.projectConfig.customProjects.findIndex(
+						(cp) => cp.id === project.id || cp.name === project.name
+					);
 
 				if (index !== -1) {
-					this.plugin.settings.projectConfig.customProjects.splice(index, 1);
+					this.plugin.settings.projectConfig.customProjects.splice(
+						index,
+						1
+					);
 					await this.plugin.saveSettings();
 
 					// If this was the active project, clear selection

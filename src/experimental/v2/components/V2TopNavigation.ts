@@ -1,11 +1,18 @@
-import { setIcon, Menu, Notice, SearchComponent } from "obsidian";
+import {
+	setIcon,
+	Menu,
+	Notice,
+	SearchComponent,
+	Platform,
+	Component,
+} from "obsidian";
 import TaskProgressBarPlugin from "@/index";
 import { Task } from "@/types/task";
 import { t } from "@/translations/helper";
 
 export type ViewMode = "list" | "kanban" | "tree" | "calendar";
 
-export class TopNavigation {
+export class TopNavigation extends Component {
 	private containerEl: HTMLElement;
 	private plugin: TaskProgressBarPlugin;
 	private searchInput: HTMLInputElement;
@@ -22,8 +29,10 @@ export class TopNavigation {
 		private onFilterClick: () => void,
 		private onSortClick: () => void,
 		private onSettingsClick: () => void,
-		availableModes?: ViewMode[]
+		availableModes?: ViewMode[],
+		private onToggleSidebar?: () => void
 	) {
+		super();
 		this.containerEl = containerEl;
 		this.plugin = plugin;
 		if (availableModes) {
@@ -73,8 +82,9 @@ export class TopNavigation {
 		// Show navigation when modes are available
 		this.containerEl.style.display = "";
 
-		// Left section - Search
+		// Left section - Hamburger menu (mobile) and Search
 		const leftSection = this.containerEl.createDiv({ cls: "v2-nav-left" });
+
 		const searchContainer = leftSection.createDiv({
 			cls: "v2-search-container",
 		});
@@ -91,7 +101,9 @@ export class TopNavigation {
 		});
 
 		// Render view tabs (we know modes are available at this point)
-		this.viewTabsContainer = centerSection.createDiv({ cls: "v2-view-tabs" });
+		this.viewTabsContainer = centerSection.createDiv({
+			cls: "v2-view-tabs",
+		});
 		this.renderViewTabs();
 
 		// Right section - Notifications and Settings
@@ -203,7 +215,11 @@ export class TopNavigation {
 					item.setTitle(task.content || t("Untitled task"))
 						.setIcon("alert-circle")
 						.onClick(() => {
-							new Notice(t("Task: {{content}}", { content: task.content || "" }));
+							new Notice(
+								t("Task: {{content}}", {
+									content: task.content || "",
+								})
+							);
 						});
 				});
 			});
@@ -254,7 +270,12 @@ export class TopNavigation {
 		for (const mode of this.availableModes) {
 			const config = modeConfig[mode];
 			if (config) {
-				this.createViewTab(this.viewTabsContainer, mode, config.icon, config.label);
+				this.createViewTab(
+					this.viewTabsContainer,
+					mode,
+					config.icon,
+					config.label
+				);
 			}
 		}
 	}
@@ -279,12 +300,16 @@ export class TopNavigation {
 		}
 
 		// Update center section visibility (this should always be visible now since we handle empty modes above)
-		const centerSection = this.containerEl.querySelector(".v2-nav-center") as HTMLElement;
+		const centerSection = this.containerEl.querySelector(
+			".v2-nav-center"
+		) as HTMLElement;
 		if (centerSection) {
 			centerSection.style.display = "";
 			// Re-render the view tabs
 			if (!this.viewTabsContainer) {
-				this.viewTabsContainer = centerSection.createDiv({ cls: "v2-view-tabs" });
+				this.viewTabsContainer = centerSection.createDiv({
+					cls: "v2-view-tabs",
+				});
 			}
 			this.renderViewTabs();
 		}

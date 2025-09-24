@@ -406,28 +406,9 @@
 	position: relative;
 	display: flex;
 	align-items: center;
-}
 
-.v2-search-icon {
-	position: absolute;
-	left: 12px;
-	color: var(--text-muted);
-	pointer-events: none;
-}
-
-.v2-search-input {
-	width: 100%;
-	padding: 8px 12px 8px 36px;
-	background-color: var(--background-modifier-form-field);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 6px;
-	font-size: 14px;
-	color: var(--text-normal);
-}
-
-.v2-search-input:focus {
-	outline: none;
-	border-color: var(--interactive-accent);
+	max-width: 400px;
+	flex: 1;
 }
 
 /* Center Navigation */
@@ -564,7 +545,7 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-	.tg-v2-sidebar-container {
+	.tg-v2-sidebar-container:not(.is-mobile-drawer) {
 		width: 200px;
 	}
 
@@ -578,6 +559,37 @@
 
 	.v2-nav-left .search-input-container {
 		width: 300px;
+	}
+}
+
+/* Mobile-specific media query */
+@media (max-width: 480px) {
+	/* Ensure drawer takes appropriate width on small screens */
+	.tg-v2-sidebar-container.is-mobile-drawer {
+		width: 75vw !important;
+		max-width: 320px !important;
+	}
+
+	/* Make hamburger button more prominent on mobile */
+	.v2-hamburger-button {
+		width: 44px;
+		height: 44px;
+	}
+
+	/* Adjust top navigation spacing on mobile */
+	.v2-top-navigation {
+		padding: 0 12px;
+	}
+
+	/* Hide view tabs on very small screens */
+	.v2-view-tabs {
+		display: none;
+	}
+
+	/* Optimize search container on mobile */
+	.v2-search-container {
+		flex: 1;
+		max-width: calc(100vw - 180px);
 	}
 }
 
@@ -652,4 +664,191 @@
 	border-radius: 2px;
 	text-transform: uppercase;
 	padding-top: 1px;
+}
+
+/* ===== Mobile Drawer Styles ===== */
+.drawer-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.5);
+	z-index: 999;
+	opacity: 0;
+	transition: opacity 0.3s ease;
+	pointer-events: none;
+}
+
+.drawer-open .drawer-overlay {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Mobile drawer sidebar */
+.tg-v2-sidebar-container.is-mobile-drawer {
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 280px !important;
+	max-width: 85vw !important;
+	min-width: 280px !important;
+	z-index: 1000;
+	transform: translateX(-100%);
+	transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+}
+
+/* When drawer is open */
+.drawer-open .tg-v2-sidebar-container.is-mobile-drawer {
+	transform: translateX(0);
+}
+
+/* Ensure sidebar content is visible on mobile even when "collapsed" */
+.tg-v2-sidebar-container.is-mobile-drawer .v2-sidebar.is-collapsed {
+	display: flex;
+	width: 100%;
+}
+
+/* Hide rail mode on mobile */
+.tg-v2-sidebar-container.is-mobile-drawer .v2-sidebar-rail {
+	display: none;
+}
+
+/* Mobile-specific sidebar content adjustments */
+.is-mobile .v2-sidebar {
+	width: 100%;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+.is-mobile .v2-sidebar-header {
+	padding: 16px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* Ensure all sections are visible on mobile */
+.is-mobile .v2-sidebar-content {
+	overflow-y: auto;
+	max-height: calc(
+		100vh - 150px
+	); /* Account for header and new task button */
+}
+
+.is-mobile .v2-sidebar-section {
+	display: block !important;
+	visibility: visible !important;
+}
+
+/* Ensure section headers are visible on mobile */
+.is-mobile .v2-section-header {
+	display: flex !important;
+	visibility: visible !important;
+}
+
+.is-mobile .v2-navigation-item,
+.is-mobile .v2-project-item {
+	padding: 10px 16px;
+	font-size: 15px;
+}
+
+.is-mobile .v2-new-task-btn {
+	padding: 12px;
+	font-size: 15px;
+}
+
+.is-mobile .v2-navigation-list {
+	display: flex;
+	justify-content: center;
+}
+
+.is-mobile span.v2-navigation-label {
+	display: none;
+}
+
+/* Touch-friendly sizing */
+.is-mobile .v2-navigation-item,
+.is-mobile .v2-project-item,
+.is-mobile .v2-add-project {
+	min-height: 44px;
+}
+
+/* Adjust main container on mobile when drawer is open */
+.drawer-open .tg-v2-main-container {
+	pointer-events: none;
+}
+
+/* Hamburger menu button for mobile */
+.v2-hamburger-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 4px;
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: background-color 0.15s ease, color 0.15s ease;
+	margin-right: 8px;
+	flex-shrink: 0;
+}
+
+.v2-hamburger-button:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.v2-hamburger-button svg {
+	width: 20px;
+	height: 20px;
+}
+
+/* Adjust search container on mobile when hamburger is present */
+.v2-nav-left {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* Hide sidebar toggle on desktop when in mobile drawer mode */
+.tg-v2-sidebar-container.is-mobile-drawer
+	~ .tg-v2-main-container
+	.sidebar-toggle {
+	display: none !important;
+}
+
+/* Animation for drawer from right (optional - can be configured) */
+.tg-v2-sidebar-container.is-mobile-drawer.drawer-right {
+	left: auto;
+	right: 0;
+	transform: translateX(100%);
+	box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.drawer-open .tg-v2-sidebar-container.is-mobile-drawer.drawer-right {
+	transform: translateX(0);
+}
+
+/* Smooth animations for all transitions */
+@keyframes slideInFromLeft {
+	from {
+		transform: translateX(-100%);
+		opacity: 0.8;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+@keyframes slideInFromRight {
+	from {
+		transform: translateX(100%);
+		opacity: 0.8;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
 }
