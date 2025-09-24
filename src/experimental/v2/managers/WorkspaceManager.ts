@@ -288,7 +288,8 @@ export class WorkspaceManager {
 	// Create new workspace (cloned from current or default)
 	public async createWorkspace(
 		name: string,
-		baseWorkspaceId?: string
+		baseWorkspaceId?: string,
+		icon?: string
 	): Promise<WorkspaceData> {
 		const config = this.getWorkspacesConfig();
 		const id = this.generateId();
@@ -315,6 +316,13 @@ export class WorkspaceManager {
 			updatedAt: Date.now(),
 			settings,
 		};
+
+		// Add icon if provided, otherwise inherit from base workspace if cloning
+		if (icon) {
+			newWorkspace.icon = icon;
+		} else if (baseWorkspace?.icon && baseId !== config.defaultWorkspaceId) {
+			newWorkspace.icon = baseWorkspace.icon;
+		}
 
 		config.byId[id] = newWorkspace;
 		config.order.push(id);
@@ -360,7 +368,8 @@ export class WorkspaceManager {
 	// Rename workspace
 	public async renameWorkspace(
 		workspaceId: string,
-		newName: string
+		newName: string,
+		icon?: string
 	): Promise<void> {
 		const config = this.getWorkspacesConfig();
 		const workspace = config.byId[workspaceId];
@@ -370,6 +379,9 @@ export class WorkspaceManager {
 		}
 
 		workspace.name = newName;
+		if (icon !== undefined) {
+			workspace.icon = icon;
+		}
 		workspace.updatedAt = Date.now();
 
 		await this.plugin.saveSettings();

@@ -70,8 +70,6 @@ class PathTrie {
 			.split("/")
 			.filter((part) => part.length > 0);
 
-		console.log(parts, path);
-
 		// Try to match the rule starting at any segment in the input path
 		for (let start = 0; start < parts.length; start++) {
 			let current = this.root;
@@ -219,6 +217,7 @@ export class FileFilterManager {
 	clearCache(): void {
 		this.cache.clear();
 	}
+
 	/**
 	 * Build a cache key that is scoped by kind and scope to avoid cross-scope pollution
 	 */
@@ -289,20 +288,20 @@ export class FileFilterManager {
 			scope === "file"
 				? this.fileSetFile
 				: scope === "inline"
-				? this.fileSetInline
-				: this.fileSet;
+					? this.fileSetInline
+					: this.fileSet;
 		const folderTrie =
 			scope === "file"
 				? this.folderTrieFile
 				: scope === "inline"
-				? this.folderTrieInline
-				: this.folderTrie;
+					? this.folderTrieInline
+					: this.folderTrie;
 		const patternRegexes =
 			scope === "file"
 				? this.patternRegexesFile
 				: scope === "inline"
-				? this.patternRegexesInline
-				: this.patternRegexes;
+					? this.patternRegexesInline
+					: this.patternRegexes;
 
 		// Detailed match breakdown
 		const fileHit = fileSet.has(normalizedPath);
@@ -341,28 +340,28 @@ export class FileFilterManager {
 				switch (rule.type) {
 					case "file":
 						(bucket === "file"
-							? this.fileSetFile
-							: bucket === "inline"
-							? this.fileSetInline
-							: this.fileSet
+								? this.fileSetFile
+								: bucket === "inline"
+									? this.fileSetInline
+									: this.fileSet
 						).add(this.normalizePath(rule.path));
 						break;
 					case "folder":
 						(bucket === "file"
-							? this.folderTrieFile
-							: bucket === "inline"
-							? this.folderTrieInline
-							: this.folderTrie
+								? this.folderTrieFile
+								: bucket === "inline"
+									? this.folderTrieInline
+									: this.folderTrie
 						).insert(rule.path, true);
 						break;
 					case "pattern":
 						try {
 							const regexPattern = this.globToRegex(rule.path);
 							(bucket === "file"
-								? this.patternRegexesFile
-								: bucket === "inline"
-								? this.patternRegexesInline
-								: this.patternRegexes
+									? this.patternRegexesFile
+									: bucket === "inline"
+										? this.patternRegexesInline
+										: this.patternRegexes
 							).push(new RegExp(regexPattern, "i"));
 						} catch (error) {
 							console.warn(

@@ -1,0 +1,92 @@
+/* Workspace Icon Selection Styles */
+
+/* Icon selector container in modals */
+.workspace-icon-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.workspace-icon-preview {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background-color: var(--background-modifier-hover);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.workspace-icon-preview svg {
+    width: 20px;
+    height: 20px;
+    color: var(--text-normal);
+}
+
+/* Workspace list in settings */
+.workspace-name-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.workspace-list-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.workspace-list-icon svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+}
+
+.workspace-item-active .workspace-list-icon svg {
+    color: var(--text-accent);
+}
+
+/* Workspace selector button */
+.workspace-selector .workspace-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.workspace-selector .workspace-icon svg {
+    width: 16px;
+    height: 16px;
+    color: white;
+}
+
+/* Modal button container alignment */
+.modal-button-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+/* Icon menu overrides for workspace selection */
+.tg-icon-menu {
+    z-index: var(--layer-modal);
+}
+
+/* Hover effects */
+.workspace-icon-preview:hover {
+    background-color: var(--background-modifier-hover-more);
+}
+
+/* Active workspace visual emphasis */
+.workspace-item-active {
+    background-color: var(--background-secondary);
+    border-left: 3px solid var(--text-accent);
+    margin-left: -12px;
+    padding-left: 9px;
+}

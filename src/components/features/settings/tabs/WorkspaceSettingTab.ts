@@ -1,8 +1,13 @@
-import { Menu, Modal, Notice, Setting } from "obsidian";
+import { Menu, Setting, setIcon } from "obsidian";
 import { TaskProgressBarSettingTab } from "@/setting";
 import TaskProgressBarPlugin from "@/index";
 import { WorkspaceData } from "@/experimental/v2/types/workspace";
 import { t } from "@/translations/helper";
+import {
+	CreateWorkspaceModal,
+	RenameWorkspaceModal,
+	DeleteWorkspaceModal,
+} from "@/experimental/v2/components/modals/WorkspaceModals";
 
 export function renderWorkspaceSettingsTab(settingTab: TaskProgressBarSettingTab, containerEl: HTMLElement) {
 	const workspacesSection = containerEl.createDiv();
@@ -70,9 +75,15 @@ export function renderWorkspaceSettingsTab(settingTab: TaskProgressBarSettingTab
 			workspaceItemEl.addClass("workspace-item-active");
 		}
 
-		new Setting(workspaceItemEl)
-			.setName(workspace.name)
-			.setDesc(
+		const setting = new Setting(workspaceItemEl);
+
+		// Add workspace icon to the name
+		const nameWithIcon = setting.nameEl.createDiv({cls: "workspace-name-with-icon"});
+		const iconEl = nameWithIcon.createDiv({cls: "workspace-list-icon"});
+		setIcon(iconEl, workspace.icon || "layers");
+		nameWithIcon.createSpan({text: workspace.name});
+
+		setting.setDesc(
 				isDefaultWs
 					? t("Default workspace")
 					: t("Last updated: {{date}}", {
@@ -174,237 +185,23 @@ function showWorkspaceSelector(settingTab: TaskProgressBarSettingTab, event: Mou
 function showCreateWorkspaceDialog(settingTab: TaskProgressBarSettingTab) {
 	if (!settingTab.plugin.workspaceManager) return;
 
-
 	new CreateWorkspaceModal(settingTab.plugin, () => {
-		this.display();
+		settingTab.display();
 	}).open();
 }
 
 function showRenameWorkspaceDialog(settingTab: TaskProgressBarSettingTab, workspace: WorkspaceData) {
 	if (!settingTab.plugin.workspaceManager) return;
 
-
 	new RenameWorkspaceModal(settingTab.plugin, workspace, () => {
-		this.display();
+		settingTab.display();
 	}).open();
 }
 
 function showDeleteWorkspaceDialog(settingTab: TaskProgressBarSettingTab, workspace: WorkspaceData) {
 	if (!settingTab.plugin.workspaceManager) return;
 
-
 	new DeleteWorkspaceModal(settingTab.plugin, workspace, () => {
-		this.display();
+		settingTab.display();
 	}).open();
-}
-
-class CreateWorkspaceModal extends Modal {
-	private nameInput: HTMLInputElement;
-	private baseSelect: HTMLSelectElement;
-
-	constructor(
-		private plugin: TaskProgressBarPlugin,
-		private onCreated: () => void
-	) {
-		super(plugin.app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.createEl("h2", {text: t("Create New Workspace")});
-
-		new Setting(contentEl)
-			.setName(t("Workspace Name"))
-			.addText((text) => {
-				text.setPlaceholder(t("Enter workspace name"));
-				this.nameInput = text.inputEl;
-			});
-
-		new Setting(contentEl)
-			.setName(t("Copy Settings From"))
-			.addDropdown((dropdown) => {
-				dropdown.addOption("", t("Default settings"));
-				this.plugin.workspaceManager
-					?.getAllWorkspaces()
-					.forEach((ws) => {
-						dropdown.addOption(ws.id, ws.name);
-					});
-				this.baseSelect = dropdown.selectEl;
-			});
-
-		const buttonContainer = contentEl.createDiv({
-			cls: "modal-button-container",
-		});
-
-		const createButton = buttonContainer.createEl("button", {
-			text: t("Create"),
-			cls: "mod-cta",
-		});
-
-		const cancelButton = buttonContainer.createEl("button", {
-			text: t("Cancel"),
-		});
-
-		createButton.addEventListener("click", async () => {
-			const name = this.nameInput.value.trim();
-			const baseId = this.baseSelect.value || undefined;
-
-			if (name && this.plugin.workspaceManager) {
-				console.log("[TG-WORKSPACE] settings:create", {
-					name,
-					baseId,
-				});
-				await this.plugin.workspaceManager.createWorkspace(
-					name,
-					baseId
-				);
-				new Notice(t("Workspace created"));
-				this.onCreated();
-				this.close();
-			} else {
-				new Notice(t("Please enter a workspace name"));
-			}
-		});
-
-		cancelButton.addEventListener("click", () => {
-			this.close();
-		});
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class RenameWorkspaceModal extends Modal {
-	private nameInput: HTMLInputElement;
-
-	constructor(
-		private plugin: TaskProgressBarPlugin,
-		private workspace: WorkspaceData,
-		private onRenamed: () => void
-	) {
-		super(plugin.app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.createEl("h2", {text: t("Rename Workspace")});
-
-		new Setting(contentEl)
-			.setName(t("New Name"))
-			.addText((text) => {
-				text.setValue(this.workspace.name).setPlaceholder(
-					t("Enter new name")
-				);
-				this.nameInput = text.inputEl;
-			});
-
-		const buttonContainer = contentEl.createDiv({
-			cls: "modal-button-container",
-		});
-
-		const renameButton = buttonContainer.createEl("button", {
-			text: t("Rename"),
-			cls: "mod-cta",
-		});
-
-		const cancelButton = buttonContainer.createEl("button", {
-			text: t("Cancel"),
-		});
-
-		renameButton.addEventListener("click", async () => {
-			const newName = this.nameInput.value.trim();
-			if (
-				newName &&
-				newName !== this.workspace.name &&
-				this.plugin.workspaceManager
-			) {
-				console.log("[TG-WORKSPACE] settings:rename", {
-					id: this.workspace.id,
-					to: newName,
-				});
-				await this.plugin.workspaceManager.renameWorkspace(
-					this.workspace.id,
-					newName
-				);
-				new Notice(t("Workspace renamed"));
-				this.onRenamed();
-				this.close();
-			} else {
-				new Notice(t("Please enter a different name"));
-			}
-		});
-
-		cancelButton.addEventListener("click", () => {
-			this.close();
-		});
-
-		this.nameInput.focus();
-		this.nameInput.select();
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class DeleteWorkspaceModal extends Modal {
-	constructor(
-		private plugin: TaskProgressBarPlugin,
-		private workspace: WorkspaceData,
-		private onDeleted: () => void
-	) {
-		super(plugin.app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.createEl("h2", {text: t("Delete Workspace")});
-
-		contentEl.createEl("p", {
-			text: t(
-				'Are you sure you want to delete "{{name}}"? This action cannot be undone.',
-				{name: this.workspace.name}
-			),
-		});
-
-		const buttonContainer = contentEl.createDiv({
-			cls: "modal-button-container",
-		});
-
-		const deleteButton = buttonContainer.createEl("button", {
-			text: t("Delete"),
-			cls: "mod-warning",
-		});
-
-		const cancelButton = buttonContainer.createEl("button", {
-			text: t("Cancel"),
-		});
-
-		deleteButton.addEventListener("click", async () => {
-			if (this.plugin.workspaceManager) {
-				console.log("[TG-WORKSPACE] settings:delete", {
-					id: this.workspace.id,
-				});
-				await this.plugin.workspaceManager.deleteWorkspace(
-					this.workspace.id
-				);
-				new Notice(t("Workspace deleted"));
-				this.onDeleted();
-				this.close();
-			}
-		});
-
-		cancelButton.addEventListener("click", () => {
-			this.close();
-		});
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
 }

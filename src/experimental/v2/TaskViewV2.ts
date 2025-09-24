@@ -157,16 +157,16 @@ export class TaskViewV2 extends ItemView {
 		filters: {},
 	};
 
-	private workspaceId: string = "";
-	private isSavingFilterState: boolean = false;
+	private workspaceId = "";
+	private isSavingFilterState = false;
 
 	private tasks: Task[] = [];
 	private filteredTasks: Task[] = [];
-	private currentViewId: string = "inbox";
-	private isLoading: boolean = false;
+	private currentViewId = "inbox";
+	private isLoading = false;
 	private loadError: string | null = null;
-	private isInitializing: boolean = true;
-	private updateScheduled: boolean = false;
+	private isInitializing = true;
+	private updateScheduled = false;
 	private pendingUpdates: Set<string> = new Set();
 
 	// Track the current active component for view mode switching
@@ -465,8 +465,10 @@ export class TaskViewV2 extends ItemView {
 			this.plugin,
 			(query) => this.handleSearch(query),
 			(mode) => this.handleViewModeChange(mode),
-			() => {}, // Filter is now in Obsidian view header
-			() => {}, // Sort is now in Obsidian view header
+			() => {
+			}, // Filter is now in Obsidian view header
+			() => {
+			}, // Sort is now in Obsidian view header
 			() => this.handleSettingsClick(),
 			availableModes,
 			() => this.toggleSidebar() // Pass sidebar toggle callback
@@ -645,12 +647,12 @@ export class TaskViewV2 extends ItemView {
 		// Create legacy containers for backward compatibility
 		this.listContainer = this.contentArea.createDiv({
 			cls: "task-list-container",
-			attr: { style: "display: none;" },
+			attr: {style: "display: none;"},
 		});
 
 		this.treeContainer = this.contentArea.createDiv({
 			cls: "task-tree-container",
-			attr: { style: "display: none;" },
+			attr: {style: "display: none;"},
 		});
 
 		// Hide all components initially (force hide all during initialization)
@@ -662,8 +664,8 @@ export class TaskViewV2 extends ItemView {
 	private createSidebarToggle() {
 		const headerBtns = !Platform.isPhone
 			? (this.headerEl?.find(
-					".view-header-nav-buttons"
-			  ) as HTMLElement | null)
+				".view-header-nav-buttons"
+			) as HTMLElement | null)
 			: (this.headerEl?.find(".view-header-left") as HTMLElement);
 		if (!headerBtns) {
 			console.warn("[TG-V2] header buttons container not found");
@@ -825,7 +827,8 @@ export class TaskViewV2 extends ItemView {
 				this.sidebar?.setCollapsed(true);
 				this.rootContainerEl?.addClass("v2-sidebar-collapsed");
 			}
-		} catch (_) {}
+		} catch (_) {
+		}
 	}
 
 	private hideAllComponents(forceHideAll: boolean = false) {
@@ -902,7 +905,7 @@ export class TaskViewV2 extends ItemView {
 			isDataflowEnabled(this.plugin) &&
 			this.plugin.dataflowOrchestrator
 		) {
-			const { on, Events } = await import("../../dataflow/events/Events");
+			const {on, Events} = await import("../../dataflow/events/Events");
 
 			// Listen for cache ready event
 			this.registerEvent(
@@ -1224,8 +1227,8 @@ export class TaskViewV2 extends ItemView {
 
 		// Skip if we're switching to the same view (but never skip during initialization or if no filters/projects)
 		// Also don't skip if we have no active filters - this ensures proper refresh when clearing filters
-		const hasActiveFilters = (this.currentFilterState?.filterGroups?.length > 0) ||
-									this.viewState.selectedProject;
+		const hasActiveFilters = (this.currentFilterState?.filterGroups?.length ?? 0) > 0 ||
+			!!this.viewState.selectedProject;
 		if (
 			!this.isInitializing &&
 			this.currentViewId === viewId &&
@@ -1948,7 +1951,7 @@ export class TaskViewV2 extends ItemView {
 			const loadingEl = this.contentArea.createDiv({
 				cls: "tg-v2-loading",
 			});
-			loadingEl.createDiv({ cls: "tg-v2-spinner" });
+			loadingEl.createDiv({cls: "tg-v2-spinner"});
 			loadingEl.createDiv({
 				cls: "tg-v2-loading-text",
 				text: t("Loading tasks..."),
@@ -1967,7 +1970,7 @@ export class TaskViewV2 extends ItemView {
 			const errorEl = this.contentArea.createDiv({
 				cls: "tg-v2-error-state",
 			});
-			const errorIcon = errorEl.createDiv({ cls: "tg-v2-error-icon" });
+			const errorIcon = errorEl.createDiv({cls: "tg-v2-error-icon"});
 			setIcon(errorIcon, "alert-triangle");
 
 			errorEl.createDiv({
@@ -2003,7 +2006,7 @@ export class TaskViewV2 extends ItemView {
 			const emptyEl = this.contentArea.createDiv({
 				cls: "tg-v2-empty-state",
 			});
-			const emptyIcon = emptyEl.createDiv({ cls: "tg-v2-empty-icon" });
+			const emptyIcon = emptyEl.createDiv({cls: "tg-v2-empty-icon"});
 			setIcon(emptyIcon, "inbox");
 
 			emptyEl.createDiv({
@@ -2075,7 +2078,7 @@ export class TaskViewV2 extends ItemView {
 		const total = projectTasks.length;
 		const percentage = total > 0 ? (completed / total) * 100 : 0;
 
-		return { completed, total, percentage };
+		return {completed, total, percentage};
 	}
 
 	// Workspace management
@@ -2228,7 +2231,7 @@ export class TaskViewV2 extends ItemView {
 					}, 100);
 				});
 
-				popover.showAtPosition({ x: e.clientX, y: e.clientY });
+				popover.showAtPosition({x: e.clientX, y: e.clientY});
 			} else {
 				const modal = new ViewTaskFilterModal(
 					this.app,
@@ -2336,7 +2339,10 @@ export class TaskViewV2 extends ItemView {
 		this.saveFilterStateToWorkspace();
 
 		// Broadcast filter change to ensure UI components update
-		this.app.workspace.trigger("task-genius:filter-changed", null);
+		this.app.workspace.trigger("task-genius:filter-changed", {
+			rootCondition: "all",
+			filterGroups: [],
+		} as any);
 
 		// Clear any active project selection in sidebar
 		this.sidebar?.projectList?.setActiveProject(null);
@@ -2428,7 +2434,7 @@ export class TaskViewV2 extends ItemView {
 		if (this.detailsPanelEl) return;
 		const wrapper = this.contentArea?.parentElement as HTMLElement;
 		if (!wrapper) return;
-		this.detailsPanelEl = wrapper.createDiv({ cls: "tg-v2-details-panel" });
+		this.detailsPanelEl = wrapper.createDiv({cls: "tg-v2-details-panel"});
 		const header = this.detailsPanelEl.createDiv({
 			cls: "tg-v2-details-header",
 		});
@@ -2443,7 +2449,7 @@ export class TaskViewV2 extends ItemView {
 		this.ensureDetailsPanel();
 		if (this.detailsBodyEl) {
 			this.detailsBodyEl.empty();
-			this.detailsBodyEl.createEl("div", { text: message });
+			this.detailsBodyEl.createEl("div", {text: message});
 		}
 	}
 
@@ -2479,7 +2485,7 @@ export class TaskViewV2 extends ItemView {
 			return;
 		}
 
-		const updatedTask = { ...task, completed: !task.completed };
+		const updatedTask = {...task, completed: !task.completed};
 
 		if (updatedTask.completed) {
 			updatedTask.metadata.completedDate = Date.now();
@@ -2665,12 +2671,13 @@ export class TaskViewV2 extends ItemView {
 			});
 		}
 	}
+
 	private async editTask(task: Task) {
 		const file = this.app.vault.getFileByPath(task.filePath);
 		if (!(file instanceof TFile)) return;
 		const leaf = this.app.workspace.getLeaf(false);
 		await leaf.openFile(file, {
-			eState: { line: task.line },
+			eState: {line: task.line},
 		});
 	}
 
@@ -2752,8 +2759,8 @@ export class TaskViewV2 extends ItemView {
 			} else {
 				new Notice(
 					t("Failed to delete task") +
-						": " +
-						(result.error || "Unknown error")
+					": " +
+					(result.error || "Unknown error")
 				);
 			}
 		} catch (error) {

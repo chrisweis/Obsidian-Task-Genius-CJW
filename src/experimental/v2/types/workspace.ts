@@ -2,6 +2,7 @@ export interface WorkspaceData {
 	id: string;
 	name: string;
 	color?: string;
+	icon?: string; // Optional custom icon for the workspace
 	updatedAt: number;
 	order?: number;
 	settings: WorkspaceOverrides; // Empty for Default workspace
