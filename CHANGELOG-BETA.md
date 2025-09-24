@@ -4,6 +4,12 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.9.0-beta.3](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.0-beta.2...9.9.0-beta.3) (2025-09-24)
+
+### Bug Fixes
+
+* **ui:** correct translation interpolation and button alignment ([ec09f34](https://github.com/Quorafind/Obsidian-Task-Genius/commit/ec09f34771ad169b56b7006ca95558306d17a16c))
+
 ## [9.9.0-beta.2](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.0-beta.1...9.9.0-beta.2) (2025-09-24)
 
 ### Refactors
