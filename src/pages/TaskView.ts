@@ -283,8 +283,6 @@ export class TaskView extends ItemView {
 			this.currentFilterState = null;
 		}
 
-		console.log("currentFilterState", this.currentFilterState);
-
 		// 3. 初始化组件（但先不传入数据）
 		this.initializeComponents();
 
@@ -325,6 +323,8 @@ export class TaskView extends ItemView {
 		}
 
 		this.toggleDetailsVisibility(false);
+
+		this.createTaskMark();
 
 		this.createActionButtons();
 
@@ -663,6 +663,16 @@ export class TaskView extends ItemView {
 			.onClick(() => {
 				this.toggleSidebar();
 			});
+	}
+
+	private createTaskMark() {
+		this.titleEl.setText(
+			t("{{num}} Tasks", {
+				interpolation: {
+					num: this.tasks.length,
+				},
+			})
+		);
 	}
 
 	private createActionButtons() {
