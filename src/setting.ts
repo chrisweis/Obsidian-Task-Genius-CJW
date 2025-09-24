@@ -949,9 +949,11 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					isDefaultWs
 						? t("Default workspace")
 						: t("Last updated: {{date}}", {
-								date: new Date(
-									workspace.updatedAt
-								).toLocaleDateString(),
+								interpolation: {
+									date: new Date(
+										workspace.updatedAt
+									).toLocaleDateString(),
+								},
 						  })
 				)
 				.addButton((button) => {
@@ -979,6 +981,11 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				})
 				.addButton((button) => {
 					if (isDefaultWs) {
+						button
+							.setIcon("trash")
+							.setTooltip(
+								t("Default workspace cannot be deleted")
+							);
 						button.setDisabled(true);
 					} else {
 						button
