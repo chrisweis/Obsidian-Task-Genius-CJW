@@ -1222,15 +1222,19 @@ export class TaskViewV2 extends ItemView {
 			this.isInitializing
 		);
 
-		// Skip if we're switching to the same view (but never skip during initialization)
+		// Skip if we're switching to the same view (but never skip during initialization or if no filters/projects)
+		// Also don't skip if we have no active filters - this ensures proper refresh when clearing filters
+		const hasActiveFilters = (this.currentFilterState?.filterGroups?.length > 0) ||
+									this.viewState.selectedProject;
 		if (
 			!this.isInitializing &&
 			this.currentViewId === viewId &&
 			!project &&
-			this.filteredTasks.length > 0
+			this.filteredTasks.length > 0 &&
+			hasActiveFilters // Only skip if we have active filters
 		) {
 			console.log(
-				"[TG-V2] Already on this view with data, skipping switchView"
+				"[TG-V2] Already on this view with data and active filters, skipping switchView"
 			);
 			return;
 		}
@@ -2327,6 +2331,16 @@ export class TaskViewV2 extends ItemView {
 
 		this.viewState.selectedProject = undefined; // keep project state in sync when clearing via UI
 		this.app.saveLocalStorage("task-genius-view-filter", null);
+
+		// Save the cleared filter state to workspace
+		this.saveFilterStateToWorkspace();
+
+		// Broadcast filter change to ensure UI components update
+		this.app.workspace.trigger("task-genius:filter-changed", null);
+
+		// Clear any active project selection in sidebar
+		this.sidebar?.projectList?.setActiveProject(null);
+
 		this.applyFilters();
 		this.updateView();
 		this.updateActionButtons();
@@ -2366,28 +2380,33 @@ export class TaskViewV2 extends ItemView {
 				filterGroups: [],
 			};
 
-			// Remove any existing project filters to avoid duplicates
-			nextState.filterGroups = (nextState.filterGroups || []).map(
-				(g: any) => ({
+			// Remove any existing project filters and empty groups to avoid duplicates
+			nextState.filterGroups = (nextState.filterGroups || [])
+				.map((g: any) => ({
 					...g,
 					filters: (g.filters || []).filter(
 						(f: any) => f.property !== "project"
 					),
-				})
-			);
-			// Append a dedicated group for project filter to enforce AND semantics
-			nextState.filterGroups.push({
-				id: `v2-proj-group-${timestamp}`,
-				groupCondition: "all",
-				filters: [
-					{
-						id: `v2-proj-filter-${timestamp}`,
-						property: "project",
-						condition: "is",
-						value: projectId,
-					},
-				],
-			});
+				}))
+				.filter((g: any) => g.filters && g.filters.length > 0); // Remove empty groups
+
+			// Only add project filter if projectId is not empty
+			if (projectId && projectId.trim() !== "") {
+				// Append a dedicated group for project filter to enforce AND semantics
+				nextState.filterGroups.push({
+					id: `v2-proj-group-${timestamp}`,
+					groupCondition: "all",
+					filters: [
+						{
+							id: `v2-proj-filter-${timestamp}`,
+							property: "project",
+							condition: "is",
+							value: projectId,
+						},
+					],
+				});
+			}
+
 			this.liveFilterState = nextState as any;
 			this.currentFilterState = nextState as any;
 			this.app.saveLocalStorage("task-genius-view-filter", nextState);
