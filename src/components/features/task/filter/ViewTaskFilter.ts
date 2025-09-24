@@ -1079,6 +1079,13 @@ export class TaskFilterComponent extends Component {
 
 	// Public method to get current filter state
 	public getFilterState(): RootFilterState {
+		// Handle case where rootFilterState might not be initialized
+		if (!this.rootFilterState) {
+			return {
+				rootCondition: "any",
+				filterGroups: [],
+			};
+		}
 		return JSON.parse(JSON.stringify(this.rootFilterState));
 	}
 

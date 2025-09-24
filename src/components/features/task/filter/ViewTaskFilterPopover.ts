@@ -53,8 +53,7 @@ export class ViewTaskFilterPopover
 			this.leafId,
 			this.plugin
 		);
-
-		// Initialize editor and display task
+		// Ensure the component is properly loaded
 		this.taskFilterComponent.onload();
 
 		// Create the popover

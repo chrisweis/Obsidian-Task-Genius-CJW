@@ -29,6 +29,8 @@ export class ViewTaskFilterModal extends Modal {
 			this.leafId,
 			this.plugin
 		);
+		// Ensure the component is properly loaded
+		this.taskFilterComponent.onload();
 	}
 
 	onClose() {
