@@ -1,7 +1,6 @@
 import {
 	ItemView,
 	WorkspaceLeaf,
-	Plugin,
 	Notice,
 	debounce,
 	setIcon,
@@ -9,8 +8,8 @@ import {
 	TFile,
 	ButtonComponent,
 } from "obsidian";
-import TaskProgressBarPlugin from "../../index";
-import { Task, BaseTask } from "../../types/task";
+import TaskProgressBarPlugin from "@/index";
+import { Task } from "@/types/task";
 import { V2Sidebar } from "./components/V2Sidebar";
 import "./styles/v2.css";
 import "./styles/v2-enhanced.css";
@@ -22,43 +21,42 @@ import {
 	onWorkspaceSwitched,
 	onWorkspaceOverridesSaved,
 } from "./events/ui-event";
-import { Events, on } from "../../dataflow/events/Events";
-import { TaskListItemComponent } from "../../components/features/task/view/listItem";
-import { TaskTreeItemComponent } from "../../components/features/task/view/treeItem";
+import { Events, on } from "@/dataflow/events/Events";
+import { TaskListItemComponent } from "@/components/features/task/view/listItem";
+import { TaskTreeItemComponent } from "@/components/features/task/view/treeItem";
 import {
 	CalendarComponent,
 	CalendarEvent,
-} from "../../components/features/calendar";
-import { KanbanComponent } from "../../components/features/kanban/kanban";
-import { GanttComponent } from "../../components/features/gantt/gantt";
-import { filterTasks } from "../../utils/task/task-filter-utils";
+} from "@/components/features/calendar";
+import { KanbanComponent } from "@/components/features/kanban/kanban";
+import { GanttComponent } from "@/components/features/gantt/gantt";
+import { filterTasks } from "@/utils/task/task-filter-utils";
 import {
 	getViewSettingOrDefault,
 	TwoColumnSpecificConfig,
-} from "../../common/setting-definition";
-import { ContentComponent } from "../../components/features/task/view/content";
-import { ForecastComponent } from "../../components/features/task/view/forecast";
-import { TagsComponent } from "../../components/features/task/view/tags";
-import { ProjectsComponent } from "../../components/features/task/view/projects";
-import { ReviewComponent } from "../../components/features/task/view/review";
-import { Habit } from "../../components/features/habit/habit";
-import { ViewComponentManager } from "../../components/ui/behavior/ViewComponentManager";
-import { TaskPropertyTwoColumnView } from "../../components/features/task/view/TaskPropertyTwoColumnView";
+} from "@/common/setting-definition";
+import { ContentComponent } from "@/components/features/task/view/content";
+import { ForecastComponent } from "@/components/features/task/view/forecast";
+import { TagsComponent } from "@/components/features/task/view/tags";
+import { ProjectsComponent } from "@/components/features/task/view/projects";
+import { ReviewComponent } from "@/components/features/task/view/review";
+import { Habit } from "@/components/features/habit/habit";
+import { ViewComponentManager } from "@/components/ui/behavior/ViewComponentManager";
+import { TaskPropertyTwoColumnView } from "@/components/features/task/view/TaskPropertyTwoColumnView";
 import {
 	TaskDetailsComponent,
 	createTaskCheckbox,
-} from "../../components/features/task/view/details";
-import { ConfirmModal } from "../../components/ui/modals/ConfirmModal";
-import { QuickCaptureModal } from "../../components/features/quick-capture/modals/QuickCaptureModal";
+} from "@/components/features/task/view/details";
+import { ConfirmModal } from "@/components/ui/modals/ConfirmModal";
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal";
 import {
 	ViewTaskFilterPopover,
 	ViewTaskFilterModal,
-} from "../../components/features/task/filter";
-import { RootFilterState } from "../../components/features/task/filter/ViewTaskFilter";
+} from "@/components/features/task/filter";
+import { RootFilterState } from "@/components/features/task/filter/ViewTaskFilter";
 import { Platform } from "obsidian";
-import { TaskProgressBarSettingTab } from "../../setting";
-import { isDataflowEnabled } from "../../dataflow/createDataflow";
-import { t } from "../../translations/helper";
+import { isDataflowEnabled } from "@/dataflow/createDataflow";
+import { t } from "@/translations/helper";
 
 export const TASK_VIEW_V2_TYPE = "task-genius-view-v2";
 
@@ -121,27 +119,27 @@ export class TaskViewV2 extends ItemView {
 	private taskCountEl: HTMLElement;
 	private filterInputEl: HTMLInputElement;
 	private viewToggleBtn: HTMLElement;
-	private isTreeView: boolean = false;
+	private isTreeView = false;
 
 	// View action buttons
 	private detailsToggleBtn: HTMLElement;
 	private currentSelectedTaskId: string | null = null;
-	private lastToggleTimestamp: number = 0;
-	private isDetailsVisible: boolean = false;
+	private lastToggleTimestamp = 0;
+	private isDetailsVisible = false;
 	private currentFilterState: RootFilterState | null = null;
 
 	// Sidebar collapse state
-	private isSidebarCollapsed: boolean = false;
+	private isSidebarCollapsed = false;
 	private sidebarToggleBtn: HTMLElement | null = null;
-	private isMobileDrawerOpen: boolean = false;
+	private isMobileDrawerOpen = false;
 	private drawerOverlay: HTMLElement | null = null;
 
 	// Touch gesture tracking
-	private touchStartX: number = 0;
-	private touchStartY: number = 0;
-	private touchCurrentX: number = 0;
-	private isSwiping: boolean = false;
-	private swipeThreshold: number = 50;
+	private touchStartX = 0;
+	private touchStartY = 0;
+	private touchCurrentX = 0;
+	private isSwiping = false;
+	private swipeThreshold = 50;
 
 	// V2 Details panel
 	private detailsPanelEl: HTMLElement | null = null;
@@ -831,7 +829,7 @@ export class TaskViewV2 extends ItemView {
 		}
 	}
 
-	private hideAllComponents(forceHideAll: boolean = false) {
+	private hideAllComponents(forceHideAll = false) {
 		// During initialization, we need to hide all components initially
 		// But during view switches, we can be smarter about it
 		const isInitialHide = this.isInitializing && forceHideAll;
@@ -993,7 +991,7 @@ export class TaskViewV2 extends ItemView {
 		);
 	}
 
-	private async loadTasks(showLoading: boolean = true) {
+	private async loadTasks(showLoading = true) {
 		try {
 			console.log("[TG-V2] loadTasks started, showLoading:", showLoading);
 			// Only show loading state if requested, not initializing, and we don't have tasks
@@ -3056,8 +3054,8 @@ export class TaskViewV2 extends ItemView {
 		// Check for special two-column views
 		const viewConfig = getViewSettingOrDefault(this.plugin, viewId as any);
 		if (viewConfig?.specificConfig?.viewType === "twocolumn") {
-			// Two-column views typically support list and tree modes
-			return ["list", "tree"];
+			// Two-column views have their own specialized UI and don't need view mode switching
+			return [];
 		}
 
 		// Check for special views managed by ViewComponentManager
