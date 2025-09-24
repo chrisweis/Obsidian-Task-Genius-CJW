@@ -4,6 +4,12 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.9.0-beta.2](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.0-beta.1...9.9.0-beta.2) (2025-09-24)
+
+### Refactors
+
+* **v2:** rename V2 interface to Fluent and simplify command names ([c096c6c](https://github.com/Quorafind/Obsidian-Task-Genius/commit/c096c6c9527ff0659b991e82f4bbca439e7430d7))
+
 ## [9.9.0-beta.1](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.0-beta.0...9.9.0-beta.1) (2025-09-24)
 
 ### Bug Fixes
