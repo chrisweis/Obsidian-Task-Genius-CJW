@@ -27,7 +27,8 @@ if (latestTag && semver.gt(latestTag, currentVersion)) {
 }
 
 // Parse command line arguments (support flags like --dry-run anywhere)
-const args = process.argv.slice(2);
+// Filter out the '--' separator that npm/pnpm uses for argument passing
+const args = process.argv.slice(2).filter(arg => arg !== '--');
 const knownIncrements = new Set(['patch', 'minor', 'major', 'continue']);
 let increment = undefined;
 const argParts = [];
