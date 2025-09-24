@@ -4,6 +4,12 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.9.0-beta.1](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.0-beta.0...9.9.0-beta.1) (2025-09-24)
+
+### Bug Fixes
+
+* **filter:** ensure proper initialization of filter components ([78cdf77](https://github.com/Quorafind/Obsidian-Task-Genius/commit/78cdf77c1f6aff18cb56aefaa6c31d7b66f2c115))
+
 ## [9.9.0-beta.0](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.14...9.9.0-beta.0) (2025-09-24)
 
 ### ⚠ BREAKING CHANGES
