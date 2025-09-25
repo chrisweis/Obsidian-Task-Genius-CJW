@@ -672,7 +672,9 @@ function findMetadataInsertPosition(
 	const blockRef = detectBlockReference(lineText);
 
 	// Find the end of the task content, right after the task description
-	const taskMatch = lineText.match(/^[\s|\t]*([-*+]|\d+\.)\s\[.\]\s*/);
+	const taskMatch = lineText.match(
+		/^[\s|\t]*([-*+]|\d+\.)\s\[(.)\]\s*([^#\[📅🚀✅❌🛫▶️⏰🏁]*)/
+	);
 	if (!taskMatch) return blockRef ? blockRef.index : lineText.length;
 
 	let position = taskMatch[0].length;
