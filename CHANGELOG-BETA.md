@@ -12,6 +12,19 @@ All notable changes to beta releases will be documented in this file.
 * **task-mover:** prevent archive markers on non-task lines and preserve folded content ([f20c5eb](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/f20c5ebee3b999fe69a902afee1b0d12e28fcfbe))
 * **v2:** hide top navigation for two-column views ([2c24068](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/2c24068c69f314d7ccc63212c243e11abaaa6262))
 
+### Chores
+
+* **release:** bump version to 9.9.0-beta.5 [beta] ([ef0834c](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/ef0834c65a859eba1b8fbe68cf44d8328d2a7a9e))
+* **version:** fix version issue before ([8abd736](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/8abd736e8400b97657fd63f0857d927cbc71e3e8))
+
+## [9.9.0-beta.5](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/compare/9.9.0-beta.4...9.9.0-beta.5) (2025-09-26)
+
+### Bug Fixes
+
+* **setting:** manage workspace setting should jump to workspace setting tab ([f282bff](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/f282bffbf84d2b8fdde21521620342e1f47f6a58))
+* **task-mover:** prevent archive markers on non-task lines and preserve folded content ([f20c5eb](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/f20c5ebee3b999fe69a902afee1b0d12e28fcfbe))
+* **v2:** hide top navigation for two-column views ([2c24068](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/commit/2c24068c69f314d7ccc63212c243e11abaaa6262))
+
 ## [9.9.0-beta.4](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.0-beta.3...9.9.0-beta.4) (2025-09-24)
 
 ### Features
