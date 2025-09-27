@@ -670,7 +670,6 @@ function findMetadataInsertPosition(
 ): number {
 	// Work with the full line text, don't extract block reference yet
 	const blockRef = detectBlockReference(lineText);
-
 	// Find the task marker and status
 	const taskMatch = lineText.match(/^[\s|\t]*([-*+]|\d+\.)\s\[(.)\]\s*/);
 	if (!taskMatch) return blockRef ? blockRef.index : lineText.length;
