@@ -502,6 +502,18 @@ export class TaskUtils {
 
 		// Get the current task line
 		const currentLine = lines[taskLine];
+
+		// Check if the current line is actually a task
+		// Tasks must match pattern: optional whitespace + list marker (-, number., or *) + space + checkbox
+		const taskPattern = /^\s*(-|\d+\.|\*) \[(.)\]/;
+		if (!taskPattern.test(currentLine)) {
+			// Not a task line, return empty result
+			return {
+				content: "",
+				linesToRemove: [],
+			};
+		}
+
 		const currentIndent = this.getIndentation(currentLine, app);
 
 		// Extract the parent task's mark
@@ -539,9 +551,42 @@ export class TaskUtils {
 		// Include the current line and completed child tasks
 		resultLines.push(parentTaskWithMarker);
 
+		// First, collect all indented content that belongs to this task (folded content)
+		// This includes notes, tags, and other content that is indented under the task
+		const taskContent: { line: string; index: number; indent: number }[] = [];
+		for (let i = taskLine + 1; i < lines.length; i++) {
+			const line = lines[i];
+			const lineIndent = this.getIndentation(line, app);
+
+			// Stop if we've reached content at the same or lower indentation level
+			if (lineIndent <= currentIndent) {
+				break;
+			}
+
+			// Check if this is a task at the direct child level
+			const isTask = /^\s*(-|\d+\.|\*) \[(.)\]/.test(line);
+			if (isTask) {
+				// For non-"all" modes, we need to handle child tasks specially
+				// So we stop collecting the immediate folded content here
+				if (moveMode !== "all") {
+					break;
+				}
+			}
+
+			// This is indented content that belongs to the parent task
+			taskContent.push({ line, index: i, indent: lineIndent });
+		}
+
 		// If we're moving all subtasks, we'll collect them all
 		if (moveMode === "all") {
-			for (let i = taskLine + 1; i < lines.length; i++) {
+			// Add all the folded content and subtasks
+			for (const item of taskContent) {
+				resultLines.push(this.completeTaskIfNeeded(item.line, settings));
+				linesToRemove.push(item.index);
+			}
+
+			// Continue collecting all nested subtasks beyond the immediate folded content
+			for (let i = taskLine + taskContent.length + 1; i < lines.length; i++) {
 				const line = lines[i];
 				const lineIndent = this.getIndentation(line, app);
 
@@ -559,6 +604,11 @@ export class TaskUtils {
 		}
 		// If we're moving only completed tasks or direct children
 		else {
+			// Always include the immediate folded content (notes, tags, etc.)
+			for (const item of taskContent) {
+				resultLines.push(item.line); // Don't complete non-task content
+				linesToRemove.push(item.index);
+			}
 			// First pass: collect all child tasks to analyze
 			const childTasks: {
 				line: string;
@@ -568,7 +618,9 @@ export class TaskUtils {
 				isIncompleted: boolean;
 			}[] = [];
 
-			for (let i = taskLine + 1; i < lines.length; i++) {
+			// Start after the folded content we already collected
+			const startIndex = taskLine + taskContent.length + 1;
+			for (let i = startIndex; i < lines.length; i++) {
 				const line = lines[i];
 				const lineIndent = this.getIndentation(line, app);
 

@@ -184,6 +184,12 @@ export class WorkspaceSelector {
 					this.plugin.app.setting.openTabById(
 						"obsidian-task-progress-bar"
 					);
+
+					setTimeout(() => {
+						if (this.plugin.settingTab) {
+							this.plugin.settingTab.openTab("workspaces");
+						}
+					}, 100);
 				});
 		});
 

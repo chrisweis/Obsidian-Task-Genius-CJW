@@ -670,25 +670,94 @@ function findMetadataInsertPosition(
 ): number {
 	// Work with the full line text, don't extract block reference yet
 	const blockRef = detectBlockReference(lineText);
-
-	// Find the end of the task content, right after the task description
-	const taskMatch = lineText.match(
-		/^[\s|\t]*([-*+]|\d+\.)\s\[(.)\]\s*([^#\[📅🚀✅❌🛫▶️⏰🏁]*)/
-	);
+	// Find the task marker and status
+	const taskMatch = lineText.match(/^[\s|\t]*([-*+]|\d+\.)\s\[(.)\]\s*/);
 	if (!taskMatch) return blockRef ? blockRef.index : lineText.length;
 
+	// Start position is right after the task checkbox
 	let position = taskMatch[0].length;
 
-	// For cancelled date, we need special handling to insert after all metadata and start dates
+	// Find the actual end of task content by scanning through the text
+	// This handles content with special characters, links, etc.
+	let contentEnd = position;
+	let inLink = 0; // Track nested [[links]]
+	let inDataview = false; // Track [field:: value] metadata
+	const remainingText = lineText.slice(position);
+
+	for (let i = 0; i < remainingText.length; i++) {
+		const char = remainingText[i];
+		const nextChar = remainingText[i + 1];
+		const twoChars = char + (nextChar || '');
+
+		// Handle [[wiki links]] - they are part of content
+		if (twoChars === '[[') {
+			inLink++;
+			contentEnd = position + i + 2;
+			i++; // Skip next char
+			continue;
+		}
+		if (twoChars === ']]' && inLink > 0) {
+			inLink--;
+			contentEnd = position + i + 2;
+			i++; // Skip next char
+			continue;
+		}
+
+		// If we're inside a link, everything is content
+		if (inLink > 0) {
+			contentEnd = position + i + 1;
+			continue;
+		}
+
+		// Check for dataview metadata [field:: value]
+		if (char === '[' && !inDataview) {
+			const afterBracket = remainingText.slice(i + 1);
+			if (afterBracket.match(/^[a-zA-Z]+::/)) {
+				// This is dataview metadata, stop here
+				break;
+			}
+		}
+
+		// Check for tags (only if preceded by whitespace or at start)
+		if (char === '#') {
+			if (i === 0 || remainingText[i - 1] === ' ' || remainingText[i - 1] === '\t') {
+				// Check if this is actually a tag (followed by word characters)
+				const afterHash = remainingText.slice(i + 1);
+				if (afterHash.match(/^[\w-]+/)) {
+					// This is a tag, stop here
+					break;
+				}
+			}
+		}
+
+		// Check for date emojis (these are metadata markers)
+		const dateEmojis = ['📅', '🚀', '✅', '❌', '🛫', '▶️', '⏰', '🏁'];
+		if (dateEmojis.includes(char)) {
+			// Check if this is followed by a date pattern
+			const afterEmoji = remainingText.slice(i + 1);
+			if (afterEmoji.match(/^\s*\d{4}-\d{2}-\d{2}/)) {
+				// This is a date marker, stop here
+				break;
+			}
+		}
+
+		// Regular content character
+		contentEnd = position + i + 1;
+	}
+
+	position = contentEnd;
+
+	// Trim trailing whitespace
+	while (position > taskMatch[0].length && lineText[position - 1] === ' ') {
+		position--;
+	}
+
+	// For cancelled date, we need special handling to insert after start dates if present
 	if (dateType === "cancelled") {
 		const useDataviewFormat =
 			plugin.settings.preferMetadataFormat === "dataview";
 
-		// Find the last occurrence of either:
-		// 1. Start date marker (🛫 or [start::)
-		// 2. If no start date, find the end of all metadata
-
-		// Look for start date first
+		// Look for existing start date
 		let startDateFound = false;
 		if (useDataviewFormat) {
 			const startDateMatch = lineText.match(/\[start::[^\]]*\]/);
@@ -717,9 +786,6 @@ function findMetadataInsertPosition(
 					);
 					startDateMatch = lineText.match(pattern);
 					if (startDateMatch) {
-						console.log(
-							`[AutoDateManager] Found start date with emoji ${emoji}`
-						);
 						break;
 					}
 				}
@@ -728,47 +794,11 @@ function findMetadataInsertPosition(
 			if (startDateMatch && startDateMatch.index !== undefined) {
 				position = startDateMatch.index + startDateMatch[0].length;
 				startDateFound = true;
-				console.log(
-					`[AutoDateManager] Found start date at index ${startDateMatch.index}, length ${startDateMatch[0].length}, new position: ${position}`
-				);
 			}
 		}
 
-		console.log(
-			`[AutoDateManager] Start date found: ${startDateFound}, position: ${position}`
-		);
-
-		if (!startDateFound) {
-			// No start date found, find the end of all metadata
-			// This includes tags (#), dataview fields ([field::]), and other date markers
-			let lastMetadataEnd = position;
-
-			// Find all metadata occurrences
-			const metadataRegexes = [
-				/#[\w-]+/g, // Tags
-				/\[[a-zA-Z]+::[^\]]*\]/g, // Dataview fields
-				/[📅🚀✅❌🛫▶️⏰🏁]\s*\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?/g, // Date markers (including all common start emojis)
-			];
-
-			for (const regex of metadataRegexes) {
-				let match;
-				while ((match = regex.exec(lineText)) !== null) {
-					if (match.index >= position) {
-						const matchEnd = match.index + match[0].length;
-						if (matchEnd > lastMetadataEnd) {
-							lastMetadataEnd = matchEnd;
-						}
-					}
-				}
-			}
-
-			position = lastMetadataEnd;
-		}
-
-		// Ensure we have a space before the cancelled date
-		if (position > 0 && lineText[position - 1] !== " ") {
-			// No need to add space here, it will be added with the date
-		}
+		// If no start date found, position is already correct from initial parsing
+		// It points to the end of content before metadata
 	} else if (dateType === "completed") {
 		// For completed date, we want to go to the end of the line (before block reference)
 		// This is different from cancelled/start dates which go after content/metadata
@@ -783,56 +813,9 @@ function findMetadataInsertPosition(
 			}
 		}
 	} else {
-		// For start date, find the end of main content before metadata
-		let contentEnd = position;
-		let inBrackets = false;
-		const chars = lineText.slice(position).split("");
-
-		for (let i = 0; i < chars.length; i++) {
-			const char = chars[i];
-
-			// Track if we're inside dataview brackets
-			if (char === "[" && !inBrackets) {
-				// Check if this is a dataview field like [due::...]
-				const remainingText = lineText.slice(position + i);
-				if (remainingText.match(/^\[[a-zA-Z]+::/)) {
-					// This is metadata, stop here
-					break;
-				}
-				inBrackets = true;
-				contentEnd = position + i + 1;
-			} else if (char === "]" && inBrackets) {
-				inBrackets = false;
-				contentEnd = position + i + 1;
-			} else if (!inBrackets) {
-				// Check for metadata markers when not inside brackets
-				if (
-					char === "#" ||
-					char === "📅" ||
-					char === "🚀" ||
-					char === "✅" ||
-					char === "❌" ||
-					char === "🛫" ||
-					char === "▶️" ||
-					char === "⏰" ||
-					char === "🏁"
-				) {
-					// This is metadata, stop here
-					break;
-				}
-				contentEnd = position + i + 1;
-			} else {
-				// Inside brackets, keep going
-				contentEnd = position + i + 1;
-			}
-		}
-
-		position = contentEnd;
-
-		// Trim any trailing whitespace from position
-		while (position > 0 && lineText[position - 1] === " ") {
-			position--;
-		}
+		// For start date, the position has already been calculated correctly
+		// in the initial content parsing above
+		// No additional processing needed
 	}
 
 	// Ensure position doesn't exceed the block reference position
