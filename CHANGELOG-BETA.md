@@ -4,6 +4,18 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.9.0-beta.6](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.0-beta.5...9.9.0-beta.6) (2025-09-27)
+
+### Features
+
+* improve date positioning logic for task metadata ([41f1d95](https://github.com/Quorafind/Obsidian-Task-Genius/commit/41f1d95576940fab61d1ded3dfce5dcbaa559420)), closes [#463](https://github.com/Quorafind/Obsidian-Task-Genius/issues/463)
+* **settings:** add workspace selector component ([27c426c](https://github.com/Quorafind/Obsidian-Task-Genius/commit/27c426c4748afd0470a15913b8c663bcd3cb2cda))
+
+### Bug Fixes
+
+* cancel date goes before task content ([8b48e6a](https://github.com/Quorafind/Obsidian-Task-Genius/commit/8b48e6a25ba04622f359043df7d88e52b38da24f))
+* **editor:** improve date positioning in task content ([dab3ecb](https://github.com/Quorafind/Obsidian-Task-Genius/commit/dab3ecb5d70cc40c8507bed1c63928e7e8d3eb3b))
+
 ## [9.9.0-beta.5](https://github.com/Quorafind/Obsidian-Task-Progress-Bar/compare/9.9.0-beta.4...9.9.0-beta.5) (2025-09-26)
 
 ### Bug Fixes
