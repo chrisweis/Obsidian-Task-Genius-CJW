@@ -1,11 +1,5 @@
 /* Settings Search Component Styles */
 
-/* 搜索容器 */
-.tg-settings-search-container {
-	margin-bottom: var(--size-4-4);
-	position: relative;
-}
-
 /* 搜索输入框容器 - 使用 Obsidian 标准输入框样式 */
 .tg-settings-search-input-container {
 	position: relative;
@@ -209,10 +203,6 @@ input.tg-settings-search-input {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-	.tg-settings-search-container {
-		margin-bottom: var(--size-4-3);
-	}
-
 	.tg-settings-search-results {
 		max-height: 280px;
 		border-radius: var(--radius-s);
@@ -256,13 +246,6 @@ input.tg-settings-search-input {
 .tg-settings-search-results::-webkit-scrollbar-thumb:hover {
 	background: var(--scrollbar-thumb-bg-hover);
 	background-clip: content-box;
-}
-
-/* 确保搜索框在设置页面中的正确定位 */
-.task-genius-settings .tg-settings-search-container {
-	order: -1; /* 确保搜索框显示在最前面 */
-	margin-top: 0;
-	margin-bottom: var(--size-4-4);
 }
 
 /* 与设置标签页容器的间距调整 */

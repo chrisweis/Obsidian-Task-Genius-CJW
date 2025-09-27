@@ -19,6 +19,7 @@ import "./styles/setting-v2.css";
 import "./styles/beta-warning.css";
 import "./styles/settings-search.css";
 import "./styles/settings-migration.css";
+import "./styles/workspace-settings-selector.css";
 import {
 	renderAboutSettingsTab,
 	renderBetaTestSettingsTab,
@@ -45,7 +46,6 @@ import { renderMcpIntegrationSettingsTab } from "./components/features/settings/
 import { IframeModal } from "@/components/ui/modals/IframeModal";
 import { renderTaskTimerSettingTab } from "./components/features/settings/tabs/TaskTimerSettingsTab";
 import { renderBasesSettingsTab } from "./components/features/settings/tabs/BasesSettingsTab";
-import { WorkspaceData } from "./experimental/v2/types/workspace";
 import { renderWorkspaceSettingsTab } from "@/components/features/settings/tabs/WorkspaceSettingTab";
 
 export class TaskProgressBarSettingTab extends PluginSettingTab {
@@ -321,6 +321,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			if (tab.id === "mcp-integration" && !Platform.isDesktopApp) {
 				return;
 			}
+			// Skip workspaces tab from main navigation (accessed via dropdown)
+			if (tab.id === "workspaces") {
+				return;
+			}
 			const category = tab.category || "core";
 			if (categories[category as keyof typeof categories]) {
 				categories[category as keyof typeof categories].tabs.push(tab);
@@ -439,6 +443,18 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			if (settingsHeader)
 				(settingsHeader as unknown as HTMLElement).style.display =
 					"none";
+		}
+
+		// Special handling for workspaces tab - ensure it's still accessible via dropdown
+		if (tabId === "workspaces") {
+			// Make sure the workspace section is visible even though the tab is hidden
+			const workspaceSection = this.containerEl.querySelector(
+				'[data-tab-id="workspaces"]'
+			);
+			if (workspaceSection) {
+				(workspaceSection as unknown as HTMLElement).style.display = "block";
+				workspaceSection.addClass("settings-tab-section-active");
+			}
 		}
 	}
 
