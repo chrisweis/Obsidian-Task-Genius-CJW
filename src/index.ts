@@ -291,7 +291,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 		this.globalSuggestManager = new SuggestManager(this.app, this);
 
 		// Initialize workspace manager
-		const { WorkspaceManager } = await import("./experimental/v2/managers/WorkspaceManager");
+		const {WorkspaceManager} = await import("./experimental/v2/managers/WorkspaceManager");
 		this.workspaceManager = new WorkspaceManager(this);
 		await this.workspaceManager.migrateToV2();
 		this.workspaceManager.ensureDefaultWorkspaceInvariant();
@@ -581,6 +581,13 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			console.time("[TPB] onLayoutReady");
+
+			// Update workspace leaves when layout is ready
+			const deferWorkspaceLeaves = this.app.workspace.getLeavesOfType(TASK_VIEW_TYPE);
+			const deferSpecificLeaves = this.app.workspace.getLeavesOfType(TASK_SPECIFIC_VIEW_TYPE);
+			[...deferWorkspaceLeaves, ...deferSpecificLeaves].forEach(leaf => {
+				leaf.loadIfDeferred();
+			});
 			// Initialize Task Genius Icon Manager
 			this.taskGeniusIconManager = new TaskGeniusIconManager(this);
 			this.addChild(this.taskGeniusIconManager);
@@ -1520,12 +1527,12 @@ export default class TaskProgressBarPlugin extends Plugin {
 		}
 
 		this.settings.taskGutter.enableTaskGutter &&
-			this.registerEditorExtension([taskGutterExtension(this.app, this)]);
+		this.registerEditorExtension([taskGutterExtension(this.app, this)]);
 		this.settings.enableTaskStatusSwitcher &&
-			this.settings.enableCustomTaskMarks &&
-			this.registerEditorExtension([
-				taskStatusSwitcherExtension(this.app, this),
-			]);
+		this.settings.enableCustomTaskMarks &&
+		this.registerEditorExtension([
+			taskStatusSwitcherExtension(this.app, this),
+		]);
 
 		// Add priority picker extension
 		if (this.settings.enablePriorityPicker) {
@@ -1640,7 +1647,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 	 * Open the onboarding view in a new leaf
 	 */
 	async openOnboardingView(): Promise<void> {
-		const { workspace } = this.app;
+		const {workspace} = this.app;
 
 		// Check if onboarding view is already open
 		const existingLeaf = workspace.getLeavesOfType(ONBOARDING_VIEW_TYPE)[0];
@@ -1652,7 +1659,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		// Create a new leaf in the main area and open the onboarding view
 		const leaf = workspace.getLeaf("tab");
-		await leaf.setViewState({ type: ONBOARDING_VIEW_TYPE });
+		await leaf.setViewState({type: ONBOARDING_VIEW_TYPE});
 		workspace.revealLeaf(leaf);
 	}
 
@@ -1668,7 +1675,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 				"[Plugin][loadSettings] fileMetadataInheritance (effective):",
 				this.settings.fileMetadataInheritance,
 			);
-		} catch {}
+		} catch {
+		}
 
 		// Migrate old inheritance settings to new structure
 		this.migrateInheritanceSettings(savedData);
@@ -1710,7 +1718,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 				"[Plugin][saveSettings] fileMetadataInheritance:",
 				this.settings?.fileMetadataInheritance,
 			);
-		} catch {}
+		} catch {
+		}
 		await this.saveData(this.settings);
 	}
 
@@ -1728,7 +1737,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 				(v) => v.id === defaultView.id,
 			);
 			if (!existingView) {
-				this.settings.viewConfiguration.push({ ...defaultView });
+				this.settings.viewConfiguration.push({...defaultView});
 			}
 		});
 
@@ -1747,7 +1756,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		this.isActivatingView = true;
 		try {
-			const { workspace } = this.app;
+			const {workspace} = this.app;
 
 			// Check if view is already open
 			const existingLeaves = workspace.getLeavesOfType(TASK_VIEW_TYPE);
@@ -1765,7 +1774,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 			// Otherwise, create a new leaf and open the view
 			const leaf = workspace.getLeaf("tab");
-			await leaf.setViewState({ type: TASK_VIEW_TYPE });
+			await leaf.setViewState({type: TASK_VIEW_TYPE});
 			workspace.revealLeaf(leaf);
 		} finally {
 			this.isActivatingView = false;
@@ -1782,7 +1791,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		this.isActivatingSidebar = true;
 		try {
-			const { workspace } = this.app;
+			const {workspace} = this.app;
 
 			// Check if view is already open
 			const existingLeaves = workspace.getLeavesOfType(
@@ -1803,7 +1812,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 			// Open in the right sidebar
 			const leaf = workspace.getRightLeaf(false);
 			if (leaf) {
-				await leaf.setViewState({ type: TIMELINE_SIDEBAR_VIEW_TYPE });
+				await leaf.setViewState({type: TIMELINE_SIDEBAR_VIEW_TYPE});
 				workspace.revealLeaf(leaf);
 			}
 		} finally {
