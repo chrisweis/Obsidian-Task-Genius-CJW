@@ -20,6 +20,8 @@ import { V2ViewState } from "./types";
 import {
 	onWorkspaceSwitched,
 	onWorkspaceOverridesSaved,
+	onSidebarSelectionChanged,
+	emitTaskSelected,
 } from "./events/ui-event";
 import { Events, on } from "@/dataflow/events/Events";
 import { TaskListItemComponent } from "@/components/features/task/view/listItem";
@@ -217,6 +219,8 @@ export class TaskViewV2 extends ItemView {
 						this.restoreFilterStateFromWorkspace();
 						await this.loadTasks();
 						this.scheduleUpdate("workspace-switch");
+
+
 					}
 				})
 			);
@@ -236,6 +240,22 @@ export class TaskViewV2 extends ItemView {
 				on(this.app, Events.SETTINGS_CHANGED, async () => {
 					// Only reload if not caused by filter state save
 					if (!this.isSavingFilterState) {
+
+						// Listen to sidebar selection events when using side leaves
+						const useWorkspaceSideLeaves = !!((this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves);
+						if (useWorkspaceSideLeaves) {
+							this.registerEvent(
+								onSidebarSelectionChanged(this.app, (payload) => {
+									if (payload.workspaceId && payload.workspaceId !== this.workspaceId) return;
+									if (payload.selectionType === "project" && payload.selectionId) {
+										this.handleProjectSelect(payload.selectionId);
+									} else if (payload.selectionType === "view" && payload.selectionId) {
+										this.switchView(payload.selectionId);
+									}
+								})
+							);
+						}
+
 						await this.applyWorkspaceSettings();
 						await this.loadTasks();
 						this.switchView(this.currentViewId);
@@ -332,31 +352,39 @@ export class TaskViewV2 extends ItemView {
 			cls: "tg-v2-content",
 		});
 
-		// Initialize details component (hidden by default)
-		this.detailsComponent = new TaskDetailsComponent(
-			this.rootContainerEl,
-			this.app,
-			this.plugin
-		);
-		this.addChild(this.detailsComponent);
-		this.detailsComponent.load();
-		this.detailsComponent.onTaskToggleComplete = (task: Task) =>
-			this.toggleTaskCompletion(task);
-		this.detailsComponent.onTaskEdit = (task: Task) => this.editTask(task);
-		this.detailsComponent.onTaskUpdate = async (
-			originalTask: Task,
-			updatedTask: Task
-		) => {
-			await this.handleTaskUpdate(originalTask, updatedTask);
-		};
-		this.detailsComponent.toggleDetailsVisibility = (visible: boolean) => {
-			this.toggleDetailsVisibility(visible);
-		};
-		this.detailsComponent.setVisible(this.isDetailsVisible);
+		// Decide whether to use separate workspace side leaves for sidebar/detail
+		const useWorkspaceSideLeaves = !!((this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves);
 
-		// Initialize components
-		console.log("[TG-V2] Initializing sidebar");
-		this.initializeSidebar(sidebarEl);
+		if (!useWorkspaceSideLeaves) {
+			// Initialize details component (hidden by default)
+			this.detailsComponent = new TaskDetailsComponent(
+				this.rootContainerEl,
+				this.app,
+				this.plugin
+			);
+			this.addChild(this.detailsComponent);
+			this.detailsComponent.load();
+			this.detailsComponent.onTaskToggleComplete = (task: Task) =>
+				this.toggleTaskCompletion(task);
+			this.detailsComponent.onTaskEdit = (task: Task) => this.editTask(task);
+			this.detailsComponent.onTaskUpdate = async (
+				originalTask: Task,
+				updatedTask: Task
+			) => {
+				await this.handleTaskUpdate(originalTask, updatedTask);
+			};
+			this.detailsComponent.toggleDetailsVisibility = (visible: boolean) => {
+				this.toggleDetailsVisibility(visible);
+			};
+			this.detailsComponent.setVisible(this.isDetailsVisible);
+
+			// Initialize components
+			console.log("[TG-V2] Initializing sidebar");
+			this.initializeSidebar(sidebarEl);
+		} else {
+			sidebarEl.hide();
+			console.log("[TG-V2] Using workspace side leaves: skip in-view sidebar and details panel");
+		}
 		console.log("[TG-V2] Initializing top navigation");
 		this.initializeTopNavigation(topNavEl);
 		console.log("[TG-V2] Initializing view components");
@@ -420,6 +448,21 @@ export class TaskViewV2 extends ItemView {
 
 		// Mark initialization as complete (only set once, at the very end)
 		this.isInitializing = false;
+
+		// Register cross-view listeners for V2 side-leaf mode
+		if ((this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves) {
+			this.registerEvent(
+				onSidebarSelectionChanged(this.app, (payload) => {
+					if (payload.workspaceId && payload.workspaceId !== this.workspaceId) return;
+					if (payload.selectionType === "project" && payload.selectionId) {
+						this.handleProjectSelect(payload.selectionId);
+					} else if (payload.selectionType === "view" && payload.selectionId) {
+						this.switchView(payload.selectionId);
+					}
+				})
+			);
+		}
+
 		console.log("[TG-V2] onOpen completed");
 	}
 
@@ -2453,6 +2496,19 @@ export class TaskViewV2 extends ItemView {
 
 	// Task handling methods
 	private handleTaskSelection(task: Task | null) {
+		// Emit cross-view selection when using side leaves
+		if ((this.plugin.settings.experimental as {
+			v2Config?: {
+				useWorkspaceSideLeaves?: boolean;
+			};
+		})?.v2Config?.useWorkspaceSideLeaves) {
+			emitTaskSelected(this.app, {
+				taskId: task?.id ?? null,
+				origin: "main",
+				workspaceId: this.workspaceId,
+			});
+		}
+
 		if (task) {
 			const now = Date.now();
 			const timeSinceLastToggle = now - this.lastToggleTimestamp;

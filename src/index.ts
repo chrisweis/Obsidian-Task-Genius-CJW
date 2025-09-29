@@ -118,10 +118,9 @@ import { createDataflow, isDataflowEnabled } from "./dataflow/createDataflow";
 import type { DataflowOrchestrator } from "./dataflow/Orchestrator";
 import { WriteAPI } from "./dataflow/api/WriteAPI";
 import { Events } from "./dataflow/events/Events";
-import {
-	setPriorityAtCursor,
-	removePriorityAtCursor,
-} from "./utils/task/curosr-priority-utils";
+import { installWorkspaceDragMonitor, registerRestrictedDnDViewTypes } from "./patches/workspace-dnd-patch";
+import { TASK_VIEW_V2_TYPE } from "./experimental/v2/TaskViewV2";
+import { setPriorityAtCursor, removePriorityAtCursor } from "./utils/task/curosr-priority-utils";
 
 class TaskProgressBarPopover extends HoverPopover {
 	plugin: TaskProgressBarPlugin;
@@ -265,8 +264,13 @@ export default class TaskProgressBarPlugin extends Plugin {
 	// V2 Integration instance
 	v2Integration?: V2Integration;
 
+
+	// Uninstaller for workspace drag-and-drop monkey patch
+	private uninstallWorkspaceDnD?: () => void;
+
 	async onload() {
 		console.time("[TPB] onload");
+
 		console.time("[TPB] loadSettings");
 		await this.loadSettings();
 		console.timeEnd("[TPB] loadSettings");
@@ -505,6 +509,12 @@ export default class TaskProgressBarPlugin extends Plugin {
 		console.time("[TPB] registerEditorExt");
 		this.registerEditorExt();
 		console.timeEnd("[TPB] registerEditorExt");
+
+
+		// Install workspace DnD monkey patch (blocks dragging restricted views to center)
+		installWorkspaceDragMonitor(this);
+		// Also restrict V2 main view from being dropped to center, as it is sidebar-managed
+		try { registerRestrictedDnDViewTypes(TASK_VIEW_V2_TYPE); } catch {}
 
 		this.settingTab = new TaskProgressBarSettingTab(this.app, this);
 		this.addSettingTab(this.settingTab);
@@ -1611,7 +1621,6 @@ export default class TaskProgressBarPlugin extends Plugin {
 		if (this.mcpServerManager) {
 			this.mcpServerManager.cleanup();
 		}
-
 		// Task Genius Icon Manager cleanup is handled automatically by Component system
 	}
 

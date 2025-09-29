@@ -105,6 +105,42 @@ export function renderBetaTestSettingsTab(
 				});
 		});
 
+	// V2: Use workspace side leaves for Sidebar & Details
+	new Setting(containerEl)
+		.setName(t("Fluent: Use Workspace Side Leaves"))
+		.setDesc(
+			t(
+				"Use left/right workspace side leaves for Sidebar and Details. When enabled, the main V2 view won't render in-view sidebar or details."
+			)
+		)
+		.addToggle((toggle) => {
+			const current = !!((settingTab.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves ?? true);
+			toggle
+				.setValue(current)
+				.onChange(async (value) => {
+					if (!settingTab.plugin.settings.experimental) {
+						settingTab.plugin.settings.experimental = {
+							enableV2: false,
+							showV2Ribbon: false,
+						};
+					}
+					if (!settingTab.plugin.settings.experimental.v2Config) {
+						settingTab.plugin.settings.experimental.v2Config = {
+							enableWorkspaces: true,
+							defaultWorkspace: "default",
+							showTopNavigation: true,
+							showNewSidebar: true,
+							allowViewSwitching: true,
+							persistViewMode: true,
+						};
+					}
+					// Store via 'any' to avoid typing constraints for experimental backfill
+					((settingTab.plugin.settings.experimental as any).v2Config).useWorkspaceSideLeaves = value;
+					await settingTab.plugin.saveSettings();
+					new Notice(t("Saved. Reopen the view to apply."));
+				});
+		});
+
 	// V2 Sidebar Other Views overflow threshold
 	new Setting(containerEl)
 		.setName(t("Fluent: Max Other Views before overflow"))

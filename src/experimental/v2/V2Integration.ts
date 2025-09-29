@@ -1,6 +1,8 @@
 import { WorkspaceLeaf } from "obsidian";
 import TaskProgressBarPlugin from "../../index";
 import { TaskViewV2, TASK_VIEW_V2_TYPE } from "./TaskViewV2";
+import { LeftSidebarView, TG_LEFT_SIDEBAR_VIEW_TYPE } from "./views/LeftSidebarView";
+import { RightDetailView, TG_RIGHT_DETAIL_VIEW_TYPE } from "./views/RightDetailView";
 import "./styles/v2.css";
 import { t } from "@/translations/helper";
 
@@ -25,6 +27,17 @@ export class V2Integration {
 			TASK_VIEW_V2_TYPE,
 			(leaf: WorkspaceLeaf) => new TaskViewV2(leaf, this.plugin)
 		);
+
+
+			// Register side leaf views for new architecture
+			this.plugin.registerView(
+				TG_LEFT_SIDEBAR_VIEW_TYPE,
+				(leaf: WorkspaceLeaf) => new LeftSidebarView(leaf, this.plugin)
+			);
+			this.plugin.registerView(
+				TG_RIGHT_DETAIL_VIEW_TYPE,
+				(leaf: WorkspaceLeaf) => new RightDetailView(leaf, this.plugin)
+			);
 
 		// Add command to open Fluent view
 		this.plugin.addCommand({
@@ -60,6 +73,8 @@ export class V2Integration {
 		if (leaves.length > 0) {
 			// Focus existing view
 			workspace.revealLeaf(leaves[0]);
+			// Ensure side leaves if configured
+			await this.ensureSideLeavesIfEnabled();
 			return;
 		}
 
@@ -71,7 +86,37 @@ export class V2Integration {
 		});
 
 		workspace.revealLeaf(leaf);
+
+		// Ensure side leaves if configured
+		await this.ensureSideLeavesIfEnabled();
 	}
+
+	private async ensureSideLeavesIfEnabled() {
+		const useSideLeaves = !!(this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves;
+		if (!useSideLeaves) return;
+
+		const ws: any = this.plugin.app.workspace as any;
+		// Left sidebar
+		let leftLeaf = ws.getLeftLeaf?.(false) ?? ws.leftSplit?.children?.[0];
+		if (!leftLeaf && typeof ws.ensureSideLeaf === "function") {
+			leftLeaf = ws.ensureSideLeaf("left", { active: false });
+		}
+		if (leftLeaf) {
+			await leftLeaf.setViewState({ type: TG_LEFT_SIDEBAR_VIEW_TYPE, active: false });
+			ws.revealLeaf?.(leftLeaf);
+		}
+
+		// Right detail
+		let rightLeaf = ws.getRightLeaf?.(false) ?? ws.rightSplit?.children?.[0];
+		if (!rightLeaf && typeof ws.ensureSideLeaf === "function") {
+			rightLeaf = ws.ensureSideLeaf("right", { active: false });
+		}
+		if (rightLeaf) {
+			await rightLeaf.setViewState({ type: TG_RIGHT_DETAIL_VIEW_TYPE, active: false });
+			// Do not reveal proactively to avoid stealing focus; reveal when a task is selected
+		}
+	}
+
 
 	/**
 	 * Check if Fluent features are enabled
@@ -110,6 +155,10 @@ export class V2Integration {
 				maxOtherViewsBeforeOverflow: 5,
 			};
 		}
+
+		// Backfill extra experimental flag without touching types
+		const v2c: any = this.plugin.settings.experimental!.v2Config as any;
+		if (v2c.useWorkspaceSideLeaves === undefined) v2c.useWorkspaceSideLeaves = true;
 
 		await this.plugin.saveSettings();
 	}
