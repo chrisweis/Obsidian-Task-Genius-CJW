@@ -5,6 +5,7 @@ import {
 	getTodayLocalDateString,
 } from "@/utils/date/date-formatter";
 import { HabitCard } from "@/components/features/habit/habitcard/habitcard";
+import { t } from "@/translations/helper";
 import "@/styles/habit.css";
 
 export class HabitChartModal extends Modal {
@@ -44,14 +45,14 @@ export class HabitChartModal extends Modal {
 		let selectedYear: string = String(currentYear);
 
 		const rangeSetting = new Setting(controls)
-			.setName("范围")
+			.setName(t("Range"))
 			.addDropdown((dd) => {
 				dd.addOptions({
-					all: "全部历史",
-					"7d": "最近一周",
-					"30d": "最近一月",
-					"365d": "最近一年",
-					year: "整年份",
+					all: t("All history"),
+					"7d": t("Last week"),
+					"30d": t("Last month"),
+					"365d": t("Last year"),
+					year: t("Full year"),
 				});
 				dd.setValue(selectedRange);
 				dd.onChange((value) => {
@@ -67,7 +68,7 @@ export class HabitChartModal extends Modal {
 
 		let yearSelect: HTMLSelectElement = null!;
 		const yearSetting = new Setting(controls)
-			.setName("年份")
+			.setName(t("Year"))
 			.addDropdown((dd) => {
 				yearSelect = dd.selectEl;
 				for (let y = currentYear; y >= earliestYear; y--) {
@@ -175,10 +176,10 @@ export class HabitChartModal extends Modal {
 				let tooltip =
 					`${dateStr}: ` +
 					(cellValue == null
-						? "Missed"
+						? t("Missed")
 						: isFilled
-						? "Completed"
-						: "Missed");
+						? t("Completed")
+						: t("Missed"));
 				cell.setAttribute("aria-label", tooltip);
 				if (isInYear) {
 					cell.addClass(isFilled ? "filled" : "default");
@@ -221,10 +222,10 @@ export class HabitChartModal extends Modal {
 				let tooltip =
 					`${dateStr}: ` +
 					(cellValue == null
-						? "Missed"
+						? t("Missed")
 						: isFilled
-						? "Completed"
-						: "Missed");
+						? t("Completed")
+						: t("Missed"));
 				cell.setAttribute("aria-label", tooltip);
 				cell.addClass(
 					inRange ? (isFilled ? "filled" : "default") : "default"

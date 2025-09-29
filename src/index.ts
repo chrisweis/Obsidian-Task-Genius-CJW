@@ -65,8 +65,9 @@ import {
 	migrateOldFilterOptions,
 } from "./editor-extensions/core/task-filter-panel";
 import { Task } from "./types/task";
-import { QuickCaptureModal } from "./components/features/quick-capture/modals/QuickCaptureModal";
-import { MinimalQuickCaptureModal } from "./components/features/quick-capture/modals/MinimalQuickCaptureModal";
+// Import the enhanced QuickCaptureModal and MinimalQuickCaptureModal
+import { QuickCaptureModal } from "./components/features/quick-capture/modals/QuickCaptureModalWithSwitch";
+import { MinimalQuickCaptureModal } from "./components/features/quick-capture/modals/MinimalQuickCaptureModalWithSwitch";
 import { MinimalQuickCaptureSuggest } from "./components/features/quick-capture/suggest/MinimalQuickCaptureSuggest";
 import { SuggestManager } from "./components/ui/suggest";
 import { MarkdownView } from "obsidian";
@@ -705,7 +706,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 			name: t("Quick Capture"),
 			callback: () => {
 				// Create a modal with full task metadata options
-				new QuickCaptureModal(this.app, this, {}, true).open();
+				// The new modal will automatically handle mode switching
+				new QuickCaptureModal(this.app, this, undefined, true).open();
 			},
 		});
 
@@ -716,6 +718,20 @@ export default class TaskProgressBarPlugin extends Plugin {
 			callback: () => {
 				// Create a minimal modal for quick task capture
 				new MinimalQuickCaptureModal(this.app, this).open();
+			},
+		});
+
+		// Add command for quick file creation
+		this.addCommand({
+			id: "quick-file-create",
+			name: t("Quick File Create"),
+			callback: () => {
+				// Create a modal with file creation mode metadata
+				const modal = new QuickCaptureModal(this.app, this, {
+					location: "file",
+				});
+				// The modal will detect file location and switch to file mode
+				modal.open();
 			},
 		});
 

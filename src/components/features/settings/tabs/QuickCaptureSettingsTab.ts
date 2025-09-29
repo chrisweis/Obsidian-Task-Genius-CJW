@@ -1,4 +1,4 @@
-import { Setting, Notice, App } from "obsidian";
+import { Setting, Notice } from "obsidian";
 import { TaskProgressBarSettingTab } from "@/setting";
 import { t } from "@/translations/helper";
 
@@ -219,15 +219,18 @@ export function renderQuickCaptureSettingsTab(
 					settingTab.applySettingsUpdate();
 				})
 		);
-	
+
 	// Task prefix setting
 	new Setting(containerEl)
 		.setName(t("Auto-add task prefix"))
-		.setDesc(t("Automatically add task checkbox prefix to captured content"))
+		.setDesc(
+			t("Automatically add task checkbox prefix to captured content")
+		)
 		.addToggle((toggle) =>
 			toggle
 				.setValue(
-					settingTab.plugin.settings.quickCapture.autoAddTaskPrefix ?? true
+					settingTab.plugin.settings.quickCapture.autoAddTaskPrefix ??
+						true
 				)
 				.onChange(async (value) => {
 					settingTab.plugin.settings.quickCapture.autoAddTaskPrefix =
@@ -239,20 +242,146 @@ export function renderQuickCaptureSettingsTab(
 					}, 100);
 				})
 		);
-	
+
 	// Custom task prefix
 	if (settingTab.plugin.settings.quickCapture.autoAddTaskPrefix) {
 		new Setting(containerEl)
 			.setName(t("Task prefix format"))
-			.setDesc(t("The prefix to add before captured content (e.g., '- [ ]' for task, '- ' for list item)"))
+			.setDesc(
+				t(
+					"The prefix to add before captured content (e.g., '- [ ]' for task, '- ' for list item)"
+				)
+			)
 			.addText((text) =>
 				text
 					.setValue(
-						settingTab.plugin.settings.quickCapture.taskPrefix || "- [ ]"
+						settingTab.plugin.settings.quickCapture.taskPrefix ||
+							"- [ ]"
 					)
 					.onChange(async (value) => {
 						settingTab.plugin.settings.quickCapture.taskPrefix =
 							value || "- [ ]";
+						settingTab.applySettingsUpdate();
+					})
+			);
+	}
+
+	new Setting(containerEl).setName(t("Enhanced")).setHeading();
+
+	// Keep open after capture
+	new Setting(containerEl)
+		.setName(t("Keep open after capture"))
+		.setDesc(t("Keep the modal open after capturing content"))
+		.addToggle((toggle) =>
+			toggle
+				.setValue(
+					settingTab.plugin.settings.quickCapture
+						.keepOpenAfterCapture || false
+				)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.keepOpenAfterCapture =
+						value;
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	// Remember last mode
+	new Setting(containerEl)
+		.setName(t("Remember last mode"))
+		.setDesc(t("Remember the last used quick capture mode"))
+		.addToggle((toggle) =>
+			toggle
+				.setValue(
+					settingTab.plugin.settings.quickCapture.rememberLastMode ??
+						true
+				)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.rememberLastMode =
+						value;
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	// File creation mode settings
+	new Setting(containerEl).setName(t("File Creation Mode")).setHeading();
+
+	// Initialize createFileMode if not exists and keep a local reference for type safety
+	const createFileMode =
+		(settingTab.plugin.settings.quickCapture.createFileMode ||= {
+			defaultFolder: "",
+			useTemplate: false,
+			templateFile: "",
+		});
+
+	// Default folder for file creation
+	new Setting(containerEl)
+		.setName(t("Default folder for new files"))
+		.setDesc(
+			t(
+				"Used by File mode (requires FileSource). Leave empty for vault root."
+			)
+		)
+		.addText((text) =>
+			text
+				.setValue(createFileMode.defaultFolder || "")
+				.onChange(async (value) => {
+					createFileMode.defaultFolder = value;
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	// Use template for new files
+	new Setting(containerEl)
+		.setName(t("Use template for new files"))
+		.setDesc(
+			t(
+				"When File mode is used, ensure the new file has frontmatter; if enabled, only frontmatter is auto-inserted when missing."
+			)
+		)
+		.addToggle((toggle) =>
+			toggle
+				.setValue(createFileMode.useTemplate || false)
+				.onChange(async (value) => {
+					createFileMode.useTemplate = value;
+					settingTab.applySettingsUpdate();
+					// Refresh to show/hide template field
+					setTimeout(() => {
+						settingTab.display();
+					}, 100);
+				})
+		);
+
+	// Default file name template (File mode)
+	new Setting(containerEl)
+		.setName(t("Default file name template"))
+		.setDesc(
+			t(
+				"Used by File mode to prefill the file name input (supports date templates like {{DATE:YYYY-MM-DD}})"
+			)
+		)
+		.addText((text) =>
+			text
+				.setValue(
+					settingTab.plugin.settings.quickCapture
+						.defaultFileNameTemplate || "{{DATE:YYYY-MM-DD}} - "
+				)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.quickCapture.defaultFileNameTemplate =
+						value;
+					settingTab.applySettingsUpdate();
+				})
+		);
+
+	// Template file path
+	if (createFileMode.useTemplate) {
+		new Setting(containerEl)
+			.setName(t("Template file"))
+			.setDesc(t("Template file to use for new files"))
+			.addText((text) =>
+				text
+					.setValue(createFileMode.templateFile || "")
+					.onChange(async (value) => {
+						createFileMode.templateFile = value;
 						settingTab.applySettingsUpdate();
 					})
 			);

@@ -1,46 +1,22 @@
-import {
-	App,
-	Modal,
-	Notice,
-	TFile,
-	moment,
-	EditorPosition,
-	Menu,
-	setIcon,
-} from "obsidian";
-import {
-	createEmbeddableMarkdownEditor,
-	EmbeddableMarkdownEditor,
-} from "@/editor-extensions/core/markdown-editor";
+import { App, Notice, Menu, setIcon, EditorPosition } from "obsidian";
+import { createEmbeddableMarkdownEditor } from "@/editor-extensions/core/markdown-editor";
 import TaskProgressBarPlugin from "@/index";
-import { saveCapture } from "@/utils/file/file-operations";
 import { t } from "@/translations/helper";
 import { MinimalQuickCaptureSuggest } from "@/components/features/quick-capture/suggest/MinimalQuickCaptureSuggest";
-import {
-	SuggestManager,
-	UniversalEditorSuggest,
-} from "@/components/ui/suggest";
+import { UniversalEditorSuggest } from "@/components/ui/suggest";
 import { ConfigurableTaskParser } from "@/dataflow/core/ConfigurableTaskParser";
 import { clearAllMarks } from "@/components/ui/renderers/MarkdownRenderer";
+import {
+	BaseQuickCaptureModal,
+	QuickCaptureMode,
+	TaskMetadata,
+} from "./BaseQuickCaptureModal";
+import { moment } from "obsidian";
 
-interface TaskMetadata {
-	startDate?: Date;
-	dueDate?: Date;
-	scheduledDate?: Date;
-	priority?: number;
-	project?: string;
-	context?: string;
-	tags?: string[];
-	location?: "fixed" | "daily-note" | "custom-file";
-	targetFile?: string;
-}
-
-export class MinimalQuickCaptureModal extends Modal {
-	plugin: TaskProgressBarPlugin;
-	markdownEditor: EmbeddableMarkdownEditor | null = null;
-	capturedContent: string = "";
-	taskMetadata: TaskMetadata = {};
-
+/**
+ * Minimal Quick Capture Modal extending the base class
+ */
+export class MinimalQuickCaptureModal extends BaseQuickCaptureModal {
 	// UI Elements
 	private dateButton: HTMLButtonElement | null = null;
 	private priorityButton: HTMLButtonElement | null = null;
@@ -49,144 +25,164 @@ export class MinimalQuickCaptureModal extends Modal {
 
 	// Suggest instances
 	private minimalSuggest: MinimalQuickCaptureSuggest;
-	private suggestManager: SuggestManager;
 	private universalSuggest: UniversalEditorSuggest | null = null;
 
+	// UI element references
+	private targetIndicator: HTMLElement | null = null;
+	private fileNameInput: HTMLInputElement | null = null;
+	private editorContainer: HTMLElement | null = null;
+
 	constructor(app: App, plugin: TaskProgressBarPlugin) {
-		super(app);
-		this.plugin = plugin;
+		// Default to checkbox mode for task creation
+		super(app, plugin, "checkbox");
+
 		this.minimalSuggest = plugin.minimalQuickCaptureSuggest;
 
-		// Initialize suggest manager
-		this.suggestManager = new SuggestManager(app, plugin);
-
-		// Initialize default metadata with fallback
-		const minimalSettings =
-			this.plugin.settings.quickCapture.minimalModeSettings;
+		// Initialize default metadata for checkbox mode
+		const targetType = this.plugin.settings.quickCapture.targetType;
 		this.taskMetadata.location =
-			this.plugin.settings.quickCapture.targetType || "fixed";
+			(targetType === "custom-file" ? "file" : targetType) || "fixed";
 		this.taskMetadata.targetFile = this.getTargetFile();
 	}
 
 	onOpen() {
-		const { contentEl } = this;
-		this.modalEl.addClass("quick-capture-modal");
-		this.modalEl.addClass("minimal");
-
 		// Store modal instance reference for suggest system
 		(this.modalEl as any).__minimalQuickCaptureModal = this;
-
-		// Start managing suggests with high priority
-		this.suggestManager.startManaging();
 
 		// Set up the suggest system
 		if (this.minimalSuggest) {
 			this.minimalSuggest.setMinimalMode(true);
 		}
 
-		// Create the interface
-		this.createMinimalInterface(contentEl);
+		super.onOpen();
+	}
 
-		// Enable universal suggest for minimal modal after editor is created
-		setTimeout(() => {
-			if (this.markdownEditor?.editor?.editor) {
-				this.universalSuggest =
-					this.suggestManager.enableForMinimalModal(
-						this.markdownEditor.editor.editor
-					);
-				this.universalSuggest.enable();
+	/**
+	 * Initialize components after UI creation
+	 */
+	protected initializeComponents(): void {
+		// Setup markdown editor only if not already initialized
+		if (this.contentContainer && !this.markdownEditor) {
+			const editorContainer = this.contentContainer.querySelector(
+				".quick-capture-minimal-editor"
+			) as HTMLElement;
+			if (editorContainer) {
+				this.setupMarkdownEditor(editorContainer);
 			}
-		}, 100);
+
+			// Enable universal suggest for minimal modal after editor is created
+			setTimeout(() => {
+				if (this.markdownEditor?.editor?.editor) {
+					this.universalSuggest =
+						this.suggestManager.enableForMinimalModal(
+							this.markdownEditor.editor.editor
+						);
+					this.universalSuggest.enable();
+				}
+			}, 100);
+		}
+
+		// Restore content if exists
+		if (this.markdownEditor && this.capturedContent) {
+			this.markdownEditor.set(this.capturedContent, false);
+		}
 	}
 
-	onClose() {
-		// Clean up universal suggest
-		if (this.universalSuggest) {
-			this.universalSuggest.disable();
-			this.universalSuggest = null;
-		}
+	/**
+	 * Create UI - consistent layout for both modes
+	 */
+	protected createUI(): void {
+		if (!this.contentContainer) return;
 
-		// Stop managing suggests and restore original order
-		this.suggestManager.stopManaging();
+		// Target indicator (shows destination or file name)
+		const targetContainer = this.contentContainer.createDiv({
+			cls: "quick-capture-minimal-target-container",
+		});
 
-		// Clean up suggest
-		if (this.minimalSuggest) {
-			this.minimalSuggest.setMinimalMode(false);
-		}
+		this.targetIndicator = targetContainer.createDiv({
+			cls: "quick-capture-minimal-target",
+		});
 
-		// Clean up editor
-		if (this.markdownEditor) {
-			this.markdownEditor.destroy();
-			this.markdownEditor = null;
-		}
-
-		// Clean up modal reference
-		delete (this.modalEl as any).__minimalQuickCaptureModal;
-
-		// Clear content
-		this.contentEl.empty();
-	}
-
-	private createMinimalInterface(contentEl: HTMLElement) {
-		// Title
-		this.titleEl.setText(t("Minimal Quick Capture"));
-
-		// Editor container
-		const editorContainer = contentEl.createDiv({
+		// Editor container - same for both modes
+		const editorWrapper = this.contentContainer.createDiv({
 			cls: "quick-capture-minimal-editor-container",
 		});
 
-		this.setupMarkdownEditor(editorContainer);
+		this.editorContainer = editorWrapper.createDiv({
+			cls: "quick-capture-modal-editor quick-capture-minimal-editor",
+		});
 
-		// Bottom buttons container
-		const buttonsContainer = contentEl.createDiv({
-			cls: "quick-capture-minimal-buttons",
+		// Quick action buttons container (only for checkbox mode)
+		const buttonsContainer = this.contentContainer.createDiv({
+			cls: "quick-capture-minimal-quick-actions",
 		});
 
 		this.createQuickActionButtons(buttonsContainer);
-		this.createMainButtons(buttonsContainer);
+
+		// Update target display based on initial mode
+		this.updateTargetDisplay();
 	}
 
-	private setupMarkdownEditor(container: HTMLElement) {
-		setTimeout(() => {
-			this.markdownEditor = createEmbeddableMarkdownEditor(
-				this.app,
-				container,
-				{
-					placeholder: t("Enter your task..."),
-					singleLine: true, // Single line mode
+	/**
+	 * Update target display based on current mode
+	 */
+	protected updateTargetDisplay(): void {
+		if (!this.targetIndicator) return;
 
-					onEnter: (editor, mod, shift) => {
-						if (mod) {
-							// Submit on Cmd/Ctrl+Enter
-							this.handleSubmit();
-							return true;
-						}
-						// In minimal mode, Enter should also submit
-						this.handleSubmit();
-						return true;
-					},
+		this.targetIndicator.empty();
 
-					onEscape: (editor) => {
-						this.close();
-					},
+		if (this.currentMode === "checkbox") {
+			// Show target file for checkbox mode
+			const label = this.targetIndicator.createSpan({
+				cls: "quick-capture-target-label",
+				text: t("To: "),
+			});
 
-					onChange: (update) => {
-						this.capturedContent = this.markdownEditor?.value || "";
-						// Parse content and update button states
-						this.parseContentAndUpdateButtons();
-					},
+			const target = this.targetIndicator.createSpan({
+				cls: "quick-capture-target-value",
+				text: this.tempTargetFilePath,
+			});
+
+			// Show quick action buttons
+			const buttonsContainer = this.contentContainer?.querySelector(".quick-capture-minimal-quick-actions");
+			if (buttonsContainer) {
+				(buttonsContainer as HTMLElement).style.display = "flex";
+			}
+		} else {
+			// Show file name input for file mode
+			const label = this.targetIndicator.createSpan({
+				cls: "quick-capture-target-label",
+				text: t("Save as: "),
+			});
+
+			this.fileNameInput = this.targetIndicator.createEl("input", {
+				cls: "quick-capture-minimal-file-input",
+				attr: {
+					type: "text",
+					placeholder: t("Enter file name..."),
+					value: this.taskMetadata.customFileName || this.plugin.settings.quickCapture.defaultFileNameTemplate || "{{DATE:YYYY-MM-DD}} - ",
+				},
+			});
+
+			// Update the customFileName when input changes
+			this.fileNameInput.addEventListener("input", () => {
+				if (this.fileNameInput) {
+					this.taskMetadata.customFileName = this.fileNameInput.value;
 				}
-			);
+			});
 
-			// Focus the editor
-			this.markdownEditor?.editor?.focus();
-		}, 50);
+			// Hide quick action buttons
+			const buttonsContainer = this.contentContainer?.querySelector(".quick-capture-minimal-quick-actions");
+			if (buttonsContainer) {
+				(buttonsContainer as HTMLElement).style.display = "none";
+			}
+		}
 	}
 
-	private createQuickActionButtons(container: HTMLElement) {
-		const settings =
-			this.plugin.settings.quickCapture.minimalModeSettings || {};
+	/**
+	 * Create quick action buttons
+	 */
+	private createQuickActionButtons(container: HTMLElement): void {
 		const leftContainer = container.createDiv({
 			cls: "quick-actions-left",
 		});
@@ -238,20 +234,64 @@ export class MinimalQuickCaptureModal extends Modal {
 		);
 	}
 
-	private createMainButtons(container: HTMLElement) {
-		const rightContainer = container.createDiv({
-			cls: "quick-actions-right",
-		});
+	/**
+	 * Setup markdown editor
+	 */
+	private setupMarkdownEditor(container: HTMLElement): void {
+		setTimeout(() => {
+			this.markdownEditor = createEmbeddableMarkdownEditor(
+				this.app,
+				container,
+				{
+					placeholder: t("Enter your content..."),
+					singleLine: false, // Allow multiline for both modes
 
-		// Save button
-		const saveButton = rightContainer.createEl("button", {
-			text: t("Save"),
-			cls: "mod-cta quick-action-save",
-		});
-		saveButton.addEventListener("click", () => this.handleSubmit());
+					onEnter: (editor, mod, shift) => {
+						// Cmd/Ctrl+Enter always submits
+						if (mod) {
+							this.handleSubmit();
+							return true;
+						}
+						// In checkbox mode, plain Enter also submits for quick capture
+						if (this.currentMode === "checkbox" && !shift) {
+							this.handleSubmit();
+							return true;
+						}
+						// In file mode or shift+enter, create new line
+						return false;
+					},
+
+					onEscape: (editor) => {
+						this.close();
+					},
+
+					onChange: (update) => {
+						this.capturedContent = this.markdownEditor?.value || "";
+						// Parse content and update button states only in checkbox mode
+						if (this.currentMode === "checkbox") {
+							this.parseContentAndUpdateButtons();
+						}
+					},
+				}
+			);
+
+			// Focus the editor
+			this.markdownEditor?.editor?.focus();
+
+			// Restore content if exists
+			if (this.capturedContent && this.markdownEditor) {
+				this.markdownEditor.set(this.capturedContent, false);
+			}
+		}, 50);
 	}
 
-	private updateButtonState(button: HTMLButtonElement, isActive: boolean) {
+	/**
+	 * Update button state
+	 */
+	private updateButtonState(
+		button: HTMLButtonElement,
+		isActive: boolean
+	): void {
 		if (isActive) {
 			button.addClass("active");
 		} else {
@@ -271,7 +311,7 @@ export class MinimalQuickCaptureModal extends Modal {
 		);
 	}
 
-	// Methods called by MinimalQuickCaptureSuggest
+	// Date picker methods
 	public showDatePickerAtCursor(cursorCoords: any, cursor: EditorPosition) {
 		this.showDatePicker(cursor, cursorCoords);
 	}
@@ -313,12 +353,11 @@ export class MinimalQuickCaptureModal extends Modal {
 			item.setTitle(t("Choose date..."));
 			item.setIcon("calendar-days");
 			item.onClick(() => {
-				// Open full date picker
 				// TODO: Implement full date picker integration
 			});
 		});
 
-		// Show menu at cursor position if provided, otherwise at button
+		// Show menu
 		if (coords) {
 			this.showMenuAtCoords(menu, coords.left, coords.top);
 		} else if (this.dateButton) {
@@ -327,6 +366,7 @@ export class MinimalQuickCaptureModal extends Modal {
 		}
 	}
 
+	// Priority menu methods
 	public showPriorityMenuAtCursor(cursorCoords: any, cursor: EditorPosition) {
 		this.showPriorityMenu(cursor, cursorCoords);
 	}
@@ -357,7 +397,7 @@ export class MinimalQuickCaptureModal extends Modal {
 			});
 		});
 
-		// Show menu at cursor position if provided, otherwise at button
+		// Show menu
 		if (coords) {
 			this.showMenuAtCoords(menu, coords.left, coords.top);
 		} else if (this.priorityButton) {
@@ -366,6 +406,7 @@ export class MinimalQuickCaptureModal extends Modal {
 		}
 	}
 
+	// Location menu methods
 	public showLocationMenuAtCursor(cursorCoords: any, cursor: EditorPosition) {
 		this.showLocationMenu(cursor, cursorCoords);
 	}
@@ -414,7 +455,24 @@ export class MinimalQuickCaptureModal extends Modal {
 			});
 		});
 
-		// Show menu at cursor position if provided, otherwise at button
+		// Only show custom file option when FileSource is enabled
+		if (this.plugin.settings?.fileSource?.enabled) {
+			menu.addItem((item) => {
+				item.setTitle(t("Custom file"));
+				item.setIcon("file-plus");
+				item.onClick(() => {
+					this.taskMetadata.location = "file";
+					// Switch to file mode for custom file creation
+					this.switchMode("file");
+					// If called from suggest, replace the 📁 with custom file text
+					if (cursor && this.markdownEditor) {
+						this.replaceAtCursor(cursor, t("Custom file"));
+					}
+				});
+			});
+		}
+
+		// Show menu
 		if (coords) {
 			this.showMenuAtCoords(menu, coords.left, coords.top);
 		} else if (this.locationButton) {
@@ -423,8 +481,14 @@ export class MinimalQuickCaptureModal extends Modal {
 		}
 	}
 
-	public showTagSelectorAtCursor(cursorCoords: any, cursor: EditorPosition) {}
+	// Tag selector methods
+	public showTagSelectorAtCursor(cursorCoords: any, cursor: EditorPosition) {
+		// TODO: Implement tag selector
+	}
 
+	/**
+	 * Replace text at cursor position
+	 */
 	private replaceAtCursor(cursor: EditorPosition, replacement: string) {
 		if (!this.markdownEditor) return;
 
@@ -439,6 +503,9 @@ export class MinimalQuickCaptureModal extends Modal {
 		}
 	}
 
+	/**
+	 * Get target file
+	 */
 	private getTargetFile(): string {
 		const settings = this.plugin.settings.quickCapture;
 		if (this.taskMetadata.location === "daily-note") {
@@ -447,6 +514,9 @@ export class MinimalQuickCaptureModal extends Modal {
 		return settings.targetFile;
 	}
 
+	/**
+	 * Get daily note file
+	 */
 	private getDailyNoteFile(): string {
 		const settings = this.plugin.settings.quickCapture.dailyNoteSettings;
 		const dateStr = moment().format(settings.format);
@@ -455,13 +525,18 @@ export class MinimalQuickCaptureModal extends Modal {
 			: `${dateStr}.md`;
 	}
 
-	private formatDate(date: Date): string {
-		return moment(date).format("YYYY-MM-DD");
-	}
-
-	private processMinimalContent(content: string): string {
+	/**
+	 * Process content with metadata based on save strategy
+	 */
+	protected processContentWithMetadata(content: string): string {
 		if (!content.trim()) return "";
 
+		// For file mode, just return content as-is
+		if (this.currentMode === "file") {
+			return content;
+		}
+
+		// For checkbox mode, format as tasks
 		const lines = content.split("\n");
 		const processedLines = lines.map((line) => {
 			const trimmed = line.trim();
@@ -472,43 +547,14 @@ export class MinimalQuickCaptureModal extends Modal {
 			}
 			return line;
 		});
-		return processedLines.join("\n");
+
+		// Add metadata for checkbox mode
+		return this.addMetadataToContent(processedLines.join("\n"));
 	}
 
 	/**
-	 * Clean temporary marks from user input that might conflict with formal metadata
+	 * Add metadata to content
 	 */
-	private cleanTemporaryMarks(content: string): string {
-		let cleaned = content;
-
-		// Remove standalone exclamation marks that users might type for priority
-		cleaned = cleaned.replace(/\s*!\s*/g, " ");
-
-		// Remove standalone tilde marks that users might type for date
-		cleaned = cleaned.replace(/\s*~\s*/g, " ");
-
-		// Remove standalone priority symbols that users might type
-		cleaned = cleaned.replace(/\s*[🔺⏫🔼🔽⏬️]\s*/g, " ");
-
-		// Remove standalone date symbols that users might type
-		cleaned = cleaned.replace(/\s*[📅🛫⏳✅➕❌]\s*/g, " ");
-
-		// Remove location/folder symbols that users might type
-		cleaned = cleaned.replace(/\s*[📁🏠🏢🏪🏫🏬🏭🏯🏰]\s*/g, " ");
-
-		// Remove other metadata symbols that users might type
-		cleaned = cleaned.replace(/\s*[🆔⛔🏁🔁]\s*/g, " ");
-
-		// Remove target/location prefix patterns (like @location, target:)
-		cleaned = cleaned.replace(/\s*@\w*\s*/g, " ");
-		cleaned = cleaned.replace(/\s*target:\s*/gi, " ");
-
-		// Clean up multiple spaces and trim
-		cleaned = cleaned.replace(/\s+/g, " ").trim();
-
-		return cleaned;
-	}
-
 	private addMetadataToContent(content: string): string {
 		const metadata: string[] = [];
 
@@ -536,38 +582,8 @@ export class MinimalQuickCaptureModal extends Modal {
 		return content;
 	}
 
-	private async handleSubmit() {
-		const content = this.capturedContent.trim();
-
-		if (!content) {
-			new Notice(t("Nothing to capture"));
-			return;
-		}
-
-		try {
-			// Process content
-			let processedContent = this.processMinimalContent(content);
-			processedContent = this.addMetadataToContent(processedContent);
-
-			// Save options
-			const captureOptions = {
-				...this.plugin.settings.quickCapture,
-				targetFile:
-					this.taskMetadata.targetFile || this.getTargetFile(),
-				targetType: this.taskMetadata.location || "fixed",
-			};
-
-			await saveCapture(this.app, processedContent, captureOptions);
-			new Notice(t("Captured successfully"));
-			this.close();
-		} catch (error) {
-			new Notice(`${t("Failed to save:")} ${error}`);
-		}
-	}
-
 	/**
-	 * Parse the content and update button states based on extracted metadata
-	 * Only update taskMetadata if actual marks exist in content, preserve manually set values
+	 * Parse content and update button states
 	 */
 	public parseContentAndUpdateButtons(): void {
 		try {
@@ -600,24 +616,17 @@ export class MinimalQuickCaptureModal extends Modal {
 			}
 
 			// Create a parser to extract metadata
-			const parser = new ConfigurableTaskParser({
-				// Use default configuration
-			});
+			const parser = new ConfigurableTaskParser({});
 
 			// Extract metadata and tags
 			const [cleanedContent, metadata, tags] =
 				parser.extractMetadataAndTags(content);
 
-			// Only update taskMetadata if we found actual marks in the content
-			// This preserves manually set values from suggest system
-
-			// Due date - only update if found in content
+			// Update taskMetadata based on parsed content
 			if (metadata.dueDate) {
 				this.taskMetadata.dueDate = new Date(metadata.dueDate);
 			}
-			// Don't delete existing dueDate if not found in content
 
-			// Priority - only update if found in content
 			if (metadata.priority) {
 				const priorityMap: Record<string, number> = {
 					highest: 5,
@@ -629,14 +638,12 @@ export class MinimalQuickCaptureModal extends Modal {
 				this.taskMetadata.priority =
 					priorityMap[metadata.priority] || 3;
 			}
-			// Don't delete existing priority if not found in content
 
-			// Tags - only add new tags, don't replace existing ones
 			if (tags && tags.length > 0) {
 				if (!this.taskMetadata.tags) {
 					this.taskMetadata.tags = [];
 				}
-				// Merge new tags with existing ones, avoid duplicates
+				// Merge new tags with existing ones
 				tags.forEach((tag) => {
 					if (!this.taskMetadata.tags!.includes(tag)) {
 						this.taskMetadata.tags!.push(tag);
@@ -644,7 +651,7 @@ export class MinimalQuickCaptureModal extends Modal {
 				});
 			}
 
-			// Update button states based on current taskMetadata
+			// Update button states
 			this.updateButtonState(
 				this.dateButton!,
 				!!this.taskMetadata.dueDate
@@ -668,7 +675,7 @@ export class MinimalQuickCaptureModal extends Modal {
 			);
 		} catch (error) {
 			console.error("Error parsing content:", error);
-			// On error, still update button states based on existing taskMetadata
+			// On error, still update button states
 			this.updateButtonState(
 				this.dateButton!,
 				!!this.taskMetadata.dueDate
@@ -686,5 +693,39 @@ export class MinimalQuickCaptureModal extends Modal {
 				!!(this.taskMetadata.location || this.taskMetadata.targetFile)
 			);
 		}
+	}
+
+	/**
+	 * Reset UI elements
+	 */
+	protected resetUIElements(): void {
+		// Reset button states
+		if (this.dateButton) this.updateButtonState(this.dateButton, false);
+		if (this.priorityButton)
+			this.updateButtonState(this.priorityButton, false);
+		if (this.tagButton) this.updateButtonState(this.tagButton, false);
+		if (this.locationButton)
+			this.updateButtonState(this.locationButton, false);
+	}
+
+	/**
+	 * Clean up on close
+	 */
+	onClose() {
+		// Clean up universal suggest
+		if (this.universalSuggest) {
+			this.universalSuggest.disable();
+			this.universalSuggest = null;
+		}
+
+		// Clean up suggest
+		if (this.minimalSuggest) {
+			this.minimalSuggest.setMinimalMode(false);
+		}
+
+		// Clean up modal reference
+		delete (this.modalEl as any).__minimalQuickCaptureModal;
+
+		super.onClose();
 	}
 }

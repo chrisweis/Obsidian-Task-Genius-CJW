@@ -282,7 +282,7 @@ export interface QuickCaptureSettings {
 	placeholder: string;
 	appendToFile: "append" | "prepend" | "replace";
 	// New settings for enhanced quick capture
-	targetType: "fixed" | "daily-note"; // Target type: fixed file or daily note
+	targetType: "fixed" | "daily-note" | "custom-file"; // Target type: fixed file, daily note, or custom file
 	targetHeading?: string; // Optional heading to append under
 	// Daily note settings
 	dailyNoteSettings: {
@@ -297,6 +297,17 @@ export interface QuickCaptureSettings {
 	enableMinimalMode: boolean;
 	minimalModeSettings: {
 		suggestTrigger: string;
+	};
+	// New enhanced settings
+	keepOpenAfterCapture?: boolean; // Keep modal open after capture
+	rememberLastMode?: boolean; // Remember the last used mode
+	lastUsedMode?: "checkbox" | "file"; // Last used save strategy mode
+	defaultFileNameTemplate?: string; // Default template for file names
+	defaultFileLocation?: string; // Default folder for new files
+	createFileMode?: {
+		defaultFolder: string; // Default folder for file creation
+		useTemplate: boolean; // Whether to use a template for new files
+		templateFile: string; // Template file path
 	};
 }
 
@@ -970,6 +981,17 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		enableMinimalMode: false,
 		minimalModeSettings: {
 			suggestTrigger: "/",
+		},
+		// New enhanced settings defaults
+		keepOpenAfterCapture: false,
+		rememberLastMode: true,
+		lastUsedMode: "checkbox",
+		defaultFileNameTemplate: "{{DATE:YYYY-MM-DD}} - ",
+		defaultFileLocation: "",
+		createFileMode: {
+			defaultFolder: "",
+			useTemplate: false,
+			templateFile: "",
 		},
 	},
 

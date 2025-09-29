@@ -1,3 +1,223 @@
+/* Quick Capture Enhanced Styles - with shadcn theme */
+
+/* shadcn-inspired theme colors integrated with Task Genius */
+:root {
+	/* Tab component colors */
+	--tg-tab-background: 0 0% 100%;
+	--tg-tab-foreground: 240 10% 3.9%;
+	--tg-tab-muted: 240 4.8% 95.9%;
+	--tg-tab-muted-foreground: 240 3.8% 46.1%;
+	--tg-tab-border: 240 5.9% 90%;
+}
+
+.theme-dark {
+	--tg-tab-background: 240 10% 3.9%;
+	--tg-tab-foreground: 0 0% 98%;
+	--tg-tab-muted: 240 3.7% 15.9%;
+	--tg-tab-muted-foreground: 240 5% 64.9%;
+	--tg-tab-border: 240 3.7% 15.9%;
+}
+
+/* Quick Capture Header - shadcn style */
+.quick-capture-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 12px 16px;
+	border-bottom: 1px solid hsl(var(--tg-tab-border));
+	background: hsl(var(--tg-tab-background));
+}
+
+/* Quick Capture Tabs - shadcn style */
+.quick-capture-tabs {
+	display: inline-flex;
+	padding: 4px;
+	background: hsl(var(--tg-tab-muted));
+	border-radius: 6px;
+	gap: 2px;
+}
+
+.quick-capture-tab {
+	padding: 6px 12px;
+	background: transparent;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+	color: hsl(var(--tg-tab-muted-foreground));
+	font-size: 14px;
+	font-weight: 500;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	white-space: nowrap;
+	position: relative;
+}
+
+.quick-capture-tab:hover:not(.active) {
+	color: hsl(var(--tg-tab-foreground));
+}
+
+.quick-capture-tab.active {
+	background: hsl(var(--tg-tab-background));
+	color: hsl(var(--tg-tab-foreground));
+	box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Quick Capture Tab Button Icon and Text - shadcn style */
+.quick-capture-tab-icon {
+	margin-right: 6px;
+	display: inline-flex;
+	align-items: center;
+	width: 16px;
+	height: 16px;
+}
+
+.quick-capture-tab-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.quick-capture-tab-text {
+	display: inline-flex;
+	align-items: center;
+	line-height: 1;
+}
+
+/* Quick Capture Clear Button - shadcn style */
+.quick-capture-clear {
+	padding: 6px 12px;
+	background: transparent;
+	border: 1px solid hsl(var(--tg-tab-border));
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+	color: hsl(var(--tg-tab-muted-foreground));
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.quick-capture-clear:hover {
+	background: hsl(var(--tg-tab-muted));
+	color: hsl(var(--tg-tab-foreground));
+	border-color: hsl(var(--tg-tab-muted-foreground));
+}
+
+/* Quick Capture Content */
+.quick-capture-content {
+	flex: 1;
+	overflow-y: auto;
+	padding: var(--size-4-3);
+}
+
+/* Quick Capture Footer */
+.quick-capture-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--size-4-2);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.quick-capture-footer-left,
+.quick-capture-footer-right {
+	display: flex;
+	gap: var(--size-2-2);
+}
+
+.quick-capture-continue {
+	padding: var(--size-2-2) var(--size-4-3);
+	background: transparent;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	transition: all 0.2s ease;
+	color: var(--text-muted);
+}
+
+.quick-capture-continue:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+	border-color: var(--interactive-accent);
+}
+
+/* File Name Input Component */
+.file-name-input-container {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-1);
+	margin-bottom: var(--size-4-3);
+}
+
+.file-name-label {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+.file-name-input {
+	width: 100%;
+	padding: var(--size-2-2);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+}
+
+.file-name-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.file-name-templates {
+	margin-top: var(--size-4-2);
+}
+
+.templates-label {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	margin-bottom: var(--size-2-1);
+}
+
+.template-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-2-1);
+}
+
+.template-button {
+	padding: var(--size-2-1) var(--size-2-3);
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.template-button:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+	border-color: var(--interactive-accent);
+}
+
+/* Mode-specific adjustments */
+.quick-capture-modal.quick-capture-checkbox {
+	width: 800px;
+	max-width: 90vw;
+	height: 600px;
+	max-height: 80vh;
+}
+
+.quick-capture-modal.quick-capture-file {
+	width: 700px;
+	max-width: 90vw;
+	height: 500px;
+	max-height: 70vh;
+}
+
 /* Quick Capture Panel */
 .quick-capture-panel {
 	padding: var(--size-4-2);
@@ -43,33 +263,51 @@
 .quick-capture-modal.minimal {
 	max-width: 600px;
 	min-width: 500px;
-	max-height: 200px;
+	max-height: 300px;
 }
 
-.quick-capture-minimal-editor-container {
-	padding: var(--size-4-2);
-	min-height: 50px;
+/* Minimal Quick Capture Target Display */
+.quick-capture-minimal-target-container {
+	padding: 8px 12px;
+	background: hsl(var(--tg-tab-muted));
+	border-radius: 6px;
+	margin-bottom: 12px;
 }
 
-.quick-capture-minimal-editor-container .cm-editor {
-	font-size: var(--font-text-size);
-	min-height: 40px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	padding: var(--size-2-1);
-}
-
-.quick-capture-minimal-editor-container .cm-editor.cm-focused {
-	border-color: var(--interactive-accent);
-	box-shadow: 0 0 0 2px var(--interactive-accent-alpha);
-}
-
-.quick-capture-minimal-buttons {
+.quick-capture-minimal-target {
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
-	padding: var(--size-4-2);
+	gap: 8px;
+	font-size: 14px;
 }
+
+.quick-capture-target-label {
+	color: hsl(var(--tg-tab-muted-foreground));
+	font-weight: 500;
+}
+
+.quick-capture-target-value {
+	color: hsl(var(--tg-tab-foreground));
+	flex: 1;
+}
+
+.quick-capture-minimal-file-input {
+	flex: 1;
+	padding: 4px 8px;
+	background: hsl(var(--tg-tab-background));
+	border: 1px solid hsl(var(--tg-tab-border));
+	border-radius: 4px;
+	font-size: 14px;
+	color: hsl(var(--tg-tab-foreground));
+}
+
+.quick-capture-minimal-file-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+/* Removed minimal mode styles as minimal UI mode no longer exists */
 
 .quick-actions-left {
 	display: flex;

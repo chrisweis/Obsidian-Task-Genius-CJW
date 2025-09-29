@@ -91,7 +91,7 @@ export interface QuickCaptureOptions {
 	placeholder?: string;
 	appendToFile?: "append" | "prepend" | "replace";
 	// New options for enhanced quick capture
-	targetType?: "fixed" | "daily-note";
+	targetType?: "fixed" | "daily-note" | "custom-file";
 	targetHeading?: string;
 	dailyNoteSettings?: {
 		format: string;
