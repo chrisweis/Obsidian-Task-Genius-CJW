@@ -23,14 +23,14 @@ export class V2Sidebar extends Component {
 	private plugin: TaskProgressBarPlugin;
 	private workspaceSelector: WorkspaceSelector;
 	public projectList: ProjectList;
-	private collapsed: boolean = false;
+	private collapsed = false;
 	private currentWorkspaceId: string;
-	private isTreeView: boolean = false;
+	private isTreeView = false;
 	private otherViewsSection: HTMLElement | null = null;
 	private railEl: HTMLElement | null = null;
 
 	private primaryItems: V2NavigationItem[] = [
-		{ id: "inbox", label: t("Inbox"), icon: "inbox", type: "primary" },
+		{id: "inbox", label: t("Inbox"), icon: "inbox", type: "primary"},
 		{
 			id: "today",
 			label: t("Today"),
@@ -43,7 +43,7 @@ export class V2Sidebar extends Component {
 			icon: "calendar",
 			type: "primary",
 		},
-		{ id: "flagged", label: t("Flagged"), icon: "flag", type: "primary" },
+		{id: "flagged", label: t("Flagged"), icon: "flag", type: "primary"},
 	];
 
 	private otherItems: V2NavigationItem[] = [
@@ -53,14 +53,14 @@ export class V2Sidebar extends Component {
 			icon: "calendar",
 			type: "other",
 		},
-		{ id: "gantt", label: t("Gantt"), icon: "git-branch", type: "other" },
+		{id: "gantt", label: t("Gantt"), icon: "git-branch", type: "other"},
 		{
 			id: "review",
 			label: t("Review"),
 			icon: "check-square",
 			type: "other",
 		},
-		{ id: "tags", label: t("Tags"), icon: "tag", type: "other" },
+		{id: "tags", label: t("Tags"), icon: "tag", type: "other"},
 	];
 
 	constructor(
@@ -68,7 +68,7 @@ export class V2Sidebar extends Component {
 		plugin: TaskProgressBarPlugin,
 		private onNavigate: (viewId: string) => void,
 		private onProjectSelect: (projectId: string) => void,
-		collapsed: boolean = false
+		collapsed = false
 	) {
 		super();
 		this.containerEl = containerEl;
@@ -94,7 +94,7 @@ export class V2Sidebar extends Component {
 		}
 
 		// Header with workspace selector and new task button
-		const header = this.containerEl.createDiv({ cls: "v2-sidebar-header" });
+		const header = this.containerEl.createDiv({cls: "v2-sidebar-header"});
 
 		const workspaceSelectorEl = header.createDiv();
 		if (this.plugin.workspaceManager) {
@@ -110,7 +110,7 @@ export class V2Sidebar extends Component {
 			cls: "v2-new-task-btn",
 			text: t("New Task"),
 		});
-		setIcon(newTaskBtn.createDiv({ cls: "v2-new-task-icon" }), "plus");
+		setIcon(newTaskBtn.createDiv({cls: "v2-new-task-icon"}), "plus");
 		newTaskBtn.addEventListener("click", () => {
 			this.onNavigate("new-task");
 		});
@@ -121,7 +121,7 @@ export class V2Sidebar extends Component {
 		});
 
 		// Primary navigation section
-		const primarySection = content.createDiv({ cls: "v2-sidebar-section" });
+		const primarySection = content.createDiv({cls: "v2-sidebar-section"});
 		this.renderNavigationItems(primarySection, this.primaryItems);
 
 		// Projects section
@@ -132,7 +132,7 @@ export class V2Sidebar extends Component {
 			cls: "v2-section-header",
 		});
 
-		projectHeader.createSpan({ text: t("Projects") });
+		projectHeader.createSpan({text: t("Projects")});
 
 		// Button container for tree toggle and sort
 		const buttonContainer = projectHeader.createDiv({
@@ -142,7 +142,7 @@ export class V2Sidebar extends Component {
 		// Tree/List toggle button
 		const treeToggleBtn = buttonContainer.createDiv({
 			cls: "v2-tree-toggle-btn",
-			attr: { "aria-label": t("Toggle tree/list view") },
+			attr: {"aria-label": t("Toggle tree/list view")},
 		});
 		// Load saved view mode preference
 		this.isTreeView =
@@ -168,7 +168,7 @@ export class V2Sidebar extends Component {
 		// Sort button
 		const sortProjectBtn = buttonContainer.createDiv({
 			cls: "v2-sort-project-btn",
-			attr: { "aria-label": t("Sort projects") },
+			attr: {"aria-label": t("Sort projects")},
 		});
 		setIcon(sortProjectBtn, "arrow-up-down");
 
@@ -205,7 +205,7 @@ export class V2Sidebar extends Component {
 		// Workspace menu button
 		const wsBtn = this.railEl.createDiv({
 			cls: "v2-rail-btn",
-			attr: { "aria-label": t("Workspace") },
+			attr: {"aria-label": t("Workspace")},
 		});
 		setIcon(wsBtn, "layers");
 		wsBtn.addEventListener("click", (e) =>
@@ -216,7 +216,7 @@ export class V2Sidebar extends Component {
 		this.primaryItems.forEach((item) => {
 			const btn = this.railEl!.createDiv({
 				cls: "v2-rail-btn",
-				attr: { "aria-label": item.label, "data-view-id": item.id },
+				attr: {"aria-label": item.label, "data-view-id": item.id},
 			});
 			setIcon(btn, item.icon);
 			btn.addEventListener("click", () => {
@@ -244,7 +244,7 @@ export class V2Sidebar extends Component {
 		displayedOther.forEach((item: V2NavigationItem) => {
 			const btn = this.railEl!.createDiv({
 				cls: "v2-rail-btn",
-				attr: { "aria-label": item.label, "data-view-id": item.id },
+				attr: {"aria-label": item.label, "data-view-id": item.id},
 			});
 			setIcon(btn, item.icon);
 			btn.addEventListener("click", () => {
@@ -260,7 +260,7 @@ export class V2Sidebar extends Component {
 		if (remainingOther.length > 0) {
 			const moreBtn = this.railEl!.createDiv({
 				cls: "v2-rail-btn",
-				attr: { "aria-label": t("More views") },
+				attr: {"aria-label": t("More views")},
 			});
 			setIcon(moreBtn, "more-horizontal");
 			moreBtn.addEventListener("click", (e) =>
@@ -271,7 +271,7 @@ export class V2Sidebar extends Component {
 		// Projects menu button
 		const projBtn = this.railEl!.createDiv({
 			cls: "v2-rail-btn",
-			attr: { "aria-label": t("Projects") },
+			attr: {"aria-label": t("Projects")},
 		});
 		setIcon(projBtn, "folder");
 		projBtn.addEventListener("click", (e) =>
@@ -281,7 +281,7 @@ export class V2Sidebar extends Component {
 		// Add (New Task) button
 		const addBtn = this.railEl!.createDiv({
 			cls: "v2-rail-btn",
-			attr: { "aria-label": t("New Task") },
+			attr: {"aria-label": t("New Task")},
 		});
 		setIcon(addBtn, "plus");
 		addBtn.addEventListener("click", () => this.onNavigate("new-task"));
@@ -311,12 +311,12 @@ export class V2Sidebar extends Component {
 		const remainingOther: V2NavigationItem[] =
 			allOtherItems.slice(visibleCount);
 
-		otherHeader.createSpan({ text: t("Other Views") });
+		otherHeader.createSpan({text: t("Other Views")});
 
 		if (remainingOther.length > 0) {
 			const moreBtn = otherHeader.createDiv({
 				cls: "v2-section-action",
-				attr: { "aria-label": t("More views") },
+				attr: {"aria-label": t("More views")},
 			});
 			setIcon(moreBtn, "more-horizontal");
 			moreBtn.addEventListener("click", (e) =>
@@ -465,8 +465,8 @@ export class V2Sidebar extends Component {
 			}
 
 			onOpen() {
-				const { contentEl } = this;
-				contentEl.createEl("h2", { text: t("Create New Workspace") });
+				const {contentEl} = this;
+				contentEl.createEl("h2", {text: t("Create New Workspace")});
 
 				const inputContainer = contentEl.createDiv();
 				inputContainer.createEl("label", {
@@ -515,7 +515,7 @@ export class V2Sidebar extends Component {
 			}
 
 			onClose() {
-				const { contentEl } = this;
+				const {contentEl} = this;
 				contentEl.empty();
 			}
 		}
@@ -637,7 +637,7 @@ export class V2Sidebar extends Component {
 							if (currentIndex !== -1) {
 								this.plugin.settings.viewConfiguration[
 									currentIndex
-								] = {
+									] = {
 									...updatedView,
 									filterRules: updatedRules,
 								};
@@ -649,7 +649,7 @@ export class V2Sidebar extends Component {
 								// Trigger view config changed event
 								this.plugin.app.workspace.trigger(
 									"task-genius:view-config-changed",
-									{ reason: "edit", viewId: viewId }
+									{reason: "edit", viewId: viewId}
 								);
 							}
 						}
@@ -705,7 +705,7 @@ export class V2Sidebar extends Component {
 									);
 									new Notice(
 										t("View copied successfully: ") +
-											createdView.name
+										createdView.name
 									);
 								} else {
 									new Notice(
@@ -740,7 +740,7 @@ export class V2Sidebar extends Component {
 						// Trigger view config changed event
 						this.plugin.app.workspace.trigger(
 							"task-genius:view-config-changed",
-							{ reason: "visibility", viewId: viewId }
+							{reason: "visibility", viewId: viewId}
 						);
 					});
 			});
@@ -771,7 +771,7 @@ export class V2Sidebar extends Component {
 						// Trigger view config changed event
 						this.plugin.app.workspace.trigger(
 							"task-genius:view-config-changed",
-							{ reason: "delete", viewId: viewId }
+							{reason: "delete", viewId: viewId}
 						);
 						new Notice(t("View deleted: ") + view.name);
 					});
@@ -785,15 +785,15 @@ export class V2Sidebar extends Component {
 		containerEl: HTMLElement,
 		items: V2NavigationItem[]
 	) {
-		const list = containerEl.createDiv({ cls: "v2-navigation-list" });
+		const list = containerEl.createDiv({cls: "v2-navigation-list"});
 		items.forEach((item) => {
 			const itemEl = list.createDiv({
 				cls: "v2-navigation-item",
-				attr: { "data-view-id": item.id },
+				attr: {"data-view-id": item.id},
 			});
-			const icon = itemEl.createDiv({ cls: "v2-navigation-icon" });
+			const icon = itemEl.createDiv({cls: "v2-navigation-icon"});
 			setIcon(icon, item.icon);
-			itemEl.createSpan({ cls: "v2-navigation-label", text: item.label });
+			itemEl.createSpan({cls: "v2-navigation-label", text: item.label});
 			if (item.badge) {
 				itemEl.createDiv({
 					cls: "v2-navigation-badge",

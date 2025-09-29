@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import type TaskProgressBarPlugin from "@/index";
 import { V2Sidebar } from "@/experimental/v2/components/V2Sidebar";
-import { emitSidebarSelectionChanged } from "@/experimental/v2/events/ui-event";
+import { emitSidebarSelectionChanged, onSidebarSelectionChanged } from "@/experimental/v2/events/ui-event";
 
 export const TG_LEFT_SIDEBAR_VIEW_TYPE = "tg-left-sidebar" as const;
 
@@ -26,20 +26,39 @@ export class LeftSidebarView extends ItemView {
     this.sidebar = new V2Sidebar(
       this.rootEl,
       this.plugin,
-      // For now, only support project-based filtering; ignore view navigation
-      (_viewId: string) => { /* no-op */ },
+      // Emit view navigation to main view
+      (viewId: string) => {
+        emitSidebarSelectionChanged(this.app, {
+          selectionType: "view",
+          selectionId: viewId,
+          source: "left",
+          workspaceId: this.plugin.workspaceManager?.getActiveWorkspace().id,
+        });
+      },
+      // Emit project-based filtering
       (projectId: string) => {
         emitSidebarSelectionChanged(this.app, {
           selectionType: "project",
           selectionId: projectId,
           source: "left",
-          workspaceId: (this.plugin as any)?.workspaceManager?.currentWorkspaceId,
+          workspaceId: this.plugin.workspaceManager?.getActiveWorkspace().id,
         });
       },
       false
     );
     this.addChild(this.sidebar);
     this.sidebar.load();
+    // Sync active highlight when main view changes (ignore events from left to prevent echo)
+    this.registerEvent(
+      onSidebarSelectionChanged(this.app, (payload) => {
+        const activeId = this.plugin.workspaceManager?.getActiveWorkspace().id;
+        if (payload.workspaceId && activeId && payload.workspaceId !== activeId) return;
+        if (payload.selectionType === "view" && payload.selectionId && payload.source === "main") {
+          this.sidebar?.setActiveItem(payload.selectionId);
+        }
+      })
+    );
+
   }
 
   async onClose() {

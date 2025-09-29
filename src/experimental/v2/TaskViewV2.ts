@@ -23,6 +23,11 @@ import {
 	onSidebarSelectionChanged,
 	emitTaskSelected,
 } from "./events/ui-event";
+import { emitSidebarSelectionChanged } from "./events/ui-event";
+
+import { TG_LEFT_SIDEBAR_VIEW_TYPE } from "./views/LeftSidebarView";
+import { TG_RIGHT_DETAIL_VIEW_TYPE } from "./views/RightDetailView";
+
 import { Events, on } from "@/dataflow/events/Events";
 import { TaskListItemComponent } from "@/components/features/task/view/listItem";
 import { TaskTreeItemComponent } from "@/components/features/task/view/treeItem";
@@ -454,10 +459,14 @@ export class TaskViewV2 extends ItemView {
 			this.registerEvent(
 				onSidebarSelectionChanged(this.app, (payload) => {
 					if (payload.workspaceId && payload.workspaceId !== this.workspaceId) return;
+					// Ignore events originating from main view to avoid loops
+					if (payload.source === "main") return;
 					if (payload.selectionType === "project" && payload.selectionId) {
 						this.handleProjectSelect(payload.selectionId);
 					} else if (payload.selectionType === "view" && payload.selectionId) {
-						this.switchView(payload.selectionId);
+						if (this.currentViewId !== payload.selectionId) {
+							this.switchView(payload.selectionId);
+						}
 					}
 				})
 			);
@@ -736,6 +745,30 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private toggleSidebar() {
+		const useSideLeaves = !!((this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves);
+		if (useSideLeaves) {
+			// In side-leaf mode, toggle the left sidebar split collapse state
+			const ws: any = this.app.workspace as any;
+			const leftSplit = ws.leftSplit;
+			const isCollapsed = !!leftSplit?.collapsed;
+			if (isCollapsed) {
+				// Expand and ensure our sidebar view
+				if (typeof leftSplit.expand === "function") leftSplit.expand();
+				let leftLeaf = ws.getLeftLeaf?.(false) ?? ws.leftSplit?.children?.[0];
+				if (!leftLeaf && typeof ws.ensureSideLeaf === "function") {
+					leftLeaf = ws.ensureSideLeaf("left", {active: false});
+				}
+				if (leftLeaf) {
+					void leftLeaf.setViewState({type: TG_LEFT_SIDEBAR_VIEW_TYPE, active: false});
+					ws.revealLeaf?.(leftLeaf);
+				}
+			} else {
+				// Collapse the left split to hide sidebar
+				if (typeof leftSplit?.collapse === "function") leftSplit.collapse();
+			}
+			return;
+		}
+
 		if (Platform.isPhone) {
 			// On mobile, toggle the drawer open/closed
 			if (this.isMobileDrawerOpen) {
@@ -747,10 +780,7 @@ export class TaskViewV2 extends ItemView {
 			// On desktop, toggle collapse state
 			this.isSidebarCollapsed = !this.isSidebarCollapsed;
 			this.sidebar?.setCollapsed(this.isSidebarCollapsed);
-			this.rootContainerEl?.toggleClass(
-				"v2-sidebar-collapsed",
-				this.isSidebarCollapsed
-			);
+			this.rootContainerEl?.toggleClass("v2-sidebar-collapsed", this.isSidebarCollapsed);
 		}
 	}
 
@@ -1285,6 +1315,16 @@ export class TaskViewV2 extends ItemView {
 
 		this.currentViewId = viewId;
 		this.sidebar?.setActiveItem(viewId);
+
+		// Broadcast view change to side-leaf sidebar so it can highlight active item
+		if ((this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves) {
+			emitSidebarSelectionChanged(this.app, {
+				selectionType: "view",
+				selectionId: viewId,
+				source: "main",
+				workspaceId: this.plugin.workspaceManager?.getActiveWorkspace().id || this.workspaceId,
+			});
+		}
 
 		// Update available view modes for the current view
 		const availableModes = this.getAvailableModesForView(viewId);
@@ -2319,7 +2359,33 @@ export class TaskViewV2 extends ItemView {
 	}
 
 	private toggleDetailsVisibility(visible: boolean) {
+		const useSideLeaves = !!((this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves);
 		this.isDetailsVisible = visible;
+
+		if (useSideLeaves) {
+			// In side-leaf mode, reveal/collapse the right details pane instead of in-view overlay
+			const ws = this.app.workspace;
+			if (visible) {
+				// Try to expand right split if it's collapsed
+				if (ws.rightSplit?.collapsed && typeof ws.rightSplit.expand === "function") {
+					ws.rightSplit.expand();
+				}
+			} else {
+				ws.rightSplit.collapse();
+			}
+			// Update header toggle visual state
+			if (this.detailsToggleBtn) {
+				this.detailsToggleBtn.toggleClass("is-active", visible);
+				this.detailsToggleBtn.setAttribute(
+					"aria-label",
+					visible ? t("Hide Details") : t("Show Details")
+				);
+			}
+			// Skip in-view CSS and mobile overlay logic in side-leaf mode
+			return;
+		}
+
+		// Legacy/in-view mode
 		this.rootContainerEl?.toggleClass("details-visible", visible);
 		this.rootContainerEl?.toggleClass("details-hidden", !visible);
 		if (this.detailsComponent) {
@@ -2339,14 +2405,10 @@ export class TaskViewV2 extends ItemView {
 			setTimeout(() => {
 				const overlayClickHandler = (e: MouseEvent) => {
 					// Check if click is on the overlay (pseudo-element area)
-					const detailsEl =
-						this.rootContainerEl?.querySelector(".task-details");
+					const detailsEl = this.rootContainerEl?.querySelector(".task-details");
 					if (detailsEl && !detailsEl.contains(e.target as Node)) {
 						this.toggleDetailsVisibility(false);
-						document.removeEventListener(
-							"click",
-							overlayClickHandler
-						);
+						document.removeEventListener("click", overlayClickHandler);
 					}
 				};
 				// Add the event listener
@@ -2354,16 +2416,9 @@ export class TaskViewV2 extends ItemView {
 				// Store the handler to remove it later
 				(this as any).mobileDetailsOverlayHandler = overlayClickHandler;
 			}, 100);
-		} else if (
-			Platform.isPhone &&
-			!visible &&
-			(this as any).mobileDetailsOverlayHandler
-		) {
+		} else if (Platform.isPhone && !visible && (this as any).mobileDetailsOverlayHandler) {
 			// Remove the event listener when closing
-			document.removeEventListener(
-				"click",
-				(this as any).mobileDetailsOverlayHandler
-			);
+			document.removeEventListener("click", (this as any).mobileDetailsOverlayHandler);
 			delete (this as any).mobileDetailsOverlayHandler;
 		}
 	}
@@ -2505,7 +2560,7 @@ export class TaskViewV2 extends ItemView {
 			emitTaskSelected(this.app, {
 				taskId: task?.id ?? null,
 				origin: "main",
-				workspaceId: this.workspaceId,
+				workspaceId: this.plugin.workspaceManager?.getActiveWorkspace().id || this.workspaceId,
 			});
 		}
 

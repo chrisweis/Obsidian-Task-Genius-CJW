@@ -357,7 +357,7 @@
 }
 
 .v2-project-list.is-tree-view
-	.v2-project-item[data-level]:not([data-level="0"]):hover::before {
+.v2-project-item[data-level]:not([data-level="0"]):hover::before {
 	opacity: 0.3;
 }
 
@@ -601,7 +601,7 @@
 
 /* When the sidebar element itself is collapsed */
 .tg-v2-sidebar-container.is-collapsed,
-/* Or when the root adds a helper class */
+	/* Or when the root adds a helper class */
 .v2-sidebar-collapsed .tg-v2-sidebar-container {
 	width: 44px;
 	min-width: 44px;
@@ -814,8 +814,8 @@
 
 /* Hide sidebar toggle on desktop when in mobile drawer mode */
 .tg-v2-sidebar-container.is-mobile-drawer
-	~ .tg-v2-main-container
-	.sidebar-toggle {
+~ .tg-v2-main-container
+.sidebar-toggle {
 	display: none !important;
 }
 
@@ -829,6 +829,16 @@
 
 .drawer-open .tg-v2-sidebar-container.is-mobile-drawer.drawer-right {
 	transform: translateX(0);
+}
+
+.view-content:has(.tg-right-detail-view) {
+	padding-left: 0;
+	padding-right: 0;
+	padding-top: 0;
+}
+
+.tg-right-detail-view .task-details {
+	width: 100%;
 }
 
 /* Smooth animations for all transitions */
