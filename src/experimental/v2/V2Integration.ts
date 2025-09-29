@@ -60,6 +60,32 @@ export class V2Integration {
 
 			ribbonIcon.toggleClass("tg-beta", true);
 		}
+
+			// When any of the V2 views becomes active, reveal the other side leaves without focusing them
+			this.plugin.registerEvent(
+				this.plugin.app.workspace.on("active-leaf-change", async (leaf) => {
+					try {
+						const useSideLeaves = !!(this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves;
+						if (!useSideLeaves) return;
+						if (!leaf?.view?.getViewType) return;
+						const vt = leaf.view.getViewType();
+						const watched = new Set<string>([
+							TASK_VIEW_V2_TYPE,
+							TG_LEFT_SIDEBAR_VIEW_TYPE,
+							TG_RIGHT_DETAIL_VIEW_TYPE,
+						]);
+						if (!watched.has(vt)) return;
+						const ws = this.plugin.app.workspace as Workspace & any;
+						// Ensure side leaves exist and are visible, but do not focus
+						await ws.ensureSideLeaf(TG_LEFT_SIDEBAR_VIEW_TYPE, "left", { active: false });
+						await ws.ensureSideLeaf(TG_RIGHT_DETAIL_VIEW_TYPE, "right", { active: false });
+						// Expand sidebars if they are collapsed, without changing focus
+						if (ws.leftSplit?.collapsed && typeof ws.leftSplit.expand === "function") ws.leftSplit.expand();
+						if (ws.rightSplit?.collapsed && typeof ws.rightSplit.expand === "function") ws.rightSplit.expand();
+					} catch (e) {}
+				})
+			);
+
 	}
 
 	/**

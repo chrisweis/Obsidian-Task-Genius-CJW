@@ -251,7 +251,8 @@ export class TaskViewV2 extends ItemView {
 						if (useWorkspaceSideLeaves) {
 							this.registerEvent(
 								onSidebarSelectionChanged(this.app, (payload) => {
-									if (payload.workspaceId && payload.workspaceId !== this.workspaceId) return;
+									const activeId = this.plugin.workspaceManager?.getActiveWorkspace().id;
+								if (payload.workspaceId && activeId && payload.workspaceId !== activeId) return;
 									if (payload.selectionType === "project" && payload.selectionId) {
 										this.handleProjectSelect(payload.selectionId);
 									} else if (payload.selectionType === "view" && payload.selectionId) {
@@ -458,7 +459,8 @@ export class TaskViewV2 extends ItemView {
 		if ((this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves) {
 			this.registerEvent(
 				onSidebarSelectionChanged(this.app, (payload) => {
-					if (payload.workspaceId && payload.workspaceId !== this.workspaceId) return;
+					const activeId = this.plugin.workspaceManager?.getActiveWorkspace().id;
+					if (payload.workspaceId && activeId && payload.workspaceId !== activeId) return;
 					// Ignore events originating from main view to avoid loops
 					if (payload.source === "main") return;
 					if (payload.selectionType === "project" && payload.selectionId) {

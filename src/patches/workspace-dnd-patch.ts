@@ -2,6 +2,15 @@ import type TaskProgressBarPlugin from "@/index";
 import { around, dedupe } from "monkey-around";
 import { Workspace } from "obsidian";
 
+// Use WeakMap to avoid attaching arbitrary properties to Workspace instances
+const RESTRICT_DND_STATE: WeakMap<any, boolean> = new WeakMap();
+const setRestrictState = (ws: any, val: boolean) => {
+	if (ws) RESTRICT_DND_STATE.set(ws, !!val);
+};
+const getRestrictState = (ws: any): boolean => {
+	return !!(ws && RESTRICT_DND_STATE.get(ws));
+};
+
 /** View types that should never be drag-moved to the center panel. */
 const RESTRICTED_VIEW_TYPES = new Set<string>([
 	"tg-left-sidebar",
@@ -36,27 +45,35 @@ export function installWorkspaceDragMonitor(plugin: TaskProgressBarPlugin): void
 		onDragLeaf(old: Function | undefined) {
 			return dedupe(KEY_ON_DRAG, old as Function, function (this: any, e: DragEvent, leaf: any) {
 				const restricted = isRestrictedLeaf(leaf);
-				const prev = this.__tg_restrict_dnd;
-				this.__tg_restrict_dnd = !!restricted;
+				// Mark workspace as currently dragging a restricted leaf until drop/dragend
+				if (restricted) setRestrictState(this, true);
 				if (restricted) {
 					const vt = leaf?.view?.getViewType?.();
 					console.debug("[TG][MonkeyPatch] onDragLeaf(restricted)", vt);
 				} else {
 					console.debug("[TG][MonkeyPatch] onDragLeaf");
 				}
-				try {
-					return old && old.apply(this, [e, leaf]);
-				} finally {
-					this.__tg_restrict_dnd = prev;
+				// Install one-shot cleanup on drop/dragend
+				const ws = this;
+				if (restricted) {
+					const cleanup = () => {
+						setRestrictState(ws, false);
+						window.removeEventListener("dragend", cleanup, true);
+						window.removeEventListener("drop", cleanup, true);
+					};
+					window.addEventListener("dragend", cleanup, true);
+					window.addEventListener("drop", cleanup, true);
 				}
+				return old && old.apply(this, [e, leaf]);
 			});
 		},
 
 		getDropLocation(old: Function | undefined) {
 			return dedupe(KEY_GET_DROP, old as Function, function (this: any, ...args: any[]) {
 				const target = old && old.apply(this, args);
+
 				try {
-					if (this.__tg_restrict_dnd && target) {
+					if (getRestrictState(this) && target) {
 						const root = typeof target?.getRoot === "function" ? target.getRoot() : undefined;
 						const isCenterRegion = root && root === this.rootSplit && target !== this.leftSplit && target !== this.rightSplit;
 						if (isCenterRegion) {

@@ -2,6 +2,8 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import type TaskProgressBarPlugin from "@/index";
 import { onTaskSelected, TaskSelectionPayload } from "@/experimental/v2/events/ui-event";
 import { TaskDetailsComponent } from "@/components/features/task/view/details";
+import { t } from "@/translations/helper";
+
 
 export const TG_RIGHT_DETAIL_VIEW_TYPE = "tg-right-detail" as const;
 
@@ -18,11 +20,11 @@ export class RightDetailView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "Task Genius Details";
+		return "Task Genius" + t("Details");
 	}
 
 	getIcon(): string {
-		return "layout-sidebar-right";
+		return "panel-right-dashed";
 	}
 
 	async onOpen() {
