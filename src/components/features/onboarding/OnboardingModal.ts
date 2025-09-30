@@ -10,13 +10,19 @@ import { UserLevelSelector } from "./UserLevelSelector";
 import { ConfigPreview } from "./ConfigPreview";
 import { TaskCreationGuide } from "./TaskCreationGuide";
 import { OnboardingComplete } from "./OnboardingComplete";
+import { IntroTyping } from "./IntroTyping";
+import { ModeSelection } from "./ModeSelection";
+import { FluentPlacement } from "./FluentPlacement";
+import "@/experimental/v2/styles/v2-enhanced.css";
 
 export enum OnboardingStep {
-	WELCOME = 0,
-	USER_LEVEL_SELECT = 1,
-	CONFIG_PREVIEW = 2,
-	TASK_CREATION_GUIDE = 3,
-	COMPLETE = 4,
+	INTRO = 0,
+	MODE_SELECT = 1,
+	FLUENT_PLACEMENT = 2,
+	USER_LEVEL_SELECT = 3,
+	CONFIG_PREVIEW = 4,
+	TASK_CREATION_GUIDE = 5,
+	COMPLETE = 6,
 }
 
 export interface OnboardingState {
@@ -24,6 +30,8 @@ export interface OnboardingState {
 	selectedConfig?: OnboardingConfig;
 	skipTaskGuide: boolean;
 	isCompleting: boolean;
+	uiMode: 'fluent' | 'legacy';
+	useSideLeaves: boolean; // Applies when uiMode === 'fluent'
 }
 
 export class OnboardingModal extends Modal {
@@ -33,6 +41,9 @@ export class OnboardingModal extends Modal {
 	private state: OnboardingState;
 
 	// Step components
+	private introTyping: IntroTyping;
+	private modeSelection: ModeSelection;
+	private fluentPlacement: FluentPlacement;
 	private userLevelSelector: UserLevelSelector;
 	private configPreview: ConfigPreview;
 	private taskCreationGuide: TaskCreationGuide;
@@ -58,12 +69,17 @@ export class OnboardingModal extends Modal {
 
 		// Initialize state
 		this.state = {
-			currentStep: OnboardingStep.WELCOME,
+			currentStep: OnboardingStep.INTRO,
 			skipTaskGuide: false,
 			isCompleting: false,
+			uiMode: 'fluent',
+			useSideLeaves: true,
 		};
 
 		// Initialize components
+		this.introTyping = new IntroTyping();
+		this.modeSelection = new ModeSelection();
+		this.fluentPlacement = new FluentPlacement();
 		this.userLevelSelector = new UserLevelSelector(this.configManager);
 		this.configPreview = new ConfigPreview(this.configManager);
 		this.taskCreationGuide = new TaskCreationGuide(this.plugin);
@@ -74,7 +90,7 @@ export class OnboardingModal extends Modal {
 	}
 
 	onOpen() {
-		const { contentEl } = this;
+		const {contentEl} = this;
 		contentEl.empty();
 
 		this.createModalStructure();
@@ -82,7 +98,7 @@ export class OnboardingModal extends Modal {
 	}
 
 	onClose() {
-		const { contentEl } = this;
+		const {contentEl} = this;
 		contentEl.empty();
 	}
 
@@ -90,8 +106,8 @@ export class OnboardingModal extends Modal {
 	 * Create the basic modal structure
 	 */
 	private createModalStructure() {
-		const { contentEl } = this;
-
+		const {contentEl} = this;
+ 
 		// Header section
 		this.headerEl = contentEl.createDiv("onboarding-header");
 
@@ -101,6 +117,30 @@ export class OnboardingModal extends Modal {
 		// Footer with navigation buttons
 		this.footerEl = contentEl.createDiv("onboarding-footer");
 		this.createFooterButtons();
+
+		// Apply initial UI mode class
+		this.applyUIModeClass();
+	}
+
+
+	/**
+	 * Render top header bar (minimal title-only; choices are in content)
+	 */
+	private renderHeaderBar() {
+		this.applyUIModeClass();
+		// const bar = this.headerEl.createDiv({cls: "onboarding-topbar"});
+		// const left = bar.createDiv({cls: "onboarding-topbar-left"});
+		// left.createEl("span", {text: t("Task Genius"), cls: "onboarding-topbar-title"});
+		// bar.createDiv({cls: "onboarding-topbar-right"});
+	}
+
+	/**
+	 * Toggle UI mode classes on the modal element
+	 */
+	private applyUIModeClass() {
+		const root = this.modalEl;
+		root.toggleClass("mod-fluent", this.state.uiMode === 'fluent');
+		root.toggleClass("mod-legacy", this.state.uiMode === 'legacy');
 	}
 
 	/**
@@ -113,17 +153,20 @@ export class OnboardingModal extends Modal {
 		this.skipButton = new ButtonComponent(buttonContainer)
 			.setButtonText(t("Skip onboarding"))
 			.onClick(() => this.handleSkip());
+		this.skipButton.buttonEl.addClass("clickable-icon");
 
 		// Back button
 		this.backButton = new ButtonComponent(buttonContainer)
 			.setButtonText(t("Back"))
 			.onClick(() => this.handleBack());
+		this.backButton.buttonEl.addClass("clickable-icon");
 
 		// Next button
 		this.nextButton = new ButtonComponent(buttonContainer)
 			.setButtonText(t("Next"))
 			.setCta()
 			.onClick(() => this.handleNext());
+		this.nextButton.buttonEl.addClass("clickable-icon");
 	}
 
 	/**
@@ -134,12 +177,21 @@ export class OnboardingModal extends Modal {
 		this.headerEl.empty();
 		this.onboardingContentEl.empty();
 
+		// Render topbar
+		this.renderHeaderBar();
+
 		// Update button visibility
 		this.updateButtonStates();
 
 		switch (this.state.currentStep) {
-			case OnboardingStep.WELCOME:
-				this.displayWelcomeStep();
+			case OnboardingStep.INTRO:
+				this.displayIntroTypingStep();
+				break;
+			case OnboardingStep.MODE_SELECT:
+				this.displayModeSelectionStep();
+				break;
+			case OnboardingStep.FLUENT_PLACEMENT:
+				this.displayFluentPlacementStep();
 				break;
 			case OnboardingStep.USER_LEVEL_SELECT:
 				this.displayUserLevelSelectStep();
@@ -161,7 +213,7 @@ export class OnboardingModal extends Modal {
 	 */
 	private displayWelcomeStep() {
 		// Header
-		this.headerEl.createEl("h1", { text: t("Welcome to Task Genius") });
+		this.headerEl.createEl("h1", {text: t("Welcome to Task Genius")});
 		this.headerEl.createEl("p", {
 			text: t(
 				"Transform your task management with advanced progress tracking and workflow automation"
@@ -214,8 +266,8 @@ export class OnboardingModal extends Modal {
 			const iconEl = featureEl.createDiv("feature-icon");
 			setIcon(iconEl, feature.icon);
 			const featureContent = featureEl.createDiv("feature-content");
-			featureContent.createEl("h3", { text: feature.title });
-			featureContent.createEl("p", { text: feature.description });
+			featureContent.createEl("h3", {text: feature.title});
+			featureContent.createEl("p", {text: feature.description});
 		});
 
 		// Setup note
@@ -229,11 +281,49 @@ export class OnboardingModal extends Modal {
 	}
 
 	/**
+	 * New: Intro typing step
+	 */
+	private displayIntroTypingStep() {
+		// this.headerEl.createEl("h1", {text: t("Welcome")});
+		this.introTyping.render(this.onboardingContentEl);
+	}
+
+	/**
+	 * New: Mode selection (Fluent vs Legacy)
+	 */
+	private displayModeSelectionStep() {
+		this.headerEl.createEl("h1", {text: t("Choose Your Interface Style")});
+		this.headerEl.createEl("p", {
+			text: t("Select your preferred visual and interaction style: modern Fluent or traditional Legacy"),
+			cls: "onboarding-subtitle"
+		});
+		this.modeSelection.render(this.onboardingContentEl, this.state.uiMode as any, (mode) => {
+			this.state.uiMode = mode;
+			this.updateButtonStates();
+		});
+	}
+
+	/**
+	 * New: Fluent placement selection
+	 */
+	private displayFluentPlacementStep() {
+		this.headerEl.createEl("h1", {text: t("Fluent Layout")});
+		this.headerEl.createEl("p", {
+			text: t("Choose how to display Fluent: use Sideleaves for enhanced multi-column collaboration, or Inline for an immersive single-page experience."),
+			cls: "onboarding-subtitle"
+		});
+		this.fluentPlacement.render(this.onboardingContentEl, this.state.useSideLeaves ? "sideleaves" : "inline", (p) => {
+			this.state.useSideLeaves = p === "sideleaves";
+			this.updateButtonStates();
+		});
+	}
+
+	/**
 	 * Display user level selection step
 	 */
 	private displayUserLevelSelectStep() {
 		// Header
-		this.headerEl.createEl("h1", { text: t("Choose Your Usage Mode") });
+		this.headerEl.createEl("h1", {text: t("Choose Your Usage Mode")});
 		this.headerEl.createEl("p", {
 			text: t(
 				"Select the configuration that best matches your task management experience"
@@ -259,7 +349,7 @@ export class OnboardingModal extends Modal {
 		}
 
 		// Header
-		this.headerEl.createEl("h1", { text: t("Configuration Preview") });
+		this.headerEl.createEl("h1", {text: t("Configuration Preview")});
 		this.headerEl.createEl("p", {
 			text: t(
 				"Review the settings that will be applied for your selected mode"
@@ -292,7 +382,7 @@ export class OnboardingModal extends Modal {
 	 */
 	private displayTaskCreationGuideStep() {
 		// Header
-		this.headerEl.createEl("h1", { text: t("Create Your First Task") });
+		this.headerEl.createEl("h1", {text: t("Create Your First Task")});
 		this.headerEl.createEl("p", {
 			text: t("Learn how to create and format tasks in Task Genius"),
 			cls: "onboarding-subtitle",
@@ -309,7 +399,7 @@ export class OnboardingModal extends Modal {
 		if (!this.state.selectedConfig) return;
 
 		// Header
-		this.headerEl.createEl("h1", { text: t("Setup Complete!") });
+		this.headerEl.createEl("h1", {text: t("Setup Complete!")});
 		this.headerEl.createEl("p", {
 			text: t("Task Genius is now configured and ready to use"),
 			cls: "onboarding-subtitle",
@@ -328,13 +418,13 @@ export class OnboardingModal extends Modal {
 	private updateButtonStates() {
 		const step = this.state.currentStep;
 
-		// Skip button - only show on welcome
+		// Skip button - only show on intro
 		this.skipButton.buttonEl.style.display =
-			step === OnboardingStep.WELCOME ? "inline-block" : "none";
+			step === OnboardingStep.INTRO ? "inline-block" : "none";
 
 		// Back button - hide on first step
 		this.backButton.buttonEl.style.display =
-			step === OnboardingStep.WELCOME ? "none" : "inline-block";
+			step === OnboardingStep.INTRO ? "none" : "inline-block";
 
 		// Next button
 		const isLastStep = step === OnboardingStep.COMPLETE;
@@ -362,7 +452,7 @@ export class OnboardingModal extends Modal {
 	 * Handle back navigation
 	 */
 	private handleBack() {
-		if (this.state.currentStep > OnboardingStep.WELCOME) {
+		if (this.state.currentStep > OnboardingStep.INTRO) {
 			this.state.currentStep--;
 
 			// Skip task guide if it was skipped
@@ -394,15 +484,26 @@ export class OnboardingModal extends Modal {
 			return;
 		}
 
-		// Move to next step
-		this.state.currentStep++;
+		// Branching for intro/mode/placement
+		if (step === OnboardingStep.INTRO) {
+			this.state.currentStep = OnboardingStep.MODE_SELECT;
+		} else if (step === OnboardingStep.MODE_SELECT) {
+			this.state.currentStep = this.state.uiMode === 'fluent'
+				? OnboardingStep.FLUENT_PLACEMENT
+				: OnboardingStep.USER_LEVEL_SELECT;
+		} else if (step === OnboardingStep.FLUENT_PLACEMENT) {
+			this.state.currentStep = OnboardingStep.USER_LEVEL_SELECT;
+		} else {
+			this.state.currentStep++;
+		}
 
-		// Apply configuration when moving to preview
+		// Apply architecture selection and configuration when moving to preview
 		if (
 			this.state.currentStep === OnboardingStep.CONFIG_PREVIEW &&
 			this.state.selectedConfig
 		) {
 			try {
+				await this.applyArchitectureSelections();
 				await this.configManager.applyConfiguration(
 					this.state.selectedConfig.mode
 				);
@@ -434,6 +535,34 @@ export class OnboardingModal extends Modal {
 				return true;
 		}
 	}
+
+	/**
+	 * Apply Legacy vs Fluent selection and sideleaves preference to settings
+	 */
+	private async applyArchitectureSelections() {
+		const isFluent = this.state.uiMode === 'fluent';
+		if (!this.plugin.settings.experimental) {
+			(this.plugin.settings as any).experimental = {enableV2: false, showV2Ribbon: false};
+		}
+		this.plugin.settings.experimental!.enableV2 = isFluent;
+		// Prepare v2 config and set placement option when Fluent is chosen
+		if (!this.plugin.settings.experimental!.v2Config) {
+			(this.plugin.settings.experimental as any).v2Config = {
+				enableWorkspaces: true,
+				defaultWorkspace: 'default',
+				showTopNavigation: true,
+				showNewSidebar: true,
+				allowViewSwitching: true,
+				persistViewMode: true,
+				maxOtherViewsBeforeOverflow: 5,
+			};
+		}
+		if (isFluent) {
+			(this.plugin.settings.experimental as any).v2Config.useWorkspaceSideLeaves = !!this.state.useSideLeaves;
+		}
+		await this.plugin.saveSettings();
+	}
+
 
 	/**
 	 * Complete onboarding process

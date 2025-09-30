@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, setIcon, ButtonComponent } from "obsidian";
+import { ItemView, WorkspaceLeaf, setIcon, ButtonComponent, Setting } from "obsidian";
 import type TaskProgressBarPlugin from "@/index";
 import { t } from "@/translations/helper";
 import {
@@ -11,16 +11,22 @@ import { UserLevelSelector } from "./UserLevelSelector";
 import { ConfigPreview } from "./ConfigPreview";
 import { TaskCreationGuide } from "./TaskCreationGuide";
 import { OnboardingComplete } from "./OnboardingComplete";
+import { IntroTyping } from "./IntroTyping";
+import { ModeSelection } from "./ModeSelection";
+import { FluentPlacement } from "./FluentPlacement";
+import "@/experimental/v2/styles/v2-enhanced.css";
 
 export const ONBOARDING_VIEW_TYPE = "task-genius-onboarding";
 
 export enum OnboardingStep {
-	SETTINGS_CHECK = 0,    // New: Check if user wants onboarding
-	WELCOME = 1,
-	USER_LEVEL_SELECT = 2,
-	CONFIG_PREVIEW = 3,
-	TASK_CREATION_GUIDE = 4,
-	COMPLETE = 5,
+	SETTINGS_CHECK = 0,
+	INTRO = 1,
+	MODE_SELECT = 2,
+	FLUENT_PLACEMENT = 3,
+	USER_LEVEL_SELECT = 4,
+	CONFIG_PREVIEW = 5,
+	TASK_CREATION_GUIDE = 6,
+	COMPLETE = 7,
 }
 
 export interface OnboardingState {
@@ -30,6 +36,8 @@ export interface OnboardingState {
 	isCompleting: boolean;
 	userHasChanges: boolean;
 	changesSummary: string[];
+	uiMode: 'fluent' | 'legacy';
+	useSideLeaves: boolean; // Applies when uiMode === 'fluent'
 }
 
 export class OnboardingView extends ItemView {
@@ -40,6 +48,9 @@ export class OnboardingView extends ItemView {
 	private state: OnboardingState;
 
 	// Step components
+	private introTyping: IntroTyping;
+	private modeSelection: ModeSelection;
+	private fluentPlacement: FluentPlacement;
 	private userLevelSelector: UserLevelSelector;
 	private configPreview: ConfigPreview;
 	private taskCreationGuide: TaskCreationGuide;
@@ -60,16 +71,21 @@ export class OnboardingView extends ItemView {
 		this.settingsDetector = new SettingsChangeDetector(plugin);
 		this.onComplete = onComplete;
 
-		// Initialize state
+		// Initialize state - always start with INTRO
 		this.state = {
-			currentStep: OnboardingStep.SETTINGS_CHECK,
+			currentStep: OnboardingStep.INTRO,
 			skipTaskGuide: false,
 			isCompleting: false,
 			userHasChanges: this.settingsDetector.hasUserMadeChanges(),
 			changesSummary: this.settingsDetector.getChangesSummary(),
+			uiMode: 'fluent',
+			useSideLeaves: true,
 		};
 
 		// Initialize components
+		this.introTyping = new IntroTyping();
+		this.modeSelection = new ModeSelection();
+		this.fluentPlacement = new FluentPlacement();
 		this.userLevelSelector = new UserLevelSelector(this.configManager);
 		this.configPreview = new ConfigPreview(this.configManager);
 		this.taskCreationGuide = new TaskCreationGuide(this.plugin);
@@ -81,7 +97,7 @@ export class OnboardingView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return t("Task Genius Setup");
+		return t("Task Genius Onboarding");
 	}
 
 	getIcon(): string {
@@ -102,7 +118,7 @@ export class OnboardingView extends ItemView {
 	 * Create the basic view structure
 	 */
 	private createViewStructure() {
-		const container = this.contentEl;
+		const container = this.containerEl;
 		container.empty();
 		container.addClass("onboarding-view");
 
@@ -112,9 +128,38 @@ export class OnboardingView extends ItemView {
 		// Main content section
 		this.onboardingContentEl = container.createDiv("onboarding-content");
 
+
 		// Footer with navigation buttons
 		this.footerEl = container.createDiv("onboarding-footer");
 		this.createFooterButtons();
+
+		// Apply initial UI mode class
+		this.applyUIModeClass();
+
+		container.createEl("div", {
+			cls: "onboarding-shadow"
+		});
+	}
+
+
+	/**
+	 * Render top header bar (minimal title-only; choices are in content)
+	 */
+	private renderHeaderBar() {
+		this.applyUIModeClass();
+		// const bar = this.onboardingHeaderEl.createDiv({cls: "onboarding-topbar"});
+		// const left = bar.createDiv({cls: "onboarding-topbar-left"});
+		// left.createEl("span", {text: t("Task Genius"), cls: "onboarding-topbar-title"});
+		// bar.createDiv({cls: "onboarding-topbar-right"});
+	}
+
+	/**
+	 * Toggle UI mode classes on the root container
+	 */
+	private applyUIModeClass() {
+		const root = this.contentEl;
+		root.toggleClass("mod-fluent", this.state.uiMode === 'fluent');
+		root.toggleClass("mod-legacy", this.state.uiMode === 'legacy');
 	}
 
 	/**
@@ -127,17 +172,20 @@ export class OnboardingView extends ItemView {
 		this.skipButton = new ButtonComponent(buttonContainer)
 			.setButtonText(t("Skip setup"))
 			.onClick(() => this.handleSkip());
+		this.skipButton.buttonEl.addClass("clickable-icon");
 
 		// Back button
 		this.backButton = new ButtonComponent(buttonContainer)
 			.setButtonText(t("Back"))
 			.onClick(() => this.handleBack());
+		this.backButton.buttonEl.addClass("clickable-icon");
 
 		// Next button
 		this.nextButton = new ButtonComponent(buttonContainer)
 			.setButtonText(t("Next"))
 			.setCta()
 			.onClick(() => this.handleNext());
+		this.nextButton.buttonEl.addClass("clickable-icon");
 	}
 
 	/**
@@ -148,6 +196,9 @@ export class OnboardingView extends ItemView {
 		this.onboardingHeaderEl.empty();
 		this.onboardingContentEl.empty();
 
+		// Render topbar
+		this.renderHeaderBar();
+
 		// Update button visibility
 		this.updateButtonStates();
 
@@ -155,8 +206,14 @@ export class OnboardingView extends ItemView {
 			case OnboardingStep.SETTINGS_CHECK:
 				this.displaySettingsCheckStep();
 				break;
-			case OnboardingStep.WELCOME:
-				this.displayWelcomeStep();
+			case OnboardingStep.INTRO:
+				this.displayIntroTypingStep();
+				break;
+			case OnboardingStep.MODE_SELECT:
+				this.displayModeSelectionStep();
+				break;
+			case OnboardingStep.FLUENT_PLACEMENT:
+				this.displayFluentPlacementStep();
 				break;
 			case OnboardingStep.USER_LEVEL_SELECT:
 				this.displayUserLevelSelectStep();
@@ -174,61 +231,51 @@ export class OnboardingView extends ItemView {
 	}
 
 	/**
-	 * Display settings check step (new async approach)
+	 * Display settings check step - ask if user wants to continue wizard
 	 */
 	private displaySettingsCheckStep() {
 		// Header
-		this.onboardingHeaderEl.createEl("h1", { text: t("Task Genius Setup") });
+		this.onboardingHeaderEl.createEl("h1", {text: t("Task Genius Setup")});
+		this.onboardingHeaderEl.createEl("p", {
+			text: t("We noticed you've already configured Task Genius"),
+			cls: "onboarding-subtitle",
+		});
 
 		// Content
 		const content = this.onboardingContentEl;
+		const checkSection = content.createDiv("settings-check-section");
 
-		if (this.state.userHasChanges) {
-			// User has made changes - ask if they want onboarding
-			this.onboardingHeaderEl.createEl("p", {
-				text: t("We noticed you've already configured Task Genius"),
-				cls: "onboarding-subtitle",
-			});
+		// Show detected changes
+		checkSection.createEl("h3", {text: t("Your current configuration includes:")});
+		const changesList = checkSection.createEl("ul", {cls: "changes-summary-list"});
 
-			const checkSection = content.createDiv("settings-check-section");
+		this.state.changesSummary.forEach(change => {
+			const item = changesList.createEl("li");
+			const checkIcon = item.createSpan("change-check");
+			setIcon(checkIcon, "check");
+			item.createSpan("change-text").setText(change);
+		});
 
-			// Show detected changes
-			checkSection.createEl("h3", { text: t("Your current configuration includes:") });
-			const changesList = checkSection.createEl("ul", { cls: "changes-summary-list" });
-			
-			this.state.changesSummary.forEach(change => {
-				const item = changesList.createEl("li");
-				const checkIcon = item.createSpan("change-check");
-				setIcon(checkIcon, "check");
-				item.createSpan("change-text").setText(change);
-			});
+		// Ask if they want onboarding
+		const questionSection = content.createDiv("onboarding-question");
+		questionSection.createEl("h3", {text: t("Would you like to continue with the setup wizard?")});
 
-			// Ask if they want onboarding
-			const questionSection = content.createDiv("onboarding-question");
-			questionSection.createEl("h3", { text: t("Would you like to run the setup wizard anyway?") });
-			
-			const optionsContainer = questionSection.createDiv("question-options");
-			
-			const yesButton = optionsContainer.createEl("button", {
-				text: t("Yes, show me the setup wizard"),
-				cls: "mod-cta question-button",
-			});
-			yesButton.addEventListener("click", () => {
-				this.state.currentStep = OnboardingStep.WELCOME;
-				this.displayCurrentStep();
-			});
+		const optionsContainer = questionSection.createDiv("question-options");
 
-			const noButton = optionsContainer.createEl("button", {
-				text: t("No, I'm happy with my current setup"),
-				cls: "question-button",
-			});
-			noButton.addEventListener("click", () => this.handleSkip());
-
-		} else {
-			// User hasn't made changes - proceed with normal onboarding
-			this.state.currentStep = OnboardingStep.WELCOME;
+		const yesButton = optionsContainer.createEl("button", {
+			text: t("Yes, show me the setup wizard"),
+			cls: "mod-cta question-button clickable-icon",
+		});
+		yesButton.addEventListener("click", () => {
+			this.state.currentStep = OnboardingStep.MODE_SELECT;
 			this.displayCurrentStep();
-		}
+		});
+
+		const noButton = optionsContainer.createEl("button", {
+			text: t("No, I'm happy with my current setup"),
+			cls: "question-button clickable-icon",
+		});
+		noButton.addEventListener("click", () => this.handleSkip());
 	}
 
 	/**
@@ -236,7 +283,7 @@ export class OnboardingView extends ItemView {
 	 */
 	private displayWelcomeStep() {
 		// Header
-		this.onboardingHeaderEl.createEl("h1", { text: t("Welcome to Task Genius") });
+		this.onboardingHeaderEl.createEl("h1", {text: t("Welcome to Task Genius")});
 		this.onboardingHeaderEl.createEl("p", {
 			text: t(
 				"Transform your task management with advanced progress tracking and workflow automation"
@@ -287,8 +334,8 @@ export class OnboardingView extends ItemView {
 			const iconEl = featureEl.createDiv("feature-icon");
 			setIcon(iconEl, feature.icon);
 			const featureContent = featureEl.createDiv("feature-content");
-			featureContent.createEl("h3", { text: feature.title });
-			featureContent.createEl("p", { text: feature.description });
+			featureContent.createEl("h3", {text: feature.title});
+			featureContent.createEl("p", {text: feature.description});
 		});
 
 		// Setup note
@@ -302,11 +349,55 @@ export class OnboardingView extends ItemView {
 	}
 
 	/**
+	 * New: Intro typing step
+	 */
+	private displayIntroTypingStep() {
+		// Header minimal
+		// this.onboardingHeaderEl.createEl("h1", {text: t("Welcome")});
+		// Content typing animation
+		this.introTyping.render(this.onboardingContentEl);
+	}
+
+	/**
+	 * New: Mode selection (Fluent vs Legacy) with preview cards
+	 */
+	private displayModeSelectionStep() {
+		// Header
+		this.onboardingHeaderEl.createEl("h1", {text: t("Choose Your Interface Style")});
+		this.onboardingHeaderEl.createEl("p", {
+			text: t("Select your preferred visual and interaction style: modern Fluent or traditional Legacy"),
+			cls: "onboarding-subtitle"
+		});
+		// Content
+		this.modeSelection.render(this.onboardingContentEl, this.state.uiMode as any, (mode) => {
+			this.state.uiMode = mode;
+			this.updateButtonStates();
+		});
+	}
+
+	/**
+	 * New: Fluent placement selection (Sideleaves vs Inline)
+	 */
+	private displayFluentPlacementStep() {
+		// Header
+		this.onboardingHeaderEl.createEl("h1", {text: t("Fluent Layout")});
+		this.onboardingHeaderEl.createEl("p", {
+			text: t("Choose how to display Fluent: use Sideleaves for enhanced multi-column collaboration, or Inline for an immersive single-page experience."),
+			cls: "onboarding-subtitle",
+		});
+		// Content
+		this.fluentPlacement.render(this.onboardingContentEl, this.state.useSideLeaves ? "sideleaves" : "inline", (p) => {
+			this.state.useSideLeaves = p === "sideleaves";
+			this.updateButtonStates();
+		});
+	}
+
+	/**
 	 * Display user level selection step
 	 */
 	private displayUserLevelSelectStep() {
 		// Header
-		this.onboardingHeaderEl.createEl("h1", { text: t("Choose Your Usage Mode") });
+		this.onboardingHeaderEl.createEl("h1", {text: t("Choose Your Usage Mode")});
 		this.onboardingHeaderEl.createEl("p", {
 			text: t(
 				"Select the configuration that best matches your task management experience"
@@ -332,7 +423,7 @@ export class OnboardingView extends ItemView {
 		}
 
 		// Header
-		this.onboardingHeaderEl.createEl("h1", { text: t("Configuration Preview") });
+		this.onboardingHeaderEl.createEl("h1", {text: t("Configuration Preview")});
 		this.onboardingHeaderEl.createEl("p", {
 			text: t(
 				"Review the settings that will be applied for your selected mode"
@@ -345,6 +436,19 @@ export class OnboardingView extends ItemView {
 			this.onboardingContentEl,
 			this.state.selectedConfig
 		);
+
+		// Task guide option
+		const optionsSection =
+			this.onboardingContentEl.createDiv("config-options");
+
+		new Setting(optionsSection)
+			.setName(t("Include task creation guide"))
+			.setDesc(t("Show a quick tutorial on creating your first task"))
+			.addToggle((toggle) => {
+				toggle.setValue(!this.state.skipTaskGuide).onChange((value) => {
+					this.state.skipTaskGuide = !value;
+				});
+			});
 	}
 
 	/**
@@ -352,7 +456,7 @@ export class OnboardingView extends ItemView {
 	 */
 	private displayTaskCreationGuideStep() {
 		// Header
-		this.onboardingHeaderEl.createEl("h1", { text: t("Create Your First Task") });
+		this.onboardingHeaderEl.createEl("h1", {text: t("Create Your First Task")});
 		this.onboardingHeaderEl.createEl("p", {
 			text: t("Learn how to create and format tasks in Task Genius"),
 			cls: "onboarding-subtitle",
@@ -369,7 +473,7 @@ export class OnboardingView extends ItemView {
 		if (!this.state.selectedConfig) return;
 
 		// Header
-		this.onboardingHeaderEl.createEl("h1", { text: t("Setup Complete!") });
+		this.onboardingHeaderEl.createEl("h1", {text: t("Setup Complete!")});
 		this.onboardingHeaderEl.createEl("p", {
 			text: t("Task Genius is now configured and ready to use"),
 			cls: "onboarding-subtitle",
@@ -388,19 +492,19 @@ export class OnboardingView extends ItemView {
 	private updateButtonStates() {
 		const step = this.state.currentStep;
 
-		// Skip button - show on settings check and welcome
+		// Skip button - show on settings check and intro
 		this.skipButton.buttonEl.style.display =
-			step === OnboardingStep.SETTINGS_CHECK || step === OnboardingStep.WELCOME
+			step === OnboardingStep.SETTINGS_CHECK || step === OnboardingStep.INTRO
 				? "inline-block" : "none";
 
-		// Back button - hide on first two steps
+		// Back button - hide on intro, show on settings check and after
 		this.backButton.buttonEl.style.display =
-			step <= OnboardingStep.WELCOME ? "none" : "inline-block";
+			step === OnboardingStep.INTRO ? "none" : "inline-block";
 
 		// Next button text and state
 		const isLastStep = step === OnboardingStep.COMPLETE;
 		const isSettingsCheck = step === OnboardingStep.SETTINGS_CHECK;
-		
+
 		if (isSettingsCheck) {
 			this.nextButton.buttonEl.style.display = "none"; // Hide on settings check
 		} else {
@@ -431,15 +535,27 @@ export class OnboardingView extends ItemView {
 	 * Handle back navigation
 	 */
 	private handleBack() {
-		if (this.state.currentStep > OnboardingStep.SETTINGS_CHECK) {
-			this.state.currentStep--;
-
-			// Skip task guide if it was skipped
-			if (
-				this.state.currentStep === OnboardingStep.TASK_CREATION_GUIDE &&
-				this.state.skipTaskGuide
-			) {
+		if (this.state.currentStep > OnboardingStep.INTRO) {
+			// Handle back from settings check - go to intro
+			if (this.state.currentStep === OnboardingStep.SETTINGS_CHECK) {
+				this.state.currentStep = OnboardingStep.INTRO;
+			}
+			// Handle back from mode select - check if came from settings check
+			else if (this.state.currentStep === OnboardingStep.MODE_SELECT) {
+				// If user has changes, go back to settings check, otherwise to intro
+				this.state.currentStep = this.state.userHasChanges
+					? OnboardingStep.SETTINGS_CHECK
+					: OnboardingStep.INTRO;
+			} else {
 				this.state.currentStep--;
+
+				// Skip task guide if it was skipped
+				if (
+					this.state.currentStep === OnboardingStep.TASK_CREATION_GUIDE &&
+					this.state.skipTaskGuide
+				) {
+					this.state.currentStep--;
+				}
 			}
 
 			this.displayCurrentStep();
@@ -463,15 +579,30 @@ export class OnboardingView extends ItemView {
 			return;
 		}
 
-		// Move to next step
-		this.state.currentStep++;
+		// Custom flow for new intro/mode/placement steps
+		if (step === OnboardingStep.INTRO) {
+			// After intro, check if user has changes to decide next step
+			this.state.currentStep = this.state.userHasChanges
+				? OnboardingStep.SETTINGS_CHECK
+				: OnboardingStep.MODE_SELECT;
+		} else if (step === OnboardingStep.MODE_SELECT) {
+			this.state.currentStep = this.state.uiMode === 'fluent'
+				? OnboardingStep.FLUENT_PLACEMENT
+				: OnboardingStep.USER_LEVEL_SELECT;
+		} else if (step === OnboardingStep.FLUENT_PLACEMENT) {
+			this.state.currentStep = OnboardingStep.USER_LEVEL_SELECT;
+		} else {
+			// Default increment for the remaining steps
+			this.state.currentStep++;
+		}
 
-		// Apply configuration when moving to preview
+		// Apply architecture selection and configuration when moving to preview
 		if (
 			this.state.currentStep === OnboardingStep.CONFIG_PREVIEW &&
 			this.state.selectedConfig
 		) {
 			try {
+				await this.applyArchitectureSelections();
 				await this.configManager.applyConfiguration(
 					this.state.selectedConfig.mode
 				);
@@ -503,6 +634,34 @@ export class OnboardingView extends ItemView {
 				return true;
 		}
 	}
+
+	/**
+	 * Apply Legacy vs Fluent selection and sideleaves preference to settings
+	 */
+	private async applyArchitectureSelections() {
+		const isFluent = this.state.uiMode === 'fluent';
+		if (!this.plugin.settings.experimental) {
+			(this.plugin.settings as any).experimental = {enableV2: false, showV2Ribbon: false};
+		}
+		this.plugin.settings.experimental!.enableV2 = isFluent;
+		// Prepare v2 config and set placement option when Fluent is chosen
+		if (!this.plugin.settings.experimental!.v2Config) {
+			(this.plugin.settings.experimental as any).v2Config = {
+				enableWorkspaces: true,
+				defaultWorkspace: 'default',
+				showTopNavigation: true,
+				showNewSidebar: true,
+				allowViewSwitching: true,
+				persistViewMode: true,
+				maxOtherViewsBeforeOverflow: 5,
+			};
+		}
+		if (isFluent) {
+			(this.plugin.settings.experimental as any).v2Config.useWorkspaceSideLeaves = !!this.state.useSideLeaves;
+		}
+		await this.plugin.saveSettings();
+	}
+
 
 	/**
 	 * Complete onboarding process

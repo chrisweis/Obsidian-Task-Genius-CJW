@@ -8,6 +8,7 @@ import { t } from "@/translations/helper";
 
 export class V2Integration {
 	private plugin: TaskProgressBarPlugin;
+	private revealingSideLeaves = false;
 
 	constructor(plugin: TaskProgressBarPlugin) {
 		this.plugin = plugin;
@@ -64,25 +65,35 @@ export class V2Integration {
 			// When any of the V2 views becomes active, reveal the other side leaves without focusing them
 			this.plugin.registerEvent(
 				this.plugin.app.workspace.on("active-leaf-change", async (leaf) => {
+					if (this.revealingSideLeaves) return;
+					const useSideLeaves = !!(this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves;
+					if (!useSideLeaves || !leaf?.view?.getViewType) return;
+					const vt = leaf.view.getViewType();
+					const watched = new Set<string>([
+						TASK_VIEW_V2_TYPE,
+						TG_LEFT_SIDEBAR_VIEW_TYPE,
+						TG_RIGHT_DETAIL_VIEW_TYPE,
+					]);
+					if (!watched.has(vt)) return;
+					const ws = this.plugin.app.workspace as Workspace & any;
+					this.revealingSideLeaves = true;
 					try {
-						const useSideLeaves = !!(this.plugin.settings.experimental as any)?.v2Config?.useWorkspaceSideLeaves;
-						if (!useSideLeaves) return;
-						if (!leaf?.view?.getViewType) return;
-						const vt = leaf.view.getViewType();
-						const watched = new Set<string>([
-							TASK_VIEW_V2_TYPE,
-							TG_LEFT_SIDEBAR_VIEW_TYPE,
-							TG_RIGHT_DETAIL_VIEW_TYPE,
-						]);
-						if (!watched.has(vt)) return;
-						const ws = this.plugin.app.workspace as Workspace & any;
-						// Ensure side leaves exist and are visible, but do not focus
-						await ws.ensureSideLeaf(TG_LEFT_SIDEBAR_VIEW_TYPE, "left", { active: false });
-						await ws.ensureSideLeaf(TG_RIGHT_DETAIL_VIEW_TYPE, "right", { active: false });
-						// Expand sidebars if they are collapsed, without changing focus
+						// Ensure side leaves exist
+						const leftLeaf  = await ws.ensureSideLeaf(TG_LEFT_SIDEBAR_VIEW_TYPE, "left",  { active: false });
+						const rightLeaf = await ws.ensureSideLeaf(TG_RIGHT_DETAIL_VIEW_TYPE,  "right", { active: false });
+						// Bring them to front within their splits (without keeping focus)
+						if (leftLeaf)  ws.revealLeaf(leftLeaf);
+						if (rightLeaf) ws.revealLeaf(rightLeaf);
+						// Expand sidebars if they are collapsed
 						if (ws.leftSplit?.collapsed && typeof ws.leftSplit.expand === "function") ws.leftSplit.expand();
 						if (ws.rightSplit?.collapsed && typeof ws.rightSplit.expand === "function") ws.rightSplit.expand();
-					} catch (e) {}
+						// Restore focus to the currently active (incoming) leaf
+						if (ws.setActiveLeaf && leaf) ws.setActiveLeaf(leaf, { focus: true });
+					} catch (_) {
+						// noop
+					} finally {
+						this.revealingSideLeaves = false;
+					}
 				})
 			);
 
