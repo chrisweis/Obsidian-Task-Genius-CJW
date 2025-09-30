@@ -18,6 +18,7 @@ export interface V2ViewState {
 	selectedProject?: string | null;
 	viewMode: 'list' | 'kanban' | 'tree' | 'calendar';
 	searchQuery?: string;
+	filterInputValue?: string;
 	filters?: any;
 }
 
