@@ -349,17 +349,30 @@ export class OnboardingView extends ItemView {
 	}
 
 	/**
-	 * New: Intro typing step
+	 * New: Intro typing step - shows typing animation then mode selection
 	 */
 	private displayIntroTypingStep() {
-		// Header minimal
-		// this.onboardingHeaderEl.createEl("h1", {text: t("Welcome")});
-		// Content typing animation
-		this.introTyping.render(this.onboardingContentEl);
+		// Hide footer buttons during intro animation
+		this.footerEl.style.display = 'none';
+
+		// Render typing animation
+		this.introTyping.render(this.onboardingContentEl, () => {
+			// After typing completes, show mode selection in same container
+			const modeContainer = this.onboardingContentEl.createDiv({
+				cls: "intro-mode-selection-container"
+			});
+
+			this.modeSelection.render(modeContainer, this.state.uiMode as any, (mode) => {
+				this.state.uiMode = mode;
+				// Show footer with Next button after selection
+				this.footerEl.style.display = '';
+				this.updateButtonStates();
+			});
+		});
 	}
 
 	/**
-	 * New: Mode selection (Fluent vs Legacy) with preview cards
+	 * New: Mode selection (Fluent vs Legacy) with preview cards - standalone step (if needed)
 	 */
 	private displayModeSelectionStep() {
 		// Header
@@ -580,12 +593,19 @@ export class OnboardingView extends ItemView {
 		}
 
 		// Custom flow for new intro/mode/placement steps
+		// Intro step now includes mode selection, so skip MODE_SELECT step
 		if (step === OnboardingStep.INTRO) {
-			// After intro, check if user has changes to decide next step
-			this.state.currentStep = this.state.userHasChanges
-				? OnboardingStep.SETTINGS_CHECK
-				: OnboardingStep.MODE_SELECT;
+			// After intro (which includes mode selection), check if user has changes
+			if (this.state.userHasChanges) {
+				this.state.currentStep = OnboardingStep.SETTINGS_CHECK;
+			} else {
+				// Skip MODE_SELECT and go directly to FLUENT_PLACEMENT or USER_LEVEL_SELECT
+				this.state.currentStep = this.state.uiMode === 'fluent'
+					? OnboardingStep.FLUENT_PLACEMENT
+					: OnboardingStep.USER_LEVEL_SELECT;
+			}
 		} else if (step === OnboardingStep.MODE_SELECT) {
+			// This step is now integrated into INTRO, but keep for backward compatibility
 			this.state.currentStep = this.state.uiMode === 'fluent'
 				? OnboardingStep.FLUENT_PLACEMENT
 				: OnboardingStep.USER_LEVEL_SELECT;

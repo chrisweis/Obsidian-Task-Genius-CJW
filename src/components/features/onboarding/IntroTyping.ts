@@ -2,13 +2,15 @@ import { t } from "@/translations/helper";
 
 export class IntroTyping {
 	private timers: number[] = [];
+	private onComplete?: () => void;
 
 	cleanup() {
 		this.timers.forEach((id) => window.clearTimeout(id));
 		this.timers = [];
 	}
 
-	render(container: HTMLElement) {
+	render(container: HTMLElement, onComplete?: () => void) {
+		this.onComplete = onComplete;
 		container.empty();
 		const wrap = container.createDiv({cls: "intro-typing"});
 
@@ -21,22 +23,51 @@ export class IntroTyping {
 			{
 				el: line1,
 				text: t("Hi,"),
-				speed: 35
+				speed: 35,
+				keepAfter: true
 			},
 			{
 				el: line2,
 				text: t("Thank you for using Task Genius"),
-				speed: 25
+				speed: 25,
+				keepAfter: false // Will be removed after line3
 			},
 			{
 				el: line3,
 				text: t("In the following steps, you will gradually set up Task Genius to get a more suitable environment for you"),
-				speed: 20
+				speed: 20,
+				keepAfter: false, // Will be removed after line3
+				delayNext: 5000, // Wait for fade out to complete (600ms wait + 500ms fade + 100ms buffer)
+				afterComplete: () => {
+					// Fade out and remove line2 and line3 after a brief pause
+					const id = window.setTimeout(() => {
+						line1.addClass("intro-line-fadeout");
+						line2.addClass("intro-line-fadeout");
+						line3.addClass("intro-line-fadeout");
+						const id2 = window.setTimeout(() => {
+							line1.remove();
+							line2.remove();
+							line3.remove();
+						}, 2000); // Match CSS transition duration
+						this.timers.push(id2);
+					}, 3000);
+					this.timers.push(id);
+				}
 			},
 			{
 				el: line4,
 				text: t("In the current version, Task Genius provides a brand new visual and interactive experience: Fluent; while also providing the option to return to the previous interface. Which one do you prefer?"),
-				speed: 20
+				speed: 20,
+				keepAfter: true,
+				afterComplete: () => {
+					// Trigger callback to show mode selection buttons
+					if (this.onComplete) {
+						const id = window.setTimeout(() => {
+							this.onComplete?.();
+						}, 300);
+						this.timers.push(id);
+					}
+				}
 			},
 		];
 
@@ -46,10 +77,16 @@ export class IntroTyping {
 	/**
 	 * AI-style streaming text effect with smooth character fade-in
 	 */
-	private aiStreamSequence(seq: { el: HTMLElement; text: string; speed: number }[]) {
+	private aiStreamSequence(seq: {
+		el: HTMLElement;
+		text: string;
+		speed: number;
+		afterComplete?: () => void;
+		delayNext?: number
+	}[]) {
 		const streamLine = (idx: number) => {
 			if (idx >= seq.length) return;
-			const {el, text, speed} = seq[idx];
+			const {el, text, speed, afterComplete, delayNext} = seq[idx];
 
 			// Clear and prepare element
 			el.empty();
@@ -96,8 +133,15 @@ export class IntroTyping {
 					cursor.remove();
 					el.removeClass("is-streaming");
 					el.addClass("stream-complete");
-					// Small delay before next line
-					const id = window.setTimeout(() => streamLine(idx + 1), 300);
+
+					// Execute afterComplete callback if provided
+					if (afterComplete) {
+						afterComplete();
+					}
+
+					// Delay before next line (custom or default 300ms)
+					const nextDelay = delayNext !== undefined ? delayNext : 300;
+					const id = window.setTimeout(() => streamLine(idx + 1), nextDelay);
 					this.timers.push(id);
 				}
 			};

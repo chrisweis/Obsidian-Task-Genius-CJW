@@ -45,8 +45,7 @@
 /* Header section */
 .onboarding-modal .onboarding-header,
 .onboarding-view .onboarding-header {
-	padding: var(--onboarding-spacing) var(--onboarding-spacing) var(--size-4-2)
-		var(--onboarding-spacing);
+	padding: var(--onboarding-spacing) var(--onboarding-spacing) var(--size-4-2) var(--onboarding-spacing);
 	text-align: center;
 }
 
@@ -64,15 +63,16 @@
 	padding: var(--onboarding-spacing);
 	overflow-y: auto;
 	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center
 }
 
 /* Footer section */
 .onboarding-modal .onboarding-footer,
 .onboarding-view .onboarding-footer {
-	padding: var(--size-4-2) var(--onboarding-spacing) var(--onboarding-spacing)
-		var(--onboarding-spacing);
-	border-top: var(--modal-border-width) solid
-		var(--background-modifier-border);
+	padding: var(--size-4-2) var(--onboarding-spacing) var(--onboarding-spacing) var(--onboarding-spacing);
+	border-top: var(--modal-border-width) solid var(--background-modifier-border);
 	flex-shrink: 0;
 }
 
@@ -1049,6 +1049,25 @@
 		flex-wrap: wrap;
 		justify-content: center;
 	}
+
+	/* Mode and Placement Selection - Mobile Layout */
+	.mode-options,
+	.placement-options {
+		grid-template-columns: 1fr;
+	}
+
+	.mode-card-preview {
+		height: 100px;
+	}
+
+	.placement-card-preview {
+		height: 80px;
+	}
+
+	.mode-card,
+	.placement-card {
+		padding: var(--size-4-3);
+	}
 }
 
 /* ============================== */
@@ -1092,6 +1111,225 @@
 	100% {
 		transform: scale(1);
 	}
+}
+
+/* ============================== */
+/* Mode Selection - Fluent vs Legacy */
+/* ============================== */
+
+.mode-selection {
+	margin-bottom: var(--onboarding-spacing);
+}
+
+.mode-options {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: var(--onboarding-spacing);
+	margin: var(--onboarding-spacing) 0;
+}
+
+.mode-card {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--onboarding-border-radius);
+	padding: var(--onboarding-spacing);
+	cursor: pointer;
+	transition: var(--onboarding-transition);
+	background: var(--background-primary);
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.mode-card:hover {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
+}
+
+.mode-card.is-selected {
+	border-color: var(--interactive-accent);
+	background: var(--background-modifier-hover);
+	box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.mode-card-header {
+	margin-bottom: var(--size-4-3);
+}
+
+.mode-card-title {
+	font-size: 1.1em;
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: var(--size-4-2);
+}
+
+.mode-card-body {
+	margin-top: var(--size-4-2);
+}
+
+.mode-card-preview {
+	height: 140px;
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	margin-bottom: var(--size-4-3);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+	font-size: 3em;
+	position: relative;
+	overflow: hidden;
+}
+
+.mode-fluent .mode-card-preview {
+	background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-modifier-hover) 100%);
+}
+
+.mode-legacy .mode-card-preview {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.mode-card-desc {
+	color: var(--text-muted);
+	font-size: 0.9em;
+	line-height: 1.5;
+	min-height: 3em;
+}
+
+/* Section shared styles */
+.section-title {
+	font-size: 1.25em;
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: var(--size-4-2);
+	text-align: center;
+}
+
+.section-desc {
+	color: var(--text-muted);
+	font-size: 0.95em;
+	margin-bottom: var(--size-4-4);
+	text-align: center;
+	line-height: 1.5;
+}
+
+.mode-tips,
+.placement-tips {
+	margin-top: var(--onboarding-spacing);
+	text-align: left;
+}
+
+.mode-tips p,
+.placement-tips p {
+	margin: 0;
+	font-size: 0.9em;
+}
+
+/* ============================== */
+/* Placement Selection - Sideleaves vs Inline */
+/* ============================== */
+
+.placement-selection {
+	margin-bottom: var(--onboarding-spacing);
+}
+
+.placement-options {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: var(--onboarding-spacing);
+	margin: var(--onboarding-spacing) 0;
+}
+
+.placement-card {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--onboarding-border-radius);
+	padding: var(--onboarding-spacing);
+	cursor: pointer;
+	transition: var(--onboarding-transition);
+	background: var(--background-primary);
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.placement-card:hover {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
+}
+
+.placement-card.is-selected {
+	border-color: var(--interactive-accent);
+	background: var(--background-modifier-hover);
+	box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.placement-card-header {
+	margin-bottom: var(--size-4-3);
+}
+
+.placement-card-title {
+	font-size: 1.1em;
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: var(--size-4-2);
+}
+
+.placement-card-body {
+	margin-top: var(--size-4-2);
+}
+
+.placement-card-preview {
+	height: 100px;
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	margin-bottom: var(--size-4-3);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+	position: relative;
+}
+
+/* Visual representations for placement modes */
+.placement-sideleaves .placement-card-preview {
+	display: grid;
+	grid-template-columns: 1fr 2fr 1fr;
+	gap: 4px;
+	padding: var(--size-4-2);
+}
+
+.placement-preview-col {
+	background: var(--background-modifier-border);
+	border-radius: 2px;
+	height: 100%;
+}
+
+.placement-preview-col.placement-preview-main {
+	background: var(--interactive-accent);
+	opacity: 0.3;
+}
+
+.placement-inline .placement-card-preview {
+	padding: var(--size-4-2);
+}
+
+.placement-preview-single {
+	width: 100%;
+	height: 100%;
+	background: var(--interactive-accent);
+	opacity: 0.3;
+	border-radius: 4px;
+}
+
+.placement-card-desc {
+	color: var(--text-muted);
+	font-size: 0.9em;
+	line-height: 1.5;
+	min-height: 3em;
 }
 
 /* ============================== */
@@ -1144,8 +1382,8 @@
 	filter: blur(4px);
 	transform: translateY(-2px);
 	transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-	            filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-	            transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+	transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
 }
 
@@ -1194,6 +1432,32 @@
 	}
 	100% {
 		opacity: 1;
+	}
+}
+
+/* Fade out animation for removing lines */
+.intro-line-fadeout {
+	opacity: 0;
+	transform: translateY(-10px);
+	transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+	pointer-events: none;
+}
+
+/* Mode selection container that appears after intro typing */
+.intro-mode-selection-container {
+	animation: fadeInFromBottom 0.6s ease-out;
+	animation-fill-mode: both;
+	width: clamp(400px, 40vw, 40%);
+}
+
+@keyframes fadeInFromBottom {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
 	}
 }
 

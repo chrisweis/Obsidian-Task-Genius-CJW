@@ -281,15 +281,30 @@ export class OnboardingModal extends Modal {
 	}
 
 	/**
-	 * New: Intro typing step
+	 * New: Intro typing step - shows typing animation then mode selection
 	 */
 	private displayIntroTypingStep() {
-		// this.headerEl.createEl("h1", {text: t("Welcome")});
-		this.introTyping.render(this.onboardingContentEl);
+		// Hide footer buttons during intro animation
+		this.footerEl.style.display = 'none';
+
+		// Render typing animation
+		this.introTyping.render(this.onboardingContentEl, () => {
+			// After typing completes, show mode selection in same container
+			const modeContainer = this.onboardingContentEl.createDiv({
+				cls: "intro-mode-selection-container"
+			});
+
+			this.modeSelection.render(modeContainer, this.state.uiMode as any, (mode) => {
+				this.state.uiMode = mode;
+				// Show footer with Next button after selection
+				this.footerEl.style.display = '';
+				this.updateButtonStates();
+			});
+		});
 	}
 
 	/**
-	 * New: Mode selection (Fluent vs Legacy)
+	 * New: Mode selection (Fluent vs Legacy) - standalone step (if needed)
 	 */
 	private displayModeSelectionStep() {
 		this.headerEl.createEl("h1", {text: t("Choose Your Interface Style")});
@@ -485,9 +500,13 @@ export class OnboardingModal extends Modal {
 		}
 
 		// Branching for intro/mode/placement
+		// Intro step now includes mode selection, so skip MODE_SELECT step
 		if (step === OnboardingStep.INTRO) {
-			this.state.currentStep = OnboardingStep.MODE_SELECT;
+			this.state.currentStep = this.state.uiMode === 'fluent'
+				? OnboardingStep.FLUENT_PLACEMENT
+				: OnboardingStep.USER_LEVEL_SELECT;
 		} else if (step === OnboardingStep.MODE_SELECT) {
+			// This step is now integrated into INTRO, but keep for backward compatibility
 			this.state.currentStep = this.state.uiMode === 'fluent'
 				? OnboardingStep.FLUENT_PLACEMENT
 				: OnboardingStep.USER_LEVEL_SELECT;
