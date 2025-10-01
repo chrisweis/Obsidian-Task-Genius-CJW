@@ -185,7 +185,7 @@ export class OnboardingView extends ItemView {
 			.setButtonText(t("Next"))
 			.setCta()
 			.onClick(() => this.handleNext());
-		this.nextButton.buttonEl.addClass("clickable-icon");
+		// this.nextButton.buttonEl.addClass("clickable-icon");
 	}
 
 	/**
@@ -355,19 +355,28 @@ export class OnboardingView extends ItemView {
 		// Hide footer buttons during intro animation
 		this.footerEl.style.display = 'none';
 
+		// Create a wrapper container to hold both typing and mode selection
+		const introWrapper = this.onboardingContentEl.createDiv({
+			cls: "intro-typing-wrapper"
+		});
+
 		// Render typing animation
-		this.introTyping.render(this.onboardingContentEl, () => {
-			// After typing completes, show mode selection in same container
-			const modeContainer = this.onboardingContentEl.createDiv({
+		this.introTyping.render(introWrapper, (typingContainer) => {
+			// After typing completes, show mode selection in the same typing container
+			// This prevents layout shift since they share the same parent
+			const modeContainer = typingContainer.createDiv({
 				cls: "intro-mode-selection-container"
 			});
 
 			this.modeSelection.render(modeContainer, this.state.uiMode as any, (mode) => {
 				this.state.uiMode = mode;
-				// Show footer with Next button after selection
-				this.footerEl.style.display = '';
 				this.updateButtonStates();
 			});
+
+			// Show footer with Next button immediately after mode selection appears
+			// User can proceed with default selection or change it
+			this.footerEl.style.display = '';
+			this.updateButtonStates();
 		});
 	}
 
@@ -541,7 +550,7 @@ export class OnboardingView extends ItemView {
 	private async handleSkip() {
 		await this.configManager.skipOnboarding();
 		this.onComplete();
-		this.close();
+		this.leaf.detach();
 	}
 
 	/**
@@ -700,18 +709,11 @@ export class OnboardingView extends ItemView {
 
 			// Close view and trigger callback
 			this.onComplete();
-			this.close();
+			this.leaf.detach();
 		} catch (error) {
 			console.error("Failed to complete onboarding:", error);
 			this.state.isCompleting = false;
 			this.updateButtonStates();
 		}
-	}
-
-	/**
-	 * Close the onboarding view
-	 */
-	private close() {
-		this.leaf.detach();
 	}
 }

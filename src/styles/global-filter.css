@@ -6,6 +6,7 @@
 	color: var(--text-muted); /* 使用 Obsidian 的次要文本颜色 */
 	font-size: var(--font-ui-smaller); /* 使用 Obsidian 的字体大小变量 */
 }
+
 .filter-group-separator::before,
 .filter-group-separator::after {
 	content: "";
@@ -16,6 +17,7 @@
 	); /* 使用 Obsidian 的边框颜色 */
 	margin: 0 var(--size-2-1); /* 使用 Obsidian 的尺寸变量 */
 }
+
 .drag-handle {
 	cursor: grab;
 	display: flex;
@@ -56,6 +58,7 @@
 	background-color: var(--background-modifier-hover);
 	color: var(--text-normal);
 }
+
 .compact-input,
 .compact-select {
 	font-size: var(--font-ui-smaller); /* 使用 Obsidian 的字体大小变量 */
@@ -132,8 +135,7 @@
 .root-condition-select {
 	/* compact-select already provides base styling */
 	width: auto;
-	border: 1px solid
-		var(--input-border-color, var(--background-modifier-border)); /* border border-slate-300 */
+	border: 1px solid var(--input-border-color, var(--background-modifier-border)); /* border border-slate-300 */
 	/* box-shadow: var(--shadow-s); /* shadow-sm */ /* Consider if needed */
 }
 
@@ -183,9 +185,11 @@
 .filter-group-header-left .drag-handle-container .svg-icon {
 	color: var(--text-faint); /* text-slate-400 */
 }
+
 .filter-group-header-left .drag-handle-container:hover .svg-icon {
 	color: var(--text-muted); /* hover:text-slate-500 */
 }
+
 .filter-group-header-left .drag-handle-container {
 	padding-right: var(--size-2-1);
 }
@@ -197,9 +201,9 @@
 }
 
 .filter-group-header-left .group-condition-select.compact-select {
-	border: 1px solid
-		var(--input-border-color, var(--background-modifier-border));
+	border: 1px solid var(--input-border-color, var(--background-modifier-border));
 }
+
 .filter-group-header-left .group-condition-select.compact-select:focus {
 	border-color: var(--interactive-accent);
 	box-shadow: 0 0 0 1px var(--interactive-accent);
@@ -219,11 +223,13 @@
 .filter-group-header-right .duplicate-group-btn.compact-icon-btn .svg-icon {
 	color: var(--text-muted); /* text-slate-500 */
 }
+
 .filter-group-header-right
-	.duplicate-group-btn.compact-icon-btn:hover
-	.svg-icon {
+.duplicate-group-btn.compact-icon-btn:hover
+.svg-icon {
 	color: var(--interactive-accent); /* hover:text-indigo-600 */
 }
+
 .filter-group-header-right .duplicate-group-btn.compact-icon-btn:hover {
 	background-color: var(--background-modifier-hover);
 }
@@ -231,9 +237,11 @@
 .filter-group-header-right .remove-group-btn.compact-icon-btn .svg-icon {
 	color: var(--text-muted); /* text-slate-500 */
 }
+
 .filter-group-header-right .remove-group-btn.compact-icon-btn:hover .svg-icon {
 	color: var(--text-error); /* hover:text-red-600 */
 }
+
 .filter-group-header-right .remove-group-btn.compact-icon-btn:hover {
 	background-color: var(
 		--background-error-hover,
@@ -250,6 +258,7 @@
 	border-left: 2px solid var(--background-modifier-border); /* border-l-2 border-slate-200 */
 	margin-left: var(--size-4-2); /* ml-1.5 from HTML */
 }
+
 .filters-list:empty {
 	display: none;
 }
@@ -291,11 +300,11 @@
 	flex-basis: 30%; /* w-1/3 */
 	flex-grow: 0;
 	flex-shrink: 0;
-	border: 1px solid
-		var(--input-border-color, var(--background-modifier-border));
+	border: 1px solid var(--input-border-color, var(--background-modifier-border));
 	/* border: unset !important; */
 	box-shadow: none;
 }
+
 .filter-item .filter-property-select.compact-select:focus {
 	border-color: var(--interactive-accent);
 	box-shadow: 0 0 0 1px var(--interactive-accent);
@@ -303,11 +312,11 @@
 
 .filter-item .filter-condition-select.compact-select {
 	width: auto; /* w-auto */
-	border: 1px solid
-		var(--input-border-color, var(--background-modifier-border));
+	border: 1px solid var(--input-border-color, var(--background-modifier-border));
 	/* border: unset !important; */
 	box-shadow: none;
 }
+
 .filter-item .filter-condition-select.compact-select:focus {
 	border-color: var(--interactive-accent);
 	box-shadow: 0 0 0 1px var(--interactive-accent);
@@ -315,10 +324,10 @@
 
 .filter-item .filter-value-input.compact-input {
 	flex-grow: 1; /* flex-grow */
-	border: 1px solid
-		var(--input-border-color, var(--background-modifier-border));
+	border: 1px solid var(--input-border-color, var(--background-modifier-border));
 	width: 100%;
 }
+
 .filter-item .filter-value-input.compact-input:focus {
 	border-color: var(--interactive-accent);
 	box-shadow: 0 0 0 1px var(--interactive-accent);
@@ -327,9 +336,11 @@
 .filter-item .remove-filter-btn.compact-icon-btn .svg-icon {
 	color: var(--text-muted); /* text-slate-500 */
 }
+
 .filter-item .remove-filter-btn.compact-icon-btn:hover .svg-icon {
 	color: var(--text-error); /* hover:text-red-600 */
 }
+
 .filter-item .remove-filter-btn.compact-icon-btn:hover {
 	background-color: var(
 		--background-error-hover,
@@ -395,7 +406,7 @@
 		var(--background-secondary) 0%,
 		var(--background-primary-alt) 100%
 	);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	box-shadow: var(--shadow-s);
 	transition: all 0.2s ease-in-out;
 }
 

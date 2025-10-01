@@ -82,6 +82,7 @@ import "./styles/task-status.css";
 import "./styles/quadrant/quadrant.css";
 import "./styles/onboarding.css";
 import "./styles/universal-suggest.css";
+import "./styles/noise.css";
 import { TaskSpecificView } from "./pages/TaskSpecificView";
 import { TASK_SPECIFIC_VIEW_TYPE } from "./pages/TaskSpecificView";
 import {

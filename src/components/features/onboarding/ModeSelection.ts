@@ -25,7 +25,7 @@ export class ModeSelection {
 			const titleEl = header.createDiv({cls: "mode-card-title"});
 			titleEl.setText(title);
 			const body = el.createDiv({cls: "mode-card-body"});
-			const preview = body.createDiv({cls: "mode-card-preview"});
+			const preview = body.createDiv({cls: ["mode-card-preview", "tg-noise-layer"]});
 			// Visual representation for each mode
 			if (mode === "fluent") {
 				preview.innerHTML = "✨"; // Sparkles for modern

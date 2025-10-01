@@ -2,17 +2,19 @@ import { t } from "@/translations/helper";
 
 export class IntroTyping {
 	private timers: number[] = [];
-	private onComplete?: () => void;
+	private onComplete?: (typingContainer: HTMLElement) => void;
+	private typingContainer?: HTMLElement;
 
 	cleanup() {
 		this.timers.forEach((id) => window.clearTimeout(id));
 		this.timers = [];
 	}
 
-	render(container: HTMLElement, onComplete?: () => void) {
+	render(container: HTMLElement, onComplete?: (typingContainer: HTMLElement) => void) {
 		this.onComplete = onComplete;
 		container.empty();
 		const wrap = container.createDiv({cls: "intro-typing"});
+		this.typingContainer = wrap;
 
 		const line1 = wrap.createEl("h1", {cls: "intro-line intro-line-1"});
 		const line2 = wrap.createEl("h2", {cls: "intro-line intro-line-2"});
@@ -61,9 +63,9 @@ export class IntroTyping {
 				keepAfter: true,
 				afterComplete: () => {
 					// Trigger callback to show mode selection buttons
-					if (this.onComplete) {
+					if (this.onComplete && this.typingContainer) {
 						const id = window.setTimeout(() => {
-							this.onComplete?.();
+							this.onComplete?.(this.typingContainer!);
 						}, 300);
 						this.timers.push(id);
 					}

@@ -68,20 +68,78 @@
 	align-items: center
 }
 
-/* Footer section */
+/* Footer section - Modern design */
 .onboarding-modal .onboarding-footer,
 .onboarding-view .onboarding-footer {
-	padding: var(--size-4-2) var(--onboarding-spacing) var(--onboarding-spacing) var(--onboarding-spacing);
-	border-top: var(--modal-border-width) solid var(--background-modifier-border);
+	padding: var(--size-4-4) var(--onboarding-spacing);
+	background: var(--background-primary);
+	border-top: none;
+	box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
 	flex-shrink: 0;
+	position: relative;
+	transition: all 0.3s ease;
+}
+
+/* Glass morphism effect for modern look */
+.onboarding-modal .onboarding-footer::before,
+.onboarding-view .onboarding-footer::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(to top, var(--background-primary), transparent);
+	opacity: 0.5;
+	pointer-events: none;
 }
 
 .onboarding-modal .onboarding-buttons,
 .onboarding-view .onboarding-buttons {
 	display: flex;
-	gap: var(--size-4-2);
+	gap: var(--size-4-3);
 	justify-content: space-between;
 	align-items: center;
+	position: relative;
+	z-index: 1;
+}
+
+/* Enhanced button styles */
+.onboarding-modal .onboarding-buttons button,
+.onboarding-view .onboarding-buttons button {
+	min-height: 36px;
+	padding: var(--size-4-2) var(--size-4-4);
+	border-radius: var(--radius-m);
+	font-weight: 500;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	position: relative;
+	overflow: hidden;
+}
+
+.onboarding-modal .onboarding-buttons button:not(.mod-cta):hover,
+.onboarding-view .onboarding-buttons button:not(.mod-cta):hover {
+	transform: translateY(-1px);
+}
+
+/* Ripple effect on button click */
+.onboarding-modal .onboarding-buttons button::after,
+.onboarding-view .onboarding-buttons button::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 0;
+	height: 0;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.3);
+	transform: translate(-50%, -50%);
+	transition: width 0.6s, height 0.6s;
+}
+
+.onboarding-modal .onboarding-buttons button:active::after,
+.onboarding-view .onboarding-buttons button:active::after {
+	width: 200px;
+	height: 200px;
 }
 
 /* ============================== */
@@ -1011,6 +1069,13 @@
 /* Responsive Design */
 /* ============================== */
 
+/* Tablet adjustments */
+@media (max-width: 1024px) {
+	.intro-mode-selection-container {
+		max-width: 700px;
+	}
+}
+
 @media (max-width: 768px) {
 	.onboarding-modal,
 	.onboarding-view {
@@ -1068,13 +1133,49 @@
 	.placement-card {
 		padding: var(--size-4-3);
 	}
+
+	/* Intro mode selection - Mobile adjustments */
+	.intro-mode-selection-container {
+		max-width: 100%;
+		padding: 0 var(--size-4-1);
+	}
+
+	.intro-typing {
+		padding: var(--size-4-4) var(--size-4-2);
+	}
+
+	/* Footer adjustments for mobile */
+	.onboarding-modal .onboarding-footer,
+	.onboarding-view .onboarding-footer {
+		padding: var(--size-4-3) var(--size-4-2);
+	}
+
+	.onboarding-modal .onboarding-buttons,
+	.onboarding-view .onboarding-buttons {
+		gap: var(--size-4-2);
+	}
+
+	.onboarding-modal .onboarding-buttons button,
+	.onboarding-view .onboarding-buttons button {
+		padding: var(--size-4-2) var(--size-4-3);
+		font-size: 0.9em;
+	}
 }
 
 /* ============================== */
 /* Dark Theme Adjustments */
 /* ============================== */
 
-/* Dark theme adjustments - keeping minimal */
+/* Dark theme adjustments for footer */
+.theme-dark .onboarding-modal .onboarding-footer,
+.theme-dark .onboarding-view .onboarding-footer {
+	box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .onboarding-modal .onboarding-footer::before,
+.theme-dark .onboarding-view .onboarding-footer::before {
+	background: linear-gradient(to top, rgba(0, 0, 0, 0.2), transparent);
+}
 
 /* ============================== */
 /* Animation and Transitions */
@@ -1143,7 +1244,7 @@
 
 .mode-card:hover {
 	border-color: var(--interactive-accent);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	box-shadow: var(--shadow-s);
 	transform: translateY(-2px);
 }
 
@@ -1257,7 +1358,7 @@
 
 .placement-card:hover {
 	border-color: var(--interactive-accent);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	box-shadow: var(--shadow-s);
 	transform: translateY(-2px);
 }
 
@@ -1336,11 +1437,17 @@
 /* AI-Style Intro Typing Animation */
 /* ============================== */
 
+/* Wrapper to prevent layout shift */
+.intro-typing-wrapper {
+	width: 100%;
+	max-width: 900px;
+	margin: 0 auto;
+}
+
 .intro-typing {
 	padding: var(--size-4-6) var(--size-4-4);
 	text-align: left;
-	max-width: 800px;
-	margin: 0 auto;
+	width: 100%;
 }
 
 .intro-line {
@@ -1447,7 +1554,8 @@
 .intro-mode-selection-container {
 	animation: fadeInFromBottom 0.6s ease-out;
 	animation-fill-mode: both;
-	width: clamp(400px, 40vw, 40%);
+	width: 100%;
+	margin-top: var(--size-4-18);
 }
 
 @keyframes fadeInFromBottom {
