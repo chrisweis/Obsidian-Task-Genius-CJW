@@ -1,9 +1,9 @@
 import { Notice, setIcon, Setting } from "obsidian";
 import { TaskProgressBarSettingTab } from "@/setting";
 import { t } from "@/translations/helper";
-import { OnboardingModal } from "@/components/features/onboarding/OnboardingModal";
 import { ConfirmModal } from "@/components/ui/modals/ConfirmModal";
 import { DEFAULT_SETTINGS } from "@/common/setting-definition";
+import { ONBOARDING_VIEW_TYPE } from "@/components/features/onboarding/OnboardingView";
 
 export function renderAboutSettingsTab(
 	settingTab: TaskProgressBarSettingTab,
@@ -47,15 +47,13 @@ export function renderAboutSettingsTab(
 					// Reset onboarding status
 					await settingTab.plugin.onboardingConfigManager.resetOnboarding();
 
-					// Show onboarding modal
-					new OnboardingModal(
-						settingTab.plugin.app,
-						settingTab.plugin,
-						() => {
-							// Optional: refresh settings display
-							settingTab.display();
-						}
-					).open();
+					if (typeof (settingTab as any).setting.close === "function") {
+						(settingTab as any).setting.close();
+
+						settingTab.plugin.app.workspace.getLeaf().setViewState({
+							type: ONBOARDING_VIEW_TYPE,
+						});
+					}
 				});
 		});
 

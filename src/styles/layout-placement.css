@@ -1,0 +1,103 @@
+/* Placement Preview Styles */
+
+.placement-preview {
+	display: grid;
+	grid-template-columns: 1fr 2fr 1fr;
+	gap: 2px;
+	padding: var(--size-4-2);
+	height: 180px;
+	width: 100%;
+	background: var(--background-primary);
+	border-radius: 4px;
+}
+
+/* Sidebars */
+.placement-sidebar {
+	border-radius: 2px;
+	padding: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.placement-sidebar-active {
+	background: var(--interactive-accent);
+	opacity: 0.4;
+}
+
+.placement-sidebar-inactive {
+	background: var(--background-modifier-border);
+	opacity: 0.3;
+}
+
+/* Sidebar items */
+.placement-sidebar-item {
+	height: 6px;
+	border-radius: 1px;
+}
+
+.placement-sidebar-item-active {
+	background: var(--text-normal);
+	opacity: 0.3;
+}
+
+.placement-sidebar-item-inactive {
+	background: var(--text-faint);
+	opacity: 0.2;
+}
+
+/* Right sidebar items (smaller) */
+.placement-sidebar-item-small {
+	height: 5px;
+}
+
+/* Center area */
+.placement-center {
+	border-radius: 2px;
+	display: flex;
+	flex-direction: column;
+}
+
+.placement-center-active {
+	background: var(--interactive-accent);
+	opacity: 0.4;
+}
+
+/* Tab bar */
+.placement-tab-bar {
+	height: 16px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding: 2px 4px;
+	display: flex;
+	gap: 2px;
+	align-items: center;
+}
+
+.placement-tab {
+	width: 24px;
+	height: 10px;
+	background: var(--background-modifier-border);
+	opacity: 0.3;
+	border-radius: 1px;
+}
+
+.placement-tab-active {
+	background: var(--text-normal);
+	opacity: 0.5;
+}
+
+/* Content area */
+.placement-content {
+	flex: 1;
+	padding: 6px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.placement-content-line {
+	height: 8px;
+	background: var(--text-normal);
+	opacity: 0.3;
+	border-radius: 1px;
+}
