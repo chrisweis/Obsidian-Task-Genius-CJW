@@ -27,11 +27,11 @@ export class ModeSelection {
 			const body = el.createDiv({cls: "mode-card-body"});
 			const preview = body.createDiv({cls: ["mode-card-preview", "tg-noise-layer"]});
 			// Visual representation for each mode
-			if (mode === "fluent") {
-				preview.innerHTML = "✨"; // Sparkles for modern
-			} else {
-				preview.innerHTML = "☰"; // Menu icon for traditional
-			}
+			const isDark = document.body.classList.contains('theme-dark');
+			const theme = isDark ? '' : '-light';
+			const imageUrl = `https://raw.githubusercontent.com/Quorafind/Obsidian-Task-Progress-Bar/master/media/${mode}${theme}.png`;
+
+			preview.innerHTML = `<img src="${imageUrl}" alt="${mode} mode preview" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;">`;
 			const description = body.createDiv({cls: "mode-card-desc"});
 			description.setText(desc);
 
@@ -51,13 +51,13 @@ export class ModeSelection {
 
 		card(
 			"fluent",
-			t("Fluent (Modern & Dynamic)"),
+			t("Fluent"),
 			t("New information architecture, navigation and interaction, with more elegant styles and animations."),
 			"sparkles"
 		);
 		card(
 			"legacy",
-			t("Legacy (Classic & Stable)"),
+			t("Legacy"),
 			t("Continue the previous interface and interaction style, maintaining a familiar user experience."),
 			"layout"
 		);

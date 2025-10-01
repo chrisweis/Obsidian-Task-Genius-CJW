@@ -394,16 +394,6 @@
 	margin-bottom: var(--onboarding-spacing);
 }
 
-.onboarding-modal .mode-card,
-.onboarding-view .mode-card {
-	display: flex;
-	align-items: center;
-	gap: var(--size-4-3);
-	padding: var(--size-4-3);
-	background: var(--background-secondary);
-	border-radius: var(--onboarding-border-radius);
-}
-
 .onboarding-modal .mode-icon,
 .onboarding-view .mode-icon {
 	--icon-size: var(--size-4-4);
@@ -1229,7 +1219,7 @@
 	margin: var(--onboarding-spacing) 0;
 }
 
-.mode-card {
+.onboarding-modal .mode-card, .onboarding-view .mode-card {
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--onboarding-border-radius);
 	padding: var(--onboarding-spacing);
