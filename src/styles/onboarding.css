@@ -1260,7 +1260,6 @@
 }
 
 .mode-card-preview {
-	height: 140px;
 	background: var(--background-secondary);
 	border-radius: var(--radius-s);
 	margin-bottom: var(--size-4-3);
@@ -1430,7 +1429,7 @@
 /* Wrapper to prevent layout shift */
 .intro-typing-wrapper {
 	width: 100%;
-	max-width: 900px;
+	max-width: max(900px, 70%);
 	margin: 0 auto;
 }
 

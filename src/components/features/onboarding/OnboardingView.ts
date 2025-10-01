@@ -237,7 +237,7 @@ export class OnboardingView extends ItemView {
 		// Header
 		this.onboardingHeaderEl.createEl("h1", {text: t("Task Genius Setup")});
 		this.onboardingHeaderEl.createEl("p", {
-			text: t("We noticed you've already configured Task Genius"),
+			text: t("Oh, We noticed you've already configured Task Genius before."),
 			cls: "onboarding-subtitle",
 		});
 
