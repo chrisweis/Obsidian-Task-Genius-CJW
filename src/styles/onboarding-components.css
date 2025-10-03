@@ -1,5 +1,9 @@
 /* Onboarding Component Previews Styles */
 
+.onboarding-view:has(.component-showcase) .onboarding-content {
+	overflow-y: hidden;
+}
+
 /* Component showcase container */
 .component-showcase {
 	display: flex;
@@ -70,7 +74,6 @@
 /* Scale down previews to fit */
 .component-preview-sidebar {
 	max-width: 300px;
-	transform: scale(0.85);
 }
 
 .component-preview-topnav {
@@ -127,7 +130,6 @@
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: var(--size-4-8);
-	margin-top: var(--size-4-6);
 }
 
 /* Responsive adjustments */
@@ -218,4 +220,8 @@
 	margin: 0;
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
+}
+
+.component-showcase-preview.tg-v2-container.component-preview-sidebar .v2-sidebar {
+    width: 100%;
 }

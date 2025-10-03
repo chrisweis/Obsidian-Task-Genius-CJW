@@ -218,7 +218,7 @@ export class OnboardingView extends ItemView {
 		console.log("handleNext - User has changes:", state.userHasChanges);
 
 		// Special handling for INTRO step - show config check transition
-		if (step === OnboardingStep.INTRO) {
+		if (step === OnboardingStep.INTRO && state.uiMode !== "fluent") {
 			// If user has changes, show checking animation before settings check
 			if (state.userHasChanges) {
 				console.log("Showing config check transition from INTRO");

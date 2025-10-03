@@ -132,13 +132,24 @@ export class OnboardingController {
 		// Determine next step based on current step and state
 		switch (currentStep) {
 			case OnboardingStep.INTRO:
-				nextStep = OnboardingStep.MODE_SELECT;
+				// Mode selection is now inline in INTRO step
+				// So we skip MODE_SELECT and go directly based on selected mode
+				if (this.state.uiMode === 'fluent') {
+					nextStep = OnboardingStep.FLUENT_PLACEMENT;
+				} else {
+					// Legacy mode: check for existing changes
+					if (this.state.userHasChanges) {
+						nextStep = OnboardingStep.SETTINGS_CHECK;
+					} else {
+						nextStep = OnboardingStep.USER_LEVEL_SELECT;
+					}
+				}
 				break;
 
 			case OnboardingStep.MODE_SELECT:
+				// This step is now integrated into INTRO, but keep for backward compatibility
 				if (this.state.uiMode === 'fluent') {
-					// Go directly to Fluent components when Fluent mode is selected
-					nextStep = OnboardingStep.FLUENT_COMPONENTS;
+					nextStep = OnboardingStep.FLUENT_PLACEMENT;
 				} else {
 					// Legacy mode: check for existing changes
 					if (this.state.userHasChanges) {

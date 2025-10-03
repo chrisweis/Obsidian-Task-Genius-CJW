@@ -53,6 +53,11 @@
 	text-align: center;
 }
 
+/* Hide onboarding-header if no header content */
+.onboarding-view .onboarding-header:empty {
+	display: none;
+}
+
 .onboarding-view .onboarding-subtitle {
 	color: var(--text-muted);
 	font-size: 0.95em;
@@ -1105,13 +1110,6 @@
 /* Responsive Design */
 /* ============================== */
 
-/* Tablet adjustments */
-@media (max-width: 1024px) {
-	.intro-mode-selection-container {
-		max-width: 700px;
-	}
-}
-
 @media (max-width: 768px) {
 	.onboarding-view {
 		--dialog-width: 95vw;
@@ -1576,7 +1574,6 @@
 	animation: fadeInFromBottom 0.6s ease-out;
 	animation-fill-mode: both;
 	width: 100%;
-	margin-top: var(--size-4-10);
 }
 
 @keyframes fadeInFromBottom {

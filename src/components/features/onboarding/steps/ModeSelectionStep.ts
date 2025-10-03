@@ -77,6 +77,70 @@ export class ModeSelectionStep {
 	}
 
 	/**
+	 * Render mode selection inline (for intro step)
+	 * This version doesn't clear the container and calls a custom callback
+	 */
+	static renderInline(
+		containerEl: HTMLElement,
+		controller: OnboardingController,
+		onSelect: (mode: UIMode) => void
+	) {
+		// Get current state
+		const currentMode = controller.getState().uiMode;
+
+		// Create cards configuration
+		const cardConfigs: SelectableCardConfig<UIMode>[] = [
+			{
+				id: "fluent",
+				title: t("Fluent"),
+				subtitle: t("Modern & Sleek"),
+				description: t(
+					"New visual design with elegant animations and modern interactions"
+				),
+				preview: this.createFluentPreview(),
+			},
+			{
+				id: "legacy",
+				title: t("Legacy"),
+				subtitle: t("Classic & Familiar"),
+				description: t(
+					"Keep the familiar interface and interaction style you know"
+				),
+				preview: this.createLegacyPreview(),
+			},
+		];
+
+		// Render selectable cards
+		const card = new SelectableCard<UIMode>(
+			containerEl,
+			cardConfigs,
+			{
+				containerClass: "selectable-cards-container",
+				cardClass: "selectable-card",
+				showPreview: true,
+			},
+			(mode) => {
+				onSelect(mode);
+			}
+		);
+
+		// Set initial selection
+		if (currentMode) {
+			card.setSelected(currentMode);
+		}
+
+		// Add info alert
+		Alert.create(
+			containerEl,
+			t("You can change this option later in settings"),
+			{
+				variant: "info",
+				className: "mode-selection-tip",
+			}
+		);
+	}
+
+	/**
 	 * Create Fluent mode preview
 	 */
 	private static createFluentPreview(): HTMLElement {

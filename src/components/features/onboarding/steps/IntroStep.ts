@@ -1,7 +1,8 @@
 import { t } from "@/translations/helper";
-import { OnboardingController, OnboardingStep } from "../OnboardingController";
+import { OnboardingController } from "../OnboardingController";
 import { TypingAnimation } from "./intro/TypingAnimation";
 import { TransitionMessage } from "./intro/TransitionMessage";
+import { ModeSelectionStep, UIMode } from "./ModeSelectionStep";
 
 /**
  * Intro Step - Welcome message with typing animation + mode selection
@@ -34,11 +35,6 @@ export class IntroStep {
 		// Create typing container
 		const typingContainer = introWrapper.createDiv({
 			cls: "intro-typing",
-		});
-
-		// Create transition message container (initially hidden)
-		const transitionContainer = introWrapper.createDiv({
-			cls: "intro-transition-container",
 		});
 
 		// Define welcome messages with timing from original implementation
@@ -76,10 +72,22 @@ export class IntroStep {
 		];
 
 		// Start typing animation
-		const typing = new TypingAnimation(typingContainer, messages, () => {
-			// Reveal footer and transition to proper MODE_SELECT step instead of rendering inline
-			footerEl.style.display = "";
-			controller.setStep(OnboardingStep.MODE_SELECT);
+		new TypingAnimation(typingContainer, messages, () => {
+			// After typing completes, show mode selection in same container
+			const modeContainer = introWrapper.createDiv({
+				cls: "intro-mode-selection-container"
+			});
+
+			// Render mode selection inline (without clearing intro-line-4)
+			ModeSelectionStep.renderInline(
+				modeContainer,
+				controller,
+				(mode: UIMode) => {
+					// User selected a mode, show footer with Next button
+					controller.setUIMode(mode);
+					footerEl.style.display = "";
+				}
+			);
 		});
 	}
 

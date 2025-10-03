@@ -15,81 +15,119 @@ export class ComponentPreviewFactory {
 
 		// Header with workspace selector
 		const header = sidebar.createDiv({ cls: "v2-sidebar-header" });
-		const workspaceSelector = header.createDiv({ cls: "workspace-selector" });
 
-		const workspaceButton = workspaceSelector.createDiv({ cls: "workspace-button" });
-		const workspaceIcon = workspaceButton.createSpan({ cls: "workspace-icon" });
-		setIcon(workspaceIcon, "layout-dashboard");
-		workspaceButton.createSpan({ text: t("Personal"), cls: "workspace-name" });
-		const chevron = workspaceButton.createSpan({ cls: "workspace-chevron" });
-		setIcon(chevron, "chevron-down");
+		// Workspace selector with correct structure
+		const workspaceSelectorEl = header.createDiv();
+		const workspaceSelector = workspaceSelectorEl.createDiv({ cls: "workspace-selector" });
+		const workspaceButton = workspaceSelector.createDiv({ cls: "workspace-selector-button" });
+
+		const workspaceInfo = workspaceButton.createDiv({ cls: "workspace-info" });
+		const workspaceIcon = workspaceInfo.createDiv({ cls: "workspace-icon" });
+		workspaceIcon.style.backgroundColor = "#3498db";
+		setIcon(workspaceIcon, "layers");
+
+		const workspaceDetails = workspaceInfo.createDiv({ cls: "workspace-details" });
+		const nameContainer = workspaceDetails.createDiv({ cls: "workspace-name-container" });
+		nameContainer.createSpan({ text: t("Personal"), cls: "workspace-name" });
+		workspaceDetails.createDiv({ text: t("Workspace"), cls: "workspace-label" });
+
+		const dropdownIcon = workspaceButton.createDiv({ cls: "workspace-dropdown-icon" });
+		setIcon(dropdownIcon, "chevron-down");
 
 		// New task button
-		const newTaskBtn = header.createDiv({ cls: "new-task-button" });
-		setIcon(newTaskBtn, "plus");
-		newTaskBtn.createSpan({ text: t("New Task") });
+		const newTaskBtn = header.createEl("button", { cls: "v2-new-task-btn", text: t("New Task") });
+		setIcon(newTaskBtn.createDiv({ cls: "v2-new-task-icon" }), "plus");
 
-		// Primary navigation
-		const primaryNav = sidebar.createDiv({ cls: "v2-sidebar-section" });
+		// Main navigation area
+		const content = sidebar.createDiv({ cls: "v2-sidebar-content" });
+
+		// Primary navigation section
+		const primarySection = content.createDiv({ cls: "v2-sidebar-section" });
+		const primaryList = primarySection.createDiv({ cls: "v2-navigation-list" });
+
 		const primaryItems = [
-			{ id: "inbox", label: t("Inbox"), icon: "inbox", count: 5 },
-			{ id: "today", label: t("Today"), icon: "calendar-days", count: 3 },
-			{ id: "upcoming", label: t("Upcoming"), icon: "calendar", count: 8 },
-			{ id: "flagged", label: t("Flagged"), icon: "flag", count: 2 },
+			{ id: "inbox", label: t("Inbox"), icon: "inbox", badge: 5 },
+			{ id: "today", label: t("Today"), icon: "calendar-days", badge: 3 },
+			{ id: "upcoming", label: t("Upcoming"), icon: "calendar", badge: 8 },
+			{ id: "flagged", label: t("Flagged"), icon: "flag", badge: 2 },
 		];
 
 		primaryItems.forEach((item, index) => {
-			const navItem = primaryNav.createDiv({ cls: "v2-nav-item" });
+			const navItem = primaryList.createDiv({
+				cls: "v2-navigation-item",
+				attr: { "data-view-id": item.id }
+			});
 			if (index === 0) navItem.addClass("is-active");
 
-			const icon = navItem.createSpan({ cls: "v2-nav-icon" });
+			const icon = navItem.createDiv({ cls: "v2-navigation-icon" });
 			setIcon(icon, item.icon);
-			navItem.createSpan({ text: item.label, cls: "v2-nav-label" });
-			if (item.count > 0) {
-				navItem.createSpan({ text: item.count.toString(), cls: "v2-nav-count" });
+			navItem.createSpan({ text: item.label, cls: "v2-navigation-label" });
+			if (item.badge && item.badge > 0) {
+				navItem.createDiv({ text: item.badge.toString(), cls: "v2-navigation-badge" });
 			}
 		});
 
 		// Projects section
-		const projectsSection = sidebar.createDiv({ cls: "v2-sidebar-section" });
+		const projectsSection = content.createDiv({ cls: "v2-sidebar-section" });
 		const projectsHeader = projectsSection.createDiv({ cls: "v2-section-header" });
 		projectsHeader.createSpan({ text: t("Projects") });
 
-		const projectsHeaderActions = projectsHeader.createDiv({ cls: "v2-section-actions" });
-		const addIcon = projectsHeaderActions.createSpan({ cls: "clickable-icon" });
-		setIcon(addIcon, "plus");
+		const buttonContainer = projectsHeader.createDiv({ cls: "v2-project-header-buttons" });
+		const treeToggleBtn = buttonContainer.createDiv({
+			cls: "v2-tree-toggle-btn",
+			attr: { "aria-label": t("Toggle tree/list view") }
+		});
+		setIcon(treeToggleBtn, "list");
+
+		const sortProjectBtn = buttonContainer.createDiv({
+			cls: "v2-sort-project-btn",
+			attr: { "aria-label": t("Sort projects") }
+		});
+		setIcon(sortProjectBtn, "arrow-up-down");
+
+		// Project list
+		const projectListEl = projectsSection.createDiv();
+		const projectList = projectListEl.createDiv({ cls: "v2-project-list" });
+		const scrollArea = projectList.createDiv({ cls: "v2-project-scroll" });
 
 		// Mock projects
 		const projects = [
-			{ name: t("Work"), color: "#3b82f6", count: 12 },
-			{ name: t("Personal"), color: "#10b981", count: 5 },
-			{ name: t("Learning"), color: "#f59e0b", count: 3 },
+			{ id: "work", name: t("Work"), color: "#3b82f6", count: 12 },
+			{ id: "personal", name: t("Personal"), color: "#10b981", count: 5 },
+			{ id: "learning", name: t("Learning"), color: "#f59e0b", count: 3 },
 		];
 
 		projects.forEach(project => {
-			const projectItem = projectsSection.createDiv({ cls: "project-item" });
-			const colorDot = projectItem.createSpan({ cls: "project-color" });
+			const projectItem = scrollArea.createDiv({
+				cls: "v2-project-item",
+				attr: { "data-project-id": project.id, "data-level": "0" }
+			});
+			const colorDot = projectItem.createDiv({ cls: "v2-project-color" });
 			colorDot.style.backgroundColor = project.color;
-			projectItem.createSpan({ text: project.name, cls: "project-name" });
-			projectItem.createSpan({ text: project.count.toString(), cls: "project-count" });
+			projectItem.createSpan({ text: project.name, cls: "v2-project-name" });
+			projectItem.createSpan({ text: project.count.toString(), cls: "v2-project-count" });
 		});
 
 		// Other views section
-		const otherSection = sidebar.createDiv({ cls: "v2-sidebar-section" });
+		const otherSection = content.createDiv({ cls: "v2-sidebar-section" });
 		const otherHeader = otherSection.createDiv({ cls: "v2-section-header" });
 		otherHeader.createSpan({ text: t("Other Views") });
 
+		const otherList = otherSection.createDiv({ cls: "v2-navigation-list" });
 		const otherItems = [
-			{ label: t("Calendar"), icon: "calendar" },
-			{ label: t("Gantt"), icon: "git-branch" },
-			{ label: t("Tags"), icon: "tag" },
+			{ id: "calendar", label: t("Calendar"), icon: "calendar" },
+			{ id: "gantt", label: t("Gantt"), icon: "git-branch" },
+			{ id: "tags", label: t("Tags"), icon: "tag" },
 		];
 
 		otherItems.forEach(item => {
-			const navItem = otherSection.createDiv({ cls: "v2-nav-item" });
-			const icon = navItem.createSpan({ cls: "v2-nav-icon" });
+			const navItem = otherList.createDiv({
+				cls: "v2-navigation-item",
+				attr: { "data-view-id": item.id }
+			});
+			const icon = navItem.createDiv({ cls: "v2-navigation-icon" });
 			setIcon(icon, item.icon);
-			navItem.createSpan({ text: item.label, cls: "v2-nav-label" });
+			navItem.createSpan({ text: item.label, cls: "v2-navigation-label" });
 		});
 	}
 
@@ -104,12 +142,15 @@ export class ComponentPreviewFactory {
 		// Left section - Search
 		const leftSection = topNav.createDiv({ cls: "v2-nav-left" });
 		const searchContainer = leftSection.createDiv({ cls: "v2-search-container" });
-		const searchInput = searchContainer.createEl("input", {
+
+		// Match SearchComponent structure
+		const searchInputContainer = searchContainer.createDiv({ cls: "search-input-container" });
+		const searchInput = searchInputContainer.createEl("input", {
 			type: "text",
 			placeholder: t("Search tasks, projects ..."),
+			cls: "search-input",
 			attr: { disabled: "true" },
 		});
-		searchInput.addClass("search-input");
 
 		// Center section - View mode tabs
 		const centerSection = topNav.createDiv({ cls: "v2-nav-center" });
@@ -117,31 +158,33 @@ export class ComponentPreviewFactory {
 
 		const modes = [
 			{ id: "list", label: t("List"), icon: "list" },
-			{ id: "kanban", label: t("Kanban"), icon: "columns" },
-			{ id: "tree", label: t("Tree"), icon: "network" },
+			{ id: "kanban", label: t("Kanban"), icon: "layout-grid" },
+			{ id: "tree", label: t("Tree"), icon: "git-branch" },
 			{ id: "calendar", label: t("Calendar"), icon: "calendar" },
 		];
 
 		modes.forEach((mode, index) => {
-			const tab = viewTabs.createDiv({ cls: "v2-view-tab" });
+			const tab = viewTabs.createEl("button", {
+				cls: ["v2-view-tab", "clickable-icon"],
+				attr: { "data-mode": mode.id }
+			});
 			if (index === 0) tab.addClass("is-active");
 
-			const icon = tab.createSpan({ cls: "v2-tab-icon" });
+			const icon = tab.createDiv({ cls: "v2-view-tab-icon" });
 			setIcon(icon, mode.icon);
-			tab.createSpan({ text: mode.label, cls: "v2-tab-label" });
+			tab.createSpan({ text: mode.label });
 		});
 
-		// Right section - Actions
+		// Right section - Notifications and Settings
 		const rightSection = topNav.createDiv({ cls: "v2-nav-right" });
 
-		const filterBtn = rightSection.createDiv({ cls: "v2-nav-action" });
-		setIcon(filterBtn, "filter");
-		filterBtn.createSpan({ text: t("Filter") });
+		// Notification button
+		const notificationBtn = rightSection.createDiv({ cls: "v2-nav-icon-button" });
+		setIcon(notificationBtn, "bell");
+		const badge = notificationBtn.createDiv({ cls: "v2-notification-badge", text: "3" });
 
-		const sortBtn = rightSection.createDiv({ cls: "v2-nav-action" });
-		setIcon(sortBtn, "arrow-up-down");
-
-		const settingsBtn = rightSection.createDiv({ cls: "v2-nav-action" });
+		// Settings button
+		const settingsBtn = rightSection.createDiv({ cls: "v2-nav-icon-button" });
 		setIcon(settingsBtn, "settings");
 	}
 
@@ -151,16 +194,31 @@ export class ComponentPreviewFactory {
 	static createContentAreaPreview(container: HTMLElement): void {
 		container.addClass("tg-v2-container", "component-preview-content");
 
-		const content = container.createDiv({ cls: "v2-content-area component-preview" });
+		const content = container.createDiv({ cls: "task-content component-preview" });
 
 		// Content header
-		const header = content.createDiv({ cls: "v2-content-header" });
-		header.createEl("h2", { text: t("Inbox") });
-		const headerStats = header.createDiv({ cls: "v2-content-stats" });
-		headerStats.createSpan({ text: `5 ${t("tasks")}` });
+		const header = content.createDiv({ cls: "content-header" });
+
+		// View title
+		const titleEl = header.createDiv({ cls: "content-title", text: t("Inbox") });
+
+		// Task count
+		const countEl = header.createDiv({ cls: "task-count", text: `5 ${t("tasks")}` });
+
+		// Filter controls
+		const filterEl = header.createDiv({ cls: "content-filter" });
+		const filterInput = filterEl.createEl("input", {
+			cls: "filter-input",
+			attr: { type: "text", placeholder: t("Filter tasks..."), disabled: "true" }
+		});
+
+		// View toggle button
+		const viewToggleBtn = header.createDiv({ cls: "view-toggle-btn" });
+		setIcon(viewToggleBtn, "list");
+		viewToggleBtn.setAttribute("aria-label", t("Toggle list/tree view"));
 
 		// Task list
-		const taskList = content.createDiv({ cls: "v2-task-list" });
+		const taskList = content.createDiv({ cls: "task-list" });
 
 		const mockTasks = [
 			{ title: t("Review project proposal"), priority: "high", project: "Work" },
@@ -171,7 +229,7 @@ export class ComponentPreviewFactory {
 		];
 
 		mockTasks.forEach(task => {
-			const taskItem = taskList.createDiv({ cls: "v2-task-item" });
+			const taskItem = taskList.createDiv({ cls: "task-list-item" });
 
 			const checkbox = taskItem.createDiv({ cls: "task-checkbox" });
 			setIcon(checkbox, "circle");
