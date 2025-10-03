@@ -21,6 +21,15 @@ export class ModeSelectionStep {
 		headerEl.empty();
 		contentEl.empty();
 
+
+			// Intro guidance text (same as intro-line-4)
+			headerEl.createEl("p", {
+				cls: "intro-line intro-line-4",
+				text: t(
+					"In the current version, Task Genius provides a brand new visual and interactive experience: Fluent; while also providing the option to return to the previous interface. Which one do you prefer?"
+				),
+			});
+
 		// Get current state
 		const currentMode = controller.getState().uiMode;
 

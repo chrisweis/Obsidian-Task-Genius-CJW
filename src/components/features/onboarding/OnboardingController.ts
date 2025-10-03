@@ -3,14 +3,20 @@ import { OnboardingConfig, OnboardingConfigMode } from "@/managers/onboarding-ma
 export enum OnboardingStep {
 	INTRO = 0,
 	MODE_SELECT = 1,
-	FLUENT_PLACEMENT = 2,
-	FLUENT_COMPONENTS = 3,
-	SETTINGS_CHECK = 4,
-	USER_LEVEL_SELECT = 5,
-	FILE_FILTER = 6,
-	CONFIG_PREVIEW = 7,
-	TASK_CREATION_GUIDE = 8,
-	COMPLETE = 9,
+	// Fluent progressive steps
+	FLUENT_OVERVIEW = 2,
+	FLUENT_WS_SELECTOR = 3,
+	FLUENT_MAIN_NAV = 4,
+	FLUENT_PROJECTS = 5,
+	FLUENT_OTHER_VIEWS = 6,
+	FLUENT_TOPNAV = 7,
+	// Config & rest
+	SETTINGS_CHECK = 8,
+	USER_LEVEL_SELECT = 9,
+	FILE_FILTER = 10,
+	CONFIG_PREVIEW = 11,
+	TASK_CREATION_GUIDE = 12,
+	COMPLETE = 13,
 }
 
 export interface OnboardingState {
@@ -132,45 +138,35 @@ export class OnboardingController {
 		// Determine next step based on current step and state
 		switch (currentStep) {
 			case OnboardingStep.INTRO:
-				// Mode selection is now inline in INTRO step
-				// So we skip MODE_SELECT and go directly based on selected mode
-				if (this.state.uiMode === 'fluent') {
-					nextStep = OnboardingStep.FLUENT_PLACEMENT;
-				} else {
-					// Legacy mode: check for existing changes
-					if (this.state.userHasChanges) {
-						nextStep = OnboardingStep.SETTINGS_CHECK;
-					} else {
-						nextStep = OnboardingStep.USER_LEVEL_SELECT;
-					}
-				}
+				// Always go to mode selection
+				nextStep = OnboardingStep.MODE_SELECT;
 				break;
 
 			case OnboardingStep.MODE_SELECT:
-				// This step is now integrated into INTRO, but keep for backward compatibility
 				if (this.state.uiMode === 'fluent') {
-					nextStep = OnboardingStep.FLUENT_PLACEMENT;
+					nextStep = OnboardingStep.FLUENT_OVERVIEW;
 				} else {
-					// Legacy mode: check for existing changes
-					if (this.state.userHasChanges) {
-						nextStep = OnboardingStep.SETTINGS_CHECK;
-					} else {
-						nextStep = OnboardingStep.USER_LEVEL_SELECT;
-					}
-				}
-				break;
-
-			case OnboardingStep.FLUENT_PLACEMENT:
-				nextStep = OnboardingStep.FLUENT_COMPONENTS;
-				break;
-
-			case OnboardingStep.FLUENT_COMPONENTS:
-				// Check if user has changes
-				if (this.state.userHasChanges) {
 					nextStep = OnboardingStep.SETTINGS_CHECK;
-				} else {
-					nextStep = OnboardingStep.USER_LEVEL_SELECT;
 				}
+				break;
+
+			case OnboardingStep.FLUENT_OVERVIEW:
+				nextStep = OnboardingStep.FLUENT_WS_SELECTOR;
+				break;
+			case OnboardingStep.FLUENT_WS_SELECTOR:
+				nextStep = OnboardingStep.FLUENT_MAIN_NAV;
+				break;
+			case OnboardingStep.FLUENT_MAIN_NAV:
+				nextStep = OnboardingStep.FLUENT_PROJECTS;
+				break;
+			case OnboardingStep.FLUENT_PROJECTS:
+				nextStep = OnboardingStep.FLUENT_OTHER_VIEWS;
+				break;
+			case OnboardingStep.FLUENT_OTHER_VIEWS:
+				nextStep = OnboardingStep.FLUENT_TOPNAV;
+				break;
+			case OnboardingStep.FLUENT_TOPNAV:
+				nextStep = OnboardingStep.SETTINGS_CHECK;
 				break;
 
 			case OnboardingStep.SETTINGS_CHECK:
@@ -238,18 +234,29 @@ export class OnboardingController {
 				prevStep = OnboardingStep.INTRO;
 				break;
 
-			case OnboardingStep.FLUENT_PLACEMENT:
+			case OnboardingStep.FLUENT_OVERVIEW:
 				prevStep = OnboardingStep.MODE_SELECT;
 				break;
-
-			case OnboardingStep.FLUENT_COMPONENTS:
-				prevStep = OnboardingStep.MODE_SELECT;
+			case OnboardingStep.FLUENT_WS_SELECTOR:
+				prevStep = OnboardingStep.FLUENT_OVERVIEW;
+				break;
+			case OnboardingStep.FLUENT_MAIN_NAV:
+				prevStep = OnboardingStep.FLUENT_WS_SELECTOR;
+				break;
+			case OnboardingStep.FLUENT_PROJECTS:
+				prevStep = OnboardingStep.FLUENT_MAIN_NAV;
+				break;
+			case OnboardingStep.FLUENT_OTHER_VIEWS:
+				prevStep = OnboardingStep.FLUENT_PROJECTS;
+				break;
+			case OnboardingStep.FLUENT_TOPNAV:
+				prevStep = OnboardingStep.FLUENT_OTHER_VIEWS;
 				break;
 
 			case OnboardingStep.SETTINGS_CHECK:
-				// Go back to components or mode select based on UI mode
+				// Go back to last fluent step or mode select based on UI mode
 				if (this.state.uiMode === 'fluent') {
-					prevStep = OnboardingStep.FLUENT_COMPONENTS;
+					prevStep = OnboardingStep.FLUENT_TOPNAV;
 				} else {
 					prevStep = OnboardingStep.MODE_SELECT;
 				}
@@ -260,7 +267,7 @@ export class OnboardingController {
 				if (this.state.userHasChanges && this.state.settingsCheckAction === 'wizard') {
 					prevStep = OnboardingStep.SETTINGS_CHECK;
 				} else if (this.state.uiMode === 'fluent') {
-					prevStep = OnboardingStep.FLUENT_COMPONENTS;
+					prevStep = OnboardingStep.FLUENT_TOPNAV;
 				} else {
 					prevStep = OnboardingStep.MODE_SELECT;
 				}
@@ -333,8 +340,12 @@ export class OnboardingController {
 				// Must have a config selected
 				return !!this.state.selectedConfig;
 
-			case OnboardingStep.FLUENT_PLACEMENT:
-			case OnboardingStep.FLUENT_COMPONENTS:
+			case OnboardingStep.FLUENT_OVERVIEW:
+			case OnboardingStep.FLUENT_WS_SELECTOR:
+			case OnboardingStep.FLUENT_MAIN_NAV:
+			case OnboardingStep.FLUENT_PROJECTS:
+			case OnboardingStep.FLUENT_OTHER_VIEWS:
+			case OnboardingStep.FLUENT_TOPNAV:
 			case OnboardingStep.FILE_FILTER:
 			case OnboardingStep.CONFIG_PREVIEW:
 			case OnboardingStep.TASK_CREATION_GUIDE:

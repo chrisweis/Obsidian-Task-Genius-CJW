@@ -42,7 +42,7 @@ export class ComponentPreviewFactory {
 		const content = sidebar.createDiv({ cls: "v2-sidebar-content" });
 
 		// Primary navigation section
-		const primarySection = content.createDiv({ cls: "v2-sidebar-section" });
+		const primarySection = content.createDiv({ cls: "v2-sidebar-section v2-sidebar-section-primary" });
 		const primaryList = primarySection.createDiv({ cls: "v2-navigation-list" });
 
 		const primaryItems = [
@@ -55,7 +55,7 @@ export class ComponentPreviewFactory {
 		primaryItems.forEach((item, index) => {
 			const navItem = primaryList.createDiv({
 				cls: "v2-navigation-item",
-				attr: { "data-view-id": item.id }
+				attr: { "data-view-id": item.id, tabindex: "0", role: "button" }
 			});
 			if (index === 0) navItem.addClass("is-active");
 
@@ -68,7 +68,7 @@ export class ComponentPreviewFactory {
 		});
 
 		// Projects section
-		const projectsSection = content.createDiv({ cls: "v2-sidebar-section" });
+		const projectsSection = content.createDiv({ cls: "v2-sidebar-section v2-sidebar-section-projects" });
 		const projectsHeader = projectsSection.createDiv({ cls: "v2-section-header" });
 		projectsHeader.createSpan({ text: t("Projects") });
 
@@ -100,7 +100,7 @@ export class ComponentPreviewFactory {
 		projects.forEach(project => {
 			const projectItem = scrollArea.createDiv({
 				cls: "v2-project-item",
-				attr: { "data-project-id": project.id, "data-level": "0" }
+				attr: { "data-project-id": project.id, "data-level": "0", tabindex: "0", role: "button" }
 			});
 			const colorDot = projectItem.createDiv({ cls: "v2-project-color" });
 			colorDot.style.backgroundColor = project.color;
@@ -109,7 +109,7 @@ export class ComponentPreviewFactory {
 		});
 
 		// Other views section
-		const otherSection = content.createDiv({ cls: "v2-sidebar-section" });
+		const otherSection = content.createDiv({ cls: "v2-sidebar-section v2-sidebar-section-other" });
 		const otherHeader = otherSection.createDiv({ cls: "v2-section-header" });
 		otherHeader.createSpan({ text: t("Other Views") });
 
@@ -123,11 +123,35 @@ export class ComponentPreviewFactory {
 		otherItems.forEach(item => {
 			const navItem = otherList.createDiv({
 				cls: "v2-navigation-item",
-				attr: { "data-view-id": item.id }
+				attr: { "data-view-id": item.id, tabindex: "0", role: "button" }
 			});
 			const icon = navItem.createDiv({ cls: "v2-navigation-icon" });
 			setIcon(icon, item.icon);
 			navItem.createSpan({ text: item.label, cls: "v2-navigation-label" });
+		});
+
+		// Interactive preview: simple selection toggle (visual only)
+		const root = container.querySelector(".v2-sidebar")!;
+		const handleActivate = (target: HTMLElement) => {
+			const item = target.closest<HTMLElement>(".v2-navigation-item, .v2-project-item");
+			if (!item) return;
+			const parentList = item.parentElement;
+			if (!parentList) return;
+			// Clear previous active in the same group
+			Array.from(parentList.children).forEach((el) => el.classList.remove("is-active"));
+			item.classList.add("is-active");
+		};
+
+		root.addEventListener("click", (e) => {
+			handleActivate(e.target as HTMLElement);
+		});
+		root.addEventListener("keydown", (e: KeyboardEvent) => {
+			if (e.key === "Enter" || e.key === " ") {
+				const target = e.target as HTMLElement;
+				handleActivate(target);
+				// Prevent page scroll on Space
+				e.preventDefault();
+			}
 		});
 	}
 

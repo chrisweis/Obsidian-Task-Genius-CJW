@@ -9,8 +9,12 @@ import { OnboardingLayout } from "./OnboardingLayout";
 // Import step components
 import { IntroStep } from "./steps/IntroStep";
 import { ModeSelectionStep } from "./steps/ModeSelectionStep";
-import { PlacementStep } from "./steps/PlacementStep";
-import { FluentComponentsStep } from "./steps/FluentComponentsStep";
+import { FluentOverviewStep } from "./steps/FluentOverviewStep";
+import { FluentWorkspaceSelectorStep } from "./steps/FluentWorkspaceSelectorStep";
+import { FluentMainNavigationStep } from "./steps/FluentMainNavigationStep";
+import { FluentProjectSectionStep } from "./steps/FluentProjectSectionStep";
+import { FluentOtherViewsStep } from "./steps/FluentOtherViewsStep";
+import { FluentTopNavigationStep } from "./steps/FluentTopNavigationStep";
 import { UserLevelStep } from "./steps/UserLevelStep";
 import { FileFilterStep } from "./steps/FileFilterStep";
 import { ConfigPreviewStep } from "./steps/ConfigPreviewStep";
@@ -147,12 +151,23 @@ export class OnboardingView extends ItemView {
 					ModeSelectionStep.render(headerEl, contentEl, this.controller);
 					break;
 
-				case OnboardingStep.FLUENT_PLACEMENT:
-					PlacementStep.render(headerEl, contentEl, this.controller);
+				case OnboardingStep.FLUENT_OVERVIEW:
+					FluentOverviewStep.render(headerEl, contentEl, this.controller);
 					break;
-
-				case OnboardingStep.FLUENT_COMPONENTS:
-					FluentComponentsStep.render(headerEl, contentEl, this.controller);
+				case OnboardingStep.FLUENT_WS_SELECTOR:
+					FluentWorkspaceSelectorStep.render(headerEl, contentEl, this.controller);
+					break;
+				case OnboardingStep.FLUENT_MAIN_NAV:
+					FluentMainNavigationStep.render(headerEl, contentEl, this.controller);
+					break;
+				case OnboardingStep.FLUENT_PROJECTS:
+					FluentProjectSectionStep.render(headerEl, contentEl, this.controller);
+					break;
+				case OnboardingStep.FLUENT_OTHER_VIEWS:
+					FluentOtherViewsStep.render(headerEl, contentEl, this.controller);
+					break;
+				case OnboardingStep.FLUENT_TOPNAV:
+					FluentTopNavigationStep.render(headerEl, contentEl, this.controller);
 					break;
 
 				case OnboardingStep.SETTINGS_CHECK:
@@ -217,11 +232,20 @@ export class OnboardingView extends ItemView {
 		console.log("handleNext - UI Mode:", state.uiMode);
 		console.log("handleNext - User has changes:", state.userHasChanges);
 
-		// Special handling for INTRO step - show config check transition
-		if (step === OnboardingStep.INTRO && state.uiMode !== "fluent") {
-			// If user has changes, show checking animation before settings check
+		// Show config check transition only when entering Settings Check from:
+		// - Mode Select with Legacy
+		// - The last Fluent step (Top Navigation)
+		if (step === OnboardingStep.MODE_SELECT) {
+			if (state.uiMode === "legacy" && state.userHasChanges) {
+				// Clear header before showing transition to avoid residual UI
+				this.layout.clearHeader();
+				await this.showConfigCheckTransition();
+			}
+		}
+		if (step === OnboardingStep.FLUENT_TOPNAV) {
 			if (state.userHasChanges) {
-				console.log("Showing config check transition from INTRO");
+				// Clear header before showing transition to avoid residual UI
+				this.layout.clearHeader();
 				await this.showConfigCheckTransition();
 			}
 		}

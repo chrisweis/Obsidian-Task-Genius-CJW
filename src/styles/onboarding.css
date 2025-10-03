@@ -1499,6 +1499,7 @@
 	color: var(--text-muted);
 	line-height: 1.8;
 	margin-bottom: var(--size-4-5);
+	text-align: left;s
 }
 
 /* AI-style streaming characters */

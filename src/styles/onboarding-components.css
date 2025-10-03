@@ -33,6 +33,11 @@
 	overflow: hidden;
 	position: relative;
 	border: 1px solid var(--background-modifier-border);
+
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: flex-start;
 }
 
 .component-showcase-description {
@@ -223,4 +228,39 @@
 
 .component-showcase-preview.tg-v2-container.component-preview-sidebar .v2-sidebar {
     width: 100%;
+}
+
+/* Preview interactivity (scoped to preview only) */
+.component-showcase-preview .component-preview-sidebar .v2-navigation-item,
+.component-showcase-preview .component-preview-sidebar .v2-project-item {
+  pointer-events: auto;
+  cursor: pointer;
+  outline: none;
+}
+
+.component-showcase-preview .component-preview-sidebar .v2-navigation-item.is-active,
+.component-showcase-preview .component-preview-sidebar .v2-project-item.is-active {
+  background: var(--background-modifier-hover);
+  border-radius: var(--radius-s);
+}
+
+.component-showcase-preview .component-preview-sidebar .v2-navigation-item:focus-visible,
+.component-showcase-preview .component-preview-sidebar .v2-project-item:focus-visible {
+  box-shadow: 0 0 0 2px var(--interactive-accent);
+  border-radius: var(--radius-s);
+}
+
+/* Focus/Dim mode for step highlights */
+.component-showcase-preview.focus-mode .is-dimmed {
+  opacity: 0.5;
+  filter: grayscale(15%);
+  pointer-events: none;
+}
+
+.component-showcase-preview.focus-mode .is-focused {
+  position: relative;
+  outline: 1px solid var(--color-accent);
+  outline-offset: -1px;
+  sborder-radius: var(--radius-s);
+  z-index: 1;
 }
