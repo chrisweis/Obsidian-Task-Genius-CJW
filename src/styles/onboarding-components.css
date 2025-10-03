@@ -17,6 +17,13 @@
 	padding: 0;
 }
 
+.tg-v2-container.component-preview-sidebar {
+    width: 200px;
+    min-width: 200px;
+    border-right: 1px solid var(--background-modifier-border);
+	border-top: unset;
+}
+
 /* Component showcase container */
 .component-showcase {
 	display: flex;
@@ -26,18 +33,16 @@
 }
 
 .component-showcase-preview {
-	flex: 1;
-	background: var(--background-secondary);
-	border-radius: var(--radius-m);
-	padding: var(--size-4-4);
-	overflow: hidden;
-	position: relative;
-	border: 1px solid var(--background-modifier-border);
-
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: flex-start;
+    flex: 1;
+    background: var(--background-secondary);
+    border-radius: var(--radius-m);
+    padding: var(--size-4-4);
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--background-modifier-border);
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
 }
 
 .component-showcase-description {
