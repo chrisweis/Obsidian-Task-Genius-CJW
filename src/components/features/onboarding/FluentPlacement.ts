@@ -52,17 +52,19 @@ export class FluentPlacement {
       el.addClass("clickable-icon");
     };
 
+    
+    makeCard(
+      "inline",
+      t("Inline (Single-Page Immersion)"),
+      t("All content in one page, focusing on the main view and reducing interface distractions.")
+    );
+
     makeCard(
       "sideleaves",
       t("Sideleaves (Multi-Column Collaboration)"),
       t("Left navigation and right details as separate workspace sidebars, ideal for simultaneous browsing and editing.")
     );
 
-    makeCard(
-      "inline",
-      t("Inline (Single-Page Immersion)"),
-      t("All content in one page, focusing on the main view and reducing interface distractions.")
-    );
 
     const tips = section.createDiv({ cls: "placement-tips" });
     tips.createEl("p", {

@@ -68,7 +68,7 @@ export class PlacementStep {
 				showPreview: true,
 			},
 			(placement) => {
-				controller.setUseSideLeaves(placement === "sideleaves");
+				controller.setUseSideLeaves(placement === "inline");
 			}
 		);
 

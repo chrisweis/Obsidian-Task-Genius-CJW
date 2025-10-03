@@ -4,6 +4,19 @@
 	overflow-y: hidden;
 }
 
+.component-preview .v2-nav-left {
+    display: none;
+}
+
+.onboarding-view:has(.component-showcase) .onboarding-header {
+	padding: calc(var(--onboarding-spacing) * 2) var(--onboarding-spacing) var(--size-4-2) var(--onboarding-spacing);
+}
+
+.v2-top-navigation.component-preview {
+	overflow-x: auto;
+	padding: 0;
+}
+
 /* Component showcase container */
 .component-showcase {
 	display: flex;
@@ -68,7 +81,6 @@
 .component-preview {
 	pointer-events: none;
 	user-select: none;
-	transform-origin: top left;
 }
 
 /* Scale down previews to fit */
@@ -76,17 +88,8 @@
 	max-width: 300px;
 }
 
-.component-preview-topnav {
-	transform: scale(0.9);
-}
-
-.component-preview-content {
-	transform: scale(0.9);
-}
-
 .component-preview-popover {
 	max-width: 350px;
-	transform: scale(0.9);
 }
 
 /* Disable interactions in previews */
@@ -140,10 +143,6 @@
 
 	.component-showcase-preview {
 		min-height: 300px;
-	}
-
-	.component-preview {
-		transform: scale(0.75);
 	}
 }
 

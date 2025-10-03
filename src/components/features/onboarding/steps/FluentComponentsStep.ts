@@ -41,7 +41,7 @@ export class FluentComponentsStep {
 		}> = [
 			{ id: "sidebar", label: t("Sidebar") },
 			{ id: "topnav", label: t("Top Navigation") },
-			{ id: "content", label: t("Content Area") },
+			// { id: "content", label: t("Content Area") },
 			{ id: "project", label: t("Project Management") },
 		];
 
@@ -92,9 +92,9 @@ export class FluentComponentsStep {
 			case "topnav":
 				this.renderTopNavShowcase(previewSection, descSection);
 				break;
-			case "content":
-				this.renderContentShowcase(previewSection, descSection);
-				break;
+				// case "content":
+				// 	this.renderContentShowcase(previewSection, descSection);
+				// 	break;
 			case "project":
 				this.renderProjectShowcase(previewSection, descSection);
 				break;

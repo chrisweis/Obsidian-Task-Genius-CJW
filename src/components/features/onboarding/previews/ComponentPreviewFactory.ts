@@ -229,7 +229,7 @@ export class ComponentPreviewFactory {
 		];
 
 		mockTasks.forEach(task => {
-			const taskItem = taskList.createDiv({ cls: "task-list-item" });
+			const taskItem = taskList.createDiv({ cls: "task-item" });
 
 			const checkbox = taskItem.createDiv({ cls: "task-checkbox" });
 			setIcon(checkbox, "circle");
