@@ -4,11 +4,13 @@ export enum OnboardingStep {
 	INTRO = 0,
 	MODE_SELECT = 1,
 	FLUENT_PLACEMENT = 2,
-	USER_LEVEL_SELECT = 3,
-	CONFIG_PREVIEW = 4,
-	TASK_CREATION_GUIDE = 5,
-	COMPLETE = 6,
-	SETTINGS_CHECK = 7,
+	FLUENT_COMPONENTS = 3,
+	SETTINGS_CHECK = 4,
+	USER_LEVEL_SELECT = 5,
+	FILE_FILTER = 6,
+	CONFIG_PREVIEW = 7,
+	TASK_CREATION_GUIDE = 8,
+	COMPLETE = 9,
 }
 
 export interface OnboardingState {
@@ -130,39 +132,52 @@ export class OnboardingController {
 		// Determine next step based on current step and state
 		switch (currentStep) {
 			case OnboardingStep.INTRO:
+				nextStep = OnboardingStep.MODE_SELECT;
+				break;
+
+			case OnboardingStep.MODE_SELECT:
+				if (this.state.uiMode === 'fluent') {
+					// Go directly to Fluent components when Fluent mode is selected
+					nextStep = OnboardingStep.FLUENT_COMPONENTS;
+				} else {
+					// Legacy mode: check for existing changes
+					if (this.state.userHasChanges) {
+						nextStep = OnboardingStep.SETTINGS_CHECK;
+					} else {
+						nextStep = OnboardingStep.USER_LEVEL_SELECT;
+					}
+				}
+				break;
+
+			case OnboardingStep.FLUENT_PLACEMENT:
+				nextStep = OnboardingStep.FLUENT_COMPONENTS;
+				break;
+
+			case OnboardingStep.FLUENT_COMPONENTS:
 				// Check if user has changes
 				if (this.state.userHasChanges) {
 					nextStep = OnboardingStep.SETTINGS_CHECK;
-				} else if (this.state.uiMode === 'fluent') {
-					nextStep = OnboardingStep.FLUENT_PLACEMENT;
 				} else {
 					nextStep = OnboardingStep.USER_LEVEL_SELECT;
 				}
 				break;
 
 			case OnboardingStep.SETTINGS_CHECK:
-				// User decided to continue, go to appropriate step
-				if (this.state.uiMode === 'fluent') {
-					nextStep = OnboardingStep.FLUENT_PLACEMENT;
-				} else {
+				// User decided to continue wizard
+				if (this.state.settingsCheckAction === 'wizard') {
 					nextStep = OnboardingStep.USER_LEVEL_SELECT;
-				}
-				break;
-
-			case OnboardingStep.MODE_SELECT:
-				// Legacy step, kept for backward compatibility
-				if (this.state.uiMode === 'fluent') {
-					nextStep = OnboardingStep.FLUENT_PLACEMENT;
 				} else {
-					nextStep = OnboardingStep.USER_LEVEL_SELECT;
+					// User chose to keep settings, exit onboarding
+					this.emit('completed', { step: currentStep });
+					return true;
 				}
-				break;
-
-			case OnboardingStep.FLUENT_PLACEMENT:
-				nextStep = OnboardingStep.USER_LEVEL_SELECT;
 				break;
 
 			case OnboardingStep.USER_LEVEL_SELECT:
+				nextStep = OnboardingStep.FILE_FILTER;
+				break;
+
+			case OnboardingStep.FILE_FILTER:
 				nextStep = OnboardingStep.CONFIG_PREVIEW;
 				break;
 
@@ -208,33 +223,44 @@ export class OnboardingController {
 
 		// Determine previous step based on current step and state
 		switch (currentStep) {
-			case OnboardingStep.SETTINGS_CHECK:
-				prevStep = OnboardingStep.INTRO;
-				break;
-
 			case OnboardingStep.MODE_SELECT:
-				if (this.state.userHasChanges) {
-					prevStep = OnboardingStep.SETTINGS_CHECK;
-				} else {
-					prevStep = OnboardingStep.INTRO;
-				}
+				prevStep = OnboardingStep.INTRO;
 				break;
 
 			case OnboardingStep.FLUENT_PLACEMENT:
-				prevStep = OnboardingStep.INTRO;
+				prevStep = OnboardingStep.MODE_SELECT;
 				break;
 
-			case OnboardingStep.USER_LEVEL_SELECT:
-				// Go back based on UI mode
+			case OnboardingStep.FLUENT_COMPONENTS:
+				prevStep = OnboardingStep.MODE_SELECT;
+				break;
+
+			case OnboardingStep.SETTINGS_CHECK:
+				// Go back to components or mode select based on UI mode
 				if (this.state.uiMode === 'fluent') {
-					prevStep = OnboardingStep.FLUENT_PLACEMENT;
+					prevStep = OnboardingStep.FLUENT_COMPONENTS;
 				} else {
-					prevStep = OnboardingStep.INTRO;
+					prevStep = OnboardingStep.MODE_SELECT;
 				}
 				break;
 
-			case OnboardingStep.CONFIG_PREVIEW:
+			case OnboardingStep.USER_LEVEL_SELECT:
+				// Go back based on whether we went through settings check
+				if (this.state.userHasChanges && this.state.settingsCheckAction === 'wizard') {
+					prevStep = OnboardingStep.SETTINGS_CHECK;
+				} else if (this.state.uiMode === 'fluent') {
+					prevStep = OnboardingStep.FLUENT_COMPONENTS;
+				} else {
+					prevStep = OnboardingStep.MODE_SELECT;
+				}
+				break;
+
+			case OnboardingStep.FILE_FILTER:
 				prevStep = OnboardingStep.USER_LEVEL_SELECT;
+				break;
+
+			case OnboardingStep.CONFIG_PREVIEW:
+				prevStep = OnboardingStep.FILE_FILTER;
 				break;
 
 			case OnboardingStep.TASK_CREATION_GUIDE:
@@ -281,6 +307,10 @@ export class OnboardingController {
 	private validateCurrentStep(): boolean {
 		switch (this.state.currentStep) {
 			case OnboardingStep.INTRO:
+				// Can always proceed from intro
+				return true;
+
+			case OnboardingStep.MODE_SELECT:
 				// Must have UI mode selected
 				return !!this.state.uiMode;
 
@@ -292,8 +322,9 @@ export class OnboardingController {
 				// Must have a config selected
 				return !!this.state.selectedConfig;
 
-			case OnboardingStep.MODE_SELECT:
 			case OnboardingStep.FLUENT_PLACEMENT:
+			case OnboardingStep.FLUENT_COMPONENTS:
+			case OnboardingStep.FILE_FILTER:
 			case OnboardingStep.CONFIG_PREVIEW:
 			case OnboardingStep.TASK_CREATION_GUIDE:
 			case OnboardingStep.COMPLETE:
@@ -322,7 +353,9 @@ export class OnboardingController {
 	canSkip(): boolean {
 		return (
 			this.state.currentStep === OnboardingStep.INTRO ||
-			this.state.currentStep === OnboardingStep.SETTINGS_CHECK
+			this.state.currentStep === OnboardingStep.MODE_SELECT ||
+			this.state.currentStep === OnboardingStep.SETTINGS_CHECK ||
+			this.state.currentStep === OnboardingStep.FILE_FILTER
 		);
 	}
 

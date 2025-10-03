@@ -181,6 +181,10 @@ export class OnboardingLayout {
 	 * Clear header content
 	 */
 	clearHeader() {
+		// Remove all children and event listeners
+		while (this.headerEl.firstChild) {
+			this.headerEl.removeChild(this.headerEl.firstChild);
+		}
 		this.headerEl.empty();
 	}
 
@@ -188,6 +192,10 @@ export class OnboardingLayout {
 	 * Clear content
 	 */
 	clearContent() {
+		// Remove all children and event listeners
+		while (this.contentEl.firstChild) {
+			this.contentEl.removeChild(this.contentEl.firstChild);
+		}
 		this.contentEl.empty();
 	}
 

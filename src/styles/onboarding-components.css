@@ -1,0 +1,221 @@
+/* Onboarding Component Previews Styles */
+
+/* Component showcase container */
+.component-showcase {
+	display: flex;
+	gap: var(--size-4-6);
+	margin: var(--size-4-4) 0;
+	min-height: 400px;
+}
+
+.component-showcase-preview {
+	flex: 1;
+	background: var(--background-secondary);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-4);
+	overflow: hidden;
+	position: relative;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.component-showcase-description {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-3);
+}
+
+.component-showcase-description h3 {
+	margin: 0;
+	color: var(--text-normal);
+	font-size: var(--font-ui-large);
+}
+
+.component-showcase-description p {
+	margin: 0;
+	color: var(--text-muted);
+	line-height: 1.6;
+}
+
+.component-feature-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+}
+
+.component-feature-list li {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--size-4-2);
+	color: var(--text-normal);
+}
+
+.component-feature-list li::before {
+	content: "✓";
+	color: var(--interactive-accent);
+	font-weight: bold;
+	flex-shrink: 0;
+}
+
+/* Component preview adjustments */
+.component-preview {
+	pointer-events: none;
+	user-select: none;
+	transform-origin: top left;
+}
+
+/* Scale down previews to fit */
+.component-preview-sidebar {
+	max-width: 300px;
+	transform: scale(0.85);
+}
+
+.component-preview-topnav {
+	transform: scale(0.9);
+}
+
+.component-preview-content {
+	transform: scale(0.9);
+}
+
+.component-preview-popover {
+	max-width: 350px;
+	transform: scale(0.9);
+}
+
+/* Disable interactions in previews */
+.component-preview input,
+.component-preview button,
+.component-preview .clickable-icon {
+	pointer-events: none;
+	cursor: default;
+}
+
+/* Component tabs for switching views */
+.component-tabs {
+	display: flex;
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-4-4);
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding-bottom: var(--size-4-2);
+}
+
+.component-tab {
+	padding: var(--size-4-2) var(--size-4-4);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	transition: all 0.2s ease;
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+.component-tab:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.component-tab.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+/* Multiple component showcase */
+.components-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--size-4-8);
+	margin-top: var(--size-4-6);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.component-showcase {
+		flex-direction: column;
+	}
+
+	.component-showcase-preview {
+		min-height: 300px;
+	}
+
+	.component-preview {
+		transform: scale(0.75);
+	}
+}
+
+/* File filter preview styles */
+.file-filter-preview {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-4);
+}
+
+.file-filter-config {
+	background: var(--background-primary);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-4);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.file-filter-stats-preview {
+	display: flex;
+	gap: var(--size-4-4);
+	padding: var(--size-4-3);
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+}
+
+.filter-stat-item {
+	flex: 1;
+	text-align: center;
+}
+
+.filter-stat-value {
+	font-size: var(--font-ui-larger);
+	font-weight: 600;
+	color: var(--text-accent);
+	display: block;
+}
+
+.filter-stat-label {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	display: block;
+	margin-top: var(--size-4-1);
+}
+
+/* Recommended configs */
+.recommended-configs {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+	margin-top: var(--size-4-4);
+}
+
+.recommended-config-item {
+	padding: var(--size-4-3);
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	border: 1px solid var(--background-modifier-border);
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.recommended-config-item:hover {
+	background: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+}
+
+.recommended-config-item h4 {
+	margin: 0 0 var(--size-4-2) 0;
+	color: var(--text-normal);
+	font-size: var(--font-ui-medium);
+}
+
+.recommended-config-item p {
+	margin: 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}

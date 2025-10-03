@@ -517,6 +517,8 @@
 /* ============================== */
 
 .onboarding-view .config-overview {
+	width: 100%;
+	max-width: 800px;
 	margin-bottom: var(--onboarding-spacing);
 }
 
@@ -526,6 +528,20 @@
 }
 
 .onboarding-view .config-settings {
+	width: 100%;
+	max-width: 800px;
+	margin-bottom: var(--onboarding-spacing);
+}
+
+.onboarding-view .config-features {
+	width: 100%;
+	max-width: 800px;
+	margin-bottom: var(--onboarding-spacing);
+}
+
+.onboarding-view .config-views {
+	width: 100%;
+	max-width: 800px;
 	margin-bottom: var(--onboarding-spacing);
 }
 
@@ -609,10 +625,14 @@
 }
 
 .onboarding-view .config-options {
+	width: 100%;
+	max-width: 800px;
 	margin-top: var(--onboarding-spacing);
 }
 
 .onboarding-view .customization-note {
+	width: 100%;
+	max-width: 800px;
 	text-align: center;
 	padding: var(--size-4-3);
 	background: var(--background-secondary);
@@ -628,6 +648,8 @@
 
 /* Configuration Changes Preview */
 .onboarding-view .config-changes-summary {
+	width: 100%;
+	max-width: 800px;
 	margin: var(--onboarding-spacing) 0;
 	padding: var(--size-4-3);
 	background: var(--background-secondary);

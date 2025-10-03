@@ -1,8 +1,7 @@
 import { t } from "@/translations/helper";
-import { OnboardingController } from "../OnboardingController";
+import { OnboardingController, OnboardingStep } from "../OnboardingController";
 import { TypingAnimation } from "./intro/TypingAnimation";
 import { TransitionMessage } from "./intro/TransitionMessage";
-import { ModeSelectionStep } from "./ModeSelectionStep";
 
 /**
  * Intro Step - Welcome message with typing animation + mode selection
@@ -78,41 +77,9 @@ export class IntroStep {
 
 		// Start typing animation
 		const typing = new TypingAnimation(typingContainer, messages, () => {
-			// On complete, show mode selection in the same container
-			const modeContainer = typingContainer.createDiv({
-				cls: "intro-mode-selection-container",
-			});
-
-			// Render mode selection inline
-			const modeHeader = modeContainer.createDiv();
-			const modeContent = modeContainer.createDiv();
-
-			ModeSelectionStep.render(modeHeader, modeContent, controller);
-
-			// Show footer with Next and Skip buttons
-			// (Next button will be disabled until mode is selected)
+			// Reveal footer and transition to proper MODE_SELECT step instead of rendering inline
 			footerEl.style.display = "";
-
-			// Listen for mode selection changes
-			controller.on("state-updated", (event) => {
-				const state = controller.getState();
-
-				// When UI mode is selected, show transition message
-				if (
-					state.uiMode &&
-					event.state?.uiMode !== undefined &&
-					transitionContainer.children.length === 0
-				) {
-					// Get appropriate message
-					const message = TransitionMessage.getMessage(
-						state.uiMode,
-						state.userHasChanges
-					);
-
-					// Show transition message with slight delay
-					new TransitionMessage(transitionContainer, message, 300);
-				}
-			});
+			controller.setStep(OnboardingStep.MODE_SELECT);
 		});
 	}
 

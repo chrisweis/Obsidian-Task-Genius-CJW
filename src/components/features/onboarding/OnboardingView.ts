@@ -10,7 +10,9 @@ import { OnboardingLayout } from "./OnboardingLayout";
 import { IntroStep } from "./steps/IntroStep";
 import { ModeSelectionStep } from "./steps/ModeSelectionStep";
 import { PlacementStep } from "./steps/PlacementStep";
+import { FluentComponentsStep } from "./steps/FluentComponentsStep";
 import { UserLevelStep } from "./steps/UserLevelStep";
+import { FileFilterStep } from "./steps/FileFilterStep";
 import { ConfigPreviewStep } from "./steps/ConfigPreviewStep";
 import { TaskGuideStep } from "./steps/TaskGuideStep";
 import { CompleteStep } from "./steps/CompleteStep";
@@ -117,74 +119,91 @@ export class OnboardingView extends ItemView {
 	 */
 	private renderCurrentStep() {
 		const step = this.controller.getCurrentStep();
+		console.log("Rendering step:", OnboardingStep[step]);
 
-		// Clear header and content
+		// Clear header and content - ensure complete clearing
 		this.layout.clearHeader();
 		this.layout.clearContent();
 
-		// Get header and content elements
-		const headerEl = this.layout.getHeaderElement();
-		const contentEl = this.layout.getContentElement();
-		const footerEl = this.layout.getFooterElement();
+		// Force DOM update by using requestAnimationFrame
+		requestAnimationFrame(() => {
+			// Get header and content elements
+			const headerEl = this.layout.getHeaderElement();
+			const contentEl = this.layout.getContentElement();
+			const footerEl = this.layout.getFooterElement();
 
-		// Render appropriate step
-		switch (step) {
-			case OnboardingStep.INTRO:
-				IntroStep.render(
-					headerEl,
-					contentEl,
-					footerEl,
-					this.controller
-				);
-				break;
+			// Render appropriate step
+			switch (step) {
+				case OnboardingStep.INTRO:
+					IntroStep.render(
+						headerEl,
+						contentEl,
+						footerEl,
+						this.controller
+					);
+					break;
 
-			case OnboardingStep.MODE_SELECT:
-				ModeSelectionStep.render(headerEl, contentEl, this.controller);
-				break;
+				case OnboardingStep.MODE_SELECT:
+					ModeSelectionStep.render(headerEl, contentEl, this.controller);
+					break;
 
-			case OnboardingStep.FLUENT_PLACEMENT:
-				PlacementStep.render(headerEl, contentEl, this.controller);
-				break;
+				case OnboardingStep.FLUENT_PLACEMENT:
+					PlacementStep.render(headerEl, contentEl, this.controller);
+					break;
 
-			case OnboardingStep.USER_LEVEL_SELECT:
-				UserLevelStep.render(
-					headerEl,
-					contentEl,
-					this.controller,
-					this.configManager
-				);
-				break;
+				case OnboardingStep.FLUENT_COMPONENTS:
+					FluentComponentsStep.render(headerEl, contentEl, this.controller);
+					break;
 
-			case OnboardingStep.CONFIG_PREVIEW:
-				ConfigPreviewStep.render(
-					headerEl,
-					contentEl,
-					this.controller,
-					this.configManager
-				);
-				break;
+				case OnboardingStep.SETTINGS_CHECK:
+					SettingsCheckStep.render(
+						headerEl,
+						contentEl,
+						this.controller
+					);
+					break;
 
-			case OnboardingStep.TASK_CREATION_GUIDE:
-				TaskGuideStep.render(
-					headerEl,
-					contentEl,
-					this.controller,
-					this.plugin
-				);
-				break;
+				case OnboardingStep.USER_LEVEL_SELECT:
+					UserLevelStep.render(
+						headerEl,
+						contentEl,
+						this.controller,
+						this.configManager
+					);
+					break;
 
-			case OnboardingStep.COMPLETE:
-				CompleteStep.render(headerEl, contentEl, this.controller);
-				break;
+				case OnboardingStep.FILE_FILTER:
+					FileFilterStep.render(
+						headerEl,
+						contentEl,
+						this.controller,
+						this.plugin
+					);
+					break;
 
-			case OnboardingStep.SETTINGS_CHECK:
-				SettingsCheckStep.render(
-					headerEl,
-					contentEl,
-					this.controller
-				);
-				break;
-		}
+				case OnboardingStep.CONFIG_PREVIEW:
+					ConfigPreviewStep.render(
+						headerEl,
+						contentEl,
+						this.controller,
+						this.configManager
+					);
+					break;
+
+				case OnboardingStep.TASK_CREATION_GUIDE:
+					TaskGuideStep.render(
+						headerEl,
+						contentEl,
+						this.controller,
+						this.plugin
+					);
+					break;
+
+				case OnboardingStep.COMPLETE:
+					CompleteStep.render(headerEl, contentEl, this.controller);
+					break;
+			}
+		});
 	}
 
 	/**
@@ -194,10 +213,15 @@ export class OnboardingView extends ItemView {
 		const step = this.controller.getCurrentStep();
 		const state = this.controller.getState();
 
+		console.log("handleNext - Current step:", OnboardingStep[step]);
+		console.log("handleNext - UI Mode:", state.uiMode);
+		console.log("handleNext - User has changes:", state.userHasChanges);
+
 		// Special handling for INTRO step - show config check transition
 		if (step === OnboardingStep.INTRO) {
 			// If user has changes, show checking animation before settings check
 			if (state.userHasChanges) {
+				console.log("Showing config check transition from INTRO");
 				await this.showConfigCheckTransition();
 			}
 		}
@@ -232,7 +256,9 @@ export class OnboardingView extends ItemView {
 		}
 
 		// Navigate to next step
-		await this.controller.next();
+		const success = await this.controller.next();
+		console.log("handleNext - Navigation result:", success);
+		console.log("handleNext - New step:", OnboardingStep[this.controller.getCurrentStep()]);
 	}
 
 	/**
