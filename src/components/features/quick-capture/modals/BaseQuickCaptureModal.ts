@@ -468,39 +468,54 @@ export abstract class BaseQuickCaptureModal extends Modal {
 				);
 			}
 			// Inject frontmatter (and tags) for File mode
-			const useTemplate =
-				!!this.plugin.settings.quickCapture.createFileMode?.useTemplate;
-			const hasFrontmatter = processedContent
-				.trimStart()
-				.startsWith("---");
+			const useTemplate = !!this.plugin.settings.quickCapture.createFileMode?.useTemplate;
+			const hasFrontmatter = processedContent.trimStart().startsWith("---");
 			if (useTemplate) {
 				// Only ensure frontmatter exists
 				if (!hasFrontmatter) {
-					processedContent = `---\nstatus: \" \"\n---\n\n${processedContent}`;
+					processedContent = `---\nstatus: ${JSON.stringify(this.mapStatusToText(this.taskMetadata.status))}\n---\n\n${processedContent}`;
 				}
 			} else {
-				// Inject minimal frontmatter; include tags only if FileSource tag recognition is enabled and configured
+				// Build full frontmatter only when none exists
 				if (!hasFrontmatter) {
-					const tagCfg =
-						this.plugin.settings?.fileSource?.recognitionStrategies
-							?.tags;
-					const tagRecogEnabled = !!tagCfg?.enabled;
-					const userTags: string[] = Array.isArray(tagCfg?.taskTags)
-						? tagCfg!.taskTags
-						: [];
-					const yamlTags = userTags
-						.map((t) =>
-							typeof t === "string" ? t.replace(/^#/, "") : ""
-						)
-						.filter((t) => !!t);
-					if (tagRecogEnabled && yamlTags.length > 0) {
-						const tagsLine = `tags: [${yamlTags
-							.map((t) => JSON.stringify(t))
-							.join(", ")}]`;
-						processedContent = `---\nstatus: \" \"\n${tagsLine}\n---\n\n${processedContent}`;
-					} else {
-						processedContent = `---\nstatus: \" \"\n---\n\n${processedContent}`;
+					// Status -> textual metadata
+					const statusText = this.mapStatusToText(this.taskMetadata.status);
+					// Dates
+					const startDate = this.taskMetadata.startDate
+						? this.formatDate(this.taskMetadata.startDate)
+						: undefined;
+					const dueDate = this.taskMetadata.dueDate
+						? this.formatDate(this.taskMetadata.dueDate)
+						: undefined;
+					const scheduledDate = this.taskMetadata.scheduledDate
+						? this.formatDate(this.taskMetadata.scheduledDate)
+						: undefined;
+					// Priority/project/context
+					const priorityVal =
+						this.taskMetadata.priority !== undefined && this.taskMetadata.priority !== null
+							? String(this.taskMetadata.priority)
+							: undefined;
+					const projectVal = this.taskMetadata.project || undefined;
+					const contextVal = this.taskMetadata.context || undefined;
+					// Repeat from recurrence
+					const repeatVal = this.taskMetadata.recurrence || undefined;
+					// Tags: do not use recognition config at creation; only write content tags when enabled
+					const writeContentTags = !!this.plugin.settings.quickCapture.createFileMode?.writeContentTagsToFrontmatter;
+					const mergedTags = writeContentTags ? this.extractTagsFromContentForFrontmatter(content) : [];
+					// Build YAML lines
+					const yamlLines: string[] = [];
+					yamlLines.push(`status: ${JSON.stringify(statusText)}`);
+					if (dueDate) yamlLines.push(`dueDate: ${JSON.stringify(dueDate)}`);
+					if (startDate) yamlLines.push(`startDate: ${JSON.stringify(startDate)}`);
+					if (scheduledDate) yamlLines.push(`scheduledDate: ${JSON.stringify(scheduledDate)}`);
+					if (priorityVal) yamlLines.push(`priority: ${JSON.stringify(priorityVal)}`);
+					if (projectVal) yamlLines.push(`project: ${JSON.stringify(projectVal)}`);
+					if (contextVal) yamlLines.push(`context: ${JSON.stringify(contextVal)}`);
+					if (repeatVal) yamlLines.push(`repeat: ${JSON.stringify(repeatVal)}`);
+					if (mergedTags.length > 0) {
+						yamlLines.push(`tags: [${mergedTags.map((t) => JSON.stringify(t)).join(", ")}]`);
 					}
+					processedContent = `---\n${yamlLines.join("\n")}\n---\n\n${processedContent}`;
 				}
 			}
 		}
@@ -581,6 +596,46 @@ export abstract class BaseQuickCaptureModal extends Modal {
 	/**
 	 * Sanitize filename
 	 */
+
+		/**
+		 * Map UI status (symbol or text) to textual metadata
+		 */
+		protected mapStatusToText(status?: string): string {
+			if (!status) return "not-started";
+			if (status.length > 1) return status; // already textual
+			switch (status) {
+				case "x":
+				case "X":
+					return "completed";
+				case "/":
+				case ">":
+					return "in-progress";
+				case "?":
+					return "planned";
+				case "-":
+					return "cancelled";
+				case " ":
+				default:
+					return "not-started";
+			}
+		}
+
+		/**
+		 * Extract #tags from content for frontmatter tags array
+		 * Simple regex scan; remove leading '#', dedupe
+		 */
+		protected extractTagsFromContentForFrontmatter(content: string): string[] {
+			if (!content) return [];
+			const tagRegex = /(^|\s)#([A-Za-z0-9_\/-]+)/g;
+			const results = new Set<string>();
+			let match: RegExpExecArray | null;
+			while ((match = tagRegex.exec(content)) !== null) {
+				const tag = match[2];
+				if (tag) results.add(tag);
+			}
+			return Array.from(results);
+		}
+
 	protected sanitizeFilename(filename: string): string {
 		return filename
 			.replace(/[<>:"|*?\\]/g, "-")

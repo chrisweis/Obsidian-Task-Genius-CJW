@@ -27,7 +27,6 @@ export class FluentOverviewStep {
     ComponentPreviewFactory.createSidebarPreview(sidebarWrap);
 
     const topNavWrap = preview.createDiv();
-    (topNavWrap as HTMLElement).style.marginTop = "16px";
     ComponentPreviewFactory.createTopNavigationPreview(topNavWrap);
 
     desc.createEl("h3", { text: t("Fluent Layout Overview") });

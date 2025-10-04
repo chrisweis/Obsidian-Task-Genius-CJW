@@ -850,6 +850,9 @@ export class FileSource {
 			);
 		}
 
+
+			// TODO: Future enhancement - read frontmatter.repeat and map into FileSourceTaskMetadata (e.g., as recurrence)
+
 		// Extract standard task metadata
 		const metadata: Partial<FileSourceTaskMetadata> = {
 			dueDate: this.parseDate(frontmatter.dueDate || frontmatter.due),

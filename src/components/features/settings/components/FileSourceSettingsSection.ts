@@ -383,7 +383,6 @@ function createRecognitionStrategiesSection(
 
 		// Add examples based on current mode
 		const examples = pathContainer.createDiv("setting-item-description");
-		examples.style.marginTop = "10px";
 
 		const currentMode = config.recognitionStrategies.paths.matchMode;
 		let exampleText = "";

@@ -351,6 +351,24 @@ export function renderQuickCaptureSettingsTab(
 				})
 		);
 
+		// Write content tags (#tags) to frontmatter
+		new Setting(containerEl)
+			.setName(t("Write content tags to frontmatter"))
+			.setDesc(
+				t(
+					"If enabled, #tags in the editor content are written into YAML frontmatter tags (merged and deduplicated)"
+				)
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(createFileMode.writeContentTagsToFrontmatter || false)
+					.onChange(async (value) => {
+						createFileMode.writeContentTagsToFrontmatter = value;
+						settingTab.applySettingsUpdate();
+					})
+			);
+
+
 	// Default file name template (File mode)
 	new Setting(containerEl)
 		.setName(t("Default file name template"))

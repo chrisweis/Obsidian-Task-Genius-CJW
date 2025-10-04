@@ -308,6 +308,7 @@ export interface QuickCaptureSettings {
 		defaultFolder: string; // Default folder for file creation
 		useTemplate: boolean; // Whether to use a template for new files
 		templateFile: string; // Template file path
+		writeContentTagsToFrontmatter?: boolean; // When true, write #tags from content into frontmatter.tags (merged, deduped)
 	};
 }
 
@@ -992,6 +993,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			defaultFolder: "",
 			useTemplate: false,
 			templateFile: "",
+			writeContentTagsToFrontmatter: false,
 		},
 	},
 
