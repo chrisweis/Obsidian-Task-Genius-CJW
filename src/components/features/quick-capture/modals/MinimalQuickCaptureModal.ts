@@ -13,7 +13,7 @@ import {
 	EmbeddableMarkdownEditor,
 } from "@/editor-extensions/core/markdown-editor";
 import TaskProgressBarPlugin from "@/index";
-import { saveCapture } from "@/utils/file/file-operations";
+import { saveCapture, processDateTemplates } from "@/utils/file/file-operations";
 import { t } from "@/translations/helper";
 import { MinimalQuickCaptureSuggest } from "@/components/features/quick-capture/suggest/MinimalQuickCaptureSuggest";
 import {
@@ -22,6 +22,9 @@ import {
 } from "@/components/ui/suggest";
 import { ConfigurableTaskParser } from "@/dataflow/core/ConfigurableTaskParser";
 import { clearAllMarks } from "@/components/ui/renderers/MarkdownRenderer";
+import { FileNameInput } from "../components/FileNameInput";
+
+const LAST_USED_MODE_KEY = "task-genius.lastUsedQuickCaptureMode";
 
 interface TaskMetadata {
 	startDate?: Date;
@@ -41,11 +44,17 @@ export class MinimalQuickCaptureModal extends Modal {
 	capturedContent: string = "";
 	taskMetadata: TaskMetadata = {};
 
+	// Mode: 'checkbox' or 'file'
+	private currentMode: "checkbox" | "file" = "checkbox";
+
 	// UI Elements
 	private dateButton: HTMLButtonElement | null = null;
 	private priorityButton: HTMLButtonElement | null = null;
 	private locationButton: HTMLButtonElement | null = null;
 	private tagButton: HTMLButtonElement | null = null;
+	private modeTabsContainer: HTMLElement | null = null;
+	private fileNameSection: HTMLElement | null = null;
+	private fileNameInput: FileNameInput | null = null;
 
 	// Suggest instances
 	private minimalSuggest: MinimalQuickCaptureSuggest;
@@ -59,6 +68,12 @@ export class MinimalQuickCaptureModal extends Modal {
 
 		// Initialize suggest manager
 		this.suggestManager = new SuggestManager(app, plugin);
+
+		// Load last used mode from local storage
+		try {
+			const stored = this.app.loadLocalStorage(LAST_USED_MODE_KEY) as string | null;
+			if (stored === "checkbox" || stored === "file") this.currentMode = stored;
+		} catch {}
 
 		// Initialize default metadata with fallback
 		const minimalSettings =
@@ -131,6 +146,35 @@ export class MinimalQuickCaptureModal extends Modal {
 		// Title
 		this.titleEl.setText(t("Minimal Quick Capture"));
 
+		// Mode tabs (checkbox | file)
+		this.modeTabsContainer = contentEl.createDiv({ cls: "quick-capture-minimal-tabs" });
+		const tabCheckbox = this.modeTabsContainer.createEl("button", { text: t("Task"), cls: "tab-btn" });
+		const tabFile = this.modeTabsContainer.createEl("button", { text: t("File"), cls: "tab-btn" });
+		const refreshTabs = () => {
+			if (this.currentMode === "checkbox") {
+				tabCheckbox.addClass("active");
+				tabFile.removeClass("active");
+			} else {
+				tabFile.addClass("active");
+				tabCheckbox.removeClass("active");
+			}
+			this.updateModeUI();
+		};
+		tabCheckbox.addEventListener("click", () => {
+			this.currentMode = "checkbox";
+			try { this.app.saveLocalStorage(LAST_USED_MODE_KEY, "checkbox"); } catch {}
+			refreshTabs();
+		});
+		tabFile.addEventListener("click", () => {
+			this.currentMode = "file";
+			try { this.app.saveLocalStorage(LAST_USED_MODE_KEY, "file"); } catch {}
+			refreshTabs();
+		});
+		refreshTabs();
+
+		// Optional file name section (only for file mode)
+		this.fileNameSection = contentEl.createDiv({ cls: "quick-capture-minimal-filename" });
+
 		// Editor container
 		const editorContainer = contentEl.createDiv({
 			cls: "quick-capture-minimal-editor-container",
@@ -147,13 +191,68 @@ export class MinimalQuickCaptureModal extends Modal {
 		this.createMainButtons(buttonsContainer);
 	}
 
+
+		private updateModeUI() {
+			if (!this.fileNameSection) return;
+			this.fileNameSection.empty();
+			if (this.currentMode === "file") {
+				this.fileNameSection.createDiv({ text: t("Capture as:"), cls: "quick-capture-section-title" });
+				if (this.fileNameInput) {
+					this.fileNameInput.destroy();
+					this.fileNameInput = null;
+				}
+				this.fileNameInput = new FileNameInput(this.app, this.fileNameSection, {
+					placeholder: t("Enter file name..."),
+					defaultValue:
+						this.plugin.settings.quickCapture.defaultFileNameTemplate ||
+						"{{DATE:YYYY-MM-DD}} - ",
+					currentFolder:
+						this.plugin.settings.quickCapture.createFileMode?.defaultFolder,
+					onChange: (value) => {
+						this.taskMetadata.targetFile = undefined; // not used in file mode
+						(this.taskMetadata as any).customFileName = value;
+					},
+				});
+			} else {
+				if (this.fileNameInput) {
+					this.fileNameInput.destroy();
+					this.fileNameInput = null;
+				}
+			}
+		}
+
+		/** Extract #tags from content for frontmatter */
+		private extractTagsFromContentForFrontmatter(content: string): string[] {
+			if (!content) return [];
+			const tagRegex = /(^|\s)#([A-Za-z0-9_\/-]+)/g;
+			const results = new Set<string>();
+			let match: RegExpExecArray | null;
+			while ((match = tagRegex.exec(content)) !== null) {
+				const tag = match[2];
+				if (tag) results.add(tag);
+			}
+			return Array.from(results);
+		}
+
+		private sanitizeFilename(filename: string): string {
+			return filename.replace(/[<>:"|*?\\]/g, "-").replace(/\s+/g, " ").trim();
+		}
+
+		private sanitizeFilePath(filePath: string): string {
+			const parts = filePath.split("/");
+			const sanitized = parts.map((part, idx) =>
+				idx === parts.length - 1 ? this.sanitizeFilename(part) : part.replace(/[<>:"|*?\\]/g, "-").replace(/\s+/g, " ").trim()
+			);
+			return sanitized.join("/");
+		}
+
 	private setupMarkdownEditor(container: HTMLElement) {
 		setTimeout(() => {
 			this.markdownEditor = createEmbeddableMarkdownEditor(
 				this.app,
 				container,
 				{
-					placeholder: t("Enter your task..."),
+					placeholder: this.currentMode === "file" ? t("Enter file content...") : t("Enter your task..."),
 					singleLine: true, // Single line mode
 
 					onEnter: (editor, mod, shift) => {
@@ -545,16 +644,69 @@ export class MinimalQuickCaptureModal extends Modal {
 		}
 
 		try {
-			// Process content
-			let processedContent = this.processMinimalContent(content);
-			processedContent = this.addMetadataToContent(processedContent);
+			let processedContent = content;
 
-			// Save options
+			if (this.currentMode === "checkbox") {
+				// Task (checkbox) mode: wrap and add inline metadata
+				processedContent = this.processMinimalContent(content);
+				processedContent = this.addMetadataToContent(processedContent);
+
+				const captureOptions = {
+					...this.plugin.settings.quickCapture,
+					targetFile: this.taskMetadata.targetFile || this.getTargetFile(),
+					targetType: (this.taskMetadata.location || "fixed") as "fixed" | "daily-note" | "custom-file",
+				};
+				await saveCapture(this.app, processedContent, captureOptions);
+				new Notice(t("Captured successfully"));
+				this.close();
+				return;
+			}
+
+			// File mode: save as a new file (replace content) with frontmatter mirror logic
+			const useTemplate = !!this.plugin.settings.quickCapture.createFileMode?.useTemplate;
+			const hasFrontmatter = processedContent.trimStart().startsWith("---");
+			if (useTemplate) {
+				if (!hasFrontmatter) {
+					processedContent = `---\nstatus: ${JSON.stringify("not-started")}\n---\n\n${processedContent}`;
+				}
+			} else {
+				if (!hasFrontmatter) {
+					const yamlLines: string[] = [];
+					yamlLines.push(`status: ${JSON.stringify("not-started")}`);
+					if (this.taskMetadata.dueDate) {
+						yamlLines.push(`dueDate: ${JSON.stringify(this.formatDate(this.taskMetadata.dueDate))}`);
+					}
+					if (this.taskMetadata.priority != null) {
+						yamlLines.push(`priority: ${JSON.stringify(String(this.taskMetadata.priority))}`);
+					}
+					const writeContentTags = !!this.plugin.settings.quickCapture.createFileMode?.writeContentTagsToFrontmatter;
+					if (writeContentTags) {
+						const tags = this.extractTagsFromContentForFrontmatter(content);
+						if (tags.length > 0) {
+							yamlLines.push(`tags: [${tags.map((t) => JSON.stringify(t)).join(", ")}]`);
+						}
+					}
+					processedContent = `---\n${yamlLines.join("\n")}\n---\n\n${processedContent}`;
+				}
+			}
+
+			// Build target file path
+			let targetFilePath = (this.taskMetadata as any).customFileName as string | undefined;
+			if (!targetFilePath || !targetFilePath.trim()) {
+				targetFilePath = this.plugin.settings.quickCapture.defaultFileNameTemplate || "{{DATE:YYYY-MM-DD}} - ";
+			}
+			targetFilePath = processDateTemplates(targetFilePath);
+			if (!targetFilePath.endsWith(".md")) targetFilePath += ".md";
+			const defaultFolder = this.plugin.settings.quickCapture.createFileMode?.defaultFolder?.trim();
+			if (defaultFolder && !targetFilePath.includes("/")) {
+				targetFilePath = this.sanitizeFilePath(`${defaultFolder}/${targetFilePath}`);
+			}
+
 			const captureOptions = {
 				...this.plugin.settings.quickCapture,
-				targetFile:
-					this.taskMetadata.targetFile || this.getTargetFile(),
-				targetType: this.taskMetadata.location || "fixed",
+				targetFile: targetFilePath,
+				targetType: "fixed" as const,
+				appendToFile: "replace" as const,
 			};
 
 			await saveCapture(this.app, processedContent, captureOptions);

@@ -49,6 +49,7 @@ export interface TaskMetadata {
  * Base class for all Quick Capture modals
  * Provides shared functionality and state management
  */
+const LAST_USED_MODE_KEY = "task-genius.lastUsedQuickCaptureMode";
 export abstract class BaseQuickCaptureModal extends Modal {
 	plugin: TaskProgressBarPlugin;
 	protected markdownEditor: EmbeddableMarkdownEditor | null = null;
@@ -320,6 +321,8 @@ export abstract class BaseQuickCaptureModal extends Modal {
 
 		// Update mode
 		this.currentMode = mode;
+		// Persist last used mode to local storage
+		try { this.app.saveLocalStorage(LAST_USED_MODE_KEY, mode); } catch {}
 
 		// Update modal classes
 		this.modalEl.removeClass(

@@ -34,6 +34,8 @@ import {
 } from "./BaseQuickCaptureModal";
 import { FileNameInput } from "../components/FileNameInput";
 
+const LAST_USED_MODE_KEY = "task-genius.lastUsedQuickCaptureMode";
+
 /**
  * Enhanced Quick Capture Modal extending the base class
  */
@@ -68,14 +70,12 @@ export class QuickCaptureModal extends BaseQuickCaptureModal {
 		metadata?: TaskMetadata,
 		useFullFeaturedMode: boolean = false
 	) {
-		// Determine initial mode - default to checkbox (task) mode
+		// Determine initial mode from local storage, default to checkbox
 		let initialMode: QuickCaptureMode = "checkbox";
-		if (
-			plugin.settings.quickCapture.rememberLastMode &&
-			plugin.settings.quickCapture.lastUsedMode
-		) {
-			initialMode = plugin.settings.quickCapture.lastUsedMode;
-		}
+		try {
+			const stored = app.loadLocalStorage(LAST_USED_MODE_KEY) as string | null;
+			if (stored === "checkbox" || stored === "file") initialMode = stored;
+		} catch {}
 
 		super(app, plugin, initialMode, metadata);
 
