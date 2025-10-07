@@ -1,6 +1,5 @@
 /* Quick Capture Enhanced Styles - with shadcn theme */
 
-/* shadcn-inspired theme colors integrated with Task Genius */
 :root {
 	/* Tab component colors */
 	--tg-tab-background: 0 0% 100%;
@@ -8,6 +7,9 @@
 	--tg-tab-muted: 240 4.8% 95.9%;
 	--tg-tab-muted-foreground: 240 3.8% 46.1%;
 	--tg-tab-border: 240 5.9% 90%;
+
+	/* Quick Capture Header background (light) */
+	--tg-qc-header-bg: 0 0% 100%;
 }
 
 .theme-dark {
@@ -16,16 +18,27 @@
 	--tg-tab-muted: 240 3.7% 15.9%;
 	--tg-tab-muted-foreground: 240 5% 64.9%;
 	--tg-tab-border: 240 3.7% 15.9%;
+
+	/* Quick Capture Header background (dark) */
+	--tg-qc-header-bg: 240 4% 10%;
 }
 
-/* Quick Capture Header - shadcn style */
+/* Quick Capture Header - shadcn style, with custom background for header */
 .quick-capture-header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	padding: 12px 16px;
 	border-bottom: 1px solid hsl(var(--tg-tab-border));
-	background: hsl(var(--tg-tab-background));
+	background: hsl(var(--tg-qc-header-bg));
+}
+
+.tg-minimal-capture-modal .quick-capture-header {
+	padding: 4px 8px;
+}
+
+.tg-minimal-capture-modal .model-header {
+	margin-bottom: 0;
 }
 
 /* Quick Capture Tabs - shadcn style */
@@ -52,6 +65,14 @@
 	justify-content: center;
 	white-space: nowrap;
 	position: relative;
+}
+
+.tg-minimal-capture-modal .quick-capture-tab-text {
+	display: none;
+}
+
+.tg-minimal-capture-modal .quick-capture-tab-icon {
+	margin-right: 0;
 }
 
 .quick-capture-tab:hover:not(.active) {
@@ -98,9 +119,9 @@
 }
 
 .quick-capture-clear:hover {
-	background: hsl(var(--tg-tab-muted));
-	color: hsl(var(--tg-tab-foreground));
-	border-color: hsl(var(--tg-tab-muted-foreground));
+	/*background: hsl(var(--tg-tab-muted));*/
+	/*color: hsl(var(--tg-tab-foreground));*/
+	/*border-color: hsl(var(--tg-tab-muted-foreground));*/
 }
 
 /* Quick Capture Content */
@@ -207,15 +228,25 @@
 .quick-capture-modal.quick-capture-checkbox {
 	width: 800px;
 	max-width: 90vw;
-	height: 600px;
+	height: 700px;
 	max-height: 80vh;
+	min-height: fit-content;
 }
 
 .quick-capture-modal.quick-capture-file {
-	width: 700px;
+	width: 800px;
 	max-width: 90vw;
-	height: 500px;
-	max-height: 70vh;
+	height: 750px;
+	max-height: 80vh;
+	min-height: fit-content;
+}
+
+.quick-capture-modal.tg-minimal-capture-modal {
+	width: 600px;
+	max-width: 90vw;
+	height: 300px;
+	max-height: 80vh;
+	min-height: fit-content;
 }
 
 /* Quick Capture Panel */
@@ -268,8 +299,6 @@
 
 /* Minimal Quick Capture Target Display */
 .quick-capture-minimal-target-container {
-	padding: 8px 12px;
-	background: hsl(var(--tg-tab-muted));
 	border-radius: 6px;
 	margin-bottom: 12px;
 }
@@ -491,10 +520,12 @@
 	font-size: var(--font-ui-medium);
 	font-weight: bold;
 }
+
 .quick-capture-modal-editor {
 	min-height: 150px;
 	margin-bottom: 20px;
 }
+
 .quick-capture-modal-buttons {
 	display: flex;
 	justify-content: flex-end;
