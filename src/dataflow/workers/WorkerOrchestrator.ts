@@ -4,6 +4,7 @@ import type { CachedProjectData } from "../../cache/project-data-cache";
 import { TaskWorkerManager, DEFAULT_WORKER_OPTIONS } from "./TaskWorkerManager";
 import { ProjectDataWorkerManager } from "./ProjectDataWorkerManager";
 import { MetadataParseMode } from "../../types/TaskParserConfig";
+import { ConfigurableTaskParser } from "@/dataflow/core/ConfigurableTaskParser";
 
 /**
  * WorkerOrchestrator - Unified task and project worker management
@@ -359,13 +360,10 @@ export class WorkerOrchestrator {
 		);
 
 		// Import and use ConfigurableTaskParser for fallback
-		const { ConfigurableTaskParser } = await import(
-			"../core/ConfigurableTaskParser"
-		);
-		const { CanvasParser } = await import("../core/CanvasParser");
+
 
 		const extension = file.extension.toLowerCase();
-		let tasks: Task[] = [];
+		const tasks: Task[] = [];
 
 		if (extension === "md") {
 			// Get necessary data

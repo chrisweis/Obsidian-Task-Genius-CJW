@@ -1,0 +1,149 @@
+/* Task Genius V2 Content Header Styles */
+
+/* === Content Wrapper === */
+.tg-fluent-content-wrapper {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow: hidden;
+}
+
+/* === Content Header === */
+.fluent-content-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 20px;
+	background: var(--background-primary);
+	border-bottom: 1px solid var(--background-modifier-border);
+	min-height: 56px;
+	gap: 16px;
+	flex-shrink: 0;
+}
+
+.fluent-content-header .header-left-section {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 200px;
+}
+
+.fluent-content-header .content-title {
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: var(--text-normal);
+	white-space: nowrap;
+}
+
+.fluent-content-header .task-count {
+	font-size: 0.875rem;
+	color: var(--text-muted);
+	padding: 2px 8px;
+	background: var(--background-secondary);
+	border-radius: 4px;
+	white-space: nowrap;
+}
+
+.fluent-content-header .header-center-section {
+	flex: 1;
+	display: flex;
+	justify-content: center;
+	max-width: 500px;
+	margin: 0 auto;
+}
+
+.fluent-content-header .content-filter {
+	width: 100%;
+}
+
+.fluent-content-header .filter-input {
+	width: 100%;
+	padding: 6px 12px;
+	background: var(--background-primary-alt);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	font-size: 0.875rem;
+	color: var(--text-normal);
+	transition: all 0.2s ease;
+}
+
+.fluent-content-header .filter-input::placeholder {
+	color: var(--text-muted);
+}
+
+.fluent-content-header .filter-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.fluent-content-header .header-right-section {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.fluent-content-header .view-toggle-btn,
+.fluent-content-header .sort-button,
+.fluent-content-header .filter-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.fluent-content-header .view-toggle-btn:hover,
+.fluent-content-header .sort-button:hover,
+.fluent-content-header .filter-button:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.fluent-content-header .view-toggle-btn:active,
+.fluent-content-header .sort-button:active,
+.fluent-content-header .filter-button:active {
+	transform: scale(0.95);
+}
+
+.fluent-content-header .view-toggle-btn svg,
+.fluent-content-header .sort-button svg,
+.fluent-content-header .filter-button svg {
+	width: 16px;
+	height: 16px;
+}
+
+/* === Content Area (with header) === */
+.tg-fluent-content {
+	flex: 1;
+	overflow-y: auto;
+	background: var(--background-primary);
+}
+
+/* === Responsive adjustments === */
+@media (max-width: 768px) {
+	.fluent-content-header {
+		flex-wrap: wrap;
+		padding: 8px 12px;
+	}
+
+	.fluent-content-header .header-left-section {
+		min-width: auto;
+	}
+
+	.fluent-content-header .header-center-section {
+		order: 3;
+		width: 100%;
+		max-width: none;
+		margin-top: 8px;
+	}
+
+	.fluent-content-header .content-title {
+		font-size: 1.1rem;
+	}
+}

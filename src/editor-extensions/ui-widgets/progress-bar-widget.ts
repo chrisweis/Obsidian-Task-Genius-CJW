@@ -12,10 +12,11 @@ import { EditorState, Range, Text } from "@codemirror/state";
 // @ts-ignore - This import is necessary but TypeScript can't find it
 import { foldable, syntaxTree, tokenClassNodeProp } from "@codemirror/language";
 import { RegExpCursor } from "@/editor-extensions/core/regex-cursor";
-import TaskProgressBarPlugin, { showPopoverWithProgressBar } from "@/index";
+import TaskProgressBarPlugin from "@/index";
 import { shouldHideProgressBarInLivePriview } from "@/utils";
 import "../../styles/progressbar.css";
 import { extractTaskAndGoalInfo } from "@/core/goal/edit-mode";
+import { showPopoverWithProgressBar } from "@/components/ui";
 
 interface Tasks {
 	completed: number;
@@ -415,7 +416,7 @@ class TaskProgressBarWidget extends WidgetType {
 
 		this.progressBarEl = createSpan(
 			this.plugin?.settings.progressBarDisplayMode === "both" ||
-				this.plugin?.settings.progressBarDisplayMode === "text"
+			this.plugin?.settings.progressBarDisplayMode === "text"
 				? "cm-task-progress-bar with-number"
 				: "cm-task-progress-bar",
 			(el) => {
@@ -523,13 +524,13 @@ export function taskProgressBarExtension(
 			progressDecorations: DecorationSet = Decoration.none;
 
 			constructor(public view: EditorView) {
-				let { progress } = this.getDeco(view);
+				let {progress} = this.getDeco(view);
 				this.progressDecorations = progress;
 			}
 
 			update(update: ViewUpdate) {
 				if (update.docChanged || update.viewportChanged) {
-					let { progress } = this.getDeco(update.view);
+					let {progress} = this.getDeco(update.view);
 					this.progressDecorations = progress;
 				}
 			}
@@ -537,7 +538,7 @@ export function taskProgressBarExtension(
 			getDeco(view: EditorView): {
 				progress: DecorationSet;
 			} {
-				let { state } = view,
+				let {state} = view,
 					progressDecos: Range<Decoration>[] = [];
 
 				// Check if progress bars should be hidden based on settings
@@ -631,7 +632,7 @@ export function taskProgressBarExtension(
 				view: EditorView
 			) {
 				while (!cursor.next().done) {
-					let { from, to } = cursor.value;
+					let {from, to} = cursor.value;
 					const headingLine = view.state.doc.lineAt(from);
 
 					if (
@@ -689,7 +690,7 @@ export function taskProgressBarExtension(
 				view: EditorView
 			) {
 				while (!cursor.next().done) {
-					let { from } = cursor.value;
+					let {from} = cursor.value;
 					const linePos = view.state.doc.lineAt(from)?.from;
 
 					if (!this.isPositionEnabledByHeading(view.state, linePos)) {
@@ -782,7 +783,7 @@ export function taskProgressBarExtension(
 				view: EditorView
 			) {
 				while (!cursor.next().done) {
-					let { from } = cursor.value;
+					let {from} = cursor.value;
 					const linePos = view.state.doc.lineAt(from)?.from;
 
 					if (!this.isPositionEnabledByHeading(view.state, linePos)) {
@@ -917,7 +918,7 @@ export function taskProgressBarExtension(
 					return null;
 				}
 
-				return { from: line.from, to: foldRange.to };
+				return {from: line.from, to: foldRange.to};
 			}
 
 			/**
@@ -1025,23 +1026,23 @@ export function taskProgressBarExtension(
 				const basePattern = isHeading
 					? "^[\\t|\\s]*" // For headings, match any indentation (will be filtered later)
 					: plugin?.settings.countSubLevel
-					? "^[\\t|\\s]*?" // For sublevel counting, use non-greedy match for any indentation
-					: "^[\\t|\\s]*"; // For no sublevel counting, still match any indentation level
+						? "^[\\t|\\s]*?" // For sublevel counting, use non-greedy match for any indentation
+						: "^[\\t|\\s]*"; // For no sublevel counting, still match any indentation level
 
 				const bulletPrefix = isHeading
 					? "([-*+]|\\d+\\.)\\s" // For headings, just match the bullet
 					: plugin?.settings.countSubLevel
-					? "([-*+]|\\d+\\.)\\s" // Simplified prefix for sublevel counting
-					: "([-*+]|\\d+\\.)\\s"; // For no sublevel counting, just match the bullet
+						? "([-*+]|\\d+\\.)\\s" // Simplified prefix for sublevel counting
+						: "([-*+]|\\d+\\.)\\s"; // For no sublevel counting, just match the bullet
 
 				// If "only count specific marks" is enabled
 				if (useOnlyCountMarks) {
 					return new RegExp(
 						basePattern +
-							bulletPrefix +
-							"\\[(" +
-							onlyCountPattern +
-							")\\]"
+						bulletPrefix +
+						"\\[(" +
+						onlyCountPattern +
+						")\\]"
 					);
 				}
 
@@ -1056,18 +1057,18 @@ export function taskProgressBarExtension(
 
 					return new RegExp(
 						basePattern +
-							bulletPrefix +
-							"\\[(" +
-							filteredMarks +
-							")\\]"
+						bulletPrefix +
+						"\\[(" +
+						filteredMarks +
+						")\\]"
 					);
 				} else {
 					return new RegExp(
 						basePattern +
-							bulletPrefix +
-							"\\[(" +
-							completedMarks +
-							")\\]"
+						bulletPrefix +
+						"\\[(" +
+						completedMarks +
+						")\\]"
 					);
 				}
 			}

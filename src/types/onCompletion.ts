@@ -1,6 +1,9 @@
 /**
  * OnCompletion action types and configuration interfaces
  */
+import { Task } from "@/types/task";
+import TaskProgressBarPlugin from "@/index";
+import { App } from "obsidian";
 
 export enum OnCompletionActionType {
 	DELETE = 'delete',
@@ -43,7 +46,7 @@ export interface OnCompletionDuplicateConfig {
 	preserveMetadata?: boolean;
 }
 
-export type OnCompletionConfig = 
+export type OnCompletionConfig =
 	| OnCompletionDeleteConfig
 	| OnCompletionKeepConfig
 	| OnCompletionCompleteConfig
@@ -52,9 +55,9 @@ export type OnCompletionConfig =
 	| OnCompletionDuplicateConfig;
 
 export interface OnCompletionExecutionContext {
-	task: import('./task').Task;
-	plugin: import('../index').default;
-	app: import('obsidian').App;
+	task: Task;
+	plugin: TaskProgressBarPlugin;
+	app: App;
 }
 
 export interface OnCompletionExecutionResult {
@@ -68,4 +71,4 @@ export interface OnCompletionParseResult {
 	rawValue: string;
 	isValid: boolean;
 	error?: string;
-} 
+}

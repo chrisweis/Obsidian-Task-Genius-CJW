@@ -18,6 +18,11 @@ import {
 	WorkflowDefinition,
 	WorkflowStage,
 } from "@/common/setting-definition";
+import {
+	convertTaskToWorkflowCommand,
+	createQuickWorkflowCommand,
+	startWorkflowHereCommand
+} from "@/commands/workflowCommands";
 
 // Annotation that marks a transaction as a workflow change
 export const workflowChangeAnnotation = Annotation.define<string>();
@@ -45,7 +50,7 @@ function calculateRangeForTransform(
 		return null;
 	}
 
-	return { from: line.from, to: foldRange.to };
+	return {from: line.from, to: foldRange.to};
 }
 
 /**
@@ -387,7 +392,7 @@ export function handleWorkflowTransaction(
 			}
 
 			// Determine the next stage using our helper function
-			const { nextStageId, nextSubStageId } = determineNextStage(
+			const {nextStageId, nextSubStageId} = determineNextStage(
 				currentStage,
 				workflow,
 				currentSubStage
@@ -711,15 +716,11 @@ export function updateWorkflowContextMenu(
 				convertItem.setIcon("convert");
 				convertItem.onClick(() => {
 					// Import the conversion function
-					import("@/commands/workflowCommands").then(
-						({ convertTaskToWorkflowCommand }) => {
-							convertTaskToWorkflowCommand(
-								false,
-								editor,
-								null as any,
-								plugin
-							);
-						}
+					convertTaskToWorkflowCommand(
+						false,
+						editor,
+						null as any,
+						plugin
 					);
 				});
 			});
@@ -729,15 +730,11 @@ export function updateWorkflowContextMenu(
 				startItem.setTitle(t("Start workflow here"));
 				startItem.setIcon("play");
 				startItem.onClick(() => {
-					import("@/commands/workflowCommands").then(
-						({ startWorkflowHereCommand }) => {
-							startWorkflowHereCommand(
-								false,
-								editor,
-								null as any,
-								plugin
-							);
-						}
+					startWorkflowHereCommand(
+						false,
+						editor,
+						null as any,
+						plugin
 					);
 				});
 			});
@@ -747,15 +744,11 @@ export function updateWorkflowContextMenu(
 				quickItem.setTitle(t("Create quick workflow"));
 				quickItem.setIcon("zap");
 				quickItem.onClick(() => {
-					import("@/commands/workflowCommands").then(
-						({ createQuickWorkflowCommand }) => {
-							createQuickWorkflowCommand(
-								false,
-								editor,
-								null as any,
-								plugin
-							);
-						}
+					createQuickWorkflowCommand(
+						false,
+						editor,
+						null as any,
+						plugin
 					);
 				});
 			});
@@ -888,7 +881,7 @@ export function updateWorkflowContextMenu(
 			});
 		} else {
 			// Use determineNextStage to find the next stage
-			const { nextStageId } = determineNextStage(
+			const {nextStageId} = determineNextStage(
 				currentStage,
 				workflow,
 				currentSubStage
@@ -1266,7 +1259,7 @@ export function determineNextStage(
 		nextStageId = currentStage.id;
 	}
 
-	return { nextStageId, nextSubStageId };
+	return {nextStageId, nextSubStageId};
 }
 
 // Helper function to create workflow stage transition
@@ -1296,9 +1289,9 @@ export function createWorkflowStageTransition(
 
 	plugin.settings.workflow.autoAddTimestamp
 		? ` 🛫 ${moment().format(
-				plugin.settings.workflow.timestampFormat ||
-					"YYYY-MM-DD HH:mm:ss"
-		  )}`
+			plugin.settings.workflow.timestampFormat ||
+			"YYYY-MM-DD HH:mm:ss"
+		)}`
 		: "";
 
 	let changes = [];
@@ -1554,9 +1547,9 @@ export function generateWorkflowTaskText(
 	// Generate timestamp if configured
 	const timestamp = plugin.settings.workflow.autoAddTimestamp
 		? ` 🛫 ${moment().format(
-				plugin.settings.workflow.timestampFormat ||
-					"YYYY-MM-DD HH:mm:ss"
-		  )}`
+			plugin.settings.workflow.timestampFormat ||
+			"YYYY-MM-DD HH:mm:ss"
+		)}`
 		: "";
 	const defaultIndentation = buildIndentString(plugin.app);
 
@@ -1620,7 +1613,7 @@ export function determineTaskInsertionPoint(
 			lastChildLine = i;
 			foundChildren = true;
 		}
-		// If indentation is less than or equal and we've already found children,
+			// If indentation is less than or equal and we've already found children,
 		// we've moved out of the child tasks block
 		else if (foundChildren) {
 			break;

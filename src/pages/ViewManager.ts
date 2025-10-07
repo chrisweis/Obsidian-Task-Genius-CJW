@@ -5,14 +5,14 @@
 
 import { App, Component } from "obsidian";
 import { FileTaskView } from "./FileTaskView";
-import { InboxBasesView } from "./InboxBasesView";
-import { FlaggedBasesView } from "./FlaggedBasesView";
-import { ProjectBasesView } from "./ProjectBasesView";
-import { TagsBasesView } from "./TagsBasesView";
+import { InboxBasesView } from "./bases/InboxBasesView";
+import { FlaggedBasesView } from "./bases/FlaggedBasesView";
+import { ProjectBasesView } from "./bases/ProjectBasesView";
+import { TagsBasesView } from "./bases/TagsBasesView";
 import TaskProgressBarPlugin from "../index";
 import "../styles/base-view.css";
 import { requireApiVersion } from "obsidian";
-import { BasesPlugin, BasesViewRegistration, BaseView } from "../types/bases";
+import { BasesPlugin, BasesViewRegistration, BaseView } from "@/types/bases";
 
 export class ViewManager extends Component {
 	private app: App;

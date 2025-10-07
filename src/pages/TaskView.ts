@@ -13,50 +13,51 @@ import {
 	debounce,
 	// FrontmatterCache,
 } from "obsidian";
-import { Task } from "../types/task";
-import { SidebarComponent } from "../components/features/task/view/sidebar";
-import { ContentComponent } from "../components/features/task/view/content";
-import { ForecastComponent } from "../components/features/task/view/forecast";
-import { TagsComponent } from "../components/features/task/view/tags";
-import { ProjectsComponent } from "../components/features/task/view/projects";
-import { ReviewComponent } from "../components/features/task/view/review";
+import { Task } from "@/types/task";
+import { SidebarComponent } from "@/components/features/task/view/sidebar";
+import { ContentComponent } from "@/components/features/task/view/content";
+import { ForecastComponent } from "@/components/features/task/view/forecast";
+import { TagsComponent } from "@/components/features/task/view/tags";
+import { ProjectsComponent } from "@/components/features/task/view/projects";
+import { ReviewComponent } from "@/components/features/task/view/review";
 import {
 	TaskDetailsComponent,
 	createTaskCheckbox,
-} from "../components/features/task/view/details";
+} from "@/components/features/task/view/details";
 import "../styles/view.css";
 import TaskProgressBarPlugin from "../index";
-import { QuickCaptureModal } from "../components/features/quick-capture/modals/QuickCaptureModal";
-import { t } from "../translations/helper";
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal";
+import { t } from "@/translations/helper";
 import {
 	getViewSettingOrDefault,
 	ViewMode,
 	DEFAULT_SETTINGS,
 	TwoColumnSpecificConfig,
-} from "../common/setting-definition";
-import { filterTasks } from "../utils/task/task-filter-utils";
+} from "@/common/setting-definition";
+import { filterTasks } from "@/utils/task/task-filter-utils";
 import {
 	CalendarComponent,
 	CalendarEvent,
-} from "../components/features/calendar";
-import { KanbanComponent } from "../components/features/kanban/kanban";
-import { GanttComponent } from "../components/features/gantt/gantt";
-import { TaskPropertyTwoColumnView } from "../components/features/task/view/TaskPropertyTwoColumnView";
-import { ViewComponentManager } from "../components/ui/behavior/ViewComponentManager";
-import { Habit } from "../components/features/habit/habit";
-import { ConfirmModal } from "../components/ui/modals/ConfirmModal";
+} from "@/components/features/calendar";
+import { KanbanComponent } from "@/components/features/kanban/kanban";
+import { GanttComponent } from "@/components/features/gantt/gantt";
+import { TaskPropertyTwoColumnView } from "@/components/features/task/view/TaskPropertyTwoColumnView";
+import { ViewComponentManager } from "@/components/ui";
+import { Habit } from "@/components/features/habit/habit";
+import { ConfirmModal } from "@/components/ui";
 import {
 	ViewTaskFilterPopover,
 	ViewTaskFilterModal,
-} from "../components/features/task/filter";
+} from "@/components/features/task/filter";
 import {
 	Filter,
 	FilterGroup,
 	RootFilterState,
-} from "../components/features/task/filter/ViewTaskFilter";
-import { FilterConfigModal } from "../components/features/task/filter/FilterConfigModal";
-import { SavedFilterConfig } from "../common/setting-definition";
-import { isDataflowEnabled } from "../dataflow/createDataflow";
+} from "@/components/features/task/filter/ViewTaskFilter";
+import { FilterConfigModal } from "@/components/features/task/filter/FilterConfigModal";
+import { SavedFilterConfig } from "@/common/setting-definition";
+import { isDataflowEnabled } from "@/dataflow/createDataflow";
+import { Events, on } from "@/dataflow/events/Events";
 
 export const TASK_VIEW_TYPE = "task-genius-view";
 
@@ -80,8 +81,8 @@ export class TaskView extends ItemView {
 	private twoColumnViewComponents: Map<string, TaskPropertyTwoColumnView> =
 		new Map();
 	// UI state management
-	private isSidebarCollapsed: boolean = false;
-	private isDetailsVisible: boolean = false;
+	private isSidebarCollapsed = false;
+	private isDetailsVisible = false;
 	private sidebarToggleBtn: HTMLElement;
 	private detailsToggleBtn: HTMLElement;
 	private currentViewId: ViewMode = "inbox";
@@ -154,8 +155,7 @@ export class TaskView extends ItemView {
 			isDataflowEnabled(this.plugin) &&
 			this.plugin.dataflowOrchestrator
 		) {
-			// Dataflow: 订阅统一事件
-			const { on, Events } = await import("../dataflow/events/Events");
+
 			this.registerEvent(
 				on(this.app, Events.CACHE_READY, async () => {
 					// 冷启动就绪，从快照加载，并更新视图
@@ -214,7 +214,7 @@ export class TaskView extends ItemView {
 						if (
 							this.sidebarComponent &&
 							typeof this.sidebarComponent.renderSidebarItems ===
-								"function"
+							"function"
 						) {
 							this.sidebarComponent.renderSidebarItems();
 						}
@@ -295,7 +295,7 @@ export class TaskView extends ItemView {
 		)
 			? savedViewId
 			: this.plugin.settings.viewConfiguration.find((v) => v.visible)
-					?.id || "inbox";
+			?.id || "inbox";
 
 		this.currentViewId = initialViewId;
 		this.sidebarComponent.setViewMode(this.currentViewId);
@@ -728,7 +728,7 @@ export class TaskView extends ItemView {
 					}, 100);
 				});
 
-				popover.showAtPosition({ x: e.clientX, y: e.clientY });
+				popover.showAtPosition({x: e.clientX, y: e.clientY});
 			} else {
 				const modal = new ViewTaskFilterModal(
 					this.plugin.app,
@@ -1197,7 +1197,7 @@ export class TaskView extends ItemView {
 
 	private updateHeaderDisplay() {
 		const config = getViewSettingOrDefault(this.plugin, this.currentViewId);
-		this.leaf.setEphemeralState({ title: config.name, icon: config.icon });
+		this.leaf.setEphemeralState({title: config.name, icon: config.icon});
 	}
 
 	private handleTaskContextMenu(event: MouseEvent, task: Task) {
@@ -1493,12 +1493,13 @@ export class TaskView extends ItemView {
 					}
 				}
 			}
-		} catch (_) {}
+		} catch (_) {
+		}
 		return false;
 	}
 
 	private async toggleTaskCompletion(task: Task) {
-		const updatedTask = { ...task, completed: !task.completed };
+		const updatedTask = {...task, completed: !task.completed};
 
 		if (updatedTask.completed) {
 			updatedTask.metadata.completedDate = Date.now();
@@ -1834,8 +1835,8 @@ export class TaskView extends ItemView {
 			} else {
 				new Notice(
 					t("Failed to delete task") +
-						": " +
-						(result.error || "Unknown error")
+					": " +
+					(result.error || "Unknown error")
 				);
 			}
 		} catch (error) {

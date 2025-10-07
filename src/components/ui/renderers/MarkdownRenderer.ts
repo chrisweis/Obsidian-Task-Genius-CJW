@@ -4,7 +4,7 @@ import {
 	MarkdownRenderer as ObsidianMarkdownRenderer,
 	TFile,
 } from "obsidian";
-import { DEFAULT_SYMBOLS, TAG_REGEX } from "../../../common/default-symbol";
+import { DEFAULT_SYMBOLS, TAG_REGEX } from "@/common/default-symbol";
 
 // Use a non-global, start-anchored tag matcher to allow index checks
 const TAG_HEAD = new RegExp("^" + TAG_REGEX.source);
@@ -152,8 +152,8 @@ export function clearAllMarks(markdown: string): string {
 
 		const recurrenceRegex = new RegExp(
 			`${escapedRecurrenceSymbol}\\uFE0F? *.*?` +
-				// Lookahead for: space followed by (any date/completion/recurrence symbol OR non-date symbols OR @ OR #) OR end of string
-				`(?=\s(?:[${escapedOtherSymbols}${escapedNonDateSymbols}${escapedRecurrenceSymbol}]|@|#)|$)`,
+			// Lookahead for: space followed by (any date/completion/recurrence symbol OR non-date symbols OR @ OR #) OR end of string
+			`(?=\s(?:[${escapedOtherSymbols}${escapedNonDateSymbols}${escapedRecurrenceSymbol}]|@|#)|$)`,
 			"gu"
 		);
 		cleanedMarkdown = cleanedMarkdown.replace(recurrenceRegex, "");
@@ -272,6 +272,7 @@ export function clearAllMarks(markdown: string): string {
 	): string {
 		let out = "";
 		let i = 0;
+
 		function isEscapedHashAt(idx: number): boolean {
 			let bs = 0;
 			let j = idx - 1;
@@ -281,6 +282,7 @@ export function clearAllMarks(markdown: string): string {
 			}
 			return bs % 2 === 1;
 		}
+
 		while (i < input.length) {
 			if (input[i] === "#") {
 				if (isEscapedHashAt(i)) {
@@ -424,7 +426,7 @@ export class MarkdownRendererComponent extends Component {
 	 * Queue a markdown block for rendering
 	 */
 	private queueRender(markdown: string, blockId?: string): void {
-		this.renderQueue.push({ markdown, blockId });
+		this.renderQueue.push({markdown, blockId});
 		this.processRenderQueue();
 	}
 
@@ -443,7 +445,7 @@ export class MarkdownRendererComponent extends Component {
 				const item = this.renderQueue.shift();
 				if (!item) continue;
 
-				const { markdown, blockId } = item;
+				const {markdown, blockId} = item;
 
 				if (blockId) {
 					// Render to a specific block

@@ -1,5 +1,5 @@
 import { Component, App } from "obsidian";
-import { TableSpecificConfig } from "../../../common/setting-definition";
+import { TableSpecificConfig } from "@/common/setting-definition";
 import { EditorCallbacks } from "./TableTypes";
 import TaskProgressBarPlugin from "@/index";
 import { t } from "@/translations/helper";
@@ -12,8 +12,8 @@ import { ContextSuggest, ProjectSuggest, TagSuggest } from "@/components/ui/inpu
 export class TableEditor extends Component {
 	private currentEditCell: HTMLElement | null = null;
 	private currentInput: HTMLInputElement | HTMLSelectElement | null = null;
-	private currentRowId: string = "";
-	private currentColumnId: string = "";
+	private currentRowId = "";
+	private currentColumnId = "";
 	private originalValue: any = null;
 
 	constructor(
@@ -144,11 +144,11 @@ export class TableEditor extends Component {
 		select.className = "task-table-status-select";
 
 		const statusOptions = [
-			{ value: " ", label: t("Not Started") },
-			{ value: "/", label: t("In Progress") },
-			{ value: "x", label: t("Completed") },
-			{ value: "-", label: t("Abandoned") },
-			{ value: "?", label: t("Planned") },
+			{value: " ", label: t("Not Started")},
+			{value: "/", label: t("In Progress")},
+			{value: "x", label: t("Completed")},
+			{value: "-", label: t("Abandoned")},
+			{value: "?", label: t("Planned")},
 		];
 
 		statusOptions.forEach((option) => {
@@ -170,10 +170,10 @@ export class TableEditor extends Component {
 		select.className = "task-table-priority-select";
 
 		const priorityOptions = [
-			{ value: "", label: t("No Priority") },
-			{ value: "1", label: t("High Priority") },
-			{ value: "2", label: t("Medium Priority") },
-			{ value: "3", label: t("Low Priority") },
+			{value: "", label: t("No Priority")},
+			{value: "1", label: t("High Priority")},
+			{value: "2", label: t("Medium Priority")},
+			{value: "3", label: t("Low Priority")},
 		];
 
 		priorityOptions.forEach((option) => {
@@ -343,9 +343,9 @@ export class TableEditor extends Component {
 			case "tags":
 				return input.value
 					? input.value
-							.split(",")
-							.map((tag) => tag.trim())
-							.filter((tag) => tag)
+						.split(",")
+						.map((tag) => tag.trim())
+						.filter((tag) => tag)
 					: [];
 			default:
 				return input.value;

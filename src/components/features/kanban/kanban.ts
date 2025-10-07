@@ -21,7 +21,7 @@ import { ActiveFilter } from "@/components/features/task/filter/in-view/filter-t
 import {
 	KanbanSpecificConfig,
 	KanbanColumnConfig,
-} from "../../../common/setting-definition";
+} from "@/common/setting-definition";
 import {
 	getEffectiveProject,
 	isProjectReadonly,
@@ -215,7 +215,7 @@ export class KanbanComponent extends Component {
 					item.setTitle(option.label)
 						.setChecked(
 							option.field === this.sortOption.field &&
-								option.order === this.sortOption.order
+							option.order === this.sortOption.order
 						)
 						.onClick(() => {
 							this.sortOption = option;
@@ -538,7 +538,7 @@ export class KanbanComponent extends Component {
 		statusNames = [...spaceStatus, ...otherStatuses, ...xStatus];
 
 		// Apply saved column order to status names
-		const statusColumns = statusNames.map((name) => ({ title: name }));
+		const statusColumns = statusNames.map((name) => ({title: name}));
 		const orderedStatusColumns = this.applyColumnOrder(statusColumns);
 		const orderedStatusNames = orderedStatusColumns.map((col) => col.title);
 
@@ -623,12 +623,12 @@ export class KanbanComponent extends Component {
 		switch (groupBy) {
 			case "priority":
 				return [
-					{ title: "🔺 Highest", value: 5, id: "priority-5" },
-					{ title: "⏫ High", value: 4, id: "priority-4" },
-					{ title: "🔼 Medium", value: 3, id: "priority-3" },
-					{ title: "🔽 Low", value: 2, id: "priority-2" },
-					{ title: "⏬ Lowest", value: 1, id: "priority-1" },
-					{ title: "No Priority", value: null, id: "priority-none" },
+					{title: "🔺 Highest", value: 5, id: "priority-5"},
+					{title: "⏫ High", value: 4, id: "priority-4"},
+					{title: "🔼 Medium", value: 3, id: "priority-3"},
+					{title: "🔽 Low", value: 2, id: "priority-2"},
+					{title: "⏬ Lowest", value: 1, id: "priority-1"},
+					{title: "No Priority", value: null, id: "priority-none"},
 				];
 			case "tags":
 				// Get unique tags from all tasks
@@ -708,7 +708,7 @@ export class KanbanComponent extends Component {
 						value: "overdue",
 						id: `${groupBy}-overdue`,
 					},
-					{ title: "Today", value: "today", id: `${groupBy}-today` },
+					{title: "Today", value: "today", id: `${groupBy}-today`},
 					{
 						title: "Tomorrow",
 						value: "tomorrow",
@@ -724,8 +724,8 @@ export class KanbanComponent extends Component {
 						value: "nextWeek",
 						id: `${groupBy}-nextWeek`,
 					},
-					{ title: "Later", value: "later", id: `${groupBy}-later` },
-					{ title: "No Date", value: null, id: `${groupBy}-none` },
+					{title: "Later", value: "later", id: `${groupBy}-later`},
+					{title: "No Date", value: null, id: `${groupBy}-none`},
 				];
 			case "filePath":
 				// Get unique file paths from all tasks
@@ -741,7 +741,7 @@ export class KanbanComponent extends Component {
 					id: `path-${path.replace(/[^a-zA-Z0-9]/g, "-")}`,
 				}));
 			default:
-				return [{ title: "All Tasks", value: null, id: "all" }];
+				return [{title: "All Tasks", value: null, id: "all"}];
 		}
 	}
 
@@ -776,7 +776,7 @@ export class KanbanComponent extends Component {
 		b: Task,
 		sortOption: KanbanSortOption
 	): number {
-		const { field, order } = sortOption;
+		const {field, order} = sortOption;
 		let comparison = 0;
 
 		// Ensure both tasks have metadata property
@@ -866,8 +866,8 @@ export class KanbanComponent extends Component {
 				dropTargetColumnContent.closest(".tg-kanban-column");
 			const targetColumnTitle = targetColumnEl
 				? (targetColumnEl as HTMLElement).querySelector(
-						".tg-kanban-column-title"
-				  )?.textContent
+					".tg-kanban-column-title"
+				)?.textContent
 				: null;
 
 			// Get source column information
@@ -875,8 +875,8 @@ export class KanbanComponent extends Component {
 				sourceColumnContent.closest(".tg-kanban-column");
 			const sourceColumnTitle = sourceColumnEl
 				? (sourceColumnEl as HTMLElement).querySelector(
-						".tg-kanban-column-title"
-				  )?.textContent
+					".tg-kanban-column-title"
+				)?.textContent
 				: null;
 
 			if (targetColumnTitle && sourceColumnTitle) {
@@ -1036,7 +1036,7 @@ export class KanbanComponent extends Component {
 		taskToUpdate.metadata = taskToUpdate.metadata || {};
 
 		// Create updated task object
-		const updatedTask = { ...taskToUpdate };
+		const updatedTask = {...taskToUpdate};
 
 		// Update the specific property based on groupBy type
 		switch (groupBy) {
@@ -1099,8 +1099,8 @@ export class KanbanComponent extends Component {
 									? newValue
 									: `#${newValue}`
 								: newValue.startsWith("#")
-								? newValue.substring(1)
-								: newValue;
+									? newValue.substring(1)
+									: newValue;
 						currentTags.push(tagToAdd);
 					}
 
@@ -1266,7 +1266,7 @@ export class KanbanComponent extends Component {
 				return (
 					taskDateObj >= tomorrow &&
 					taskDateObj <
-						new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000)
+					new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000)
 				);
 			case "thisWeek":
 				return taskDateObj >= tomorrow && taskDateObj < weekFromNow;

@@ -7,8 +7,8 @@
  */
 
 import { App, TFile, Vault, MetadataCache, moment } from "obsidian";
-import { Task, CanvasTaskMetadata } from "../../types/task";
-import TaskProgressBarPlugin from "../../index";
+import { Task, CanvasTaskMetadata } from "@/types/task";
+import TaskProgressBarPlugin from "@/index";
 import {
 	createDailyNote,
 	getAllDailyNotes,
@@ -21,7 +21,7 @@ import {
 	processDateTemplates,
 } from "@/utils/file/file-operations";
 import { Events, emit } from "../events/Events";
-import { CanvasTaskUpdater } from "../../parsers/canvas-task-updater";
+import { CanvasTaskUpdater } from "@/parsers/canvas-task-updater";
 import { rrulestr } from "rrule";
 import { EMOJI_TAG_REGEX, TOKEN_CONTEXT_REGEX } from "@/common/regex-define";
 
@@ -103,7 +103,7 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return { success: false, error: "Task not found" };
+				return {success: false, error: "Task not found"};
 			}
 
 			// Check if this is a Canvas task
@@ -121,14 +121,14 @@ export class WriteAPI {
 				task.filePath
 			) as TFile;
 			if (!file) {
-				return { success: false, error: "File not found" };
+				return {success: false, error: "File not found"};
 			}
 
 			const content = await this.vault.read(file);
 			const lines = content.split("\n");
 
 			if (task.line < 0 || task.line >= lines.length) {
-				return { success: false, error: "Invalid line number" };
+				return {success: false, error: "Invalid line number"};
 			}
 
 			let taskLine = lines[task.line];
@@ -141,15 +141,15 @@ export class WriteAPI {
 				args.completed === true ||
 				(args.status !== undefined &&
 					((typeof (args.status as any).toLowerCase === "function" &&
-						(args.status as any).toLowerCase() === "x") ||
+							(args.status as any).toLowerCase() === "x") ||
 						args.status === configuredCompleted));
 			// Determine mark to write to checkbox
 			const markToWrite =
 				args.status !== undefined
 					? (args.status as string)
 					: willComplete
-					? "x"
-					: " ";
+						? "x"
+						: " ";
 			taskLine = taskLine.replace(
 				/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
 				`$1${markToWrite}$2`
@@ -267,17 +267,17 @@ export class WriteAPI {
 
 			// Trigger task-completed event if task was just completed
 			if (args.completed === true && !task.completed) {
-				const updatedTask = { ...task, completed: true };
+				const updatedTask = {...task, completed: true};
 				this.app.workspace.trigger(
 					"task-genius:task-completed",
 					updatedTask
 				);
 			}
 
-			return { success: true };
+			return {success: true};
 		} catch (error) {
 			console.error("WriteAPI: Error updating task status:", error);
-			return { success: false, error: String(error) };
+			return {success: false, error: String(error)};
 		}
 	}
 
@@ -292,7 +292,7 @@ export class WriteAPI {
 				this.getTaskById(args.taskId)
 			);
 			if (!originalTask) {
-				return { success: false, error: "Task not found" };
+				return {success: false, error: "Task not found"};
 			}
 
 			// Check if this is a Canvas task
@@ -316,17 +316,17 @@ export class WriteAPI {
 				originalTask.filePath
 			) as TFile;
 			if (!file) {
-				return { success: false, error: "File not found" };
+				return {success: false, error: "File not found"};
 			}
 
 			const content = await this.vault.read(file);
 			const lines = content.split("\n");
 
 			if (originalTask.line < 0 || originalTask.line >= lines.length) {
-				return { success: false, error: "Invalid line number" };
+				return {success: false, error: "Invalid line number"};
 			}
 
-			const updatedTask = { ...originalTask, ...args.updates };
+			const updatedTask = {...originalTask, ...args.updates};
 			let taskLine = lines[originalTask.line];
 
 			// Track previous status for date management
@@ -480,8 +480,8 @@ export class WriteAPI {
 					const tm2 = sanitized2.match(trailing2);
 					const trailingMeta = tm2
 						? afterPrefix.slice(
-								afterPrefix.length - (tm2[0]?.length || 0)
-						  )
+							afterPrefix.length - (tm2[0]?.length || 0)
+						)
 						: "";
 					taskLine = `${prefix}${args.updates.content}${trailingMeta}`;
 				}
@@ -621,12 +621,12 @@ export class WriteAPI {
 							// Extract the task content (everything before trailing metadata)
 							const taskContentRaw = tm
 								? afterCheckbox
-										.substring(
-											0,
-											sanitized.length -
-												(tm[0]?.length || 0)
-										)
-										.trim()
+									.substring(
+										0,
+										sanitized.length -
+										(tm[0]?.length || 0)
+									)
+									.trim()
 								: afterCheckbox.trim();
 
 							// If we are regenerating managed metadata, scrub inline project tokens from content
@@ -771,10 +771,10 @@ export class WriteAPI {
 				);
 			}
 
-			return { success: true, task: updatedTaskObj };
+			return {success: true, task: updatedTaskObj};
 		} catch (error) {
 			console.error("WriteAPI: Error updating task:", error);
-			return { success: false, error: String(error) };
+			return {success: false, error: String(error)};
 		}
 	}
 
@@ -790,7 +790,7 @@ export class WriteAPI {
 			originalTask.filePath
 		) as TFile;
 		if (!file) {
-			return { success: false, error: "File not found" };
+			return {success: false, error: "File not found"};
 		}
 
 		// Announce start of write operation
@@ -825,13 +825,13 @@ export class WriteAPI {
 						);
 						console.log(
 							"[WriteAPI][FileSource] wrote fm.title (branch: title)",
-							{ title: updates.content }
+							{title: updates.content}
 						);
 						const cacheAfter =
 							this.app.metadataCache.getFileCache(file);
 						console.log(
 							"[WriteAPI][FileSource] cache fm.title after write (branch: title)",
-							{ title: cacheAfter?.frontmatter?.title }
+							{title: cacheAfter?.frontmatter?.title}
 						);
 						break;
 					}
@@ -863,7 +863,7 @@ export class WriteAPI {
 									field: customContentField,
 									value: cacheAfter?.frontmatter?.[
 										customContentField
-									],
+										],
 								}
 							);
 						} else if (preferFrontmatterTitle) {
@@ -875,13 +875,13 @@ export class WriteAPI {
 							);
 							console.log(
 								"[WriteAPI][FileSource] wrote fm.title (branch: custom fallback)",
-								{ title: updates.content }
+								{title: updates.content}
 							);
 							const cacheAfter2 =
 								this.app.metadataCache.getFileCache(file);
 							console.log(
 								"[WriteAPI][FileSource] cache fm.title after write (branch: custom fallback)",
-								{ title: cacheAfter2?.frontmatter?.title }
+								{title: cacheAfter2?.frontmatter?.title}
 							);
 						} else {
 							newFilePath = await this.renameFile(
@@ -890,7 +890,7 @@ export class WriteAPI {
 							);
 							console.log(
 								"[WriteAPI][FileSource] renamed file (branch: custom fallback)",
-								{ newFilePath }
+								{newFilePath}
 							);
 						}
 						break;
@@ -906,13 +906,13 @@ export class WriteAPI {
 							);
 							console.log(
 								"[WriteAPI][FileSource] wrote fm.title (branch: filename/default)",
-								{ title: updates.content }
+								{title: updates.content}
 							);
 							const cacheAfter =
 								this.app.metadataCache.getFileCache(file);
 							console.log(
 								"[WriteAPI][FileSource] cache fm.title after write (branch: filename/default)",
-								{ title: cacheAfter?.frontmatter?.title }
+								{title: cacheAfter?.frontmatter?.title}
 							);
 						} else {
 							newFilePath = await this.renameFile(
@@ -921,7 +921,7 @@ export class WriteAPI {
 							);
 							console.log(
 								"[WriteAPI][FileSource] renamed file (branch: filename/default)",
-								{ newFilePath }
+								{newFilePath}
 							);
 						}
 						break;
@@ -938,7 +938,7 @@ export class WriteAPI {
 					"WriteAPI: Error updating file-source task content:",
 					error
 				);
-				return { success: false, error: String(error) };
+				return {success: false, error: String(error)};
 			}
 		}
 
@@ -959,9 +959,9 @@ export class WriteAPI {
 		};
 
 		// Emit file-task update so repository updates fileTasks map directly
-		emit(this.app, Events.FILE_TASK_UPDATED, { task: updatedTaskObj });
+		emit(this.app, Events.FILE_TASK_UPDATED, {task: updatedTaskObj});
 
-		return { success: true, task: updatedTaskObj };
+		return {success: true, task: updatedTaskObj};
 	}
 
 	private async updateH1Heading(
@@ -1038,7 +1038,7 @@ export class WriteAPI {
 
 			const file = this.vault.getAbstractFileByPath(filePath) as TFile;
 			if (!file) {
-				return { success: false, error: "File not found" };
+				return {success: false, error: "File not found"};
 			}
 
 			const content = await this.vault.read(file);
@@ -1082,16 +1082,16 @@ export class WriteAPI {
 			}
 
 			// Notify about write operation
-			emit(this.app, Events.WRITE_OPERATION_START, { path: file.path });
+			emit(this.app, Events.WRITE_OPERATION_START, {path: file.path});
 			await this.vault.modify(file, newContent);
 			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
 				path: file.path,
 			});
 
-			return { success: true };
+			return {success: true};
 		} catch (error) {
 			console.error("WriteAPI: Error creating task:", error);
-			return { success: false, error: String(error) };
+			return {success: false, error: String(error)};
 		}
 	}
 
@@ -1104,7 +1104,7 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return { success: false, error: "Task not found" };
+				return {success: false, error: "Task not found"};
 			}
 
 			// Check if this is a Canvas task
@@ -1116,7 +1116,7 @@ export class WriteAPI {
 				task.filePath
 			) as TFile;
 			if (!file) {
-				return { success: false, error: "File not found" };
+				return {success: false, error: "File not found"};
 			}
 
 			const content = await this.vault.read(file);
@@ -1167,10 +1167,10 @@ export class WriteAPI {
 				mode: args.deleteChildren ? "subtree" : "single",
 			});
 
-			return { success: true };
+			return {success: true};
 		} catch (error) {
 			console.error("WriteAPI: Error deleting task:", error);
-			return { success: false, error: String(error) };
+			return {success: false, error: String(error)};
 		}
 	}
 
@@ -1274,13 +1274,13 @@ export class WriteAPI {
 							const tm3 = sanitized3.match(trailing3);
 							const trailingMeta2 = tm3
 								? afterPrefix2.slice(
-										afterPrefix2.length -
-											(tm3[0]?.length || 0)
-								  )
+									afterPrefix2.length -
+									(tm3[0]?.length || 0)
+								)
 								: "";
 							lines[
 								lineNum
-							] = `${prefix}${newContent}${trailingMeta2}`;
+								] = `${prefix}${newContent}${trailingMeta2}`;
 						}
 					}
 				}
@@ -1295,10 +1295,10 @@ export class WriteAPI {
 				});
 			}
 
-			return { success: true, updatedCount };
+			return {success: true, updatedCount};
 		} catch (error) {
 			console.error("WriteAPI: Error in batch update text:", error);
-			return { success: false, updatedCount: 0, error: String(error) };
+			return {success: false, updatedCount: 0, error: String(error)};
 		}
 	}
 
@@ -1398,10 +1398,10 @@ export class WriteAPI {
 				taskId: args.parentTaskId,
 			});
 
-			return { success: true, createdCount: subtaskLines.length };
+			return {success: true, createdCount: subtaskLines.length};
 		} catch (error) {
 			console.error("WriteAPI: Error creating subtasks:", error);
-			return { success: false, createdCount: 0, error: String(error) };
+			return {success: false, createdCount: 0, error: String(error)};
 		}
 	}
 
@@ -1436,7 +1436,7 @@ export class WriteAPI {
 			}
 		}
 
-		return { updated, failed };
+		return {updated, failed};
 	}
 
 	/**
@@ -1488,7 +1488,7 @@ export class WriteAPI {
 		for (const taskId of args.taskIds) {
 			const result = await this.updateTask({
 				taskId,
-				updates: { metadata: { dueDate: newDateMs } as any },
+				updates: {metadata: {dueDate: newDateMs} as any},
 			});
 
 			if (result.success) {
@@ -1501,7 +1501,7 @@ export class WriteAPI {
 			}
 		}
 
-		return { updated, failed };
+		return {updated, failed};
 	}
 
 	/**
@@ -1671,18 +1671,18 @@ export class WriteAPI {
 			}
 
 			// Notify about write operation
-			emit(this.app, Events.WRITE_OPERATION_START, { path: file.path });
+			emit(this.app, Events.WRITE_OPERATION_START, {path: file.path});
 			await this.vault.modify(file, newContent);
 			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
 				path: file.path,
 			});
-			return { success: true };
+			return {success: true};
 		} catch (error) {
 			console.error(
 				"WriteAPI: Error creating task in daily note:",
 				error
 			);
-			return { success: false, error: String(error) };
+			return {success: false, error: String(error)};
 		}
 	}
 
@@ -1764,10 +1764,10 @@ export class WriteAPI {
 				"quick-capture.md"; // Use the target file
 
 			// Notify about write operation
-			emit(this.app, Events.WRITE_OPERATION_START, { path: filePath });
-			emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: filePath });
+			emit(this.app, Events.WRITE_OPERATION_START, {path: filePath});
+			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {path: filePath});
 
-			return { filePath, success: true };
+			return {filePath, success: true};
 		} catch (error) {
 			console.error(
 				"WriteAPI: Error adding project task to quick capture:",
@@ -2050,7 +2050,7 @@ export class WriteAPI {
 		}
 
 		// Default to daily
-		return { interval: 1, unit: "d" };
+		return {interval: 1, unit: "d"};
 	}
 
 	/**
@@ -2091,12 +2091,12 @@ export class WriteAPI {
 				this.getTaskById(args.taskId)
 			);
 			if (!originalTask) {
-				return { success: false, error: "Task not found" };
+				return {success: false, error: "Task not found"};
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(originalTask)) {
-				return { success: false, error: "Task is not a Canvas task" };
+				return {success: false, error: "Task is not a Canvas task"};
 			}
 
 			// Create updated task object (deep-merge metadata to preserve unchanged fields)
@@ -2117,7 +2117,7 @@ export class WriteAPI {
 
 			if (result.success) {
 				// Emit task updated event for dataflow
-				emit(this.app, Events.TASK_UPDATED, { task: updatedTask });
+				emit(this.app, Events.TASK_UPDATED, {task: updatedTask});
 
 				// Trigger task-completed event if task was just completed
 				if (
@@ -2130,13 +2130,13 @@ export class WriteAPI {
 					);
 				}
 
-				return { success: true, task: updatedTask };
+				return {success: true, task: updatedTask};
 			} else {
-				return { success: false, error: result.error };
+				return {success: false, error: result.error};
 			}
 		} catch (error) {
 			console.error("WriteAPI: Error updating Canvas task:", error);
-			return { success: false, error: String(error) };
+			return {success: false, error: String(error)};
 		}
 	}
 
@@ -2149,12 +2149,12 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return { success: false, error: "Task not found" };
+				return {success: false, error: "Task not found"};
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(task)) {
-				return { success: false, error: "Task is not a Canvas task" };
+				return {success: false, error: "Task is not a Canvas task"};
 			}
 
 			// Collect all tasks to delete
@@ -2187,7 +2187,7 @@ export class WriteAPI {
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error deleting Canvas task:", error);
-			return { success: false, error: String(error) };
+			return {success: false, error: String(error)};
 		}
 	}
 
@@ -2203,12 +2203,12 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return { success: false, error: "Task not found" };
+				return {success: false, error: "Task not found"};
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(task)) {
-				return { success: false, error: "Task is not a Canvas task" };
+				return {success: false, error: "Task is not a Canvas task"};
 			}
 
 			// Use CanvasTaskUpdater to move the task
@@ -2222,7 +2222,7 @@ export class WriteAPI {
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error moving Canvas task:", error);
-			return { success: false, error: String(error) };
+			return {success: false, error: String(error)};
 		}
 	}
 
@@ -2239,12 +2239,12 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return { success: false, error: "Task not found" };
+				return {success: false, error: "Task not found"};
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(task)) {
-				return { success: false, error: "Task is not a Canvas task" };
+				return {success: false, error: "Task is not a Canvas task"};
 			}
 
 			// Use CanvasTaskUpdater to duplicate the task
@@ -2259,7 +2259,7 @@ export class WriteAPI {
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error duplicating Canvas task:", error);
-			return { success: false, error: String(error) };
+			return {success: false, error: String(error)};
 		}
 	}
 
@@ -2298,7 +2298,7 @@ export class WriteAPI {
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error adding task to Canvas node:", error);
-			return { success: false, error: String(error) };
+			return {success: false, error: String(error)};
 		}
 	}
 
@@ -2399,7 +2399,7 @@ export class WriteAPI {
 		const nextDate = this.calculateNextDueDate(completedTask);
 
 		// Create a new task with the same content but updated dates
-		const newTask = { ...completedTask };
+		const newTask = {...completedTask};
 		// Reset completion status and date
 		newTask.completed = false;
 		newTask.metadata.completedDate = undefined;

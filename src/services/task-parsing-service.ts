@@ -22,6 +22,7 @@ import {
 import { ProjectDataWorkerManager } from "../dataflow/workers/ProjectDataWorkerManager";
 import { TaskParserConfig, EnhancedTask } from "../types/TaskParserConfig";
 import { Task, TgProject } from "../types/task";
+import { EnhancedProjectData } from "@/dataflow/workers/task-index-message";
 
 export interface TaskParsingServiceOptions {
 	vault: Vault;
@@ -80,7 +81,7 @@ export class TaskParsingService {
 				metadataCache: options.metadataCache,
 				...options.projectConfigOptions,
 				enhancedProjectEnabled:
-					options.parserConfig.projectConfig.enableEnhancedProject,
+				options.parserConfig.projectConfig.enableEnhancedProject,
 				metadataConfigEnabled:
 					options.projectConfigOptions.metadataConfigEnabled ?? false,
 				configFileEnabled:
@@ -392,7 +393,7 @@ export class TaskParsingService {
 	 */
 	async computeEnhancedProjectData(
 		filePaths: string[]
-	): Promise<import("../dataflow/workers/task-index-message").EnhancedProjectData> {
+	): Promise<EnhancedProjectData> {
 		// Early return if enhanced project features are disabled
 		if (
 			!this.projectConfigManager ||
@@ -584,7 +585,7 @@ export class TaskParsingService {
 	 * Get enhanced project data for a specific file (for single file operations)
 	 */
 	async getEnhancedDataForFile(filePath: string): Promise<{
-		tgProject?: import("../types/task").TgProject;
+		tgProject?: TgProject;
 		fileMetadata?: Record<string, any>;
 		projectConfigData?: Record<string, any>;
 	}> {
@@ -664,16 +665,16 @@ export class TaskParsingService {
 	clearAllCaches(): void {
 		// Clear project configuration caches
 		this.clearProjectConfigCache();
-		
+
 		// Clear project data caches
 		this.clearProjectDataCache();
-		
+
 		// Force clear all ProjectConfigManager caches including our new timestamp caches
 		if (this.projectConfigManager) {
 			// Call clearCache without parameters to clear ALL caches
 			this.projectConfigManager.clearCache();
 		}
-		
+
 		// Force clear all ProjectDataWorkerManager caches
 		if (this.projectDataWorkerManager) {
 			// Call clearCache without parameters to clear ALL caches
@@ -687,7 +688,7 @@ export class TaskParsingService {
 	getProjectDataCacheStats() {
 		const workerStats = this.projectDataWorkerManager?.getCacheStats();
 		const configStats = this.projectConfigManager?.getCacheStats();
-		
+
 		return {
 			workerManager: workerStats,
 			configManager: configStats,
@@ -712,17 +713,17 @@ export class TaskParsingService {
 	} {
 		const configStats = this.projectConfigManager?.getCacheStats();
 		const workerStats = this.projectDataWorkerManager?.getCacheStats();
-		
-		const totalFiles = (configStats?.fileMetadataCache.size || 0) + 
+
+		const totalFiles = (configStats?.fileMetadataCache.size || 0) +
 			(configStats?.enhancedMetadataCache.size || 0) +
 			((workerStats as any)?.fileCacheSize || 0);
-			
+
 		const cacheTypes = [];
 		if (configStats?.fileMetadataCache.size) cacheTypes.push('fileMetadata');
 		if (configStats?.enhancedMetadataCache.size) cacheTypes.push('enhancedMetadata');
 		if (configStats?.configCache.size) cacheTypes.push('projectConfig');
 		if ((workerStats as any)?.fileCacheSize) cacheTypes.push('projectData');
-		
+
 		return {
 			projectConfigManager: configStats,
 			projectDataWorkerManager: workerStats,

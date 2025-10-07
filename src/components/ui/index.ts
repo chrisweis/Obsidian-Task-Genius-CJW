@@ -11,3 +11,4 @@ export * from './behavior/ViewComponentManager';
 export * from './suggest';
 export * from './tree/TreeComponent';
 export * from './tree/TreeItemRenderer';
+export { showPopoverWithProgressBar } from "@/components/ui/popovers/taskProgressPopover";

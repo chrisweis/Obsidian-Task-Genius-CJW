@@ -21,6 +21,7 @@ import { ConfigPreviewStep } from "./steps/ConfigPreviewStep";
 import { TaskGuideStep } from "./steps/TaskGuideStep";
 import { CompleteStep } from "./steps/CompleteStep";
 import { SettingsCheckStep } from "./steps/SettingsCheckStep";
+import { ConfigCheckTransition } from "@/components/features/onboarding/steps/intro/ConfigCheckTransition";
 
 export const ONBOARDING_VIEW_TYPE = "task-genius-onboarding";
 
@@ -318,22 +319,18 @@ export class OnboardingView extends ItemView {
 	private async showConfigCheckTransition(): Promise<void> {
 		return new Promise((resolve) => {
 			// Import dynamically to avoid circular dependency
-			import("./steps/intro/ConfigCheckTransition").then(
-				({ ConfigCheckTransition }) => {
-					const contentEl = this.layout.getContentElement();
-					const state = this.controller.getState();
+			const contentEl = this.layout.getContentElement();
+			const state = this.controller.getState();
 
-					// Clear content and show transition
-					contentEl.empty();
+			// Clear content and show transition
+			contentEl.empty();
 
-					new ConfigCheckTransition(
-						contentEl,
-						() => {
-							resolve();
-						},
-						state.userHasChanges
-					);
-				}
+			new ConfigCheckTransition(
+				contentEl,
+				() => {
+					resolve();
+				},
+				state.userHasChanges
 			);
 		});
 	}
@@ -368,11 +365,11 @@ export class OnboardingView extends ItemView {
 			};
 		}
 
-		this.plugin.settings.experimental!.enableV2 = isFluent;
+		this.plugin.settings.experimental!.enableFluent = isFluent;
 
 		// Prepare v2 config and set placement option when Fluent is chosen
-		if (!this.plugin.settings.experimental!.v2Config) {
-			(this.plugin.settings.experimental as any).v2Config = {
+		if (!this.plugin.settings.experimental!.fluentConfig) {
+			(this.plugin.settings.experimental as any).fluentConfig = {
 				enableWorkspaces: true,
 				defaultWorkspace: "default",
 				showTopNavigation: true,
@@ -386,7 +383,7 @@ export class OnboardingView extends ItemView {
 		if (isFluent) {
 			(
 				this.plugin.settings.experimental as any
-			).v2Config.useWorkspaceSideLeaves = !!state.useSideLeaves;
+			).fluentConfig.useWorkspaceSideLeaves = !!state.useSideLeaves;
 		}
 
 		await this.plugin.saveSettings();
@@ -401,7 +398,7 @@ export class OnboardingView extends ItemView {
 
 		if (!config || state.isCompleting) return;
 
-		this.controller.updateState({ isCompleting: true });
+		this.controller.updateState({isCompleting: true});
 
 		try {
 			// Mark onboarding as completed
@@ -412,7 +409,7 @@ export class OnboardingView extends ItemView {
 			this.leaf.detach();
 		} catch (error) {
 			console.error("Failed to complete onboarding:", error);
-			this.controller.updateState({ isCompleting: false });
+			this.controller.updateState({isCompleting: false});
 		}
 	}
 }

@@ -9,86 +9,140 @@ export class ComponentPreviewFactory {
 	 * Create a preview of the V2 Sidebar component
 	 */
 	static createSidebarPreview(container: HTMLElement): void {
-		container.addClass("tg-v2-container", "component-preview-sidebar");
+		container.addClass("tg-fluent-container", "component-preview-sidebar");
 
-		const sidebar = container.createDiv({ cls: "v2-sidebar component-preview" });
+		const sidebar = container.createDiv({
+			cls: "fluent-sidebar component-preview",
+		});
 
 		// Header with workspace selector
-		const header = sidebar.createDiv({ cls: "v2-sidebar-header" });
+		const header = sidebar.createDiv({ cls: "fluent-sidebar-header" });
 
 		// Workspace selector with correct structure
 		const workspaceSelectorEl = header.createDiv();
-		const workspaceSelector = workspaceSelectorEl.createDiv({ cls: "workspace-selector" });
-		const workspaceButton = workspaceSelector.createDiv({ cls: "workspace-selector-button" });
+		const workspaceSelector = workspaceSelectorEl.createDiv({
+			cls: "workspace-selector",
+		});
+		const workspaceButton = workspaceSelector.createDiv({
+			cls: "workspace-selector-button",
+		});
 
-		const workspaceInfo = workspaceButton.createDiv({ cls: "workspace-info" });
-		const workspaceIcon = workspaceInfo.createDiv({ cls: "workspace-icon" });
+		const workspaceInfo = workspaceButton.createDiv({
+			cls: "workspace-info",
+		});
+		const workspaceIcon = workspaceInfo.createDiv({
+			cls: "workspace-icon",
+		});
 		workspaceIcon.style.backgroundColor = "#3498db";
 		setIcon(workspaceIcon, "layers");
 
-		const workspaceDetails = workspaceInfo.createDiv({ cls: "workspace-details" });
-		const nameContainer = workspaceDetails.createDiv({ cls: "workspace-name-container" });
-		nameContainer.createSpan({ text: t("Personal"), cls: "workspace-name" });
-		workspaceDetails.createDiv({ text: t("Workspace"), cls: "workspace-label" });
+		const workspaceDetails = workspaceInfo.createDiv({
+			cls: "workspace-details",
+		});
+		const nameContainer = workspaceDetails.createDiv({
+			cls: "workspace-name-container",
+		});
+		nameContainer.createSpan({
+			text: t("Personal"),
+			cls: "workspace-name",
+		});
+		workspaceDetails.createDiv({
+			text: t("Workspace"),
+			cls: "workspace-label",
+		});
 
-		const dropdownIcon = workspaceButton.createDiv({ cls: "workspace-dropdown-icon" });
+		const dropdownIcon = workspaceButton.createDiv({
+			cls: "workspace-dropdown-icon",
+		});
 		setIcon(dropdownIcon, "chevron-down");
 
 		// New task button
-		const newTaskBtn = header.createEl("button", { cls: "v2-new-task-btn", text: t("New Task") });
-		setIcon(newTaskBtn.createDiv({ cls: "v2-new-task-icon" }), "plus");
+		const newTaskBtn = header.createEl("button", {
+			cls: "fluent-new-task-btn",
+			text: t("New Task"),
+		});
+		setIcon(newTaskBtn.createDiv({ cls: "fluent-new-task-icon" }), "plus");
 
 		// Main navigation area
-		const content = sidebar.createDiv({ cls: "v2-sidebar-content" });
+		const content = sidebar.createDiv({ cls: "fluent-sidebar-content" });
 
 		// Primary navigation section
-		const primarySection = content.createDiv({ cls: "v2-sidebar-section v2-sidebar-section-primary" });
-		const primaryList = primarySection.createDiv({ cls: "v2-navigation-list" });
+		const primarySection = content.createDiv({
+			cls: "fluent-sidebar-section fluent-sidebar-section-primary",
+		});
+		const primaryList = primarySection.createDiv({
+			cls: "fluent-navigation-list",
+		});
 
 		const primaryItems = [
 			{ id: "inbox", label: t("Inbox"), icon: "inbox", badge: 5 },
 			{ id: "today", label: t("Today"), icon: "calendar-days", badge: 3 },
-			{ id: "upcoming", label: t("Upcoming"), icon: "calendar", badge: 8 },
+			{
+				id: "upcoming",
+				label: t("Upcoming"),
+				icon: "calendar",
+				badge: 8,
+			},
 			{ id: "flagged", label: t("Flagged"), icon: "flag", badge: 2 },
 		];
 
 		primaryItems.forEach((item, index) => {
 			const navItem = primaryList.createDiv({
-				cls: "v2-navigation-item",
-				attr: { "data-view-id": item.id, tabindex: "0", role: "button" }
+				cls: "fluent-navigation-item",
+				attr: {
+					"data-view-id": item.id,
+					tabindex: "0",
+					role: "button",
+				},
 			});
 			if (index === 0) navItem.addClass("is-active");
 
-			const icon = navItem.createDiv({ cls: "v2-navigation-icon" });
+			const icon = navItem.createDiv({ cls: "fluent-navigation-icon" });
 			setIcon(icon, item.icon);
-			navItem.createSpan({ text: item.label, cls: "v2-navigation-label" });
+			navItem.createSpan({
+				text: item.label,
+				cls: "fluent-navigation-label",
+			});
 			if (item.badge && item.badge > 0) {
-				navItem.createDiv({ text: item.badge.toString(), cls: "v2-navigation-badge" });
+				navItem.createDiv({
+					text: item.badge.toString(),
+					cls: "fluent-navigation-badge",
+				});
 			}
 		});
 
 		// Projects section
-		const projectsSection = content.createDiv({ cls: "v2-sidebar-section v2-sidebar-section-projects" });
-		const projectsHeader = projectsSection.createDiv({ cls: "v2-section-header" });
+		const projectsSection = content.createDiv({
+			cls: "fluent-sidebar-section fluent-sidebar-section-projects",
+		});
+		const projectsHeader = projectsSection.createDiv({
+			cls: "fluent-section-header",
+		});
 		projectsHeader.createSpan({ text: t("Projects") });
 
-		const buttonContainer = projectsHeader.createDiv({ cls: "v2-project-header-buttons" });
+		const buttonContainer = projectsHeader.createDiv({
+			cls: "fluent-project-header-buttons",
+		});
 		const treeToggleBtn = buttonContainer.createDiv({
-			cls: "v2-tree-toggle-btn",
-			attr: { "aria-label": t("Toggle tree/list view") }
+			cls: "fluent-tree-toggle-btn",
+			attr: { "aria-label": t("Toggle tree/list view") },
 		});
 		setIcon(treeToggleBtn, "list");
 
 		const sortProjectBtn = buttonContainer.createDiv({
-			cls: "v2-sort-project-btn",
-			attr: { "aria-label": t("Sort projects") }
+			cls: "fluent-sort-project-btn",
+			attr: { "aria-label": t("Sort projects") },
 		});
 		setIcon(sortProjectBtn, "arrow-up-down");
 
 		// Project list
 		const projectListEl = projectsSection.createDiv();
-		const projectList = projectListEl.createDiv({ cls: "v2-project-list" });
-		const scrollArea = projectList.createDiv({ cls: "v2-project-scroll" });
+		const projectList = projectListEl.createDiv({
+			cls: "fluent-project-list",
+		});
+		const scrollArea = projectList.createDiv({
+			cls: "fluent-project-scroll",
+		});
 
 		// Mock projects
 		const projects = [
@@ -97,48 +151,78 @@ export class ComponentPreviewFactory {
 			{ id: "learning", name: t("Learning"), color: "#f59e0b", count: 3 },
 		];
 
-		projects.forEach(project => {
+		projects.forEach((project) => {
 			const projectItem = scrollArea.createDiv({
-				cls: "v2-project-item",
-				attr: { "data-project-id": project.id, "data-level": "0", tabindex: "0", role: "button" }
+				cls: "fluent-project-item",
+				attr: {
+					"data-project-id": project.id,
+					"data-level": "0",
+					tabindex: "0",
+					role: "button",
+				},
 			});
-			const colorDot = projectItem.createDiv({ cls: "v2-project-color" });
+			const colorDot = projectItem.createDiv({
+				cls: "fluent-project-color",
+			});
 			colorDot.style.backgroundColor = project.color;
-			projectItem.createSpan({ text: project.name, cls: "v2-project-name" });
-			projectItem.createSpan({ text: project.count.toString(), cls: "v2-project-count" });
+			projectItem.createSpan({
+				text: project.name,
+				cls: "fluent-project-name",
+			});
+			projectItem.createSpan({
+				text: project.count.toString(),
+				cls: "fluent-project-count",
+			});
 		});
 
 		// Other views section
-		const otherSection = content.createDiv({ cls: "v2-sidebar-section v2-sidebar-section-other" });
-		const otherHeader = otherSection.createDiv({ cls: "v2-section-header" });
+		const otherSection = content.createDiv({
+			cls: "fluent-sidebar-section fluent-sidebar-section-other",
+		});
+		const otherHeader = otherSection.createDiv({
+			cls: "fluent-section-header",
+		});
 		otherHeader.createSpan({ text: t("Other Views") });
 
-		const otherList = otherSection.createDiv({ cls: "v2-navigation-list" });
+		const otherList = otherSection.createDiv({
+			cls: "fluent-navigation-list",
+		});
 		const otherItems = [
 			{ id: "calendar", label: t("Calendar"), icon: "calendar" },
 			{ id: "gantt", label: t("Gantt"), icon: "git-branch" },
 			{ id: "tags", label: t("Tags"), icon: "tag" },
 		];
 
-		otherItems.forEach(item => {
+		otherItems.forEach((item) => {
 			const navItem = otherList.createDiv({
-				cls: "v2-navigation-item",
-				attr: { "data-view-id": item.id, tabindex: "0", role: "button" }
+				cls: "fluent-navigation-item",
+				attr: {
+					"data-view-id": item.id,
+					tabindex: "0",
+					role: "button",
+				},
 			});
-			const icon = navItem.createDiv({ cls: "v2-navigation-icon" });
+			const icon = navItem.createDiv({ cls: "fluent-navigation-icon" });
 			setIcon(icon, item.icon);
-			navItem.createSpan({ text: item.label, cls: "v2-navigation-label" });
+			navItem.createSpan({
+				text: item.label,
+				cls: "fluent-navigation-label",
+			});
 		});
 
 		// Interactive preview: simple selection toggle (visual only)
-		const root = container.querySelector(".v2-sidebar")!;
+		const root = container.querySelector(".fluent-sidebar")!;
 		const handleActivate = (target: HTMLElement) => {
-			const item = target.closest<HTMLElement>(".v2-navigation-item, .v2-project-item");
+			const item = target.closest<HTMLElement>(
+				".fluent-navigation-item, .fluent-project-item"
+			);
 			if (!item) return;
 			const parentList = item.parentElement;
 			if (!parentList) return;
 			// Clear previous active in the same group
-			Array.from(parentList.children).forEach((el) => el.classList.remove("is-active"));
+			Array.from(parentList.children).forEach((el) =>
+				el.classList.remove("is-active")
+			);
 			item.classList.add("is-active");
 		};
 
@@ -159,16 +243,22 @@ export class ComponentPreviewFactory {
 	 * Create a preview of the V2 TopNavigation component
 	 */
 	static createTopNavigationPreview(container: HTMLElement): void {
-		container.addClass("tg-v2-container", "component-preview-topnav");
+		container.addClass("tg-fluent-container", "component-preview-topnav");
 
-		const topNav = container.createDiv({ cls: "v2-top-navigation component-preview" });
+		const topNav = container.createDiv({
+			cls: "fluent-top-navigation component-preview",
+		});
 
 		// Left section - Search
-		const leftSection = topNav.createDiv({ cls: "v2-nav-left" });
-		const searchContainer = leftSection.createDiv({ cls: "v2-search-container" });
+		const leftSection = topNav.createDiv({ cls: "fluent-nav-left" });
+		const searchContainer = leftSection.createDiv({
+			cls: "fluent-search-container",
+		});
 
 		// Match SearchComponent structure
-		const searchInputContainer = searchContainer.createDiv({ cls: "search-input-container" });
+		const searchInputContainer = searchContainer.createDiv({
+			cls: "search-input-container",
+		});
 		const searchInput = searchInputContainer.createEl("input", {
 			type: "text",
 			placeholder: t("Search tasks, projects ..."),
@@ -177,8 +267,8 @@ export class ComponentPreviewFactory {
 		});
 
 		// Center section - View mode tabs
-		const centerSection = topNav.createDiv({ cls: "v2-nav-center" });
-		const viewTabs = centerSection.createDiv({ cls: "v2-view-tabs" });
+		const centerSection = topNav.createDiv({ cls: "fluent-nav-center" });
+		const viewTabs = centerSection.createDiv({ cls: "fluent-view-tabs" });
 
 		const modes = [
 			{ id: "list", label: t("List"), icon: "list" },
@@ -189,26 +279,33 @@ export class ComponentPreviewFactory {
 
 		modes.forEach((mode, index) => {
 			const tab = viewTabs.createEl("button", {
-				cls: ["v2-view-tab", "clickable-icon"],
-				attr: { "data-mode": mode.id }
+				cls: ["fluent-view-tab", "clickable-icon"],
+				attr: { "data-mode": mode.id },
 			});
 			if (index === 0) tab.addClass("is-active");
 
-			const icon = tab.createDiv({ cls: "v2-view-tab-icon" });
+			const icon = tab.createDiv({ cls: "fluent-view-tab-icon" });
 			setIcon(icon, mode.icon);
 			tab.createSpan({ text: mode.label });
 		});
 
 		// Right section - Notifications and Settings
-		const rightSection = topNav.createDiv({ cls: "v2-nav-right" });
+		const rightSection = topNav.createDiv({ cls: "fluent-nav-right" });
 
 		// Notification button
-		const notificationBtn = rightSection.createDiv({ cls: "v2-nav-icon-button" });
+		const notificationBtn = rightSection.createDiv({
+			cls: "fluent-nav-icon-button",
+		});
 		setIcon(notificationBtn, "bell");
-		const badge = notificationBtn.createDiv({ cls: "v2-notification-badge", text: "3" });
+		const badge = notificationBtn.createDiv({
+			cls: "fluent-notification-badge",
+			text: "3",
+		});
 
 		// Settings button
-		const settingsBtn = rightSection.createDiv({ cls: "v2-nav-icon-button" });
+		const settingsBtn = rightSection.createDiv({
+			cls: "fluent-nav-icon-button",
+		});
 		setIcon(settingsBtn, "settings");
 	}
 
@@ -216,24 +313,36 @@ export class ComponentPreviewFactory {
 	 * Create a preview of the content area with task list
 	 */
 	static createContentAreaPreview(container: HTMLElement): void {
-		container.addClass("tg-v2-container", "component-preview-content");
+		container.addClass("tg-fluent-container", "component-preview-content");
 
-		const content = container.createDiv({ cls: "task-content component-preview" });
+		const content = container.createDiv({
+			cls: "task-content component-preview",
+		});
 
 		// Content header
 		const header = content.createDiv({ cls: "content-header" });
 
 		// View title
-		const titleEl = header.createDiv({ cls: "content-title", text: t("Inbox") });
+		const titleEl = header.createDiv({
+			cls: "content-title",
+			text: t("Inbox"),
+		});
 
 		// Task count
-		const countEl = header.createDiv({ cls: "task-count", text: `5 ${t("tasks")}` });
+		const countEl = header.createDiv({
+			cls: "task-count",
+			text: `5 ${t("tasks")}`,
+		});
 
 		// Filter controls
 		const filterEl = header.createDiv({ cls: "content-filter" });
 		const filterInput = filterEl.createEl("input", {
 			cls: "filter-input",
-			attr: { type: "text", placeholder: t("Filter tasks..."), disabled: "true" }
+			attr: {
+				type: "text",
+				placeholder: t("Filter tasks..."),
+				disabled: "true",
+			},
 		});
 
 		// View toggle button
@@ -245,14 +354,30 @@ export class ComponentPreviewFactory {
 		const taskList = content.createDiv({ cls: "task-list" });
 
 		const mockTasks = [
-			{ title: t("Review project proposal"), priority: "high", project: "Work" },
-			{ title: t("Update documentation"), priority: "medium", project: "Work" },
+			{
+				title: t("Review project proposal"),
+				priority: "high",
+				project: "Work",
+			},
+			{
+				title: t("Update documentation"),
+				priority: "medium",
+				project: "Work",
+			},
 			{ title: t("Buy groceries"), priority: "low", project: "Personal" },
-			{ title: t("Finish online course"), priority: "medium", project: "Learning" },
-			{ title: t("Schedule team meeting"), priority: "high", project: "Work" },
+			{
+				title: t("Finish online course"),
+				priority: "medium",
+				project: "Learning",
+			},
+			{
+				title: t("Schedule team meeting"),
+				priority: "high",
+				project: "Work",
+			},
 		];
 
-		mockTasks.forEach(task => {
+		mockTasks.forEach((task) => {
 			const taskItem = taskList.createDiv({ cls: "task-item" });
 
 			const checkbox = taskItem.createDiv({ cls: "task-checkbox" });
@@ -263,11 +388,15 @@ export class ComponentPreviewFactory {
 
 			const taskMeta = taskContent.createDiv({ cls: "task-meta" });
 			if (task.priority) {
-				const priorityBadge = taskMeta.createSpan({ cls: `task-priority priority-${task.priority}` });
+				const priorityBadge = taskMeta.createSpan({
+					cls: `task-priority priority-${task.priority}`,
+				});
 				priorityBadge.createSpan({ text: task.priority });
 			}
 			if (task.project) {
-				const projectBadge = taskMeta.createSpan({ cls: "task-project" });
+				const projectBadge = taskMeta.createSpan({
+					cls: "task-project",
+				});
 				projectBadge.createSpan({ text: task.project });
 			}
 		});
@@ -277,18 +406,25 @@ export class ComponentPreviewFactory {
 	 * Create a preview of the project popover
 	 */
 	static createProjectPopoverPreview(container: HTMLElement): void {
-		container.addClass("tg-v2-container", "component-preview-popover");
+		container.addClass("tg-fluent-container", "component-preview-popover");
 
-		const popover = container.createDiv({ cls: "project-popover component-preview" });
+		const popover = container.createDiv({
+			cls: "project-popover component-preview",
+		});
 
 		// Popover header
 		const header = popover.createDiv({ cls: "popover-header" });
 		const colorDot = header.createSpan({ cls: "project-color-large" });
 		colorDot.style.backgroundColor = "#3b82f6";
 
-		const headerContent = header.createDiv({ cls: "popover-header-content" });
+		const headerContent = header.createDiv({
+			cls: "popover-header-content",
+		});
 		headerContent.createEl("h3", { text: t("Work") });
-		headerContent.createSpan({ text: `12 ${t("tasks")}`, cls: "project-task-count" });
+		headerContent.createSpan({
+			text: `12 ${t("tasks")}`,
+			cls: "project-task-count",
+		});
 
 		// Popover stats
 		const stats = popover.createDiv({ cls: "popover-stats" });
@@ -298,7 +434,7 @@ export class ComponentPreviewFactory {
 			{ label: t("Overdue"), value: "2" },
 		];
 
-		statsItems.forEach(stat => {
+		statsItems.forEach((stat) => {
 			const statItem = stats.createDiv({ cls: "stat-item" });
 			statItem.createDiv({ text: stat.value, cls: "stat-value" });
 			statItem.createDiv({ text: stat.label, cls: "stat-label" });
@@ -312,7 +448,7 @@ export class ComponentPreviewFactory {
 			{ label: t("Settings"), icon: "settings" },
 		];
 
-		actionButtons.forEach(action => {
+		actionButtons.forEach((action) => {
 			const btn = actions.createDiv({ cls: "popover-action-btn" });
 			const icon = btn.createSpan();
 			setIcon(icon, action.icon);

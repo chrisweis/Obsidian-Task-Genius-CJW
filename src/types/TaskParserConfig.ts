@@ -1,6 +1,7 @@
 /**
  * Task parser configuration types and interfaces
  */
+import { TgProject } from "@/types/task";
 
 export enum MetadataParseMode {
 	DataviewOnly = "dataview-only", // Only parse dataview format [key::value]
@@ -99,7 +100,7 @@ export interface EnhancedTask {
 	context?: string;
 
 	// Enhanced project information
-	tgProject?: import("./task").TgProject;
+	tgProject?: TgProject;
 }
 
 export function createDefaultParserConfig(): TaskParserConfig {

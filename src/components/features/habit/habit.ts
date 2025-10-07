@@ -23,6 +23,7 @@ import {
 } from "./habitcard/index"; // Import the habit card classes
 import { t } from "@/translations/helper";
 import "@/styles/habit.css";
+import { HabitEditDialog } from "@/components/features/habit/components/HabitEditDialog";
 
 export class Habit extends Component {
 	plugin: TaskProgressBarPlugin;
@@ -78,7 +79,7 @@ export class Habit extends Component {
 		const emptyDiv = this.containerEl.createDiv({
 			cls: "habit-empty-state",
 		});
-		emptyDiv.createEl("h2", { text: t("No Habits Yet") });
+		emptyDiv.createEl("h2", {text: t("No Habits Yet")});
 		emptyDiv.createEl("p", {
 			text: t("Click the open habit button to create a new habit."),
 		}); // Adjust text based on UI
@@ -120,29 +121,27 @@ export class Habit extends Component {
 	}
 
 	openCreateHabitDialog() {
-		import("./components/HabitEditDialog").then(({ HabitEditDialog }) => {
-			new HabitEditDialog(
-				this.plugin.app,
-				this.plugin,
-				null, // null for new habit
-				async (habitData) => {
-					// Save the new habit
-					if (!this.plugin.settings.habit.habits) {
-						this.plugin.settings.habit.habits = [];
-					}
-					this.plugin.settings.habit.habits.push(habitData);
-					await this.plugin.saveSettings();
-
-					// Reload habits
-					if (this.plugin.habitManager) {
-						await this.plugin.habitManager.initializeHabits();
-					}
-
-					new Notice(t("Habit created successfully"));
-					this.redraw();
+		new HabitEditDialog(
+			this.plugin.app,
+			this.plugin,
+			null, // null for new habit
+			async (habitData) => {
+				// Save the new habit
+				if (!this.plugin.settings.habit.habits) {
+					this.plugin.settings.habit.habits = [];
 				}
-			).open();
-		});
+				this.plugin.settings.habit.habits.push(habitData);
+				await this.plugin.saveSettings();
+
+				// Reload habits
+				if (this.plugin.habitManager) {
+					await this.plugin.habitManager.initializeHabits();
+				}
+
+				new Notice(t("Habit created successfully"));
+				this.redraw();
+			}
+		).open();
 	}
 
 	renderHabitCard(container: HTMLElement, habit: HabitProps) {
@@ -212,7 +211,7 @@ export class EventDetailModal extends Modal {
 	}
 
 	onOpen() {
-		const { contentEl } = this;
+		const {contentEl} = this;
 		contentEl.addClass("habit-event-modal");
 		contentEl.createEl("h2", {
 			text: `Record Details for ${this.eventName}`,
@@ -251,7 +250,7 @@ export class EventDetailModal extends Modal {
 	}
 
 	onClose() {
-		let { contentEl } = this;
+		let {contentEl} = this;
 		contentEl.empty();
 	}
 }

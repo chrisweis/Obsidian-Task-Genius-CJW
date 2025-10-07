@@ -1,5 +1,5 @@
 import { App, getFrontMatterInfo, TFile } from "obsidian";
-import { QuickCaptureOptions } from "../../editor-extensions/core/quick-capture-panel";
+import { QuickCaptureOptions } from "@/editor-extensions/core/quick-capture-panel";
 import { moment } from "obsidian";
 
 /**
@@ -341,7 +341,7 @@ function addContentUnderHeading(
 		while (
 			insertIndex < sectionEndIndex &&
 			lines[insertIndex].trim() === ""
-		) {
+			) {
 			insertIndex++;
 		}
 	} else {
@@ -351,7 +351,7 @@ function addContentUnderHeading(
 		while (
 			insertIndex > headingIndex + 1 &&
 			lines[insertIndex - 1].trim() === ""
-		) {
+			) {
 			insertIndex--;
 		}
 	}

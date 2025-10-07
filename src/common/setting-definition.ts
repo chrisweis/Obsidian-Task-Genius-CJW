@@ -6,6 +6,7 @@ import { IcsManagerConfig } from "../types/ics";
 import { TimeParsingConfig } from "../services/time-parsing-service";
 import type { EnhancedTimeParsingConfig } from "../types/time-parsing";
 import type { FileSourceConfiguration } from "../types/file-source";
+import { WorkspacesConfig } from "@/types/workspace";
 
 // Interface for individual project review settings (If still needed, otherwise remove)
 // Keep it for now, in case it's used elsewhere, but it's not part of TaskProgressBarSettings anymore
@@ -426,15 +427,15 @@ export interface BetaTestSettings {
 }
 
 export interface ExperimentalSettings {
-	enableV2: boolean;
-	showV2Ribbon: boolean;
+	enableFluent: boolean;
+	showFluentRibbon: boolean;
 	workspaces?: Array<{
 		id: string;
 		name: string;
 		color: string;
 		settings?: any;
 	}>;
-	v2Config?: {
+	fluentConfig?: {
 		enableWorkspaces: boolean;
 		defaultWorkspace?: string;
 		showTopNavigation: boolean;
@@ -840,7 +841,7 @@ export interface TaskProgressBarSettings {
 	fileSource: FileSourceConfiguration;
 
 	// Workspace Settings
-	workspaces?: import("../experimental/v2/types/workspace").WorkspacesConfig;
+	workspaces?: WorkspacesConfig;
 }
 
 /** Define the default settings */
@@ -856,21 +857,21 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	// Desktop integration and notifications defaults
 	notifications: {
 		enabled: false,
-		dailySummary: { enabled: true, time: "09:00" },
-		perTask: { enabled: false, leadMinutes: 10 },
+		dailySummary: {enabled: true, time: "09:00"},
+		perTask: {enabled: false, leadMinutes: 10},
 	},
-	desktopIntegration: { enableTray: false },
+	desktopIntegration: {enableTray: false},
 	countSubLevel: false,
 	displayMode: "bracketFraction",
 	customFormat: "[{{COMPLETED}}/{{TOTAL}}]",
 	showPercentage: false,
 	customizeProgressRanges: false,
 	progressRanges: [
-		{ min: 0, max: 20, text: t("Just started") + " {{PROGRESS}}%" },
-		{ min: 20, max: 40, text: t("Making progress") + " {{PROGRESS}}% " },
-		{ min: 40, max: 60, text: t("Half way") + " {{PROGRESS}}% " },
-		{ min: 60, max: 80, text: t("Good progress") + " {{PROGRESS}}% " },
-		{ min: 80, max: 100, text: t("Almost there") + " {{PROGRESS}}% " },
+		{min: 0, max: 20, text: t("Just started") + " {{PROGRESS}}%"},
+		{min: 20, max: 40, text: t("Making progress") + " {{PROGRESS}}% "},
+		{min: 40, max: 60, text: t("Half way") + " {{PROGRESS}}% "},
+		{min: 60, max: 80, text: t("Good progress") + " {{PROGRESS}}% "},
+		{min: 80, max: 100, text: t("Almost there") + " {{PROGRESS}}% "},
 	],
 	allowCustomProgressGoal: false,
 	hideProgressBarBasedOnConditions: false,
@@ -1413,9 +1414,9 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			}, // Add imageUrl example if needed
 		],
 		occurrenceLevels: [
-			{ name: t("common"), chance: 70 },
-			{ name: t("rare"), chance: 25 },
-			{ name: t("legendary"), chance: 5 },
+			{name: t("common"), chance: 70},
+			{name: t("rare"), chance: 25},
+			{name: t("legendary"), chance: 5},
 		],
 		showRewardType: "modal",
 	},
@@ -1436,10 +1437,10 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	sortTasks: true, // Default to enabled
 	sortCriteria: [
 		// Default sorting criteria
-		{ field: "completed", order: "asc" }, // 未完成任务优先 (false < true)
-		{ field: "status", order: "asc" },
-		{ field: "priority", order: "asc" },
-		{ field: "dueDate", order: "asc" },
+		{field: "completed", order: "asc"}, // 未完成任务优先 (false < true)
+		{field: "status", order: "asc"},
+		{field: "priority", order: "asc"},
+		{field: "dueDate", order: "asc"},
 	],
 
 	// Auto Date Manager Defaults
@@ -1597,8 +1598,8 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 
 	// Experimental Defaults
 	experimental: {
-		enableV2: false,
-		showV2Ribbon: false,
+		enableFluent: false,
+		showFluentRibbon: false,
 	},
 
 	// Onboarding Defaults
@@ -1725,19 +1726,19 @@ export function getViewSettingOrDefault(
 		// Explicitly handle merging filterRules
 		filterRules: savedConfig?.filterRules
 			? {
-					...(baseConfig.filterRules || {}), // Start with base's filterRules
-					...savedConfig.filterRules, // Override with saved filterRules properties
-			  }
+				...(baseConfig.filterRules || {}), // Start with base's filterRules
+				...savedConfig.filterRules, // Override with saved filterRules properties
+			}
 			: baseConfig.filterRules || {}, // If no saved filterRules, use base's
 		// Merge specificConfig: Saved overrides default, default overrides base (which might be fallback without specificConfig)
 		// Ensure that the spread of savedConfig doesn't overwrite specificConfig object entirely if base has one and saved doesn't.
 		specificConfig:
 			savedConfig?.specificConfig !== undefined
 				? {
-						// If saved has specificConfig, merge it onto base's
-						...(baseConfig.specificConfig || {}),
-						...savedConfig.specificConfig,
-				  }
+					// If saved has specificConfig, merge it onto base's
+					...(baseConfig.specificConfig || {}),
+					...savedConfig.specificConfig,
+				}
 				: baseConfig.specificConfig, // Otherwise, just use base's specificConfig (could be undefined)
 	};
 

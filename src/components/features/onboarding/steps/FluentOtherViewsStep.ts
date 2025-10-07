@@ -31,12 +31,12 @@ export class FluentOtherViewsStep {
 		ComponentPreviewFactory.createSidebarPreview(preview);
 
 		const other = preview.querySelector<HTMLElement>(
-			".v2-sidebar-section-other"
+			".fluent-sidebar-section-other"
 		);
 		other?.classList.add("is-focused");
 
 		const dimTargets = preview.querySelectorAll<HTMLElement>(
-			".v2-sidebar-section-primary, .v2-sidebar-section-projects"
+			".fluent-sidebar-section-primary, .fluent-sidebar-section-projects"
 		);
 		dimTargets.forEach((el) => el.classList.add("is-dimmed"));
 

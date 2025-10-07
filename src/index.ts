@@ -1,79 +1,69 @@
 import {
-	editorInfoField,
-	HoverParent,
-	HoverPopover,
-	MarkdownRenderer,
-	Plugin,
-	Editor,
-	Menu,
 	addIcon,
-	requireApiVersion,
+	Editor,
+	editorInfoField,
+	MarkdownView,
+	Menu,
+	Notice,
 	Platform,
+	Plugin,
+	requireApiVersion,
 } from "obsidian";
 import { taskProgressBarExtension } from "./editor-extensions/ui-widgets/progress-bar-widget";
 import { taskTimerExtension } from "./editor-extensions/date-time/task-timer";
 import { updateProgressBarInElement } from "./components/features/read-mode/ReadModeProgressBarWidget";
 import { applyTaskTextMarks } from "./components/features/read-mode/ReadModeTextMark";
-import {
-	DEFAULT_SETTINGS,
-	TaskProgressBarSettings,
-} from "./common/setting-definition";
+import { DEFAULT_SETTINGS, TaskProgressBarSettings, } from "./common/setting-definition";
 import { TaskProgressBarSettingTab } from "./setting";
 import { EditorView } from "@codemirror/view";
 import { autoCompleteParentExtension } from "./editor-extensions/autocomplete/parent-task-updater";
 import { taskStatusSwitcherExtension } from "./editor-extensions/task-operations/status-switcher";
 import { cycleCompleteStatusExtension } from "./editor-extensions/task-operations/status-cycler";
-import {
-	workflowExtension,
-	updateWorkflowContextMenu,
-} from "./editor-extensions/workflow/workflow-handler";
+import { updateWorkflowContextMenu, workflowExtension, } from "./editor-extensions/workflow/workflow-handler";
 import { workflowDecoratorExtension } from "./editor-extensions/ui-widgets/workflow-decorator";
 import { workflowRootEnterHandlerExtension } from "./editor-extensions/workflow/workflow-enter-handler";
 import {
+	LETTER_PRIORITIES,
 	priorityPickerExtension,
 	TASK_PRIORITIES,
-	LETTER_PRIORITIES,
 } from "./editor-extensions/ui-widgets/priority-picker";
-import {
-	cycleTaskStatusForward,
-	cycleTaskStatusBackward,
-} from "./commands/taskCycleCommands";
+import { cycleTaskStatusBackward, cycleTaskStatusForward, } from "./commands/taskCycleCommands";
 import { moveTaskCommand } from "./commands/taskMover";
 import {
+	autoMoveCompletedTasksCommand,
 	moveCompletedTasksCommand,
 	moveIncompletedTasksCommand,
-	autoMoveCompletedTasksCommand,
 } from "./commands/completedTaskMover";
 import {
-	createQuickWorkflowCommand,
 	convertTaskToWorkflowCommand,
-	startWorkflowHereCommand,
 	convertToWorkflowRootCommand,
+	createQuickWorkflowCommand,
 	duplicateWorkflowCommand,
 	showWorkflowQuickActionsCommand,
+	startWorkflowHereCommand,
 } from "./commands/workflowCommands";
 import { datePickerExtension } from "./editor-extensions/date-time/date-picker";
 import {
 	quickCaptureExtension,
-	toggleQuickCapture,
 	quickCaptureState,
+	toggleQuickCapture,
 } from "./editor-extensions/core/quick-capture-panel";
 import {
-	taskFilterExtension,
-	toggleTaskFilter,
-	taskFilterState,
 	migrateOldFilterOptions,
+	taskFilterExtension,
+	taskFilterState,
+	toggleTaskFilter,
 } from "./editor-extensions/core/task-filter-panel";
 import { Task } from "./types/task";
 // Import the enhanced QuickCaptureModal and MinimalQuickCaptureModal
 import { QuickCaptureModal } from "./components/features/quick-capture/modals/QuickCaptureModalWithSwitch";
-import { MinimalQuickCaptureModal } from "./components/features/quick-capture/modals/MinimalQuickCaptureModalWithSwitch";
+import {
+	MinimalQuickCaptureModal
+} from "./components/features/quick-capture/modals/MinimalQuickCaptureModalWithSwitch";
 import { MinimalQuickCaptureSuggest } from "./components/features/quick-capture/suggest/MinimalQuickCaptureSuggest";
-import { SuggestManager } from "./components/ui/suggest";
-import { MarkdownView } from "obsidian";
-import { Notice } from "obsidian";
+import { SuggestManager } from "@/components/ui/suggest";
 import { t } from "./translations/helper";
-import { TaskView, TASK_VIEW_TYPE } from "./pages/TaskView";
+import { TASK_VIEW_TYPE, TaskView } from "./pages/TaskView";
 import "./styles/global.css";
 import "./styles/setting.css";
 import "./styles/view.css";
@@ -83,11 +73,10 @@ import "./styles/quadrant/quadrant.css";
 import "./styles/onboarding.css";
 import "./styles/universal-suggest.css";
 import "./styles/noise.css";
-import { TaskSpecificView } from "./pages/TaskSpecificView";
-import { TASK_SPECIFIC_VIEW_TYPE } from "./pages/TaskSpecificView";
+import { TASK_SPECIFIC_VIEW_TYPE, TaskSpecificView } from "./pages/TaskSpecificView";
 import {
-	TimelineSidebarView,
 	TIMELINE_SIDEBAR_VIEW_TYPE,
+	TimelineSidebarView,
 } from "./components/features/timeline-sidebar/TimelineSidebarView";
 import { getStatusIcon, getTaskGeniusIcon } from "./icon";
 import { RewardManager } from "./managers/reward-manager";
@@ -100,7 +89,7 @@ import { autoDateManagerExtension } from "./editor-extensions/date-time/date-man
 import { taskMarkCleanupExtension } from "./editor-extensions/task-operations/mark-cleanup";
 import { ViewManager } from "./pages/ViewManager";
 import { IcsManager } from "./managers/ics-manager";
-import { V2Integration } from "./experimental/v2/V2Integration";
+import { FluentIntegration } from "./components/features/fluent/FluentIntegration";
 import { ObsidianUriHandler } from "./utils/ObsidianUriHandler";
 import { VersionManager } from "./managers/version-manager";
 import { RebuildProgressManager } from "./managers/rebuild-progress-manager";
@@ -108,102 +97,19 @@ import DesktopIntegrationManager from "./managers/desktop-integration-manager";
 import { OnboardingConfigManager } from "./managers/onboarding-manager";
 import { OnCompletionManager } from "./managers/completion-manager";
 import { SettingsChangeDetector } from "./services/settings-change-detector";
-import {
-	OnboardingView,
-	ONBOARDING_VIEW_TYPE,
-} from "./components/features/onboarding/OnboardingView";
+import { ONBOARDING_VIEW_TYPE, OnboardingView, } from "./components/features/onboarding/OnboardingView";
 import { TaskTimerExporter } from "./services/timer-export-service";
 import { TaskTimerManager } from "./managers/timer-manager";
 import { McpServerManager } from "./mcp/McpServerManager";
-import { createDataflow, isDataflowEnabled } from "./dataflow/createDataflow";
+import { createDataflow } from "./dataflow/createDataflow";
 import type { DataflowOrchestrator } from "./dataflow/Orchestrator";
 import { WriteAPI } from "./dataflow/api/WriteAPI";
 import { Events } from "./dataflow/events/Events";
-import {
-	installWorkspaceDragMonitor,
-	registerRestrictedDnDViewTypes,
-} from "./patches/workspace-dnd-patch";
-import { TASK_VIEW_V2_TYPE } from "./experimental/v2/TaskViewV2";
-import {
-	setPriorityAtCursor,
-	removePriorityAtCursor,
-} from "./utils/task/curosr-priority-utils";
-
-class TaskProgressBarPopover extends HoverPopover {
-	plugin: TaskProgressBarPlugin;
-	data: {
-		completed: string;
-		total: string;
-		inProgress: string;
-		abandoned: string;
-		notStarted: string;
-		planned: string;
-	};
-
-	constructor(
-		plugin: TaskProgressBarPlugin,
-		data: {
-			completed: string;
-			total: string;
-			inProgress: string;
-			abandoned: string;
-			notStarted: string;
-			planned: string;
-		},
-		parent: HoverParent,
-		targetEl: HTMLElement,
-		waitTime: number = 1000
-	) {
-		super(parent, targetEl, waitTime);
-
-		this.hoverEl.toggleClass("task-progress-bar-popover", true);
-		this.plugin = plugin;
-		this.data = data;
-	}
-
-	onload(): void {
-		MarkdownRenderer.render(
-			this.plugin.app,
-			`
-| Status | Count |
-| --- | --- |
-| Total | ${this.data.total} |
-| Completed | ${this.data.completed} |
-| In Progress | ${this.data.inProgress} |
-| Abandoned | ${this.data.abandoned} |
-| Not Started | ${this.data.notStarted} |
-| Planned | ${this.data.planned} |
-`,
-			this.hoverEl,
-			"",
-			this.plugin
-		);
-	}
-}
-
-export const showPopoverWithProgressBar = (
-	plugin: TaskProgressBarPlugin,
-	{
-		progressBar,
-		data,
-		view,
-	}: {
-		progressBar: HTMLElement;
-		data: {
-			completed: string;
-			total: string;
-			inProgress: string;
-			abandoned: string;
-			notStarted: string;
-			planned: string;
-		};
-		view: EditorView;
-	}
-) => {
-	const editor = view.state.field(editorInfoField);
-	if (!editor) return;
-	new TaskProgressBarPopover(plugin, data, editor, progressBar);
-};
+import { installWorkspaceDragMonitor, registerRestrictedDnDViewTypes, } from "./patches/workspace-dnd-patch";
+import { FLUENT_TASK_VIEW } from "./pages/FluentTaskView";
+import { removePriorityAtCursor, setPriorityAtCursor, } from "./utils/task/curosr-priority-utils";
+import { QuickCaptureSuggest } from "@/editor-extensions/autocomplete/task-metadata-suggest";
+import { WorkspaceManager } from "@/components/features/fluent/managers/WorkspaceManager";
 
 export default class TaskProgressBarPlugin extends Plugin {
 	settings: TaskProgressBarSettings;
@@ -232,7 +138,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 	minimalQuickCaptureSuggest: MinimalQuickCaptureSuggest;
 
 	// Regular quick capture suggest
-	quickCaptureSuggest: any;
+	quickCaptureSuggest: QuickCaptureSuggest;
 
 	// Global suggest manager
 	globalSuggestManager: SuggestManager;
@@ -254,7 +160,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 	settingTab: TaskProgressBarSettingTab;
 
 	// Workspace manager instance
-	workspaceManager?: import("./experimental/v2/managers/WorkspaceManager").WorkspaceManager;
+	workspaceManager?: WorkspaceManager;
 
 	// Task Genius Icon manager instance
 	taskGeniusIconManager: TaskGeniusIconManager;
@@ -269,17 +175,14 @@ export default class TaskProgressBarPlugin extends Plugin {
 	onCompletionManager?: OnCompletionManager;
 
 	// V2 Integration instance
-	v2Integration?: V2Integration;
+	v2Integration?: FluentIntegration;
 
 	// Uninstaller for workspace drag-and-drop monkey patch
 	private uninstallWorkspaceDnD?: () => void;
 
 	async onload() {
 		console.time("[TPB] onload");
-
-		console.time("[TPB] loadSettings");
 		await this.loadSettings();
-		console.timeEnd("[TPB] loadSettings");
 
 		if (
 			requireApiVersion("1.9.10") &&
@@ -301,9 +204,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 		this.globalSuggestManager = new SuggestManager(this.app, this);
 
 		// Initialize workspace manager
-		const { WorkspaceManager } = await import(
-			"./experimental/v2/managers/WorkspaceManager"
-		);
+		const {WorkspaceManager} = await import(
+			"@/components/features/fluent/managers/WorkspaceManager"
+			);
 		this.workspaceManager = new WorkspaceManager(this);
 		await this.workspaceManager.migrateToV2();
 		this.workspaceManager.ensureDefaultWorkspaceInvariant();
@@ -335,28 +238,25 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 			console.time("[TPB] registerViewsAndCommands");
 			// Register the TaskView
-			if (!this.settings.onboarding?.completed) {
-				// Initialize V2 Integration
-				this.v2Integration = new V2Integration(this);
-				await this.v2Integration.migrateSettings();
-				this.v2Integration.register();
+			this.v2Integration = new FluentIntegration(this);
+			await this.v2Integration.migrateSettings();
+			this.v2Integration.register();
 
-				this.registerView(
-					TASK_VIEW_TYPE,
-					(leaf) => new TaskView(leaf, this)
-				);
+			this.registerView(
+				TASK_VIEW_TYPE,
+				(leaf) => new TaskView(leaf, this)
+			);
 
-				this.registerView(
-					TASK_SPECIFIC_VIEW_TYPE,
-					(leaf) => new TaskSpecificView(leaf, this)
-				);
+			this.registerView(
+				TASK_SPECIFIC_VIEW_TYPE,
+				(leaf) => new TaskSpecificView(leaf, this)
+			);
 
-				// Register the Timeline Sidebar View
-				this.registerView(
-					TIMELINE_SIDEBAR_VIEW_TYPE,
-					(leaf) => new TimelineSidebarView(leaf, this)
-				);
-			}
+			// Register the Timeline Sidebar View
+			this.registerView(
+				TIMELINE_SIDEBAR_VIEW_TYPE,
+				(leaf) => new TimelineSidebarView(leaf, this)
+			);
 
 			// Register the Onboarding View
 			this.registerView(
@@ -412,12 +312,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 				}
 			);
 
-			console.timeEnd("[TPB] registerViewsAndCommands");
 			// Initialize dataflow orchestrator (primary architecture)
 			try {
-				console.log("[Plugin] Initializing Dataflow architecture...");
 				// Wait for dataflow initialization to complete before proceeding
-				console.time("[TPB] createDataflow");
 				this.dataflowOrchestrator = await createDataflow(
 					this.app,
 					this.app.vault,
@@ -456,10 +353,6 @@ export default class TaskProgressBarPlugin extends Plugin {
 							this.settings.projectConfig?.metadataConfig
 								?.detectionMethods || [],
 					}
-				);
-				console.timeEnd("[TPB] createDataflow");
-				console.log(
-					"[Plugin] Dataflow orchestrator initialized successfully"
 				);
 			} catch (error) {
 				console.error(
@@ -513,19 +406,16 @@ export default class TaskProgressBarPlugin extends Plugin {
 			]);
 		}
 
-		console.time("[TPB] registerCommands");
 		this.registerCommands();
-		console.timeEnd("[TPB] registerCommands");
-		console.time("[TPB] registerEditorExt");
 		this.registerEditorExt();
-		console.timeEnd("[TPB] registerEditorExt");
 
 		// Install workspace DnD monkey patch (blocks dragging restricted views to center)
 		installWorkspaceDragMonitor(this);
 		// Also restrict V2 main view from being dropped to center, as it is sidebar-managed
 		try {
-			registerRestrictedDnDViewTypes(TASK_VIEW_V2_TYPE);
-		} catch {}
+			registerRestrictedDnDViewTypes(FLUENT_TASK_VIEW);
+		} catch {
+		}
 
 		this.settingTab = new TaskProgressBarSettingTab(this.app, this);
 		this.addSettingTab(this.settingTab);
@@ -1551,12 +1441,12 @@ export default class TaskProgressBarPlugin extends Plugin {
 		}
 
 		this.settings.taskGutter.enableTaskGutter &&
-			this.registerEditorExtension([taskGutterExtension(this.app, this)]);
+		this.registerEditorExtension([taskGutterExtension(this.app, this)]);
 		this.settings.enableTaskStatusSwitcher &&
-			this.settings.enableCustomTaskMarks &&
-			this.registerEditorExtension([
-				taskStatusSwitcherExtension(this.app, this),
-			]);
+		this.settings.enableCustomTaskMarks &&
+		this.registerEditorExtension([
+			taskStatusSwitcherExtension(this.app, this),
+		]);
 
 		// Add priority picker extension
 		if (this.settings.enablePriorityPicker) {
@@ -1670,7 +1560,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 	 * Open the onboarding view in a new leaf
 	 */
 	async openOnboardingView(): Promise<void> {
-		const { workspace } = this.app;
+		const {workspace} = this.app;
 
 		// Check if onboarding view is already open
 		const existingLeaf = workspace.getLeavesOfType(ONBOARDING_VIEW_TYPE)[0];
@@ -1682,8 +1572,26 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		// Create a new leaf in the main area and open the onboarding view
 		const leaf = workspace.getLeaf("tab");
-		await leaf.setViewState({ type: ONBOARDING_VIEW_TYPE });
+		await leaf.setViewState({type: ONBOARDING_VIEW_TYPE});
 		workspace.revealLeaf(leaf);
+	}
+
+	async closeAllViewsFromTaskGenius() {
+		const {workspace} = this.app;
+		const v1Leaves = workspace.getLeavesOfType(TASK_VIEW_TYPE);
+		v1Leaves.forEach((leaf) => leaf.detach());
+		const v2Leaves = workspace.getLeavesOfType(FLUENT_TASK_VIEW);
+		v2Leaves.forEach((leaf) => leaf.detach());
+		const specificLeaves = workspace.getLeavesOfType(
+			TASK_SPECIFIC_VIEW_TYPE
+		);
+		specificLeaves.forEach((leaf) => leaf.detach());
+		const timelineLeaves = workspace.getLeavesOfType(
+			TIMELINE_SIDEBAR_VIEW_TYPE
+		);
+		timelineLeaves.forEach((leaf) => leaf.detach());
+
+
 	}
 
 	async loadSettings() {
@@ -1698,7 +1606,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 				"[Plugin][loadSettings] fileMetadataInheritance (effective):",
 				this.settings.fileMetadataInheritance
 			);
-		} catch {}
+		} catch {
+		}
 
 		// Migrate old inheritance settings to new structure
 		this.migrateInheritanceSettings(savedData);
@@ -1740,7 +1649,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 				"[Plugin][saveSettings] fileMetadataInheritance:",
 				this.settings?.fileMetadataInheritance
 			);
-		} catch {}
+		} catch {
+		}
 		await this.saveData(this.settings);
 	}
 
@@ -1758,7 +1668,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 				(v) => v.id === defaultView.id
 			);
 			if (!existingView) {
-				this.settings.viewConfiguration.push({ ...defaultView });
+				this.settings.viewConfiguration.push({...defaultView});
 			}
 		});
 
@@ -1777,7 +1687,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		this.isActivatingView = true;
 		try {
-			const { workspace } = this.app;
+			const {workspace} = this.app;
 
 			// Check if view is already open
 			const existingLeaves = workspace.getLeavesOfType(TASK_VIEW_TYPE);
@@ -1795,7 +1705,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 			// Otherwise, create a new leaf and open the view
 			const leaf = workspace.getLeaf("tab");
-			await leaf.setViewState({ type: TASK_VIEW_TYPE });
+			await leaf.setViewState({type: TASK_VIEW_TYPE});
 			workspace.revealLeaf(leaf);
 		} finally {
 			this.isActivatingView = false;
@@ -1812,7 +1722,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		this.isActivatingSidebar = true;
 		try {
-			const { workspace } = this.app;
+			const {workspace} = this.app;
 
 			// Check if view is already open
 			const existingLeaves = workspace.getLeavesOfType(
@@ -1833,7 +1743,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 			// Open in the right sidebar
 			const leaf = workspace.getRightLeaf(false);
 			if (leaf) {
-				await leaf.setViewState({ type: TIMELINE_SIDEBAR_VIEW_TYPE });
+				await leaf.setViewState({type: TIMELINE_SIDEBAR_VIEW_TYPE});
 				workspace.revealLeaf(leaf);
 			}
 		} finally {

@@ -12,6 +12,7 @@ import {
 } from "obsidian";
 import { Task } from "../../types/task";
 import {
+	EnhancedProjectData,
 	ErrorResult,
 	IndexerResult,
 	ParseTasksCommand,
@@ -184,7 +185,7 @@ export class TaskWorkerManager extends Component {
 		options: Partial<WorkerPoolOptions> = {}
 	) {
 		super();
-		this.options = { ...DEFAULT_WORKER_OPTIONS, ...options };
+		this.options = {...DEFAULT_WORKER_OPTIONS, ...options};
 		this.vault = vault;
 		this.metadataCache = metadataCache;
 
@@ -349,7 +350,7 @@ export class TaskWorkerManager extends Component {
 	 * Get performance statistics
 	 */
 	public getStats() {
-		return { ...this.stats };
+		return {...this.stats};
 	}
 
 	/**
@@ -545,13 +546,13 @@ export class TaskWorkerManager extends Component {
 								priority
 							);
 							resultMap.set(file.path, tasks);
-							return { file, tasks };
+							return {file, tasks};
 						} catch (error) {
 							console.error(
 								`Error processing file ${file.path}:`,
 								error
 							);
-							return { file, tasks: [] };
+							return {file, tasks: []};
 						}
 					});
 
@@ -686,7 +687,7 @@ export class TaskWorkerManager extends Component {
 			return;
 		}
 
-		const { file, promise, priority } = queueItem;
+		const {file, promise, priority} = queueItem;
 		worker.active = [file, promise, 0, priority]; // 0 表示重试次数
 
 		try {
@@ -975,9 +976,9 @@ export class TaskWorkerManager extends Component {
 			percentage:
 				this.totalFilesToProcess > 0
 					? Math.round(
-							(this.processedFiles / this.totalFilesToProcess) *
-								100
-					  )
+						(this.processedFiles / this.totalFilesToProcess) *
+						100
+					)
 					: 0,
 		};
 	}
@@ -987,7 +988,7 @@ export class TaskWorkerManager extends Component {
 	 * Workers only perform raw task extraction without project enhancement.
 	 */
 	public setEnhancedProjectData(
-		enhancedProjectData: import("./task-index-message").EnhancedProjectData
+		enhancedProjectData: EnhancedProjectData
 	): void {
 		// NO-OP: Project data is handled by Augmentor, not Workers
 		// This method is kept for backward compatibility but does nothing

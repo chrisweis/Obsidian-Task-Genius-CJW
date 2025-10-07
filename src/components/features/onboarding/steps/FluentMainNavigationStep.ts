@@ -31,12 +31,12 @@ export class FluentMainNavigationStep {
 		ComponentPreviewFactory.createSidebarPreview(preview);
 
 		const primary = preview.querySelector<HTMLElement>(
-			".v2-sidebar-section-primary"
+			".fluent-sidebar-section-primary"
 		);
 		primary?.classList.add("is-focused");
 
 		const dimTargets = preview.querySelectorAll<HTMLElement>(
-			".v2-sidebar-section-projects, .v2-sidebar-section-other"
+			".fluent-sidebar-section-projects, .fluent-sidebar-section-other"
 		);
 		dimTargets.forEach((el) => el.classList.add("is-dimmed"));
 

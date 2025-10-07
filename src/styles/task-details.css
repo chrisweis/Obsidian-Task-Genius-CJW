@@ -48,7 +48,7 @@
 
 .is-phone .task-genius-container.details-hidden .task-details,
 .is-mobile .task-genius-container.details-hidden .task-details,
-.is-mobile .tg-v2-container.details-hidden .task-details {
+.is-mobile .tg-fluent-container.details-hidden .task-details {
 	width: 100%;
 	margin-right: 0;
 	transform: translateX(100%);
@@ -56,7 +56,7 @@
 
 .is-phone .task-genius-container.details-visible .task-details,
 .is-mobile .task-genius-container.details-visible .task-details,
-.is-mobile .tg-v2-container.details-visible .task-details {
+.is-mobile .tg-fluent-container.details-visible .task-details {
 	width: calc(100% - var(--size-4-12));
 	transform: translateX(0);
 }
@@ -64,7 +64,7 @@
 /* Add overlay when details are visible on mobile */
 .is-phone .task-genius-container.details-visible::before,
 .is-mobile .task-genius-container.details-visible::before,
-.is-mobile .tg-v2-container.details-visible::before {
+.is-mobile .tg-fluent-container.details-visible::before {
 	content: "";
 	position: absolute;
 	top: 0;
@@ -351,7 +351,7 @@
 }
 
 /* V2 Container specific styles for mobile */
-.is-mobile .tg-v2-container .task-details {
+.is-mobile .tg-fluent-container .task-details {
 	position: fixed;
 	right: 0;
 	top: 0;

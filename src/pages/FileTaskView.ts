@@ -3,18 +3,24 @@
  * Renders TaskView within Bases plugin views for file-level task management
  */
 
-import { Component, App, Modal, Setting, Menu, TFile } from "obsidian";
-import { ViewMode } from "../common/setting-definition";
-import { Task, StandardTaskMetadata } from "../types/task";
+import { Component, App, Modal, Setting, Menu } from "obsidian";
+import { ViewMode } from "@/common/setting-definition";
+import { Task, StandardTaskMetadata } from "@/types/task";
 
 // Forward declarations to avoid import issues
 interface BasesViewSettings {
 	get(key: string): any;
+
 	set(data: any): void;
+
 	getOrder(): string[] | null;
+
 	setOrder(order: string[]): void;
+
 	getDisplayName(prop: any): string;
+
 	setDisplayName(prop: any, name: string): void;
+
 	getViewName(): string;
 }
 
@@ -30,16 +36,20 @@ interface BasesProperty {
 
 interface BaseView {
 	onload?(): void;
+
 	onunload?(): void;
+
 	onActionsMenu(): Array<{
 		name: string;
 		callback: () => void;
 		icon: string;
 	}>;
+
 	onEditMenu(): Array<{
 		displayName: string;
 		component: (container: HTMLElement) => any;
 	}>;
+
 	onResize(): void;
 }
 
@@ -50,10 +60,14 @@ interface BasesView extends BaseView {
 	settings: BasesViewSettings;
 	data: BasesViewData[];
 	properties: BasesProperty[];
+
 	updateConfig(settings: BasesViewSettings): void;
+
 	updateData(properties: BasesProperty[], data: BasesViewData[]): void;
+
 	display(): void;
 }
+
 import { FileTask, FileTaskPropertyMapping } from "../types/file-task";
 import {
 	FileTaskManagerImpl,
@@ -410,7 +424,7 @@ export class FileTaskView extends Component implements BasesView {
 			if (!fileTask) {
 				return;
 			}
-			const { line, originalMarkdown, ...taskUpdates } = updatedTask;
+			const {line, originalMarkdown, ...taskUpdates} = updatedTask;
 			const updatedFileTask = {
 				...taskUpdates,
 				sourceEntry: fileTask.sourceEntry,
@@ -454,7 +468,7 @@ export class FileTaskView extends Component implements BasesView {
 	}
 
 	updateData(properties: BasesProperty[], data: BasesViewData[]): void {
-		console.log("[FileTaskView] Data updated:", { properties, data });
+		console.log("[FileTaskView] Data updated:", {properties, data});
 		this.properties = properties;
 		this.data = data;
 
@@ -973,7 +987,7 @@ export class FileTaskView extends Component implements BasesView {
 			cachedTask.scheduledDate !== fileTask.metadata.scheduledDate ||
 			cachedTask.priority !== fileTask.metadata.priority ||
 			JSON.stringify(cachedTask.tags) !==
-				JSON.stringify(fileTask.metadata.tags) ||
+			JSON.stringify(fileTask.metadata.tags) ||
 			cachedTask.project !== fileTask.metadata.project ||
 			cachedTask.context !== fileTask.metadata.context
 		);
@@ -1384,12 +1398,12 @@ export class FileTaskView extends Component implements BasesView {
 				}
 
 				let filteredTasks = filterTasks(this.tasks, viewId, this.plugin, filterOptions);
-				
+
 				// Filter out badge tasks for forecast view - they should only appear in event view
 				if (viewId === "forecast") {
 					filteredTasks = filteredTasks.filter(task => !(task as any).badge);
 				}
-				
+
 				targetComponent.setTasks(
 					filteredTasks,
 					this.tasks
@@ -1447,12 +1461,12 @@ export class FileTaskView extends Component implements BasesView {
 						this.plugin,
 						filterOptions
 					);
-					
+
 					// Filter out badge tasks for forecast view - they should only appear in event view
 					if (component.getViewId() === "forecast") {
 						filteredTasks = filteredTasks.filter(task => !(task as any).badge);
 					}
-					
+
 					component.setTasks(filteredTasks);
 				}
 			});
@@ -1483,7 +1497,7 @@ export class FileTaskView extends Component implements BasesView {
 
 	private createSettingsComponent(container: HTMLElement): any {
 		// TODO: Create settings component for file task view
-		container.createEl("div", { text: "File Task View Settings" });
+		container.createEl("div", {text: "File Task View Settings"});
 		return container;
 	}
 
@@ -1543,15 +1557,15 @@ class PropertyMappingModal extends Modal {
 		onSave: (mapping: FileTaskPropertyMapping) => void
 	) {
 		super(app);
-		this.mapping = { ...mapping }; // Create a copy
+		this.mapping = {...mapping}; // Create a copy
 		this.onSave = onSave;
 	}
 
 	onOpen() {
-		const { contentEl } = this;
+		const {contentEl} = this;
 		contentEl.empty();
 
-		contentEl.createEl("h2", { text: "Configure Property Mapping" });
+		contentEl.createEl("h2", {text: "Configure Property Mapping"});
 		contentEl.createEl("p", {
 			text: "Map file properties to task attributes. Use dataview standard keys like 'start', 'due', 'completion', etc.",
 		});
@@ -1614,7 +1628,7 @@ class PropertyMappingModal extends Modal {
 	}
 
 	onClose() {
-		const { contentEl } = this;
+		const {contentEl} = this;
 		contentEl.empty();
 	}
 }

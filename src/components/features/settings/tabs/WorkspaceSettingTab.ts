@@ -1,13 +1,13 @@
 import { Menu, Setting, setIcon } from "obsidian";
 import { TaskProgressBarSettingTab } from "@/setting";
 import TaskProgressBarPlugin from "@/index";
-import { WorkspaceData } from "@/experimental/v2/types/workspace";
+import { WorkspaceData } from "@/types/workspace";
 import { t } from "@/translations/helper";
 import {
 	CreateWorkspaceModal,
 	RenameWorkspaceModal,
 	DeleteWorkspaceModal,
-} from "@/experimental/v2/components/modals/WorkspaceModals";
+} from "@/components/ui/modals/WorkspaceModals";
 
 export function renderWorkspaceSettingsTab(settingTab: TaskProgressBarSettingTab, containerEl: HTMLElement) {
 	const workspacesSection = containerEl.createDiv();
@@ -84,16 +84,16 @@ export function renderWorkspaceSettingsTab(settingTab: TaskProgressBarSettingTab
 		nameWithIcon.createSpan({text: workspace.name});
 
 		setting.setDesc(
-				isDefaultWs
-					? t("Default workspace")
-					: t("Last updated: {{date}}", {
-						interpolation: {
-							date: new Date(
-								workspace.updatedAt
-							).toLocaleDateString(),
-						},
-					})
-			)
+			isDefaultWs
+				? t("Default workspace")
+				: t("Last updated: {{date}}", {
+					interpolation: {
+						date: new Date(
+							workspace.updatedAt
+						).toLocaleDateString(),
+					},
+				})
+		)
 			.addButton((button) => {
 				if (isCurrentActive) {
 					button.setButtonText(t("Active")).setDisabled(true);

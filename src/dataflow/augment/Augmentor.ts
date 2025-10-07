@@ -1,4 +1,4 @@
-import type { Task, TgProject } from "../../types/task";
+import type { Task, TgProject } from "@/types/task";
 import { DateInheritanceAugmentor } from "./DateInheritanceAugmentor";
 import { App, Vault, MetadataCache } from "obsidian";
 import { ProjectConfiguration } from "../../common/setting-definition";
@@ -157,7 +157,7 @@ export class Augmentor {
 	 */
 	private augmentTask(task: Task, ctx: AugmentContext): Task {
 		const originalMetadata = task.metadata || {};
-		const enhancedMetadata = { ...originalMetadata };
+		const enhancedMetadata = {...originalMetadata};
 
 		// Special handling for priority: check both task.priority and metadata.priority
 		// Priority might be at task root level (from parser) or in metadata
@@ -604,14 +604,14 @@ export class Augmentor {
 	 * Update inheritance strategy
 	 */
 	updateStrategy(strategy: Partial<InheritanceStrategy>): void {
-		this.strategy = { ...this.strategy, ...strategy };
+		this.strategy = {...this.strategy, ...strategy};
 	}
 
 	/**
 	 * Get current inheritance strategy
 	 */
 	getStrategy(): InheritanceStrategy {
-		return { ...this.strategy };
+		return {...this.strategy};
 	}
 
 	/**

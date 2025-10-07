@@ -140,7 +140,7 @@ export class TaskDetailsComponent extends Component {
 	private showEmptyState() {
 		this.containerEl.empty();
 
-		const emptyEl = this.containerEl.createDiv({cls: "details-empty"});
+		const emptyEl = this.containerEl.createDiv({ cls: "details-empty" });
 		emptyEl.setText(t("Select a task to view details"));
 	}
 
@@ -163,13 +163,13 @@ export class TaskDetailsComponent extends Component {
 		this.containerEl.empty();
 
 		// Create details header
-		const headerEl = this.containerEl.createDiv({cls: "details-header"});
+		const headerEl = this.containerEl.createDiv({ cls: "details-header" });
 		headerEl.setText(t("Task Details"));
 
 		// Only show close button on mobile or if explicitly requested
 		if (
 			Platform.isPhone ||
-			this.containerEl.closest(".tg-v2-container")
+			this.containerEl.closest(".tg-fluent-container")
 		) {
 			headerEl.createEl(
 				"div",
@@ -179,25 +179,25 @@ export class TaskDetailsComponent extends Component {
 				(el) => {
 					new ExtraButtonComponent(el).setIcon("x").onClick(() => {
 						this.toggleDetailsVisibility &&
-						this.toggleDetailsVisibility(false);
+							this.toggleDetailsVisibility(false);
 					});
 				}
 			);
 		}
 
 		// Create content container
-		this.contentEl = this.containerEl.createDiv({cls: "details-content"});
+		this.contentEl = this.containerEl.createDiv({ cls: "details-content" });
 
 		// Task name
-		const nameEl = this.contentEl.createEl("h2", {cls: "details-name"});
+		const nameEl = this.contentEl.createEl("h2", { cls: "details-name" });
 		nameEl.setText(clearAllMarks(task.content));
 
 		// Task status
-		this.contentEl.createDiv({cls: "details-status-container"}, (el) => {
-			const labelEl = el.createDiv({cls: "details-status-label"});
+		this.contentEl.createDiv({ cls: "details-status-container" }, (el) => {
+			const labelEl = el.createDiv({ cls: "details-status-label" });
 			labelEl.setText(t("Status"));
 
-			const statusEl = el.createDiv({cls: "details-status"});
+			const statusEl = el.createDiv({ cls: "details-status" });
 			statusEl.setText(getStatus(task, this.plugin.settings));
 		});
 
@@ -213,7 +213,7 @@ export class TaskDetailsComponent extends Component {
 		this.addChild(statusComponent);
 
 		// // Task metadata
-		const metaEl = this.contentEl.createDiv({cls: "details-metadata"});
+		const metaEl = this.contentEl.createDiv({ cls: "details-metadata" });
 
 		// // Add metadata fields
 		// if (task.metadata.project) {
@@ -284,7 +284,7 @@ export class TaskDetailsComponent extends Component {
 		this.addMetadataField(metaEl, t("File"), task.filePath);
 
 		// Add action controls
-		const actionsEl = this.contentEl.createDiv({cls: "details-actions"});
+		const actionsEl = this.contentEl.createDiv({ cls: "details-actions" });
 
 		// Edit in panel button
 		this.showEditForm(task);
@@ -428,14 +428,14 @@ export class TaskDetailsComponent extends Component {
 		tagsInput.setValue(
 			task.metadata.tags
 				? task.metadata.tags
-					.map((tag) =>
-						tag.startsWith("#") ? tag.slice(1) : tag
-					)
-					.join(", ")
+						.map((tag) =>
+							tag.startsWith("#") ? tag.slice(1) : tag
+						)
+						.join(", ")
 				: ""
 		);
 		tagsField
-			.createSpan({cls: "field-description"})
+			.createSpan({ cls: "field-description" })
 			.setText(
 				t("Comma separated") + " " + t("e.g. #tag1, #tag2, #tag3")
 			);
@@ -541,14 +541,14 @@ export class TaskDetailsComponent extends Component {
 		// Create a debounced save function
 		const saveTask = debounce(async () => {
 			// Create updated task object
-			const updatedTask: Task = {...task};
+			const updatedTask: Task = { ...task };
 
 			// Update task properties
 			const newContent = contentInput.getValue();
 			updatedTask.content = newContent;
 
 			// Update metadata properties
-			const metadata = {...updatedTask.metadata};
+			const metadata = { ...updatedTask.metadata };
 
 			// Parse and update project - Only update if not readonly tgProject
 			const projectValue = projectInput.getValue();
@@ -563,12 +563,12 @@ export class TaskDetailsComponent extends Component {
 			const tagsValue = tagsInput.getValue();
 			metadata.tags = tagsValue
 				? tagsValue
-					.split(",")
-					.map((tag) => tag.trim())
-					.map((tag) =>
-						tag.startsWith("#") ? tag.slice(1) : tag
-					) // Remove # prefix if present
-					.filter((tag) => tag)
+						.split(",")
+						.map((tag) => tag.trim())
+						.map((tag) =>
+							tag.startsWith("#") ? tag.slice(1) : tag
+						) // Remove # prefix if present
+						.filter((tag) => tag)
 				: [];
 
 			// Update context
@@ -662,9 +662,9 @@ export class TaskDetailsComponent extends Component {
 			const dependsOnValue = dependsOnInput.getValue();
 			metadata.dependsOn = dependsOnValue
 				? dependsOnValue
-					.split(",")
-					.map((id) => id.trim())
-					.filter((id) => id)
+						.split(",")
+						.map((id) => id.trim())
+						.filter((id) => id)
 				: undefined;
 
 			const onCompletionValue = onCompletionConfigurator.getValue();
@@ -760,7 +760,7 @@ export class TaskDetailsComponent extends Component {
 				: task.metadata.dependsOn || ""
 		);
 		dependsOnField
-			.createSpan({cls: "field-description"})
+			.createSpan({ cls: "field-description" })
 			.setText(
 				t("Comma-separated list of task IDs this task depends on")
 			);
@@ -770,7 +770,7 @@ export class TaskDetailsComponent extends Component {
 		const taskIdInput = new TextComponent(taskIdField);
 		taskIdInput.setValue(task.metadata.id || "");
 		taskIdField
-			.createSpan({cls: "field-description"})
+			.createSpan({ cls: "field-description" })
 			.setText(t("Unique identifier for this task"));
 
 		// Recurrence pattern
@@ -781,7 +781,7 @@ export class TaskDetailsComponent extends Component {
 		const recurrenceInput = new TextComponent(recurrenceField);
 		recurrenceInput.setValue(task.metadata.recurrence || "");
 		recurrenceField
-			.createSpan({cls: "field-description"})
+			.createSpan({ cls: "field-description" })
 			.setText(t("e.g. every day, every 2 weeks"));
 
 		// Register blur events for all input elements
@@ -833,8 +833,8 @@ export class TaskDetailsComponent extends Component {
 
 		if (isFileTask) {
 			// Compare all properties except sourceEntry for FileTask
-			const originalCopy = {...originalTask};
-			const updatedCopy = {...updatedTask};
+			const originalCopy = { ...originalTask };
+			const updatedCopy = { ...updatedTask };
 
 			// Remove sourceEntry from comparison for FileTask
 			if ("sourceEntry" in originalCopy) {
@@ -930,11 +930,11 @@ export class TaskDetailsComponent extends Component {
 		container: HTMLElement,
 		label: string
 	): HTMLElement {
-		const fieldEl = container.createDiv({cls: "details-form-field"});
+		const fieldEl = container.createDiv({ cls: "details-form-field" });
 
-		fieldEl.createDiv({cls: "details-form-label", text: label});
+		fieldEl.createDiv({ cls: "details-form-label", text: label });
 
-		return fieldEl.createDiv({cls: "details-form-input"});
+		return fieldEl.createDiv({ cls: "details-form-input" });
 	}
 
 	private addMetadataField(
@@ -942,12 +942,12 @@ export class TaskDetailsComponent extends Component {
 		label: string,
 		value: string
 	) {
-		const fieldEl = container.createDiv({cls: "metadata-field"});
+		const fieldEl = container.createDiv({ cls: "metadata-field" });
 
-		const labelEl = fieldEl.createDiv({cls: "metadata-label"});
+		const labelEl = fieldEl.createDiv({ cls: "metadata-label" });
 		labelEl.setText(label);
 
-		const valueEl = fieldEl.createDiv({cls: "metadata-value"});
+		const valueEl = fieldEl.createDiv({ cls: "metadata-value" });
 		valueEl.setText(value);
 	}
 
@@ -962,7 +962,7 @@ export class TaskDetailsComponent extends Component {
 			await leaf.openFile(file);
 			const editor = this.app.workspace.activeEditor?.editor;
 			if (editor) {
-				editor.setCursor({line: fileTask.line || 0, ch: 0});
+				editor.setCursor({ line: fileTask.line || 0, ch: 0 });
 				editor.focus();
 			}
 			return;
@@ -979,7 +979,7 @@ export class TaskDetailsComponent extends Component {
 		// Try to set the cursor at the task's line
 		const editor = this.app.workspace.activeEditor?.editor;
 		if (editor) {
-			editor.setCursor({line: task.line || 0, ch: 0});
+			editor.setCursor({ line: task.line || 0, ch: 0 });
 			editor.focus();
 		}
 	}

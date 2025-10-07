@@ -1,6 +1,6 @@
 import { Menu, setIcon } from "obsidian";
 import type TaskProgressBarPlugin from "@/index";
-import { WorkspaceData } from "@/experimental/v2/types/workspace";
+import { WorkspaceData } from "@/types/workspace";
 import { t } from "@/translations/helper";
 import { TaskProgressBarSettingTab } from "@/setting";
 
