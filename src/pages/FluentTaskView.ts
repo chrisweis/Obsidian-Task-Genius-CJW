@@ -121,8 +121,7 @@ export class FluentTaskView extends ItemView {
 	 * Check if using workspace side leaves mode
 	 */
 	private useSideLeaves(): boolean {
-		return !!(this.plugin.settings.experimental as any)?.fluentConfig
-			?.useWorkspaceSideLeaves;
+		return !!(this.plugin.settings.fluentView)?.useWorkspaceSideLeaves;
 	}
 
 	/**

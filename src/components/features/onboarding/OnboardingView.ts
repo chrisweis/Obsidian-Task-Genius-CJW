@@ -358,18 +358,18 @@ export class OnboardingView extends ItemView {
 		const state = this.controller.getState();
 		const isFluent = state.uiMode === "fluent";
 
-		if (!this.plugin.settings.experimental) {
+		if (!this.plugin.settings.fluentView) {
 			(this.plugin.settings as any).experimental = {
 				enableV2: false,
 				showV2Ribbon: false,
 			};
 		}
 
-		this.plugin.settings.experimental!.enableFluent = isFluent;
+		this.plugin.settings.fluentView!.enableFluent = isFluent;
 
 		// Prepare v2 config and set placement option when Fluent is chosen
-		if (!this.plugin.settings.experimental!.fluentConfig) {
-			(this.plugin.settings.experimental as any).fluentConfig = {
+		if (!this.plugin.settings.fluentView) {
+			(this.plugin.settings.fluentView as any).fluentConfig = {
 				enableWorkspaces: true,
 				defaultWorkspace: "default",
 				showTopNavigation: true,
@@ -380,10 +380,10 @@ export class OnboardingView extends ItemView {
 			};
 		}
 
-		if (isFluent) {
+		if (isFluent && this.plugin.settings.fluentView) {
 			(
-				this.plugin.settings.experimental as any
-			).fluentConfig.useWorkspaceSideLeaves = !!state.useSideLeaves;
+				this.plugin.settings.fluentView
+			).useWorkspaceSideLeaves = !!state.useSideLeaves;
 		}
 
 		await this.plugin.saveSettings();

@@ -4,7 +4,7 @@
  */
 
 import { App, Component } from "obsidian";
-import { FileTaskView } from "./FileTaskView";
+import { FileTaskView } from "./bases/FileTaskView";
 import { InboxBasesView } from "./bases/InboxBasesView";
 import { FlaggedBasesView } from "./bases/FlaggedBasesView";
 import { ProjectBasesView } from "./bases/ProjectBasesView";
@@ -215,7 +215,12 @@ export class ViewManager extends Component {
 				return new InboxBasesView(containerEl, self.app, self.plugin);
 			};
 
-			await this.registerView(viewId, factory as any, "Inbox Tasks", "inbox");
+			await this.registerView(
+				viewId,
+				factory as any,
+				"Inbox Tasks",
+				"inbox"
+			);
 		} catch (error) {
 			console.error(
 				`[ViewManager] Failed to register view ${viewId}:`,
@@ -251,7 +256,12 @@ export class ViewManager extends Component {
 				return new FlaggedBasesView(containerEl, self.app, self.plugin);
 			};
 
-			await this.registerView(viewId, factory as any, "Flagged Tasks", "flag");
+			await this.registerView(
+				viewId,
+				factory as any,
+				"Flagged Tasks",
+				"flag"
+			);
 		} catch (error) {
 			console.error(
 				`[ViewManager] Failed to register view ${viewId}:`,
@@ -328,7 +338,12 @@ export class ViewManager extends Component {
 				return new TagsBasesView(containerEl, self.app, self.plugin);
 			};
 
-			await this.registerView(viewId, factory as any, "Tagged Tasks", "tag");
+			await this.registerView(
+				viewId,
+				factory as any,
+				"Tagged Tasks",
+				"tag"
+			);
 		} catch (error) {
 			console.error(
 				`[ViewManager] Failed to register view ${viewId}:`,

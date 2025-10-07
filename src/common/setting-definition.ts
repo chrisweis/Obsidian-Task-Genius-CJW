@@ -426,6 +426,27 @@ export interface BetaTestSettings {
 	enableBaseView: boolean;
 }
 
+export interface FluentViewSettings {
+	enableFluent: boolean;
+	showFluentRibbon: boolean;
+	workspaces?: Array<{
+		id: string;
+		name: string;
+		color: string;
+		settings?: any;
+	}>;
+	useWorkspaceSideLeaves?: boolean;
+	fluentConfig?: {
+		enableWorkspaces: boolean;
+		defaultWorkspace?: string;
+		showTopNavigation: boolean;
+		showNewSidebar: boolean;
+		allowViewSwitching: boolean;
+		persistViewMode: boolean;
+		maxOtherViewsBeforeOverflow?: number; // how many other views to show before overflow menu
+	};
+}
+
 export interface ExperimentalSettings {
 	enableFluent: boolean;
 	showFluentRibbon: boolean;
@@ -435,6 +456,7 @@ export interface ExperimentalSettings {
 		color: string;
 		settings?: any;
 	}>;
+	useWorkspaceSideLeaves?: boolean;
 	fluentConfig?: {
 		enableWorkspaces: boolean;
 		defaultWorkspace?: string;
@@ -806,6 +828,9 @@ export interface TaskProgressBarSettings {
 
 	// Experimental Settings
 	experimental?: ExperimentalSettings;
+
+	// Fluent Views Settings
+	fluentView?: FluentViewSettings;
 
 	// ICS Calendar Integration Settings
 	icsIntegration: IcsManagerConfig;

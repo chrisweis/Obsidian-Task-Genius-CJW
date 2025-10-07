@@ -54,16 +54,16 @@ export function renderBetaTestSettingsTab(
 		.addToggle((toggle) => {
 			toggle
 				.setValue(
-					settingTab.plugin.settings.experimental?.enableFluent ?? false
+					settingTab.plugin.settings.fluentView?.enableFluent ?? false
 				)
 				.onChange(async (value) => {
-					if (!settingTab.plugin.settings.experimental) {
-						settingTab.plugin.settings.experimental = {
+					if (!settingTab.plugin.settings.fluentView) {
+						settingTab.plugin.settings.fluentView = {
 							enableFluent: false,
 							showFluentRibbon: false,
 						};
 					}
-					settingTab.plugin.settings.experimental!.enableFluent = value;
+					settingTab.plugin.settings.fluentView!.enableFluent = value;
 					await settingTab.plugin.saveSettings();
 
 					// Notify user
@@ -83,17 +83,17 @@ export function renderBetaTestSettingsTab(
 		.addToggle((toggle) => {
 			toggle
 				.setValue(
-					settingTab.plugin.settings.experimental?.showFluentRibbon ??
+					settingTab.plugin.settings.fluentView?.showFluentRibbon ??
 					false
 				)
 				.onChange(async (value) => {
-					if (!settingTab.plugin.settings.experimental) {
-						settingTab.plugin.settings.experimental = {
+					if (!settingTab.plugin.settings.fluentView) {
+						settingTab.plugin.settings.fluentView = {
 							enableFluent: false,
 							showFluentRibbon: false,
 						};
 					}
-					settingTab.plugin.settings.experimental!.showFluentRibbon =
+					settingTab.plugin.settings.fluentView!.showFluentRibbon =
 						value;
 					await settingTab.plugin.saveSettings();
 
@@ -114,18 +114,18 @@ export function renderBetaTestSettingsTab(
 			)
 		)
 		.addToggle((toggle) => {
-			const current = !!((settingTab.plugin.settings.experimental as any)?.fluentConfig?.useWorkspaceSideLeaves ?? true);
+			const current = ((settingTab.plugin.settings.fluentView)?.useWorkspaceSideLeaves ?? true);
 			toggle
 				.setValue(current)
 				.onChange(async (value) => {
-					if (!settingTab.plugin.settings.experimental) {
-						settingTab.plugin.settings.experimental = {
+					if (!settingTab.plugin.settings.fluentView) {
+						settingTab.plugin.settings.fluentView = {
 							enableFluent: false,
 							showFluentRibbon: false,
 						};
 					}
-					if (!settingTab.plugin.settings.experimental.fluentConfig) {
-						settingTab.plugin.settings.experimental.fluentConfig = {
+					if (!settingTab.plugin.settings.fluentView.fluentConfig) {
+						settingTab.plugin.settings.fluentView.fluentConfig = {
 							enableWorkspaces: true,
 							defaultWorkspace: "default",
 							showTopNavigation: true,
@@ -135,7 +135,7 @@ export function renderBetaTestSettingsTab(
 						};
 					}
 					// Store via 'any' to avoid typing constraints for experimental backfill
-					((settingTab.plugin.settings.experimental as any).fluentConfig).useWorkspaceSideLeaves = value;
+					((settingTab.plugin.settings.fluentView)).useWorkspaceSideLeaves = value;
 					await settingTab.plugin.saveSettings();
 					new Notice(t("Saved. Reopen the view to apply."));
 				});
@@ -151,21 +151,21 @@ export function renderBetaTestSettingsTab(
 		)
 		.addText((text) => {
 			const current =
-				settingTab.plugin.settings.experimental?.fluentConfig
+				settingTab.plugin.settings.fluentView?.fluentConfig
 					?.maxOtherViewsBeforeOverflow ?? 5;
 			text.setPlaceholder("5")
 				.setValue(String(current))
 				.onChange(async (value) => {
 					const n = parseInt(value, 10);
 					if (!isNaN(n) && n >= 1 && n <= 50) {
-						if (!settingTab.plugin.settings.experimental) {
-							settingTab.plugin.settings.experimental = {
+						if (!settingTab.plugin.settings.fluentView) {
+							settingTab.plugin.settings.fluentView = {
 								enableFluent: false,
 								showFluentRibbon: false,
 							};
 						}
-						if (!settingTab.plugin.settings.experimental.fluentConfig) {
-							settingTab.plugin.settings.experimental.fluentConfig = {
+						if (!settingTab.plugin.settings.fluentView.fluentConfig) {
+							settingTab.plugin.settings.fluentView.fluentConfig = {
 								enableWorkspaces: true,
 								defaultWorkspace: "default",
 								showTopNavigation: true,
@@ -174,7 +174,7 @@ export function renderBetaTestSettingsTab(
 								persistViewMode: true,
 							};
 						}
-						settingTab.plugin.settings.experimental.fluentConfig.maxOtherViewsBeforeOverflow =
+						settingTab.plugin.settings.fluentView.fluentConfig.maxOtherViewsBeforeOverflow =
 							n;
 						await settingTab.plugin.saveSettings();
 					}

@@ -236,7 +236,7 @@ export class FluentSidebar extends Component {
 		// Other view icons with overflow menu when > 5
 		const allOtherItems = this.computeOtherItems();
 		const visibleCount =
-			this.plugin?.settings?.experimental?.fluentConfig
+			this.plugin?.settings?.fluentView?.fluentConfig
 				?.maxOtherViewsBeforeOverflow ?? 5;
 		const displayedOther: FluentTaskNavigationItem[] = allOtherItems.slice(
 			0,
@@ -306,7 +306,7 @@ export class FluentSidebar extends Component {
 
 		const allOtherItems = this.computeOtherItems();
 		const visibleCount =
-			this.plugin?.settings?.experimental?.fluentConfig
+			this.plugin?.settings?.fluentView?.fluentConfig
 				?.maxOtherViewsBeforeOverflow ?? 5;
 		const displayedOther: FluentTaskNavigationItem[] = allOtherItems.slice(
 			0,

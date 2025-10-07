@@ -44,7 +44,7 @@ export class FluentIntegration {
 		this.plugin.registerEvent(
 			this.plugin.app.workspace.on("active-leaf-change", async (leaf) => {
 				if (this.revealingSideLeaves) return;
-				const useSideLeaves = !!(this.plugin.settings.experimental as any)?.fluentConfig?.useWorkspaceSideLeaves;
+				const useSideLeaves = !!(this.plugin.settings.fluentView)?.useWorkspaceSideLeaves;
 				if (!useSideLeaves || !leaf?.view?.getViewType) return;
 				const vt = leaf.view.getViewType();
 				const watched = new Set<string>([
@@ -107,7 +107,7 @@ export class FluentIntegration {
 	}
 
 	private async ensureSideLeavesIfEnabled() {
-		const useSideLeaves = !!(this.plugin.settings.experimental as any)?.fluentConfig?.useWorkspaceSideLeaves;
+		const useSideLeaves = !!(this.plugin.settings.fluentView)?.useWorkspaceSideLeaves;
 		if (!useSideLeaves) return;
 
 		const ws = this.plugin.app.workspace as Workspace;
@@ -121,30 +121,30 @@ export class FluentIntegration {
 	 * Check if Fluent features are enabled
 	 */
 	private isFluentEnabled(): boolean {
-		return this.plugin.settings.experimental?.enableFluent ?? false;
+		return this.plugin.settings.fluentView?.enableFluent ?? false;
 	}
 
 	/**
 	 * Migrate settings from V1 to V2
 	 */
 	public async migrateSettings() {
-		if (!this.plugin.settings.experimental) {
-			this.plugin.settings.experimental = {
+		if (!this.plugin.settings.fluentView) {
+			this.plugin.settings.fluentView = {
 				enableFluent: false,
 				showFluentRibbon: false,
 			};
 		}
 
 		// Default workspace configuration
-		if (!this.plugin.settings.experimental!.workspaces) {
-			this.plugin.settings.experimental!.workspaces = [
+		if (!this.plugin.settings.fluentView!.workspaces) {
+			this.plugin.settings.fluentView!.workspaces = [
 				{id: "default", name: "Default", color: "#3498db"},
 			];
 		}
 
 		// Default Fluent configuration
-		if (this.plugin.settings.experimental!.fluentConfig === undefined) {
-			this.plugin.settings.experimental!.fluentConfig = {
+		if (this.plugin.settings.fluentView!.fluentConfig === undefined) {
+			this.plugin.settings.fluentView!.fluentConfig = {
 				enableWorkspaces: true,
 				defaultWorkspace: "default",
 				showTopNavigation: true,
@@ -156,7 +156,7 @@ export class FluentIntegration {
 		}
 
 		// Backfill extra experimental flag without touching types
-		const v2c: any = this.plugin.settings.experimental!.fluentConfig as any;
+		const v2c = this.plugin.settings.fluentView;
 		if (v2c.useWorkspaceSideLeaves === undefined) v2c.useWorkspaceSideLeaves = true;
 
 		await this.plugin.saveSettings();
@@ -177,18 +177,18 @@ export class FluentIntegration {
 		v2Leaves.forEach((leaf) => leaf.detach());
 
 		// Toggle the setting
-		if (!this.plugin.settings.experimental) {
-			this.plugin.settings.experimental = {
+		if (!this.plugin.settings.fluentView) {
+			this.plugin.settings.fluentView = {
 				enableFluent: false,
 				showFluentRibbon: false,
 			};
 		}
-		this.plugin.settings.experimental!.enableFluent =
-			!this.plugin.settings.experimental!.enableFluent;
+		this.plugin.settings.fluentView!.enableFluent =
+			!this.plugin.settings.fluentView!.enableFluent;
 		await this.plugin.saveSettings();
 
 		// Open the appropriate view
-		if (this.plugin.settings.experimental?.enableFluent) {
+		if (this.plugin.settings.fluentView?.enableFluent) {
 			await this.openV2View();
 		} else {
 			// Open V1 view
