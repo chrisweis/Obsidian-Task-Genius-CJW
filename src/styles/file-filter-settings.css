@@ -17,6 +17,7 @@
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 4px;
 	background: var(--background-primary);
+	overflow-x: auto;
 }
 
 .file-filter-rule:last-child {
@@ -246,4 +247,9 @@
 .theme-dark .file-filter-preset-container button[disabled] {
 	background: var(--color-green-rgb);
 	opacity: 0.8;
+}
+
+.file-filter-rule-editor-modal {
+	max-width: 800px;
+	width: 90vw;
 }

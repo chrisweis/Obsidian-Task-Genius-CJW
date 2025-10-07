@@ -12,7 +12,7 @@ export interface SelectableCardConfig<T> {
 }
 
 export interface SelectableCardOptions {
-	containerClass?: string;
+	containerClass?: string | string[];
 	cardClass?: string;
 	showIcon?: boolean;
 	showPreview?: boolean;
@@ -66,11 +66,11 @@ export class SelectableCard<T = string> {
 			});
 
 			// Header
-			const header = card.createDiv({cls: `${cardClass}-header`});
+			const header = card.createDiv({ cls: `${cardClass}-header` });
 
 			// Icon
 			if (showIcon && config.icon) {
-				const iconEl = header.createDiv({cls: `${cardClass}-icon`});
+				const iconEl = header.createDiv({ cls: `${cardClass}-icon` });
 				setIcon(iconEl, config.icon);
 			}
 
@@ -100,7 +100,7 @@ export class SelectableCard<T = string> {
 			}
 
 			// Body
-			const body = card.createDiv({cls: `${cardClass}-body`});
+			const body = card.createDiv({ cls: `${cardClass}-body` });
 
 			// Preview (optional)
 			if (showPreview && config.preview) {
@@ -128,7 +128,7 @@ export class SelectableCard<T = string> {
 				});
 				const featuresList = featuresContainer.createEl("ul");
 				config.features.forEach((feature) => {
-					featuresList.createEl("li", {text: feature});
+					featuresList.createEl("li", { text: feature });
 				});
 			}
 

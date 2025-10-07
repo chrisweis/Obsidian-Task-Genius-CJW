@@ -3,6 +3,11 @@ import { t } from "@/translations/helper";
 import { OnboardingController } from "../OnboardingController";
 import { FilterMode, FileFilterRule } from "@/common/setting-definition";
 import TaskProgressBarPlugin from "@/index";
+import {
+	FolderSuggest,
+	SimpleFileSuggest as FileSuggest,
+} from "@/components/ui/inputs/AutoComplete";
+import { FileFilterRuleEditorModal } from "@/components/features/onboarding/modals/FileFilterRuleEditorModal";
 import "@/styles/onboarding-components.css";
 import "@/styles/file-filter-settings.css";
 
@@ -117,23 +122,55 @@ export class FileFilterStep {
 			cls: "setting-item-control",
 		});
 
+		// Add file rule button
+		const addFileBtn = buttonsContainer.createEl("button", {
+			text: t("Add File"),
+			cls: "mod-cta",
+		});
+		addFileBtn.addEventListener("click", () => {
+			const modal = new FileFilterRuleEditorModal(plugin.app, plugin, {
+				autoAddRuleType: "file",
+				onClose: () => {
+					const rulesEl = container.querySelector(
+						".file-filter-rules-container"
+					) as HTMLElement | null;
+					const statsEl = container.querySelector(
+						".file-filter-stats-preview"
+					) as HTMLElement | null;
+					if (rulesEl) {
+						this.renderRules(rulesEl, plugin);
+					}
+					if (statsEl) {
+						this.updateStats(statsEl, plugin);
+					}
+				},
+			});
+			modal.open();
+		});
+
 		// Add folder rule button
 		const addFolderBtn = buttonsContainer.createEl("button", {
 			text: t("Add Folder"),
-			cls: "mod-cta",
 		});
 		addFolderBtn.addEventListener("click", () => {
-			const folderPath = prompt(t("Enter folder path:"), "");
-			if (folderPath) {
-				plugin.settings.fileFilter.rules.push({
-					type: "folder",
-					path: folderPath,
-					enabled: true,
-				});
-				plugin.saveSettings();
-				this.updateStats(container, plugin);
-				new Notice(t("Folder rule added"));
-			}
+			const modal = new FileFilterRuleEditorModal(plugin.app, plugin, {
+				autoAddRuleType: "folder",
+				onClose: () => {
+					const rulesEl = container.querySelector(
+						".file-filter-rules-container"
+					) as HTMLElement | null;
+					const statsEl = container.querySelector(
+						".file-filter-stats-preview"
+					) as HTMLElement | null;
+					if (rulesEl) {
+						this.renderRules(rulesEl, plugin);
+					}
+					if (statsEl) {
+						this.updateStats(statsEl, plugin);
+					}
+				},
+			});
+			modal.open();
 		});
 
 		// Add pattern rule button
@@ -141,17 +178,24 @@ export class FileFilterStep {
 			text: t("Add Pattern"),
 		});
 		addPatternBtn.addEventListener("click", () => {
-			const pattern = prompt(t("Enter file pattern (e.g., *.tmp):"), "");
-			if (pattern) {
-				plugin.settings.fileFilter.rules.push({
-					type: "pattern",
-					path: pattern,
-					enabled: true,
-				});
-				plugin.saveSettings();
-				this.updateStats(container, plugin);
-				new Notice(t("Pattern rule added"));
-			}
+			const modal = new FileFilterRuleEditorModal(plugin.app, plugin, {
+				autoAddRuleType: "pattern",
+				onClose: () => {
+					const rulesEl = container.querySelector(
+						".file-filter-rules-container"
+					) as HTMLElement | null;
+					const statsEl = container.querySelector(
+						".file-filter-stats-preview"
+					) as HTMLElement | null;
+					if (rulesEl) {
+						this.renderRules(rulesEl, plugin);
+					}
+					if (statsEl) {
+						this.updateStats(statsEl, plugin);
+					}
+				},
+			});
+			modal.open();
 		});
 
 		// Current rules list
@@ -168,7 +212,7 @@ export class FileFilterStep {
 	}
 
 	/**
-	 * Render current rules
+	 * Render current rules with inline editing support
 	 */
 	private static renderRules(
 		container: HTMLElement,
@@ -185,29 +229,117 @@ export class FileFilterStep {
 		}
 
 		plugin.settings.fileFilter.rules.forEach((rule, index) => {
-			const ruleEl = container.createDiv({ cls: "file-filter-rule" });
+			const ruleContainer = container.createDiv({
+				cls: "file-filter-rule",
+			});
 
-			// Rule type icon
-			const typeIcon = ruleEl.createSpan({ cls: "file-filter-rule-type" });
-			setIcon(
-				typeIcon,
-				rule.type === "folder"
-					? "folder"
-					: rule.type === "file"
-					? "file"
-					: "regex"
-			);
+			// Rule type dropdown
+			const typeContainer = ruleContainer.createDiv({
+				cls: "file-filter-rule-type",
+			});
+			typeContainer.createEl("label", { text: t("Type:") });
 
-			// Rule path
-			ruleEl.createSpan({
-				text: rule.path,
+			new DropdownComponent(typeContainer)
+				.addOption("file", t("File"))
+				.addOption("folder", t("Folder"))
+				.addOption("pattern", t("Pattern"))
+				.setValue(rule.type)
+				.onChange(async (value: "file" | "folder" | "pattern") => {
+					rule.type = value;
+					await plugin.saveSettings();
+					// Only re-render rules container, not the whole component
+					this.renderRules(container, plugin);
+					this.updateStats(
+						container.parentElement?.querySelector(
+							".file-filter-stats-preview"
+						) as HTMLElement,
+						plugin
+					);
+				});
+
+			// Rule scope dropdown (per-rule)
+			const scopeContainer = ruleContainer.createDiv({
+				cls: "file-filter-rule-scope",
+			});
+			scopeContainer.createEl("label", { text: t("Scope:") });
+			new DropdownComponent(scopeContainer)
+				.addOption("both", t("Both"))
+				.addOption("inline", t("Inline"))
+				.addOption("file", t("File"))
+				.setValue((rule as any).scope || "both")
+				.onChange(async (value: "both" | "inline" | "file") => {
+					(rule as any).scope = value;
+					await plugin.saveSettings();
+				});
+
+			// Path input with autocomplete
+			const pathContainer = ruleContainer.createDiv({
 				cls: "file-filter-rule-path",
+			});
+			pathContainer.createEl("label", { text: t("Path:") });
+
+			const pathInput = pathContainer.createEl("input", {
+				type: "text",
+				value: rule.path,
+				placeholder:
+					rule.type === "pattern"
+						? "*.tmp, temp/*"
+						: rule.type === "folder"
+						? "path/to/folder"
+						: "path/to/file.md",
+			});
+
+			// Add appropriate autocomplete based on rule type
+			if (rule.type === "folder") {
+				new FolderSuggest(
+					plugin.app,
+					pathInput,
+					plugin,
+					"single"
+				);
+			} else if (rule.type === "file") {
+				new FileSuggest(pathInput, plugin, (file) => {
+					rule.path = file.path;
+					pathInput.value = file.path;
+					plugin.saveSettings();
+				});
+			}
+
+			pathInput.addEventListener("input", async () => {
+				rule.path = pathInput.value;
+				await plugin.saveSettings();
+			});
+
+			// Enabled toggle
+			const enabledContainer = ruleContainer.createDiv({
+				cls: "file-filter-rule-enabled",
+			});
+			enabledContainer.createEl("label", { text: t("Enabled:") });
+
+			const enabledCheckbox = enabledContainer.createEl("input", {
+				type: "checkbox",
+			});
+			enabledCheckbox.checked = rule.enabled;
+
+			enabledCheckbox.addEventListener("change", async () => {
+				rule.enabled = enabledCheckbox.checked;
+				await plugin.saveSettings();
+				this.updateStats(
+					container.parentElement?.querySelector(
+						".file-filter-stats-preview"
+					) as HTMLElement,
+					plugin
+				);
 			});
 
 			// Delete button
-			const deleteBtn = ruleEl.createSpan({ cls: "clickable-icon" });
-			setIcon(deleteBtn, "trash");
-			deleteBtn.addEventListener("click", async () => {
+			const deleteButton = ruleContainer.createEl("button", {
+				cls: "file-filter-rule-delete mod-destructive",
+			});
+			setIcon(deleteButton, "trash");
+			deleteButton.title = t("Delete rule");
+
+			deleteButton.addEventListener("click", async () => {
 				plugin.settings.fileFilter.rules.splice(index, 1);
 				await plugin.saveSettings();
 				this.renderRules(container, plugin);

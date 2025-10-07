@@ -24,7 +24,7 @@ export class IntroStep {
 		contentEl.empty();
 
 		// Hide footer during intro animation
-		footerEl.style.display = "none";
+		footerEl.hide();
 
 		// Create wrapper for typing animation
 		const introWrapper = contentEl.createDiv({
@@ -55,9 +55,9 @@ export class IntroStep {
 				className: "intro-line-3",
 				speed: 20,
 				fadeOut: true,
-				pauseAfter: 3000, // Wait 3s for user to read
+				pauseAfter: 2000, // Wait 3s for user to read
 				fadeOutDelay: 0, // Start fading out immediately after pause
-				fadeOutDuration: 2000, // 2s fade out animation
+				fadeOutDuration: 1000, // 2s fade out animation
 				delayNext: 0, // No extra delay before next message
 			},
 			{
@@ -73,7 +73,7 @@ export class IntroStep {
 		// Start typing animation
 		new TypingAnimation(typingContainer, messages, () => {
 			// Typing completed: show footer and move to Mode Selection step
-			footerEl.style.display = "";
+			footerEl.show();
 			controller.setStep(OnboardingStep.MODE_SELECT);
 		});
 	}

@@ -77,17 +77,17 @@ export class SettingsCheckStep {
 			"settings-check-actions"
 		);
 
+		// Action 2: Keep current settings (secondary)
+		const keepCard = actionsContainer.createDiv(
+			"settings-check-action-card settings-check-action-keep"
+		);
+
 		// Action 1: Continue with wizard (prominent)
 		const wizardCard = actionsContainer.createDiv(
 			"settings-check-action-card settings-check-action-wizard"
 		);
-		wizardCard.addEventListener("click", () => {
-			// Select this option
-			this.selectedAction = "wizard";
-			this.updateCardSelection(wizardCard, keepCard);
-			controller.updateState({ settingsCheckAction: "wizard" });
-		});
 
+		// 先渲染卡片内容，再绑定事件，避免 keepCard/wizardCard 未定义
 		const wizardHeader = wizardCard.createDiv("action-card-header");
 		const wizardIcon = wizardHeader.createDiv("action-card-icon");
 		setIcon(wizardIcon, "wand-2");
@@ -114,17 +114,6 @@ export class SettingsCheckStep {
 			item.createSpan({ text: feature });
 		});
 
-		// Action 2: Keep current settings (secondary)
-		const keepCard = actionsContainer.createDiv(
-			"settings-check-action-card settings-check-action-keep"
-		);
-		keepCard.addEventListener("click", () => {
-			// Select this option
-			this.selectedAction = "keep";
-			this.updateCardSelection(keepCard, wizardCard);
-			controller.updateState({ settingsCheckAction: "keep" });
-		});
-
 		const keepHeader = keepCard.createDiv("action-card-header");
 		const keepIcon = keepHeader.createDiv("action-card-icon");
 		setIcon(keepIcon, "shield-check");
@@ -142,6 +131,21 @@ export class SettingsCheckStep {
 		setIcon(noteIcon, "info");
 		keepNote.createSpan({
 			text: t("Your customizations will be preserved"),
+		});
+
+		// 事件绑定前，确保两个卡片都已渲染
+		wizardCard.addEventListener("click", () => {
+			if (this.selectedAction === "wizard") return;
+			this.selectedAction = "wizard";
+			this.updateCardSelection(wizardCard, keepCard);
+			controller.updateState({ settingsCheckAction: "wizard" });
+		});
+
+		keepCard.addEventListener("click", () => {
+			if (this.selectedAction === "keep") return;
+			this.selectedAction = "keep";
+			this.updateCardSelection(keepCard, wizardCard);
+			controller.updateState({ settingsCheckAction: "keep" });
 		});
 	}
 

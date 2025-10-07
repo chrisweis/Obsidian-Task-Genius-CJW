@@ -4,24 +4,45 @@
 	overflow-y: hidden;
 }
 
-.component-preview .v2-nav-left {
-    display: none;
-}
-
 .onboarding-view:has(.component-showcase) .onboarding-header {
-	padding: calc(var(--onboarding-spacing) * 2) var(--onboarding-spacing) var(--size-4-2) var(--onboarding-spacing);
+	padding: calc(var(--onboarding-spacing) * 2) var(--onboarding-spacing)
+		var(--size-4-2) var(--onboarding-spacing);
 }
 
 .v2-top-navigation.component-preview {
 	overflow-x: auto;
-	padding: 0;
+}
+
+.v2-sidebar.component-preview {
+	width: 100%;
+}
+
+.component-showcase:has(
+		.tg-v2-container.component-preview-sidebar
+			+ .tg-v2-container.component-preview-topnav
+	)
+	.tg-v2-container {
+	background: var(--background-primary);
 }
 
 .tg-v2-container.component-preview-sidebar {
-    width: 200px;
-    min-width: 200px;
-    border-right: 1px solid var(--background-modifier-border);
+	width: 200px;
+	min-width: 200px;
+	border-right: 1px solid var(--background-modifier-border);
 	border-top: unset;
+}
+
+.tg-v2-container.component-preview-topnav {
+	background: var(--background-primary);
+}
+
+.component-showcase:has(
+		.tg-v2-container.component-preview-sidebar
+			+ .tg-v2-container.component-preview-topnav
+	)
+	.tg-v2-container.component-preview-topnav {
+	border-top: unset;
+	background: var(--background-primary);
 }
 
 /* Component showcase container */
@@ -30,19 +51,20 @@
 	gap: var(--size-4-6);
 	margin: var(--size-4-4) 0;
 	min-height: 400px;
+	min-width: 90%;
 }
 
 .component-showcase-preview {
-    flex: 1;
-    background: var(--background-secondary);
-    border-radius: var(--radius-m);
-    padding: var(--size-4-4);
-    overflow: hidden;
-    position: relative;
-    border: 1px solid var(--background-modifier-border);
-    display: flex;
-    flex-direction: row;
-    overflow-x: auto;
+	flex: 1;
+	background: var(--background-secondary);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-4);
+	overflow: hidden;
+	position: relative;
+	border: 1px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: row;
+	overflow-x: auto;
 }
 
 .component-showcase-description {
@@ -231,41 +253,50 @@
 	font-size: var(--font-ui-small);
 }
 
-.component-showcase-preview.tg-v2-container.component-preview-sidebar .v2-sidebar {
-    width: 100%;
+.component-showcase-preview.tg-v2-container.component-preview-sidebar
+	.v2-sidebar {
+	width: 100%;
 }
 
 /* Preview interactivity (scoped to preview only) */
 .component-showcase-preview .component-preview-sidebar .v2-navigation-item,
 .component-showcase-preview .component-preview-sidebar .v2-project-item {
-  pointer-events: auto;
-  cursor: pointer;
-  outline: none;
+	pointer-events: auto;
+	cursor: pointer;
+	outline: none;
 }
 
-.component-showcase-preview .component-preview-sidebar .v2-navigation-item.is-active,
-.component-showcase-preview .component-preview-sidebar .v2-project-item.is-active {
-  background: var(--background-modifier-hover);
-  border-radius: var(--radius-s);
+.component-showcase-preview
+	.component-preview-sidebar
+	.v2-navigation-item.is-active,
+.component-showcase-preview
+	.component-preview-sidebar
+	.v2-project-item.is-active {
+	background: var(--background-modifier-hover);
+	border-radius: var(--radius-s);
 }
 
-.component-showcase-preview .component-preview-sidebar .v2-navigation-item:focus-visible,
-.component-showcase-preview .component-preview-sidebar .v2-project-item:focus-visible {
-  box-shadow: 0 0 0 2px var(--interactive-accent);
-  border-radius: var(--radius-s);
+.component-showcase-preview
+	.component-preview-sidebar
+	.v2-navigation-item:focus-visible,
+.component-showcase-preview
+	.component-preview-sidebar
+	.v2-project-item:focus-visible {
+	box-shadow: 0 0 0 2px var(--interactive-accent);
+	border-radius: var(--radius-s);
 }
 
 /* Focus/Dim mode for step highlights */
 .component-showcase-preview.focus-mode .is-dimmed {
-  opacity: 0.5;
-  filter: grayscale(15%);
-  pointer-events: none;
+	opacity: 0.5;
+	filter: grayscale(15%);
+	pointer-events: none;
 }
 
 .component-showcase-preview.focus-mode .is-focused {
-  position: relative;
-  outline: 1px solid var(--color-accent);
-  outline-offset: -1px;
-  sborder-radius: var(--radius-s);
-  z-index: 1;
+	position: relative;
+	outline: 1px solid var(--color-accent);
+	outline-offset: -1px;
+	sborder-radius: var(--radius-s);
+	z-index: 1;
 }

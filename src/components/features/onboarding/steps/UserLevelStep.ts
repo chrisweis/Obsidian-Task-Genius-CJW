@@ -62,25 +62,22 @@ export class UserLevelStep {
 			contentEl,
 			cardConfigs,
 			{
-				containerClass: "selectable-cards-container",
+				containerClass: [
+					"selectable-cards-container",
+					"user-level-cards",
+				],
 				cardClass: "selectable-card",
 				showIcon: true,
 				showFeatures: true,
 				showPreview: false,
 			},
 			(mode) => {
-				// Find the selected config
-				const selectedConfig = configs.find((c) => c.mode === mode);
-				controller.setSelectedConfig(selectedConfig);
+				controller.setSelectedConfig(
+					configs.find((c) => c.mode === mode)
+				);
 			}
 		);
-
-		// Set initial selection
-		if (currentConfig) {
-			card.setSelected(currentConfig.mode);
-		}
 	}
-
 	/**
 	 * Get icon for configuration mode
 	 */

@@ -15,8 +15,10 @@
 	/* shadcn design tokens */
 	--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	--shadow-md: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-	--shadow-lg: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-	--shadow-xl: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+	--shadow-lg: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+		0 2px 4px -2px rgb(0 0 0 / 0.1);
+	--shadow-xl: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+		0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 /* Modal specific styles */
@@ -49,7 +51,8 @@
 
 /* Header section */
 .onboarding-view .onboarding-header {
-	padding: calc(var(--onboarding-spacing) * 4) var(--onboarding-spacing) var(--size-4-2) var(--onboarding-spacing);
+	padding: calc(var(--onboarding-spacing) * 4) var(--onboarding-spacing)
+		var(--size-4-2) var(--onboarding-spacing);
 	text-align: center;
 }
 
@@ -72,7 +75,7 @@
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
-	align-items: center
+	align-items: center;
 }
 
 /* Footer section - Modern design */
@@ -88,7 +91,7 @@
 
 /* Glass morphism effect for modern look */
 .onboarding-view .onboarding-footer::before {
-	content: '';
+	content: "";
 	position: absolute;
 	top: 0;
 	left: 0;
@@ -139,7 +142,7 @@
 
 /* Ripple effect on button click */
 .onboarding-view .onboarding-buttons button::after {
-	content: '';
+	content: "";
 	position: absolute;
 	top: 50%;
 	left: 50%;
@@ -262,7 +265,8 @@
 		rgba(var(--interactive-accent-rgb), 0.05) 0%,
 		var(--background-primary) 100%
 	);
-	box-shadow: var(--shadow-md), 0 0 0 3px rgba(var(--interactive-accent-rgb), 0.1);
+	box-shadow: var(--shadow-md),
+		0 0 0 3px rgba(var(--interactive-accent-rgb), 0.1);
 }
 
 .onboarding-view .settings-check-action-card:hover {
@@ -1303,7 +1307,11 @@
 }
 
 .mode-fluent .mode-card-preview {
-	background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-modifier-hover) 100%);
+	background: linear-gradient(
+		135deg,
+		var(--background-secondary) 0%,
+		var(--background-modifier-hover) 100%
+	);
 }
 
 .mode-legacy .mode-card-preview {
@@ -1497,9 +1505,16 @@
 	/* Description text - Responsive body text */
 	font-size: clamp(1rem, 2vw, 1.4rem);
 	color: var(--text-muted);
-	line-height: 1.8;
 	margin-bottom: var(--size-4-5);
-	text-align: left;s
+	text-align: left;
+}
+
+.intro-line-4 {
+	padding-top: calc(var(--onboarding-spacing) * 4);
+}
+
+.onboarding-header > .intro-line-4 {
+	padding-top: 0;
 }
 
 /* AI-style streaming characters */
@@ -1509,8 +1524,8 @@
 	filter: blur(4px);
 	transform: translateY(-2px);
 	transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-	filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-	transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+		transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
 }
 
@@ -1537,10 +1552,12 @@
 }
 
 @keyframes cursorBlink {
-	0%, 49% {
+	0%,
+	49% {
 		opacity: 0.7;
 	}
-	50%, 100% {
+	50%,
+	100% {
 		opacity: 0;
 	}
 }
@@ -1732,6 +1749,12 @@
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	gap: var(--size-4-4);
 	margin: var(--size-4-4) 0;
+}
+
+.selectable-cards-container.user-level-cards {
+	display: flex;
+	flex-direction: row;
+	gap: var(--size-4-4);
 }
 
 .selectable-card {

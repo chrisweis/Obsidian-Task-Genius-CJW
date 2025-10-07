@@ -1,4 +1,4 @@
-import { ButtonComponent } from "obsidian";
+import { ButtonComponent, Component } from "obsidian";
 import { t } from "@/translations/helper";
 import { OnboardingController, OnboardingStep } from "./OnboardingController";
 
@@ -15,7 +15,7 @@ export interface OnboardingLayoutCallbacks {
  * - Content section (for steps to render into)
  * - Footer with navigation buttons
  */
-export class OnboardingLayout {
+export class OnboardingLayout extends Component {
 	private container: HTMLElement;
 	private controller: OnboardingController;
 	private callbacks: OnboardingLayoutCallbacks;
@@ -35,6 +35,7 @@ export class OnboardingLayout {
 		controller: OnboardingController,
 		callbacks: OnboardingLayoutCallbacks
 	) {
+		super();
 		this.container = container;
 		this.controller = controller;
 		this.callbacks = callbacks;
@@ -63,7 +64,7 @@ export class OnboardingLayout {
 
 		// Shadow element
 		this.container.createEl("div", {
-			cls: "onboarding-shadow"
+			cls: "onboarding-shadow",
 		});
 	}
 
@@ -102,11 +103,11 @@ export class OnboardingLayout {
 	 * Setup listeners for controller events
 	 */
 	private setupListeners() {
-		this.controller.on('step-changed', () => {
+		this.controller.on("step-changed", () => {
 			this.updateButtons();
 		});
 
-		this.controller.on('state-updated', () => {
+		this.controller.on("state-updated", () => {
 			this.updateButtons();
 		});
 	}
@@ -119,21 +120,15 @@ export class OnboardingLayout {
 		const state = this.controller.getState();
 
 		// Skip button visibility
-		this.skipButton.buttonEl.style.display = this.controller.canSkip()
-			? "inline-block"
-			: "none";
+		this.skipButton.buttonEl.toggleVisibility(this.controller.canSkip());
 
 		// Back button visibility
-		this.backButton.buttonEl.style.display = this.controller.canGoBack()
-			? "inline-block"
-			: "none";
+		this.backButton.buttonEl.toggleVisibility(this.controller.canGoBack());
 
 		// Next button
 		const isLastStep = step === OnboardingStep.COMPLETE;
 		const isSettingsCheck = step === OnboardingStep.SETTINGS_CHECK;
-
-		// Show next button for all steps
-		this.nextButton.buttonEl.style.display = "inline-block";
+		this.nextButton.buttonEl.toggleVisibility(true);
 
 		// Update button text based on step and selection
 		if (isSettingsCheck) {
@@ -181,29 +176,21 @@ export class OnboardingLayout {
 	 * Clear header content
 	 */
 	clearHeader() {
-		// Remove all children and event listeners
-		while (this.headerEl.firstChild) {
-			this.headerEl.removeChild(this.headerEl.firstChild);
-		}
-		this.headerEl.empty();
+		this.headerEl?.empty();
 	}
 
 	/**
 	 * Clear content
 	 */
 	clearContent() {
-		// Remove all children and event listeners
-		while (this.contentEl.firstChild) {
-			this.contentEl.removeChild(this.contentEl.firstChild);
-		}
-		this.contentEl.empty();
+		this.contentEl?.empty();
 	}
 
 	/**
 	 * Show/hide footer
 	 */
 	setFooterVisible(visible: boolean) {
-		this.footerEl.style.display = visible ? '' : 'none';
+		this.footerEl.toggleVisibility(visible);
 	}
 
 	/**

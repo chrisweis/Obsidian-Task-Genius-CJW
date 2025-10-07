@@ -77,24 +77,20 @@ export class OnboardingView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return t("Task Genius Onboarding");
+		return t("Task Genius Setup");
 	}
 
 	getIcon(): string {
-		return "zap";
+		return "task-genius";
 	}
 
 	async onOpen() {
 		// Create layout
-		this.layout = new OnboardingLayout(
-			this.containerEl,
-			this.controller,
-			{
-				onNext: async () => this.handleNext(),
-				onBack: async () => this.handleBack(),
-				onSkip: async () => this.handleSkip(),
-			}
-		);
+		this.layout = new OnboardingLayout(this.containerEl, this.controller, {
+			onNext: async () => this.handleNext(),
+			onBack: async () => this.handleBack(),
+			onSkip: async () => this.handleSkip(),
+		});
 
 		// Render initial step
 		this.renderCurrentStep();
@@ -148,26 +144,54 @@ export class OnboardingView extends ItemView {
 					break;
 
 				case OnboardingStep.MODE_SELECT:
-					ModeSelectionStep.render(headerEl, contentEl, this.controller);
+					ModeSelectionStep.render(
+						headerEl,
+						contentEl,
+						this.controller
+					);
 					break;
 
 				case OnboardingStep.FLUENT_OVERVIEW:
-					FluentOverviewStep.render(headerEl, contentEl, this.controller);
+					FluentOverviewStep.render(
+						headerEl,
+						contentEl,
+						this.controller
+					);
 					break;
 				case OnboardingStep.FLUENT_WS_SELECTOR:
-					FluentWorkspaceSelectorStep.render(headerEl, contentEl, this.controller);
+					FluentWorkspaceSelectorStep.render(
+						headerEl,
+						contentEl,
+						this.controller
+					);
 					break;
 				case OnboardingStep.FLUENT_MAIN_NAV:
-					FluentMainNavigationStep.render(headerEl, contentEl, this.controller);
+					FluentMainNavigationStep.render(
+						headerEl,
+						contentEl,
+						this.controller
+					);
 					break;
 				case OnboardingStep.FLUENT_PROJECTS:
-					FluentProjectSectionStep.render(headerEl, contentEl, this.controller);
+					FluentProjectSectionStep.render(
+						headerEl,
+						contentEl,
+						this.controller
+					);
 					break;
 				case OnboardingStep.FLUENT_OTHER_VIEWS:
-					FluentOtherViewsStep.render(headerEl, contentEl, this.controller);
+					FluentOtherViewsStep.render(
+						headerEl,
+						contentEl,
+						this.controller
+					);
 					break;
 				case OnboardingStep.FLUENT_TOPNAV:
-					FluentTopNavigationStep.render(headerEl, contentEl, this.controller);
+					FluentTopNavigationStep.render(
+						headerEl,
+						contentEl,
+						this.controller
+					);
 					break;
 
 				case OnboardingStep.SETTINGS_CHECK:
@@ -282,7 +306,10 @@ export class OnboardingView extends ItemView {
 		// Navigate to next step
 		const success = await this.controller.next();
 		console.log("handleNext - Navigation result:", success);
-		console.log("handleNext - New step:", OnboardingStep[this.controller.getCurrentStep()]);
+		console.log(
+			"handleNext - New step:",
+			OnboardingStep[this.controller.getCurrentStep()]
+		);
 	}
 
 	/**
@@ -357,8 +384,9 @@ export class OnboardingView extends ItemView {
 		}
 
 		if (isFluent) {
-			(this.plugin.settings.experimental as any).v2Config.useWorkspaceSideLeaves =
-				!!state.useSideLeaves;
+			(
+				this.plugin.settings.experimental as any
+			).v2Config.useWorkspaceSideLeaves = !!state.useSideLeaves;
 		}
 
 		await this.plugin.saveSettings();

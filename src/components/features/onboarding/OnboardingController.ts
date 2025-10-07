@@ -1,4 +1,8 @@
-import { OnboardingConfig, OnboardingConfigMode } from "@/managers/onboarding-manager";
+import {
+	OnboardingConfig,
+	OnboardingConfigMode,
+} from "@/managers/onboarding-manager";
+import { Component } from "obsidian";
 
 export enum OnboardingStep {
 	INTRO = 0,
@@ -26,16 +30,16 @@ export interface OnboardingState {
 	isCompleting: boolean;
 	userHasChanges: boolean;
 	changesSummary: string[];
-	uiMode: 'fluent' | 'legacy';
+	uiMode: "fluent" | "legacy";
 	useSideLeaves: boolean;
-	settingsCheckAction?: 'wizard' | 'keep';
+	settingsCheckAction?: "wizard" | "keep";
 }
 
 export type OnboardingEventType =
-	| 'step-changed'
-	| 'state-updated'
-	| 'navigation-blocked'
-	| 'completed';
+	| "step-changed"
+	| "state-updated"
+	| "navigation-blocked"
+	| "completed";
 
 export interface OnboardingEvent {
 	type: OnboardingEventType;
@@ -53,7 +57,10 @@ export interface OnboardingEvent {
  */
 export class OnboardingController {
 	private state: OnboardingState;
-	private listeners: Map<OnboardingEventType, ((event: OnboardingEvent) => void)[]> = new Map();
+	private listeners: Map<
+		OnboardingEventType,
+		((event: OnboardingEvent) => void)[]
+	> = new Map();
 
 	constructor(initialState?: Partial<OnboardingState>) {
 		this.state = {
@@ -62,7 +69,7 @@ export class OnboardingController {
 			isCompleting: false,
 			userHasChanges: false,
 			changesSummary: [],
-			uiMode: 'fluent',
+			uiMode: "fluent",
 			useSideLeaves: true,
 			...initialState,
 		};
@@ -89,7 +96,7 @@ export class OnboardingController {
 	 */
 	updateState(updates: Partial<OnboardingState>) {
 		this.state = { ...this.state, ...updates };
-		this.emit('state-updated', { state: updates });
+		this.emit("state-updated", { state: updates });
 	}
 
 	/**
@@ -102,7 +109,7 @@ export class OnboardingController {
 	/**
 	 * Set UI mode
 	 */
-	setUIMode(mode: 'fluent' | 'legacy') {
+	setUIMode(mode: "fluent" | "legacy") {
 		this.updateState({ uiMode: mode });
 	}
 
@@ -128,7 +135,7 @@ export class OnboardingController {
 	async next(): Promise<boolean> {
 		// Validate current step
 		if (!this.validateCurrentStep()) {
-			this.emit('navigation-blocked', { step: this.state.currentStep });
+			this.emit("navigation-blocked", { step: this.state.currentStep });
 			return false;
 		}
 
@@ -143,7 +150,7 @@ export class OnboardingController {
 				break;
 
 			case OnboardingStep.MODE_SELECT:
-				if (this.state.uiMode === 'fluent') {
+				if (this.state.uiMode === "fluent") {
 					nextStep = OnboardingStep.FLUENT_OVERVIEW;
 				} else {
 					nextStep = OnboardingStep.SETTINGS_CHECK;
@@ -171,11 +178,11 @@ export class OnboardingController {
 
 			case OnboardingStep.SETTINGS_CHECK:
 				// User decided to continue wizard
-				if (this.state.settingsCheckAction === 'wizard') {
+				if (this.state.settingsCheckAction === "wizard") {
 					nextStep = OnboardingStep.USER_LEVEL_SELECT;
 				} else {
 					// User chose to keep settings, exit onboarding
-					this.emit('completed', { step: currentStep });
+					this.emit("completed", { step: currentStep });
 					return true;
 				}
 				break;
@@ -203,7 +210,7 @@ export class OnboardingController {
 
 			case OnboardingStep.COMPLETE:
 				// Trigger completion
-				this.emit('completed', { step: currentStep });
+				this.emit("completed", { step: currentStep });
 				return true;
 
 			default:
@@ -255,7 +262,7 @@ export class OnboardingController {
 
 			case OnboardingStep.SETTINGS_CHECK:
 				// Go back to last fluent step or mode select based on UI mode
-				if (this.state.uiMode === 'fluent') {
+				if (this.state.uiMode === "fluent") {
 					prevStep = OnboardingStep.FLUENT_TOPNAV;
 				} else {
 					prevStep = OnboardingStep.MODE_SELECT;
@@ -264,9 +271,12 @@ export class OnboardingController {
 
 			case OnboardingStep.USER_LEVEL_SELECT:
 				// Go back based on whether we went through settings check
-				if (this.state.userHasChanges && this.state.settingsCheckAction === 'wizard') {
+				if (
+					this.state.userHasChanges &&
+					this.state.settingsCheckAction === "wizard"
+				) {
 					prevStep = OnboardingStep.SETTINGS_CHECK;
-				} else if (this.state.uiMode === 'fluent') {
+				} else if (this.state.uiMode === "fluent") {
 					prevStep = OnboardingStep.FLUENT_TOPNAV;
 				} else {
 					prevStep = OnboardingStep.MODE_SELECT;
@@ -307,14 +317,14 @@ export class OnboardingController {
 	 */
 	setStep(step: OnboardingStep) {
 		this.state.currentStep = step;
-		this.emit('step-changed', { step });
+		this.emit("step-changed", { step });
 	}
 
 	/**
 	 * Skip onboarding
 	 */
 	skip() {
-		this.emit('completed', { step: this.state.currentStep });
+		this.emit("completed", { step: this.state.currentStep });
 	}
 
 	// ==================== Validation ====================
@@ -396,7 +406,10 @@ export class OnboardingController {
 	/**
 	 * Unregister event listener
 	 */
-	off(event: OnboardingEventType, callback: (event: OnboardingEvent) => void) {
+	off(
+		event: OnboardingEventType,
+		callback: (event: OnboardingEvent) => void
+	) {
 		const callbacks = this.listeners.get(event);
 		if (callbacks) {
 			const index = callbacks.indexOf(callback);
@@ -409,11 +422,28 @@ export class OnboardingController {
 	/**
 	 * Emit event to all listeners
 	 */
-	private emit(type: OnboardingEventType, data: Partial<OnboardingEvent> = {}) {
+	private emit(
+		type: OnboardingEventType,
+		data: Partial<OnboardingEvent> = {}
+	) {
 		const event: OnboardingEvent = { type, ...data };
 		const callbacks = this.listeners.get(type);
 		if (callbacks) {
 			callbacks.forEach((cb) => cb(event));
 		}
 	}
+}
+
+export abstract class OnboardingStepComponent extends Component {
+	constructor() {
+		super();
+	}
+
+	abstract render(
+		headerEl: HTMLElement,
+		contentEl: HTMLElement,
+		controller: OnboardingController
+	): void;
+	abstract clear(headerEl: HTMLElement, contentEl: HTMLElement): void;
+	abstract getStep(): OnboardingStep;
 }
