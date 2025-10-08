@@ -12,8 +12,7 @@ import {
 } from "obsidian";
 import { Component } from "obsidian";
 import { HabitProps } from "./habit-card";
-import { RootFilterState } from "../components/features/task/filter/ViewTaskFilter";
-import { BasesViewRegistration } from "./bases";
+import { RootFilterState } from "@/components/features/task/filter/ViewTaskFilter";
 
 interface Token extends EditorRange {
 	/** @todo Documentation incomplete. */
@@ -338,17 +337,21 @@ declare module "obsidian" {
 
 	interface MenuItem {
 		setSubmenu(): Menu;
+
 		titleEl: HTMLElement;
+
 		setWarning(warning: boolean): this;
 	}
 
 	interface Setting {
 		open(): void;
+
 		openTabById(tabId: string): void;
 	}
 
 	interface Commands {
 		executeCommandById(commandId: string): void;
+
 		executeCommandById(commandId: string, ...args: any[]): void;
 	}
 
@@ -356,31 +359,17 @@ declare module "obsidian" {
 		_loaded: boolean;
 	}
 
-	/**
-	 * Plugin interface extension for Bases API support
-	 */
-	interface Plugin {
-		/**
-		 * Register a bases view (Obsidian 1.9.3+)
-		 * @param viewId - Unique identifier for the view
-		 * @param factory - Factory function to create the view
-		 * @returns true if registration was successful, false otherwise
-		 */
-		registerBasesView(
-			viewId: string,
-			config: BasesViewRegistration
-		): boolean;
-	}
-
 	interface Workspace {
 		on(
 			event: "task-genius:task-added",
 			callback: (task: Task) => void
 		): EventRef;
+
 		on(
 			event: "task-genius:task-updated",
 			callback: (task: Task) => void
 		): EventRef;
+
 		on(
 			event: "task-genius:task-deleted",
 			callback: (taskId: string) => void
@@ -400,42 +389,55 @@ declare module "obsidian" {
 			event: "task-genius:ics-cache-updated",
 			callback: () => void
 		): EventRef;
+
 		on(
 			event: "task-genius:task-completed",
 			callback: (task: Task) => void
 		): EventRef;
+
 		on(
 			event: "task-genius:habit-index-updated",
 			callback: (habits: HabitProps[]) => void
 		): EventRef;
+
 		on(
 			event: "task-genius:filter-changed",
 			callback: (filterState: RootFilterState, leafId?: string) => void
 		): EventRef;
+
 		on(
 			event: "task-genius:view-config-changed",
 			callback: (payload: { reason: string; viewId?: string }) => void
 		): EventRef;
 
 		trigger(event: "task-genius:task-completed", task: Task): void;
+
 		trigger(event: "task-genius:task-added", task: Task): void;
+
 		trigger(event: "task-genius:task-updated", task: Task): void;
+
 		trigger(event: "task-genius:task-deleted", taskId: string): void;
+
 		trigger(
 			event: "task-genius:task-cache-updated",
 			cache: TaskCache
 		): void;
+
 		trigger(event: "task-genius:ics-config-changed"): void;
+
 		trigger(event: "task-genius:ics-cache-updated"): void;
+
 		trigger(
 			event: "task-genius:habit-index-updated",
 			habits: HabitProps[]
 		): void;
+
 		trigger(
 			event: "task-genius:filter-changed",
 			filterState: RootFilterState,
 			leafId?: string
 		): void;
+
 		trigger(
 			event: "task-genius:view-config-changed",
 			payload: { reason: string; viewId?: string }
@@ -577,9 +579,13 @@ declare module "obsidian" {
 
 	interface WidgetEditorView {
 		editable: boolean;
+
 		showEditor(): void;
+
 		editMode: MarkdownScrollableEditView;
+
 		unload(): void;
+
 		/**
 		 * Data after reference.
 		 */

@@ -7,7 +7,6 @@ import {
 	Notice,
 	Platform,
 	Plugin,
-	requireApiVersion,
 } from "obsidian";
 import { taskProgressBarExtension } from "./editor-extensions/ui-widgets/progress-bar-widget";
 import { taskTimerExtension } from "./editor-extensions/date-time/task-timer";
@@ -87,7 +86,6 @@ import { sortTasksInDocument } from "./commands/sortTaskCommands";
 import { taskGutterExtension } from "./editor-extensions/task-operations/gutter-marker";
 import { autoDateManagerExtension } from "./editor-extensions/date-time/date-manager";
 import { taskMarkCleanupExtension } from "./editor-extensions/task-operations/mark-cleanup";
-import { ViewManager } from "./pages/ViewManager";
 import { IcsManager } from "./managers/ics-manager";
 import { FluentIntegration } from "./components/features/fluent/FluentIntegration";
 import { ObsidianUriHandler } from "./utils/ObsidianUriHandler";
@@ -98,6 +96,7 @@ import { OnboardingConfigManager } from "./managers/onboarding-manager";
 import { OnCompletionManager } from "./managers/completion-manager";
 import { SettingsChangeDetector } from "./services/settings-change-detector";
 import { ONBOARDING_VIEW_TYPE, OnboardingView, } from "./components/features/onboarding/OnboardingView";
+import { registerTaskGeniusBasesViews } from "@/pages/bases/registerBasesViews";
 import { TaskTimerExporter } from "./services/timer-export-service";
 import { TaskTimerManager } from "./managers/timer-manager";
 import { McpServerManager } from "./mcp/McpServerManager";
@@ -177,20 +176,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 	// V2 Integration instance
 	v2Integration?: FluentIntegration;
 
-	// Uninstaller for workspace drag-and-drop monkey patch
-	private uninstallWorkspaceDnD?: () => void;
-
 	async onload() {
 		console.time("[TPB] onload");
 		await this.loadSettings();
-
-		if (
-			requireApiVersion("1.9.10") &&
-			this.settings.betaTest?.enableBaseView
-		) {
-			const viewManager = new ViewManager(this.app, this);
-			this.addChild(viewManager);
-		}
 
 		// Initialize version manager first
 		this.versionManager = new VersionManager(this.app, this);
@@ -203,10 +191,6 @@ export default class TaskProgressBarPlugin extends Plugin {
 		// Initialize global suggest manager
 		this.globalSuggestManager = new SuggestManager(this.app, this);
 
-		// Initialize workspace manager
-		const {WorkspaceManager} = await import(
-			"@/components/features/fluent/managers/WorkspaceManager"
-			);
 		this.workspaceManager = new WorkspaceManager(this);
 		await this.workspaceManager.migrateToV2();
 		this.workspaceManager.ensureDefaultWorkspaceInvariant();
@@ -268,6 +252,14 @@ export default class TaskProgressBarPlugin extends Plugin {
 						leaf.detach();
 					})
 			);
+
+			// Register Bases views if Bases plugin is available
+			try {
+				registerTaskGeniusBasesViews(this);
+			} catch (error) {
+				console.log("Failed to register Bases views:", error);
+				// Not critical if Bases plugin is not installed
+			}
 
 			// Add a command to open the TaskView
 			this.addCommand({
@@ -1509,6 +1501,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 			this.globalSuggestManager.cleanup();
 		}
 
+		// Bases views are automatically unregistered by Obsidian when plugin unloads
+
 		// Clean up dataflow orchestrator (experimental)
 		if (this.dataflowOrchestrator) {
 			this.dataflowOrchestrator.cleanup().catch((error) => {
@@ -1689,8 +1683,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 		try {
 			const {workspace} = this.app;
 
+			const viewType = this.settings.fluentView?.enableFluent ? FLUENT_TASK_VIEW : TASK_VIEW_TYPE;
 			// Check if view is already open
-			const existingLeaves = workspace.getLeavesOfType(TASK_VIEW_TYPE);
+			const existingLeaves = workspace.getLeavesOfType(viewType);
 
 			if (existingLeaves.length > 0) {
 				// If view is already open, just reveal the first one
@@ -1705,8 +1700,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 			// Otherwise, create a new leaf and open the view
 			const leaf = workspace.getLeaf("tab");
-			await leaf.setViewState({type: TASK_VIEW_TYPE});
-			workspace.revealLeaf(leaf);
+			await leaf.setViewState({type: viewType});
+			await workspace.revealLeaf(leaf);
 		} finally {
 			this.isActivatingView = false;
 		}

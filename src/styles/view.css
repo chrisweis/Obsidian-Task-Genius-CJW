@@ -205,6 +205,10 @@
 	padding: 0;
 }
 
+.bases-view .task-genius-view {
+	height: 100%;
+}
+
 /* Main container layout */
 .task-genius-container {
 	display: flex;
@@ -405,12 +409,12 @@
 }
 
 .mod-left-split
-	.workspace-tab-header-status-container:has(.task-genius-action-btn) {
+.workspace-tab-header-status-container:has(.task-genius-action-btn) {
 	display: none;
 }
 
 .mod-right-split
-	.workspace-tab-header-status-container:has(.task-genius-action-btn) {
+.workspace-tab-header-status-container:has(.task-genius-action-btn) {
 	display: none;
 }
 

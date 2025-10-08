@@ -43,7 +43,7 @@ export class TaskListItemComponent extends Component {
 
 		this.element = createEl("div", {
 			cls: "task-item",
-			attr: { "data-task-id": this.task.id },
+			attr: {"data-task-id": this.task.id},
 		});
 
 		this.settings = this.plugin.settings;
@@ -237,7 +237,7 @@ export class TaskListItemComponent extends Component {
 			if (sanitizedPriority) {
 				classes.push(`priority-${sanitizedPriority}`);
 			}
-			const priorityEl = createDiv({ cls: classes });
+			const priorityEl = createDiv({cls: classes});
 
 			// Priority icon based on level
 			let icon = "•";
@@ -399,10 +399,10 @@ export class TaskListItemComponent extends Component {
 			dateText = this.settings.useRelativeTimeForDate
 				? getRelativeTimeString(date)
 				: date.toLocaleDateString("en-US", {
-						year: "numeric",
-						month: "long",
-						day: "numeric",
-				  });
+					year: "numeric",
+					month: "long",
+					day: "numeric",
+				});
 		}
 
 		if (cssClass) {
@@ -422,14 +422,14 @@ export class TaskListItemComponent extends Component {
 						type === "due"
 							? "dueDate"
 							: type === "scheduled"
-							? "scheduledDate"
-							: type === "start"
-							? "startDate"
-							: type === "cancelled"
-							? "cancelledDate"
-							: type === "completed"
-							? "completedDate"
-							: null;
+								? "scheduledDate"
+								: type === "start"
+									? "startDate"
+									: type === "cancelled"
+										? "cancelledDate"
+										: type === "completed"
+											? "completedDate"
+											: null;
 
 					if (fieldType) {
 						this.getInlineEditor().showMetadataEditor(
@@ -618,7 +618,7 @@ export class TaskListItemComponent extends Component {
 		// Create the add metadata button
 		const addBtn = addButtonContainer.createEl("button", {
 			cls: "add-metadata-btn",
-			attr: { "aria-label": "Add metadata" },
+			attr: {"aria-label": "Add metadata"},
 		});
 		setIcon(addBtn, "plus");
 
@@ -636,19 +636,19 @@ export class TaskListItemComponent extends Component {
 		const menu = new Menu();
 
 		const availableFields = [
-			{ key: "project", label: "Project", icon: "folder" },
-			{ key: "tags", label: "Tags", icon: "tag" },
-			{ key: "context", label: "Context", icon: "at-sign" },
-			{ key: "dueDate", label: "Due Date", icon: "calendar" },
-			{ key: "startDate", label: "Start Date", icon: "play" },
-			{ key: "scheduledDate", label: "Scheduled Date", icon: "clock" },
-			{ key: "cancelledDate", label: "Cancelled Date", icon: "x" },
-			{ key: "completedDate", label: "Completed Date", icon: "check" },
-			{ key: "priority", label: "Priority", icon: "alert-triangle" },
-			{ key: "recurrence", label: "Recurrence", icon: "repeat" },
-			{ key: "onCompletion", label: "On Completion", icon: "flag" },
-			{ key: "dependsOn", label: "Depends On", icon: "link" },
-			{ key: "id", label: "Task ID", icon: "hash" },
+			{key: "project", label: "Project", icon: "folder"},
+			{key: "tags", label: "Tags", icon: "tag"},
+			{key: "context", label: "Context", icon: "at-sign"},
+			{key: "dueDate", label: "Due Date", icon: "calendar"},
+			{key: "startDate", label: "Start Date", icon: "play"},
+			{key: "scheduledDate", label: "Scheduled Date", icon: "clock"},
+			{key: "cancelledDate", label: "Cancelled Date", icon: "x"},
+			{key: "completedDate", label: "Completed Date", icon: "check"},
+			{key: "priority", label: "Priority", icon: "alert-triangle"},
+			{key: "recurrence", label: "Recurrence", icon: "repeat"},
+			{key: "onCompletion", label: "On Completion", icon: "flag"},
+			{key: "dependsOn", label: "Depends On", icon: "link"},
+			{key: "id", label: "Task ID", icon: "hash"},
 		];
 
 		// Filter out fields that already have values

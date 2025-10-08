@@ -62,7 +62,6 @@
 		"jest-environment-jsdom": "^29.5.0",
 		"jszip": "^3.10.1",
 		"monkey-around": "^3.0.0",
-		"obsidian": "^1.8.7",
 		"release-it": "^19.0.4",
 		"semver": "^7.7.2",
 		"ts-jest": "^29.1.0",
@@ -76,6 +75,7 @@
 		"date-fns": "^4.1.0",
 		"localforage": "^1.10.0",
 		"rrule": "^2.8.1",
+		"obsidian": "^1.10.0",
 		"obsidian-daily-notes-interface": "^0.9.4",
 		"sortablejs": "^1.15.6",
 		"regexp-match-indices": "^1.0.2"

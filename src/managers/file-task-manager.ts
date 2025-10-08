@@ -44,12 +44,16 @@ interface BasesEntry {
 	};
 	lazyEvalCache: Record<string, any>;
 	properties: Record<string, any>;
+
 	getValue(prop: {
 		type: "property" | "file" | "formula";
 		name: string;
 	}): any;
+
 	updateProperty(key: string, value: any): void;
+
 	getFormulaValue(formula: string): any;
+
 	getPropertyKeys(): string[];
 }
 
@@ -58,11 +62,11 @@ export const DEFAULT_FILE_TASK_MAPPING: FileTaskPropertyMapping = {
 	contentProperty: "title",
 	statusProperty: "status",
 	completedProperty: "completed",
-	createdDateProperty: "created", // dataview standard: created
-	startDateProperty: "start", // dataview standard: start
-	scheduledDateProperty: "scheduled", // dataview standard: scheduled
-	dueDateProperty: "due", // dataview standard: due
-	completedDateProperty: "completion", // dataview standard: completion
+	createdDateProperty: "createdDate", // dataview standard: created
+	startDateProperty: "startDate", // dataview standard: start
+	scheduledDateProperty: "scheduledDate", // dataview standard: scheduled
+	dueDateProperty: "dueDate", // dataview standard: due
+	completedDateProperty: "completionDate", // dataview standard: completion
 	recurrenceProperty: "repeat", // dataview standard: repeat
 	tagsProperty: "tags",
 	projectProperty: "project",
@@ -174,7 +178,7 @@ export class FileTaskManagerImpl implements FileTaskManager {
 
 		// Combine dates with time components to create enhanced datetime objects
 		const enhancedDates = this.combineTimestampsWithTimeComponents(
-			{ startDate, dueDate, scheduledDate, completedDate },
+			{startDate, dueDate, scheduledDate, completedDate},
 			enhancedMetadata.timeComponents
 		);
 
@@ -189,21 +193,21 @@ export class FileTaskManagerImpl implements FileTaskManager {
 				children: [], // File tasks don't have children by default
 
 				// Optional properties
-				...(createdDate && { createdDate }),
-				...(startDate && { startDate }),
-				...(scheduledDate && { scheduledDate }),
-				...(dueDate && { dueDate }),
-				...(completedDate && { completedDate }),
-				...(recurrence && { recurrence }),
-				...(project && { project }),
-				...(context && { context }),
-				...(priority && { priority }),
-				...(estimatedTime && { estimatedTime }),
-				...(actualTime && { actualTime }),
+				...(createdDate && {createdDate}),
+				...(startDate && {startDate}),
+				...(scheduledDate && {scheduledDate}),
+				...(dueDate && {dueDate}),
+				...(completedDate && {completedDate}),
+				...(recurrence && {recurrence}),
+				...(project && {project}),
+				...(context && {context}),
+				...(priority && {priority}),
+				...(estimatedTime && {estimatedTime}),
+				...(actualTime && {actualTime}),
 
 				// Enhanced time components
 				...enhancedMetadata,
-				...(enhancedDates && { enhancedDates }),
+				...(enhancedDates && {enhancedDates}),
 			},
 			sourceEntry: entry,
 			isFileTask: true,
@@ -320,17 +324,17 @@ export class FileTaskManagerImpl implements FileTaskManager {
 		updates: Partial<FileTask>
 	): Promise<void> {
 		// Merge updates into the task
-		const updatedTask = { ...task, ...updates };
+		const updatedTask = {...task, ...updates};
 		let contentHandledSeparately = false;
 
 		// Handle content changes - re-extract time components if content changed
 		if (updates.content && updates.content !== task.content) {
 			await this.handleContentUpdate(task, updates.content);
 			contentHandledSeparately = true;
-			
+
 			// Re-extract time components from updated content
 			const enhancedMetadata = this.extractTimeComponents(updates.content);
-			
+
 			// Update the task's metadata with new time components
 			if (enhancedMetadata.timeComponents) {
 				updatedTask.metadata = {
@@ -671,7 +675,8 @@ export class FileTaskManagerImpl implements FileTaskManager {
 				name: propertyName,
 			});
 			if (value !== null && value !== undefined) return String(value);
-		} catch {}
+		} catch {
+		}
 		// 2) Fallback: direct properties/frontmatter/note.data
 		try {
 			const anyEntry: any = entry as any;
@@ -693,7 +698,8 @@ export class FileTaskManagerImpl implements FileTaskManager {
 			) {
 				return String(anyEntry.note.data[propertyName]);
 			}
-		} catch {}
+		} catch {
+		}
 		return undefined;
 	}
 
@@ -849,7 +855,7 @@ export class FileTaskManagerImpl implements FileTaskManager {
 
 		try {
 			// Parse time components from content
-			const { timeComponents, errors, warnings } = this.timeParsingService.parseTimeComponents(content);
+			const {timeComponents, errors, warnings} = this.timeParsingService.parseTimeComponents(content);
 
 			// Log warnings if any
 			if (warnings.length > 0) {
@@ -927,13 +933,13 @@ export class FileTaskManagerImpl implements FileTaskManager {
 			enhancedDates.scheduledDateTime = combineDateTime(dates.scheduledDate, timeComponents.scheduledTime);
 		}
 
-		// If we have a due date but the time component is scheduledTime (common with "at" keyword), 
+		// If we have a due date but the time component is scheduledTime (common with "at" keyword),
 		// create dueDateTime using scheduledTime
 		if (dates.dueDate && !timeComponents.dueTime && timeComponents.scheduledTime) {
 			enhancedDates.dueDateTime = combineDateTime(dates.dueDate, timeComponents.scheduledTime);
 		}
 
-		// If we have a scheduled date but the time component is dueTime, 
+		// If we have a scheduled date but the time component is dueTime,
 		// create scheduledDateTime using dueTime
 		if (dates.scheduledDate && !timeComponents.scheduledTime && timeComponents.dueTime) {
 			enhancedDates.scheduledDateTime = combineDateTime(dates.scheduledDate, timeComponents.dueTime);

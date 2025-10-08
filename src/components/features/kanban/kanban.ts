@@ -75,6 +75,7 @@ export class KanbanComponent extends Component {
 		label: "Priority (High to Low)",
 	};
 	private hideEmptyColumns: boolean = false;
+	private configOverride: Partial<KanbanSpecificConfig> | null = null; // Configuration override from Bases view
 
 	constructor(
 		app: App,
@@ -99,6 +100,34 @@ export class KanbanComponent extends Component {
 		this.containerEl = parentEl.createDiv("tg-kanban-component-container");
 		this.tasks = initialTasks;
 		this.params = params;
+	}
+
+	/**
+	 * Set configuration override from Bases view config
+	 */
+	public setConfigOverride(config: Partial<KanbanSpecificConfig> | null): void {
+		const isChanged = this.hasConfigOverrideChanged(config);
+		this.configOverride = config;
+		console.log('[Kanban] setConfigOverride received', config);
+
+		if (isChanged) {
+			// Refresh derived state from effective config (sort/hide/column order)
+			this.loadKanbanConfig();
+			const eff = this.getEffectiveKanbanConfig();
+			console.log('[Kanban] effective config after override', eff);
+			if (this.columnContainerEl) {
+				// Rebuild columns with the new configuration so changes like groupBy
+				// take effect immediately without requiring a data refresh.
+				this.applyFiltersAndRender();
+			}
+		}
+	}
+
+	private getEffectiveKanbanConfig(): KanbanSpecificConfig | undefined {
+		const pluginConfig = this.plugin.settings.viewConfiguration.find(
+			(v) => v.id === this.currentViewId
+		)?.specificConfig as KanbanSpecificConfig;
+		return this.configOverride ? {...(pluginConfig ?? {}), ...this.configOverride} : pluginConfig;
 	}
 
 	override onload() {
@@ -141,6 +170,27 @@ export class KanbanComponent extends Component {
 		this.columns = [];
 		this.containerEl.empty();
 		console.log("KanbanComponent unloaded.");
+	}
+
+	private hasConfigOverrideChanged(
+		nextConfig: Partial<KanbanSpecificConfig> | null
+	): boolean {
+		if (!this.configOverride && !nextConfig) {
+			return false;
+		}
+
+		if (!this.configOverride || !nextConfig) {
+			return true;
+		}
+
+		try {
+			return (
+				JSON.stringify(this.configOverride) !== JSON.stringify(nextConfig)
+			);
+		} catch (error) {
+			console.warn("Failed to compare kanban config overrides:", error);
+			return true;
+		}
 	}
 
 	private renderControls(containerEl: HTMLElement) {
@@ -482,9 +532,9 @@ export class KanbanComponent extends Component {
 		this.columns.forEach((col) => this.removeChild(col));
 		this.columns = [];
 
-		const kanbanConfig = this.plugin.settings.viewConfiguration.find(
-			(v) => v.id === this.currentViewId
-		)?.specificConfig as KanbanSpecificConfig;
+		// Resolve effective config (Bases override wins over plugin settings)
+		const kanbanConfig = this.getEffectiveKanbanConfig();
+			console.log('[Kanban] renderColumns effective config', kanbanConfig);
 
 		const groupBy = kanbanConfig?.groupBy || "status";
 
@@ -746,8 +796,10 @@ export class KanbanComponent extends Component {
 	}
 
 	private updateColumnVisibility() {
+		const effective = this.getEffectiveKanbanConfig();
+		const hideEmpty = effective?.hideEmptyColumns ?? this.hideEmptyColumns;
 		this.columns.forEach((column) => {
-			if (this.hideEmptyColumns && column.isEmpty()) {
+			if (hideEmpty && column.isEmpty()) {
 				column.setVisible(false);
 			} else {
 				column.setVisible(true);
@@ -885,7 +937,8 @@ export class KanbanComponent extends Component {
 						(v) => v.id === this.currentViewId
 					)?.specificConfig as KanbanSpecificConfig;
 
-				const groupBy = kanbanConfig?.groupBy || "status";
+				const groupByPlugin = kanbanConfig?.groupBy || "status";
+				const groupBy = (this.getEffectiveKanbanConfig()?.groupBy) || groupByPlugin;
 
 				if (groupBy === "status") {
 					// Handle status-based grouping (original logic)
@@ -903,16 +956,18 @@ export class KanbanComponent extends Component {
 						);
 					}
 				} else {
+					const effectiveCustomColumns = (this.getEffectiveKanbanConfig()?.customColumns) || kanbanConfig?.customColumns;
+
 					// Handle property-based grouping
 					const targetValue = this.getColumnValueFromTitle(
 						targetColumnTitle,
 						groupBy,
-						kanbanConfig?.customColumns
+						effectiveCustomColumns
 					);
 					const sourceValue = this.getColumnValueFromTitle(
 						sourceColumnTitle,
 						groupBy,
-						kanbanConfig?.customColumns
+						effectiveCustomColumns
 					);
 					console.log(
 						`Kanban requesting ${groupBy} update for task ${taskId} from ${sourceValue} to value: ${targetValue}`
@@ -937,9 +992,7 @@ export class KanbanComponent extends Component {
 	}
 
 	private loadKanbanConfig() {
-		const kanbanConfig = this.plugin.settings.viewConfiguration.find(
-			(v) => v.id === this.currentViewId
-		)?.specificConfig as KanbanSpecificConfig;
+		const kanbanConfig = this.getEffectiveKanbanConfig();
 
 		if (kanbanConfig) {
 			this.hideEmptyColumns = kanbanConfig.hideEmptyColumns || false;
@@ -951,6 +1004,11 @@ export class KanbanComponent extends Component {
 					kanbanConfig.defaultSortOrder || "desc"
 				),
 			};
+			console.log('[Kanban] loadKanbanConfig applied', {
+				hideEmptyColumns: this.hideEmptyColumns,
+				defaultSortField: this.sortOption.field,
+				defaultSortOrder: this.sortOption.order,
+			});
 		}
 
 		// Load saved column order
@@ -1488,9 +1546,7 @@ export class KanbanComponent extends Component {
 
 	// Column order management methods
 	private getColumnOrderKey(): string {
-		const kanbanConfig = this.plugin.settings.viewConfiguration.find(
-			(v) => v.id === this.currentViewId
-		)?.specificConfig as KanbanSpecificConfig;
+		const kanbanConfig = this.getEffectiveKanbanConfig();
 		const groupBy = kanbanConfig?.groupBy || "status";
 		return `kanban-column-order-${this.currentViewId}-${groupBy}`;
 	}
