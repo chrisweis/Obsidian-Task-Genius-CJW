@@ -22,6 +22,7 @@ import { ReviewComponent } from '@/components/features/task/view/review';
 import { CalendarComponent, CalendarEvent } from '@/components/features/calendar';
 import { KanbanComponent } from '@/components/features/kanban/kanban';
 import { GanttComponent } from '@/components/features/gantt/gantt';
+import { QuadrantComponent } from '@/components/features/quadrant/quadrant';
 import { TaskPropertyTwoColumnView } from '@/components/features/task/view/TaskPropertyTwoColumnView';
 import { ViewComponentManager } from '@/components/ui';
 import { Habit as HabitsComponent } from '@/components/features/habit/habit';
@@ -110,6 +111,14 @@ export class TaskBasesView extends BasesView {
 		forecast?: {
 			firstDayOfWeek?: number;
 			hideWeekends?: boolean;
+		};
+		quadrant?: {
+			urgentTag: string;
+			importantTag: string;
+			urgentThresholdDays: number;
+			usePriorityForClassification: boolean;
+			urgentPriorityThreshold?: number;
+			importantPriorityThreshold?: number;
 		};
 	} = {};
 
@@ -308,7 +317,7 @@ export class TaskBasesView extends BasesView {
 	private loadViewSpecificConfig(config: BasesViewConfig): void {
 		// Load Kanban config
 		this.viewConfig.kanban = {
-			groupBy: this.getStringConfig(config, 'groupBy', 'status'),
+			groupBy: this.getStringConfig(config, 'tg_groupBy', 'status'),
 			customColumns: this.getCustomColumnsConfig(config, 'customColumns'),
 			hideEmptyColumns: this.getBooleanConfig(config, 'hideEmptyColumns', false),
 			defaultSortField: this.getStringConfig(config, 'defaultSortField', 'priority'),
@@ -333,7 +342,17 @@ export class TaskBasesView extends BasesView {
 			hideWeekends: this.getBooleanConfig(config, 'hideWeekends', false)
 		};
 
-		console.log(this.viewConfig.kanban);
+		// Load Quadrant config
+		this.viewConfig.quadrant = {
+			urgentTag: this.getStringConfig(config, 'urgentTag', '#urgent'),
+			importantTag: this.getStringConfig(config, 'importantTag', '#important'),
+			urgentThresholdDays: this.getNumericConfig(config, 'urgentThresholdDays', 3) || 3,
+			usePriorityForClassification: this.getBooleanConfig(config, 'usePriorityForClassification', false),
+			urgentPriorityThreshold: this.getNumericConfig(config, 'urgentPriorityThreshold'),
+			importantPriorityThreshold: this.getNumericConfig(config, 'importantPriorityThreshold'),
+		};
+
+
 	}
 
 	/**
@@ -377,11 +396,8 @@ export class TaskBasesView extends BasesView {
 	private getStringConfig(config: BasesViewConfig, key: string, defaultValue: string): string {
 		const value = config.get(key);
 		if (value !== undefined && value !== null && typeof value === 'string' && value.length > 0) {
-			console.log("based config value", value);
 			return value;
 		}
-		console.log(value, "based config value");
-
 		return defaultValue;
 	}
 
@@ -800,6 +816,18 @@ export class TaskBasesView extends BasesView {
 			if (specialComponent) {
 				targetComponent = specialComponent as ViewComponentInstance;
 				componentKey = `special:${viewId}`;
+
+				// Inject Bases-derived per-view config override into the component (if supported)
+				const compAny = specialComponent as any;
+				if (typeof compAny.setConfigOverride === 'function') {
+					const ovr = viewId === 'kanban' ? this.viewConfig.kanban
+						: viewId === 'calendar' ? this.viewConfig.calendar
+							: viewId === 'gantt' ? this.viewConfig.gantt
+								: viewId === 'forecast' ? this.viewConfig.forecast
+									: viewId === 'quadrant' ? this.viewConfig.quadrant
+										: null;
+					compAny.setConfigOverride(ovr ?? null);
+				}
 			}
 		} else {
 			// Standard view types - create component on demand
@@ -933,21 +961,6 @@ export class TaskBasesView extends BasesView {
 						}
 					);
 					this.addChild(kanbanComp);
-
-					// Apply Kanban config override first so initial render uses it
-					if (this.viewConfig.kanban && typeof kanbanComp.setConfigOverride === 'function') {
-						const overrideCfg = {
-							viewType: 'kanban' as const,
-							groupBy: this.viewConfig.kanban.groupBy as any,
-							customColumns: this.viewConfig.kanban.customColumns,
-							hideEmptyColumns: this.viewConfig.kanban.hideEmptyColumns,
-							defaultSortField: this.viewConfig.kanban.defaultSortField as any,
-							defaultSortOrder: this.viewConfig.kanban.defaultSortOrder,
-							showCheckbox: true,
-						};
-						console.log('[TaskBasesView] apply Kanban override (create)', overrideCfg);
-						kanbanComp.setConfigOverride(overrideCfg);
-					}
 					// Ensure component lifecycle runs
 					kanbanComp.load();
 					targetComponent = kanbanComp;
@@ -965,6 +978,27 @@ export class TaskBasesView extends BasesView {
 					);
 					this.addChild(ganttComp);
 					targetComponent = ganttComp;
+					break;
+
+				case 'quadrant':
+					const quadrantComp = new QuadrantComponent(
+						this.app,
+						this.plugin,
+						this.rootContainerEl,
+						this.tasks,
+						{
+							onTaskStatusUpdate: this.handleKanbanTaskStatusUpdate.bind(this),
+							onTaskSelected: this.handleTaskSelection.bind(this),
+							onTaskCompleted: this.toggleTaskCompletion.bind(this),
+							onTaskContextMenu: this.handleTaskContextMenu.bind(this),
+							onTaskUpdated: async (task: Task) => {
+								await this.updateTask(task, task);
+							},
+						}
+					);
+					this.addChild(quadrantComp);
+					quadrantComp.load();
+					targetComponent = quadrantComp;
 					break;
 
 				case 'habit':
@@ -1508,7 +1542,7 @@ export class TaskBasesView extends BasesView {
 					{
 						displayName: 'Group By',
 						type: 'dropdown',
-						key: 'groupBy',
+						key: 'tg_groupBy',
 						options: {
 							'status': 'Status',
 							'priority': 'Priority',
@@ -1617,6 +1651,62 @@ export class TaskBasesView extends BasesView {
 						type: 'toggle',
 						key: 'hideWeekends',
 						default: false,
+					},
+				]
+			});
+		}
+
+		if (!viewMode || viewMode === 'quadrant') {
+			options.push({
+				displayName: 'Quadrant View Settings',
+				type: 'group',
+				items: [
+					{
+						displayName: 'Urgent Tag',
+						type: 'text',
+						key: 'urgentTag',
+						placeholder: '#urgent',
+						default: '#urgent',
+					},
+					{
+						displayName: 'Important Tag',
+						type: 'text',
+						key: 'importantTag',
+						placeholder: '#important',
+						default: '#important',
+					},
+					{
+						displayName: 'Urgent Threshold (Days)',
+						type: 'slider',
+						key: 'urgentThresholdDays',
+						min: 1,
+						max: 14,
+						step: 1,
+						default: 3,
+					},
+					{
+						displayName: 'Use Priority for Classification',
+						type: 'toggle',
+						key: 'usePriorityForClassification',
+						default: false,
+					},
+					{
+						displayName: 'Urgent Priority Threshold',
+						type: 'slider',
+						key: 'urgentPriorityThreshold',
+						min: 1,
+						max: 5,
+						step: 1,
+						default: 4,
+					},
+					{
+						displayName: 'Important Priority Threshold',
+						type: 'slider',
+						key: 'importantPriorityThreshold',
+						min: 1,
+						max: 5,
+						step: 1,
+						default: 3,
 					},
 				]
 			});
