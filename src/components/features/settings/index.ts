@@ -2,6 +2,7 @@ export { renderAboutSettingsTab } from "./tabs/AboutSettingsTab";
 export { renderBetaTestSettingsTab } from "./tabs/BetaTestSettingsTab";
 export { renderHabitSettingsTab } from "./tabs/HabitSettingsTab";
 export { IcsSettingsComponent } from "./tabs/IcsSettingsTab";
+export { renderInterfaceSettingsTab } from "./tabs/InterfaceSettingsTab";
 export { renderProgressSettingsTab } from "./tabs/ProgressSettingsTab";
 export { renderQuickCaptureSettingsTab } from "./tabs/QuickCaptureSettingsTab";
 export { renderRewardSettingsTab } from "./tabs/RewardSettingsTab";

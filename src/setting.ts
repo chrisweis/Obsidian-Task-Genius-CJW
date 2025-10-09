@@ -24,6 +24,7 @@ import {
 	renderAboutSettingsTab,
 	renderBetaTestSettingsTab,
 	renderHabitSettingsTab,
+	renderInterfaceSettingsTab,
 	renderProgressSettingsTab,
 	renderTaskStatusSettingsTab,
 	renderDatePrioritySettingsTab,
@@ -80,6 +81,12 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			id: "view-settings",
 			name: t("Views"),
 			icon: "layout",
+			category: "core",
+		},
+		{
+			id: "interface",
+			name: t("Interface"),
+			icon: "layout-dashboard",
 			category: "core",
 		},
 		{
@@ -673,6 +680,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		const viewSettingsSection = this.createTabSection("view-settings");
 		this.displayViewSettings(viewSettingsSection);
 
+		// Interface Tab
+		const interfaceSection = this.createTabSection("interface");
+		this.displayInterfaceSettings(interfaceSection);
+
 		// Reward Tab
 		const rewardSection = this.createTabSection("reward");
 		this.displayRewardSettings(rewardSection);
@@ -729,6 +740,8 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				return `${base}/task-view/indexer`;
 			case "view-settings":
 				return `${base}/task-view`;
+			case "interface":
+				return `${base}/interface`;
 			case "file-filter":
 				return `${base}/file-filter`;
 			case "progress-bar":
@@ -828,6 +841,10 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 	private displayViewSettings(containerEl: HTMLElement): void {
 		renderViewSettingsTab(this, containerEl);
+	}
+
+	private displayInterfaceSettings(containerEl: HTMLElement): void {
+		renderInterfaceSettingsTab(this, containerEl);
 	}
 
 	private displayIndexSettings(containerEl: HTMLElement): void {
