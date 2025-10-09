@@ -357,7 +357,7 @@
 }
 
 .fluent-project-list.is-tree-view
-	.fluent-project-item[data-level]:not([data-level="0"]):hover::before {
+.fluent-project-item[data-level]:not([data-level="0"]):hover::before {
 	opacity: 0.3;
 }
 
@@ -531,6 +531,7 @@
 	overflow: auto;
 }
 
+.bases-view .tg-kanban-filters,
 .tg-fluent-content .content-header,
 .tg-fluent-content .tg-kanban-filters {
 	display: none;
@@ -814,8 +815,8 @@
 
 /* Hide sidebar toggle on desktop when in mobile drawer mode */
 .tg-fluent-sidebar-container.is-mobile-drawer
-	~ .tg-fluent-main-container
-	.sidebar-toggle {
+~ .tg-fluent-main-container
+.sidebar-toggle {
 	display: none !important;
 }
 

@@ -49,7 +49,7 @@ export class ProjectList extends Component {
 	private readonly STORAGE_KEY = "task-genius-project-sort";
 	private readonly EXPANDED_KEY = "task-genius-project-expanded";
 	private collator: Intl.Collator;
-	private isTreeView: boolean = false;
+	private isTreeView = false;
 	private expandedNodes: Set<string> = new Set();
 	private treeNodes: ProjectTreeNode[] = [];
 
@@ -57,7 +57,7 @@ export class ProjectList extends Component {
 		containerEl: HTMLElement,
 		plugin: TaskProgressBarPlugin,
 		onProjectSelect: (projectId: string) => void,
-		isTreeView: boolean = false
+		isTreeView = false
 	) {
 		super();
 		this.containerEl = containerEl;
