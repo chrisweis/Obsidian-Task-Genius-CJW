@@ -65,8 +65,8 @@ export class CalendarComponent extends Component {
 	private badgeEventsCacheVersion: number = 0;
 
 
-		// Per-view override from Bases (firstDayOfWeek, hideWeekends, ...)
-		private configOverride: Partial<import("@/common/setting-definition").CalendarSpecificConfig> | null = null;
+	// Per-view override from Bases (firstDayOfWeek, hideWeekends, ...)
+	private configOverride: Partial<import("@/common/setting-definition").CalendarSpecificConfig> | null = null;
 
 	constructor(
 		app: App,
@@ -162,8 +162,6 @@ export class CalendarComponent extends Component {
 			this.app.saveLocalStorage(
 				"task-genius:calendar-view",
 				this.currentViewMode
-
-
 			);
 		}
 	}
@@ -703,7 +701,8 @@ export class CalendarComponent extends Component {
 		let endDate: Date;
 
 		switch (this.currentViewMode) {
-			case "month":
+			case "month": {
+
 				// For month view, compute for the entire grid (including previous/next month days)
 				const startOfMonth = this.currentDate.clone().startOf("month");
 				const endOfMonth = this.currentDate.clone().endOf("month");
@@ -715,7 +714,7 @@ export class CalendarComponent extends Component {
 				const gridStart = startOfMonth
 					.clone()
 					.weekday(firstDayOfWeek - 7);
-				let gridEnd = endOfMonth.clone().weekday(firstDayOfWeek + 6);
+				const gridEnd = endOfMonth.clone().weekday(firstDayOfWeek + 6);
 
 				// Ensure at least 42 days (6 weeks)
 				if (gridEnd.diff(gridStart, "days") + 1 < 42) {
@@ -727,13 +726,16 @@ export class CalendarComponent extends Component {
 				startDate = gridStart.toDate();
 				endDate = gridEnd.toDate();
 				break;
+			}
 
-			case "week":
+			case "week": {
+
 				const startOfWeek = this.currentDate.clone().startOf("week");
 				const endOfWeek = this.currentDate.clone().endOf("week");
 				startDate = startOfWeek.toDate();
 				endDate = endOfWeek.toDate();
 				break;
+			}
 
 			case "day":
 				startDate = this.currentDate.clone().startOf("day").toDate();
@@ -887,7 +889,7 @@ export class CalendarComponent extends Component {
 			new QuickCaptureModal(
 				this.app,
 				this.plugin,
-				{ dueDate: moment(day).toDate() },
+				{dueDate: moment(day).toDate()},
 				true
 			).open();
 		} else if (options.behavior === "open-task-view") {
@@ -934,19 +936,19 @@ export class CalendarComponent extends Component {
 		this.params?.onTaskCompleted?.(event);
 	};
 
-		// Allow external overrides (e.g., from Bases) and compute effective config
-		public setConfigOverride(
-			override: Partial<import("@/common/setting-definition").CalendarSpecificConfig> | null
-		): void {
-			this.configOverride = override ?? null;
-			// Re-render to apply new config
-			this.render();
-		}
+	// Allow external overrides (e.g., from Bases) and compute effective config
+	public setConfigOverride(
+		override: Partial<import("@/common/setting-definition").CalendarSpecificConfig> | null
+	): void {
+		this.configOverride = override ?? null;
+		// Re-render to apply new config
+		this.render();
+	}
 
-		private getEffectiveCalendarConfig(): Partial<import("@/common/setting-definition").CalendarSpecificConfig> {
-			const baseCfg = this.plugin.settings.viewConfiguration.find((v) => v.id === this.viewId)?.specificConfig as Partial<import("@/common/setting-definition").CalendarSpecificConfig> | undefined;
-			return { ...(baseCfg ?? {}), ...(this.configOverride ?? {}) };
-		}
+	private getEffectiveCalendarConfig(): Partial<import("@/common/setting-definition").CalendarSpecificConfig> {
+		const baseCfg = this.plugin.settings.viewConfiguration.find((v) => v.id === this.viewId)?.specificConfig as Partial<import("@/common/setting-definition").CalendarSpecificConfig> | undefined;
+		return {...(baseCfg ?? {}), ...(this.configOverride ?? {})};
+	}
 
 }
 

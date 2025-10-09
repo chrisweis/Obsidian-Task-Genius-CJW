@@ -57,6 +57,8 @@ export abstract class BaseQuickCaptureModal extends Modal {
 	protected taskMetadata: TaskMetadata = {};
 	protected currentMode: QuickCaptureMode;
 	protected suggestManager: SuggestManager;
+	protected inlineModeAvailable: boolean = true;
+	protected fileModeAvailable: boolean = false;
 
 	// UI Elements
 	protected headerContainer: HTMLElement | null = null;
@@ -78,6 +80,22 @@ export abstract class BaseQuickCaptureModal extends Modal {
 		this.plugin = plugin;
 		this.currentMode = initialMode;
 
+		const scopeControls =
+			this.plugin.settings.fileFilter?.scopeControls;
+		this.inlineModeAvailable =
+			scopeControls?.inlineTasksEnabled !== false;
+		this.fileModeAvailable =
+			(this.plugin.settings.fileSource?.enabled ?? false) &&
+			scopeControls?.fileTasksEnabled !== false;
+		if (!scopeControls) {
+			this.inlineModeAvailable = true;
+			this.fileModeAvailable =
+				this.plugin.settings.fileSource?.enabled ?? false;
+		}
+		if (!this.inlineModeAvailable && !this.fileModeAvailable) {
+			this.inlineModeAvailable = true;
+		}
+
 		// Initialize suggest manager
 		this.suggestManager = new SuggestManager(app, plugin);
 
@@ -91,11 +109,14 @@ export abstract class BaseQuickCaptureModal extends Modal {
 		}
 
 		// If FileSource is disabled, force mode to checkbox
-		if (
-			this.currentMode === "file" &&
-			!this.plugin.settings?.fileSource?.enabled
-		) {
+		if (this.currentMode === "file" && !this.fileModeAvailable) {
 			this.currentMode = "checkbox";
+		} else if (
+			this.currentMode === "checkbox" &&
+			!this.inlineModeAvailable &&
+			this.fileModeAvailable
+		) {
+			this.currentMode = "file";
 		}
 
 		// Initialize settings
@@ -187,38 +208,43 @@ export abstract class BaseQuickCaptureModal extends Modal {
 		});
 
 		// Checkbox mode button (save as checkbox task)
-		const checkboxButton = new ButtonComponent(tabContainer)
-			.setClass("quick-capture-tab")
-			.onClick(() => this.switchMode("checkbox"));
+		if (this.inlineModeAvailable) {
+			const checkboxButton = new ButtonComponent(tabContainer)
+				.setClass("quick-capture-tab")
+				.onClick(() => this.switchMode("checkbox"));
 
-		checkboxButton.buttonEl.toggleClass("clickable-icon", true);
+			checkboxButton.buttonEl.toggleClass("clickable-icon", true);
 
-		const checkboxButtonEl = checkboxButton.buttonEl;
-		checkboxButtonEl.setAttribute("role", "tab");
-		checkboxButtonEl.setAttribute(
-			"aria-selected",
-			String(this.currentMode === "checkbox")
-		);
-		checkboxButtonEl.setAttribute("aria-controls", "quick-capture-content");
-		checkboxButtonEl.setAttribute("data-mode", "checkbox");
+			const checkboxButtonEl = checkboxButton.buttonEl;
+			checkboxButtonEl.setAttribute("role", "tab");
+			checkboxButtonEl.setAttribute(
+				"aria-selected",
+				String(this.currentMode === "checkbox")
+			);
+			checkboxButtonEl.setAttribute(
+				"aria-controls",
+				"quick-capture-content"
+			);
+			checkboxButtonEl.setAttribute("data-mode", "checkbox");
 
-		if (this.currentMode === "checkbox") {
-			checkboxButton.setClass("active");
+			if (this.currentMode === "checkbox") {
+				checkboxButton.setClass("active");
+			}
+
+			// Manually create spans for icon and text
+			checkboxButtonEl.empty();
+			const checkboxIconSpan = checkboxButtonEl.createSpan({
+				cls: "quick-capture-tab-icon",
+			});
+			setIcon(checkboxIconSpan, "check-square");
+			checkboxButtonEl.createSpan({
+				text: t("Checkbox"),
+				cls: "quick-capture-tab-text",
+			});
 		}
 
-		// Manually create spans for icon and text
-		checkboxButtonEl.empty();
-		const checkboxIconSpan = checkboxButtonEl.createSpan({
-			cls: "quick-capture-tab-icon",
-		});
-		setIcon(checkboxIconSpan, "check-square");
-		checkboxButtonEl.createSpan({
-			text: t("Checkbox"),
-			cls: "quick-capture-tab-text",
-		});
-
 		// File mode button (save as file) - only when FileSource is enabled
-		if (this.plugin.settings?.fileSource?.enabled) {
+		if (this.fileModeAvailable) {
 			const fileButton = new ButtonComponent(tabContainer)
 				.setClass("quick-capture-tab")
 				.onClick(() => this.switchMode("file"));
@@ -247,6 +273,10 @@ export abstract class BaseQuickCaptureModal extends Modal {
 				text: t("File"),
 				cls: "quick-capture-tab-text",
 			});
+		}
+
+		if (!(this.fileModeAvailable && this.inlineModeAvailable)) {
+			tabContainer.classList.add("is-hidden");
 		}
 
 		// Right side: Clear button with improved styling
@@ -305,13 +335,16 @@ export abstract class BaseQuickCaptureModal extends Modal {
 	 */
 	protected async switchMode(mode: QuickCaptureMode): Promise<void> {
 		if (mode === this.currentMode) return;
-		// Prevent switching to file mode when FileSource is disabled
-		if (mode === "file" && !this.plugin.settings?.fileSource?.enabled) {
+		// Prevent switching to unsupported modes
+		if (mode === "file" && !this.fileModeAvailable) {
 			new Notice(
 				t(
 					"File Task is disabled. Enable FileSource in Settings to use File mode."
 				)
 			);
+			return;
+		}
+		if (mode === "checkbox" && !this.inlineModeAvailable) {
 			return;
 		}
 
@@ -334,14 +367,13 @@ export abstract class BaseQuickCaptureModal extends Modal {
 		// Update tab active states
 		const tabs =
 			this.headerContainer?.querySelectorAll(".quick-capture-tab");
-		tabs?.forEach((tab, index) => {
+		tabs?.forEach((tab) => {
 			tab.removeClass("active");
-			if (
-				(index === 0 && mode === "checkbox") ||
-				(index === 1 && mode === "file")
-			) {
+			const tabMode = tab.getAttribute("data-mode");
+			if (tabMode === mode) {
 				tab.addClass("active");
 			}
+			tab.setAttribute("aria-selected", String(tabMode === mode));
 		});
 
 		// Update only the target display instead of recreating everything

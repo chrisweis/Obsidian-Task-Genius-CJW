@@ -5,7 +5,7 @@ import "@/styles/modal.css";
 
 export interface ListConfigModalParams {
 	title: string;
-	description: string;
+	description: string | DocumentFragment;
 	placeholder?: string;
 	values: string[];
 	onSave: (values: string[]) => void;

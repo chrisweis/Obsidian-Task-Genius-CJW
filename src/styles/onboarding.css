@@ -16,9 +16,9 @@
 	--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	--shadow-md: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 	--shadow-lg: 0 4px 6px -1px rgb(0 0 0 / 0.1),
-		0 2px 4px -2px rgb(0 0 0 / 0.1);
+	0 2px 4px -2px rgb(0 0 0 / 0.1);
 	--shadow-xl: 0 10px 15px -3px rgb(0 0 0 / 0.1),
-		0 4px 6px -4px rgb(0 0 0 / 0.1);
+	0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 /* Modal specific styles */
@@ -51,8 +51,7 @@
 
 /* Header section */
 .onboarding-view .onboarding-header {
-	padding: calc(var(--onboarding-spacing) * 4) var(--onboarding-spacing)
-		var(--size-4-2) var(--onboarding-spacing);
+	padding: calc(var(--onboarding-spacing) * 4) var(--onboarding-spacing) var(--size-4-2) var(--onboarding-spacing);
 	text-align: center;
 }
 
@@ -266,7 +265,7 @@
 		var(--background-primary) 100%
 	);
 	box-shadow: var(--shadow-md),
-		0 0 0 3px rgba(var(--interactive-accent-rgb), 0.1);
+	0 0 0 3px rgba(var(--interactive-accent-rgb), 0.1);
 }
 
 .onboarding-view .settings-check-action-card:hover {
@@ -1524,8 +1523,8 @@
 	filter: blur(4px);
 	transform: translateY(-2px);
 	transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-		filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-		transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+	transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
 }
 
@@ -1759,7 +1758,7 @@
 
 .selectable-card {
 	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--onboarding-border-radius);
+	border-radius: var(--onboarding-border-radius, var(--radius-m));
 	padding: var(--size-4-4);
 	cursor: pointer;
 	transition: var(--onboarding-transition);

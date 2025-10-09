@@ -14,14 +14,28 @@ import { ListConfigModal } from "@/components/ui/modals/ListConfigModal";
 /**
  * Create File Task settings UI
  */
+export interface FileSourceSettingsOptions {
+	showEnableToggle?: boolean;
+}
+
 export function createFileSourceSettings(
 	containerEl: HTMLElement,
-	plugin: TaskProgressBarPlugin
+	plugin: TaskProgressBarPlugin,
+	options: FileSourceSettingsOptions = {}
 ): void {
 	const config = plugin.settings?.fileSource;
 
+	if (!config) {
+		console.warn(
+			"[FileSourceSettings] Missing fileSource configuration on plugin settings"
+		);
+		return;
+	}
+
 	// Main FileSource enable/disable toggle
-	createEnableToggle(containerEl, plugin, config);
+	if (options.showEnableToggle !== false) {
+		createEnableToggle(containerEl, plugin, config);
+	}
 
 	if (config.enabled) {
 		// Recognition strategies section

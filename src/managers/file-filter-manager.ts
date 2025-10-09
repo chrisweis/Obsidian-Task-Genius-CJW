@@ -6,7 +6,10 @@
  */
 
 import { normalizePath, TFile, TFolder } from "obsidian";
-import { FilterMode } from "../common/setting-definition";
+import {
+	FilterMode,
+	type FileFilterScopeControls,
+} from "../common/setting-definition";
 
 /**
  * Filter rule types
@@ -25,6 +28,7 @@ export interface FileFilterConfig {
 	enabled: boolean;
 	mode: FilterMode;
 	rules: FilterRule[];
+	scopeControls?: FileFilterScopeControls;
 }
 
 /**
@@ -109,6 +113,10 @@ export class FileFilterManager {
 	private fileSet: Set<string> = new Set(); // global (legacy)
 	private patternRegexes: RegExp[] = []; // global (legacy)
 	private cache: Map<string, boolean> = new Map();
+	private scopeControls: FileFilterScopeControls = {
+		inlineTasksEnabled: true,
+		fileTasksEnabled: true,
+	};
 
 	// Scoped indexes for per-rule scope control
 	private folderTrieInline: PathTrie = new PathTrie();
@@ -120,6 +128,9 @@ export class FileFilterManager {
 
 	constructor(config: FileFilterConfig) {
 		this.config = config;
+		this.scopeControls = this.normalizeScopeControls(
+			config.scopeControls
+		);
 		this.rebuildIndexes();
 	}
 
@@ -128,8 +139,35 @@ export class FileFilterManager {
 	 */
 	updateConfig(config: FileFilterConfig): void {
 		this.config = config;
+		this.scopeControls = this.normalizeScopeControls(
+			config.scopeControls
+		);
 		this.rebuildIndexes();
 		this.clearCache();
+	}
+
+	private normalizeScopeControls(
+		scopeControls?: FileFilterScopeControls
+	): FileFilterScopeControls {
+		return {
+			inlineTasksEnabled:
+				scopeControls?.inlineTasksEnabled !== false,
+			fileTasksEnabled:
+				scopeControls?.fileTasksEnabled !== false,
+		};
+	}
+
+	private isScopeEnabled(scope: "both" | "inline" | "file"): boolean {
+		if (scope === "inline") {
+			return this.scopeControls.inlineTasksEnabled !== false;
+		}
+		if (scope === "file") {
+			return this.scopeControls.fileTasksEnabled !== false;
+		}
+		return (
+			this.scopeControls.inlineTasksEnabled !== false ||
+			this.scopeControls.fileTasksEnabled !== false
+		);
 	}
 
 	/**
@@ -139,6 +177,9 @@ export class FileFilterManager {
 		file: TFile,
 		scope: "both" | "inline" | "file" = "both"
 	): boolean {
+		if (!this.isScopeEnabled(scope)) {
+			return false;
+		}
 		if (!this.config.enabled) {
 			return true;
 		}
@@ -162,6 +203,9 @@ export class FileFilterManager {
 		folder: TFolder,
 		scope: "both" | "inline" | "file" = "both"
 	): boolean {
+		if (!this.isScopeEnabled(scope)) {
+			return false;
+		}
 		if (!this.config.enabled) {
 			return true;
 		}
@@ -185,6 +229,9 @@ export class FileFilterManager {
 		path: string,
 		scope: "both" | "inline" | "file" = "both"
 	): boolean {
+		if (!this.isScopeEnabled(scope)) {
+			return false;
+		}
 		if (!this.config.enabled) {
 			return true;
 		}

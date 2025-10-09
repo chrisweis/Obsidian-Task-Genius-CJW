@@ -649,10 +649,16 @@ export enum FilterMode {
 	BLACKLIST = "blacklist",
 }
 
+export interface FileFilterScopeControls {
+	inlineTasksEnabled: boolean;
+	fileTasksEnabled: boolean;
+}
+
 export interface FileFilterSettings {
 	enabled: boolean;
 	mode: FilterMode;
 	rules: FileFilterRule[];
+	scopeControls?: FileFilterScopeControls;
 }
 
 /** MCP Server Configuration */
@@ -1522,6 +1528,10 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 		rules: [
 			// No default rules - let users explicitly choose via preset templates
 		],
+		scopeControls: {
+			inlineTasksEnabled: true,
+			fileTasksEnabled: true,
+		},
 	},
 
 	// OnCompletion Defaults

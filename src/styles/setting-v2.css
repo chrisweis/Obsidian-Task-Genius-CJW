@@ -221,3 +221,56 @@
 	border-top: 1px solid var(--background-modifier-border);
 	padding-top: var(--size-4-4);
 }
+
+
+.fluent-view-tabs.tg-index-task-source-switcher {
+	display: flex;
+	align-items: stretch;
+	justify-content: center;
+	gap: var(--size-2-2);
+	background-color: var(--background-secondary);
+	border-radius: var(--size-2-3);
+	padding: var(--size-2-1);
+	margin-bottom: var(--size-4-4);
+	width: fit-content;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.tg-index-task-source-switcher .fluent-view-tab {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	background: none;
+	border: none;
+	border-radius: 4px;
+	font-size: 14px;
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.tg-index-task-source-switcher .fluent-view-tab:hover {
+	color: var(--text-normal);
+}
+
+.tg-index-task-source-switcher .fluent-view-tab.is-active {
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tg-index-task-source-switcher .fluent-view-tab-icon {
+	width: 16px;
+	height: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 14px;
+}
+
+.tg-index-task-source-switcher .fluent-view-tab-label {
+	display: inline-flex;
+	align-items: center;
+}

@@ -433,7 +433,7 @@
 .task-genius-settings:has(
 		.settings-tab-section-active:not([data-tab-id="general"])
 	)
-	.settings-tabs-categorized-container {
+.settings-tabs-categorized-container {
 	display: none;
 }
 
@@ -444,7 +444,7 @@
 
 /* Show legacy tabs when general tab is active (fallback behavior) */
 .task-genius-settings:has(.settings-tab-active[data-tab-id="general"])
-	.settings-tabs-container {
+.settings-tabs-container {
 	display: grid;
 }
 
@@ -456,7 +456,7 @@
 .task-genius-settings:has(
 		.settings-tab-section-active:not([data-tab-id="general"])
 	)
-	.task-genius-settings-header {
+.task-genius-settings-header {
 	display: none;
 }
 
@@ -1294,8 +1294,7 @@
 		var(--accent-l),
 		0.5
 	);
-	border: 1px solid
-		hsl(var(--accent-h), var(--accent-s), var(--accent-l), 0.5);
+	border: 1px solid hsl(var(--accent-h), var(--accent-s), var(--accent-l), 0.5);
 	border-radius: var(--radius-m);
 	color: var(--text-on-accent);
 }
@@ -1577,4 +1576,25 @@
 
 .task-genius-date-examples-table tr:hover td {
 	background-color: var(--background-modifier-hover);
+}
+
+.tg-index-task-source-wrapper {
+	margin-top: 18px;
+}
+
+.tg-index-task-source-panels {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.tg-source-settings-body {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.tg-source-settings-body.tg-source-disabled {
+	opacity: 0.55;
+	pointer-events: none;
 }
