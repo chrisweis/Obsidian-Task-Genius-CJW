@@ -88,6 +88,13 @@ const TASK_GENIUS_BASES_VIEWS: TaskGeniusBasesViewType[] = [
 		defaultViewMode: 'flagged',
 		description: 'View high-priority flagged tasks'
 	},
+	{
+		id: 'task-genius-quadrant',
+		name: 'Quadrant (Task Genius)',
+		icon: 'lucide-grid',
+		defaultViewMode: 'quadrant',
+		description: 'Organize tasks using the Eisenhower Matrix'
+	}
 ];
 
 /**

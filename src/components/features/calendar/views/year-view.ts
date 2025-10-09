@@ -18,6 +18,8 @@ export class YearView extends CalendarViewComponent {
 	private app: App; // Keep app reference
 	private plugin: TaskProgressBarPlugin; // Keep plugin reference
 	// Removed specific click/hover properties, use this.options
+		private overrideConfig?: Partial<CalendarSpecificConfig>;
+
 
 	constructor(
 		app: App,
@@ -25,12 +27,14 @@ export class YearView extends CalendarViewComponent {
 		containerEl: HTMLElement,
 		currentDate: moment.Moment,
 		events: CalendarEvent[],
-		options: CalendarViewOptions // Use base options type
+		options: CalendarViewOptions, // Use base options type
+		overrideConfig?: Partial<CalendarSpecificConfig>
 	) {
 		super(plugin, app, containerEl, events, options); // Call base constructor
 		this.app = app;
 		this.plugin = plugin;
 		this.currentDate = currentDate;
+		this.overrideConfig = overrideConfig;
 	}
 
 	render(): void {
@@ -64,12 +68,10 @@ export class YearView extends CalendarViewComponent {
 			} events for year ${year} in ${endTimeFilter - startTimeFilter}ms`
 		); // Log filtering time
 
-		// Get view settings (assuming 'calendar' or a 'year' specific setting)
+		// Get view settings (prefer override when provided)
 		const viewConfig = getViewSettingOrDefault(this.plugin, "calendar"); // Adjust if needed
-		const firstDayOfWeekSetting = (
-			viewConfig.specificConfig as CalendarSpecificConfig
-		).firstDayOfWeek;
-		const hideWeekends = (viewConfig.specificConfig as CalendarSpecificConfig)?.hideWeekends ?? false;
+		const firstDayOfWeekSetting = (this.overrideConfig?.firstDayOfWeek ?? (viewConfig.specificConfig as CalendarSpecificConfig).firstDayOfWeek);
+		const hideWeekends = (this.overrideConfig?.hideWeekends ?? (viewConfig.specificConfig as CalendarSpecificConfig)?.hideWeekends) ?? false;
 
 		// Add hide-weekends class if weekend hiding is enabled
 		if (hideWeekends) {

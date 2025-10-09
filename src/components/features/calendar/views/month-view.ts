@@ -29,6 +29,7 @@ export class MonthView extends CalendarViewComponent {
 	private app: App; // Keep app reference if needed directly
 	private plugin: TaskProgressBarPlugin; // Keep plugin reference if needed directly
 	private sortableInstances: Sortable[] = []; // Store sortable instances for cleanup
+	private overrideConfig?: Partial<CalendarSpecificConfig>;
 
 	constructor(
 		app: App,
@@ -37,21 +38,23 @@ export class MonthView extends CalendarViewComponent {
 		private currentViewId: string,
 		currentDate: moment.Moment,
 		events: CalendarEvent[],
-		options: CalendarViewOptions // Use the base options type
+		options: CalendarViewOptions, // Use the base options type
+		overrideConfig?: Partial<CalendarSpecificConfig>
 	) {
 		super(plugin, app, containerEl, events, options); // Call base constructor
 		this.app = app; // Still store app if needed directly
 		this.plugin = plugin; // Still store plugin if needed directly
 		this.currentDate = currentDate;
+		this.overrideConfig = overrideConfig;
 	}
 
 	render(): void {
-		// Get view settings, including the first day of the week override and weekend hiding
+		// Get view settings, prefer override values when provided
 		const viewConfig = this.plugin.settings.viewConfiguration.find(
 			(v) => v.id === this.currentViewId
-		)?.specificConfig as CalendarSpecificConfig; // Assuming 'calendar' view for settings lookup, adjust if needed
-		const firstDayOfWeekSetting = viewConfig?.firstDayOfWeek;
-		const hideWeekends = viewConfig?.hideWeekends ?? false;
+		)?.specificConfig as CalendarSpecificConfig;
+		const firstDayOfWeekSetting = this.overrideConfig?.firstDayOfWeek ?? viewConfig?.firstDayOfWeek;
+		const hideWeekends = (this.overrideConfig?.hideWeekends ?? viewConfig?.hideWeekends) ?? false;
 		// Default to Sunday (0) if the setting is undefined, following 0=Sun, 1=Mon, ..., 6=Sat
 		const effectiveFirstDay =
 			firstDayOfWeekSetting === undefined ? 0 : firstDayOfWeekSetting;

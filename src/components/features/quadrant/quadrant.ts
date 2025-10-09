@@ -7,6 +7,7 @@ import "@/styles/quadrant/quadrant.css";
 import { t } from "@/translations/helper";
 import { FilterComponent } from "@/components/features/task/filter/in-view/filter";
 import { ActiveFilter } from "@/components/features/task/filter/in-view/filter-type";
+import { QuadrantSpecificConfig } from "@/common/setting-definition";
 
 export interface QuadrantSortOption {
 	field:
@@ -95,6 +96,10 @@ export class QuadrantComponent extends Component {
 	};
 	private hideEmptyColumns: boolean = false;
 
+		// Per-view override from Bases
+		private configOverride: Partial<QuadrantSpecificConfig> | null = null;
+
+
 	// Quadrant-specific configuration
 	private get quadrantConfig() {
 		const view = this.plugin.settings.viewConfiguration.find(
@@ -105,19 +110,18 @@ export class QuadrantComponent extends Component {
 			view.specificConfig &&
 			view.specificConfig.viewType === "quadrant"
 		) {
-			return view.specificConfig as any;
+			return { ...(view.specificConfig as any), ...(this.configOverride ?? {}) };
 		}
 		// Fallback to default quadrant config
 		const defaultView = this.plugin.settings.viewConfiguration.find(
 			(v) => v.id === "quadrant"
 		);
-		return (
-			(defaultView?.specificConfig as any) || {
-				urgentTag: "#urgent",
-				importantTag: "#important",
-				urgentThresholdDays: 3,
-			}
-		);
+		const base = (defaultView?.specificConfig as any) || {
+			urgentTag: "#urgent",
+			importantTag: "#important",
+			urgentThresholdDays: 3,
+		};
+		return { ...base, ...(this.configOverride ?? {}) };
 	}
 
 	constructor(
@@ -144,6 +148,8 @@ export class QuadrantComponent extends Component {
 		this.containerEl = parentEl.createDiv(
 			"tg-quadrant-component-container"
 		);
+
+
 		this.tasks = initialTasks;
 		this.params = params;
 	}
@@ -152,6 +158,14 @@ export class QuadrantComponent extends Component {
 		super.onload();
 		this.render();
 	}
+
+
+		public setConfigOverride(override: Partial<QuadrantSpecificConfig> | null): void {
+			this.configOverride = override ?? null;
+			// Re-render to apply new config safely
+			this.cleanup();
+			this.render();
+		}
 
 	override onunload() {
 		this.cleanup();

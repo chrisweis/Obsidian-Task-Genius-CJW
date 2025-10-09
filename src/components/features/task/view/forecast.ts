@@ -60,6 +60,10 @@ export class ForecastComponent extends Component {
 	private treeComponents: TaskTreeItemComponent[] = [];
 	private allTasksMap: Map<string, Task> = new Map();
 
+
+		// Per-view override from Bases
+		private configOverride: Partial<ForecastSpecificConfig> | null = null;
+
 	constructor(
 		private parentEl: HTMLElement,
 		private app: App,
@@ -77,6 +81,8 @@ export class ForecastComponent extends Component {
 		super();
 		// Initialize dates
 		this.currentDate = new Date();
+
+
 		this.currentDate.setHours(0, 0, 0, 0);
 		this.selectedDate = new Date(this.currentDate);
 	}
@@ -154,6 +160,50 @@ export class ForecastComponent extends Component {
 		// Register the window focus event
 		this.registerDomEvent(window, "focus", this.windowFocusHandler);
 	}
+
+		public setConfigOverride(override: Partial<ForecastSpecificConfig> | null): void {
+			this.configOverride = override ?? null;
+			this.rebuildCalendarWithEffectiveOptions();
+		}
+
+		private getEffectiveForecastConfig(): Partial<ForecastSpecificConfig> {
+			const baseCfg = this.plugin.settings.viewConfiguration.find((v) => v.id === "forecast")?.specificConfig as ForecastSpecificConfig | undefined;
+			return { ...(baseCfg ?? {}), ...(this.configOverride ?? {}) };
+		}
+
+		private rebuildCalendarWithEffectiveOptions(): void {
+			if (!this.calendarContainerEl) return;
+			// Remove old calendar component if exists
+			if (this.calendarComponent) {
+				this.removeChild(this.calendarComponent);
+			}
+			this.calendarContainerEl.empty();
+			const eff = this.getEffectiveForecastConfig();
+			const calendarOptions: Partial<CalendarOptions> = {
+				firstDayOfWeek: eff.firstDayOfWeek ?? 0,
+				showWeekends: !(eff.hideWeekends ?? false),
+				showTaskCounts: true,
+			};
+			this.calendarComponent = new CalendarComponent(this.calendarContainerEl, calendarOptions);
+			this.addChild(this.calendarComponent);
+			this.calendarComponent.load();
+			// Restore state and tasks
+			this.calendarComponent.setCurrentDate(this.currentDate);
+			this.calendarComponent.selectDate(this.selectedDate);
+			this.calendarComponent.setTasks(this.allTasks);
+			// Rebind selection handler
+			this.calendarComponent.onDateSelected = (date, tasks) => {
+				const selectedDate = new Date(date);
+				selectedDate.setHours(0, 0, 0, 0);
+				this.selectedDate = selectedDate;
+				this.updateDueSoonSection();
+				this.refreshDateSectionsUI();
+				if (Platform.isPhone) {
+					this.toggleLeftColumnVisibility(false);
+				}
+			};
+		}
+
 
 	private createForecastHeader() {
 		this.forecastHeaderEl = this.taskContainerEl.createDiv({
@@ -293,22 +343,15 @@ export class ForecastComponent extends Component {
 			cls: "forecast-calendar-section",
 		});
 
-		// Create and initialize calendar component
-		const forecastConfig = this.plugin.settings.viewConfiguration.find(
-			(view) => view.id === "forecast"
-		)?.specificConfig as ForecastSpecificConfig;
-
-		// Convert ForecastSpecificConfig to CalendarOptions
+		// Create and initialize calendar component using effective config (Bases override + settings)
+		const eff = this.getEffectiveForecastConfig();
 		const calendarOptions: Partial<CalendarOptions> = {
-			firstDayOfWeek: forecastConfig?.firstDayOfWeek ?? 0,
-			showWeekends: !(forecastConfig?.hideWeekends ?? false), // Invert hideWeekends to showWeekends
+			firstDayOfWeek: eff.firstDayOfWeek ?? 0,
+			showWeekends: !(eff.hideWeekends ?? false), // Invert hideWeekends to showWeekends
 			showTaskCounts: true,
 		};
 
-		this.calendarComponent = new CalendarComponent(
-			this.calendarContainerEl,
-			calendarOptions
-		);
+		this.calendarComponent = new CalendarComponent(this.calendarContainerEl, calendarOptions);
 		this.addChild(this.calendarComponent);
 		this.calendarComponent.load();
 
@@ -983,23 +1026,23 @@ export class ForecastComponent extends Component {
 
 		// 基于选择日期重新分类所有任务
 		const selectedTimestamp = new Date(this.selectedDate).setHours(0, 0, 0, 0);
-		
+
 		// 获取有相关日期的任务
 		const tasksWithRelevantDate = this.allTasks.filter(
 			(task) => this.getRelevantDate(task) !== undefined
 		);
-		
+
 		// 相对于选择日期重新分类
 		const pastTasksRelativeToSelected = tasksWithRelevantDate.filter((task) => {
 			const relevantTimestamp = this.getRelevantDate(task)!;
 			return relevantTimestamp < selectedTimestamp;
 		});
-		
+
 		const selectedDateTasks = tasksWithRelevantDate.filter((task) => {
 			const relevantTimestamp = this.getRelevantDate(task)!;
 			return relevantTimestamp === selectedTimestamp;
 		});
-		
+
 		const futureTasksRelativeToSelected = tasksWithRelevantDate.filter((task) => {
 			const relevantTimestamp = this.getRelevantDate(task)!;
 			return relevantTimestamp > selectedTimestamp;

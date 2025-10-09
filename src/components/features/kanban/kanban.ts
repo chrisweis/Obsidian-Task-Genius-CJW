@@ -55,7 +55,7 @@ export class KanbanComponent extends Component {
 	private columnSortableInstance: Sortable | null = null;
 	private tasks: Task[] = [];
 	private allTasks: Task[] = [];
-	private currentViewId: string = "kanban"; // 新增：当前视图ID
+	private currentViewId = "kanban"; // 新增：当前视图ID
 	private columnOrder: string[] = [];
 	private params: {
 		onTaskStatusUpdate?: (
@@ -74,7 +74,7 @@ export class KanbanComponent extends Component {
 		order: "desc",
 		label: "Priority (High to Low)",
 	};
-	private hideEmptyColumns: boolean = false;
+	private hideEmptyColumns = false;
 	private configOverride: Partial<KanbanSpecificConfig> | null = null; // Configuration override from Bases view
 
 	constructor(
@@ -91,7 +91,7 @@ export class KanbanComponent extends Component {
 			onTaskCompleted?: (task: Task) => void;
 			onTaskContextMenu?: (ev: MouseEvent, task: Task) => void;
 		} = {},
-		viewId: string = "kanban" // 新增：视图ID参数
+		viewId = "kanban" // 新增：视图ID参数
 	) {
 		super();
 		this.app = app;
@@ -534,7 +534,7 @@ export class KanbanComponent extends Component {
 
 		// Resolve effective config (Bases override wins over plugin settings)
 		const kanbanConfig = this.getEffectiveKanbanConfig();
-			console.log('[Kanban] renderColumns effective config', kanbanConfig);
+		console.log('[Kanban] renderColumns effective config', kanbanConfig);
 
 		const groupBy = kanbanConfig?.groupBy || "status";
 

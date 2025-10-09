@@ -20,6 +20,8 @@ export class WeekView extends CalendarViewComponent {
 	private app: App; // Keep app reference
 	private plugin: TaskProgressBarPlugin; // Keep plugin reference
 	private sortableInstances: Sortable[] = []; // Store sortable instances for cleanup
+		private overrideConfig?: Partial<CalendarSpecificConfig>;
+
 	// Removed onEventClick/onMouseHover properties, now in this.options
 
 	constructor(
@@ -29,25 +31,25 @@ export class WeekView extends CalendarViewComponent {
 		private currentViewId: string,
 		currentDate: moment.Moment,
 		events: CalendarEvent[],
-		options: CalendarViewOptions // Use the base options type
+		options: CalendarViewOptions, // Use the base options type
+		overrideConfig?: Partial<CalendarSpecificConfig>
 	) {
 		super(plugin, app, containerEl, events, options); // Call base constructor
 		this.app = app; // Store app
 		this.plugin = plugin; // Store plugin
 		this.currentDate = currentDate;
+		this.overrideConfig = overrideConfig;
 	}
 
 	render(): void {
-		// Get view settings, including the first day of the week override and weekend hiding
+		// Get view settings, prefer override values when provided
 		const viewConfig = getViewSettingOrDefault(
 			this.plugin,
 			this.currentViewId
 		);
 		console.log("viewConfig calendar", viewConfig);
-		const firstDayOfWeekSetting = (
-			viewConfig.specificConfig as CalendarSpecificConfig
-		).firstDayOfWeek;
-		const hideWeekends = (viewConfig.specificConfig as CalendarSpecificConfig)?.hideWeekends ?? false;
+		const firstDayOfWeekSetting = (this.overrideConfig?.firstDayOfWeek ?? (viewConfig.specificConfig as CalendarSpecificConfig).firstDayOfWeek);
+		const hideWeekends = (this.overrideConfig?.hideWeekends ?? (viewConfig.specificConfig as CalendarSpecificConfig)?.hideWeekends) ?? false;
 		// Default to Sunday (0) if the setting is undefined, following 0=Sun, 1=Mon, ..., 6=Sat
 		const effectiveFirstDay =
 			firstDayOfWeekSetting === undefined ? 0 : firstDayOfWeekSetting;
@@ -369,7 +371,7 @@ export class WeekView extends CalendarViewComponent {
 			taskId: calendarEvent.id,
 			updates: updatedTask,
 		});
-		
+
 		if (!result.success) {
 			throw new Error(`Failed to update task: ${result.error}`);
 		}

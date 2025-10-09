@@ -64,6 +64,10 @@ export class CalendarComponent extends Component {
 	private badgeEventsCache: Map<string, CalendarEvent[]> = new Map();
 	private badgeEventsCacheVersion: number = 0;
 
+
+		// Per-view override from Bases (firstDayOfWeek, hideWeekends, ...)
+		private configOverride: Partial<import("@/common/setting-definition").CalendarSpecificConfig> | null = null;
+
 	constructor(
 		app: App,
 		plugin: TaskProgressBarPlugin,
@@ -92,6 +96,7 @@ export class CalendarComponent extends Component {
 			this.currentViewMode = viewMode as CalendarViewMode;
 		}
 
+
 		console.log("CalendarComponent initialized with params:", this.params);
 	}
 
@@ -107,6 +112,8 @@ export class CalendarComponent extends Component {
 	override onunload() {
 		super.onunload();
 		// Detach the active view component if it exists
+
+
 		if (this.activeViewComponent) {
 			this.removeChild(this.activeViewComponent);
 			this.activeViewComponent = null;
@@ -132,6 +139,8 @@ export class CalendarComponent extends Component {
 		this.invalidateBadgeEventsCache();
 		this.processTasks();
 		// Only update the currently active view
+
+
 		if (this.activeViewComponent) {
 			this.activeViewComponent.updateEvents(this.events);
 		} else {
@@ -153,6 +162,8 @@ export class CalendarComponent extends Component {
 			this.app.saveLocalStorage(
 				"task-genius:calendar-view",
 				this.currentViewMode
+
+
 			);
 		}
 	}
@@ -169,6 +180,7 @@ export class CalendarComponent extends Component {
 			this.currentDate.add(1, unit);
 		}
 		this.render(); // Re-render header and update the view
+
 	}
 
 	/**
@@ -304,6 +316,7 @@ export class CalendarComponent extends Component {
 		);
 		switch (this.currentViewMode) {
 			case "month":
+				const effMonth = this.getEffectiveCalendarConfig();
 				nextViewComponent = new MonthView(
 					this.app,
 					this.plugin,
@@ -320,10 +333,12 @@ export class CalendarComponent extends Component {
 						onEventComplete: this.onEventComplete,
 						getBadgeEventsForDate:
 							this.getBadgeEventsForDate.bind(this),
-					}
+					},
+					effMonth
 				);
 				break;
 			case "week":
+				const effWeek = this.getEffectiveCalendarConfig();
 				nextViewComponent = new WeekView(
 					this.app,
 					this.plugin,
@@ -340,7 +355,8 @@ export class CalendarComponent extends Component {
 						onEventComplete: this.onEventComplete,
 						getBadgeEventsForDate:
 							this.getBadgeEventsForDate.bind(this),
-					}
+					},
+					effWeek
 				);
 				break;
 			case "day":
@@ -374,6 +390,7 @@ export class CalendarComponent extends Component {
 				);
 				break;
 			case "year":
+				const effYear = this.getEffectiveCalendarConfig();
 				nextViewComponent = new YearView(
 					this.app,
 					this.plugin,
@@ -387,7 +404,8 @@ export class CalendarComponent extends Component {
 						onDayHover: this.onDayHover,
 						onMonthClick: this.onMonthClick,
 						onMonthHover: this.onMonthHover,
-					}
+					},
+					effYear
 				);
 				break;
 			default:
@@ -690,11 +708,9 @@ export class CalendarComponent extends Component {
 				const startOfMonth = this.currentDate.clone().startOf("month");
 				const endOfMonth = this.currentDate.clone().endOf("month");
 
-				// Get first day of week setting
-				const viewConfig = this.plugin.settings.viewConfiguration.find(
-					(v) => v.id === this.viewId
-				)?.specificConfig as any; // Use any for now to avoid import complexity
-				const firstDayOfWeek = viewConfig?.firstDayOfWeek ?? 0;
+				// Get first day of week setting (effective with override)
+				const effCfg = this.getEffectiveCalendarConfig();
+				const firstDayOfWeek = effCfg.firstDayOfWeek ?? 0;
 
 				const gridStart = startOfMonth
 					.clone()
@@ -917,6 +933,21 @@ export class CalendarComponent extends Component {
 	public onEventComplete = (ev: MouseEvent, event: CalendarEvent) => {
 		this.params?.onTaskCompleted?.(event);
 	};
+
+		// Allow external overrides (e.g., from Bases) and compute effective config
+		public setConfigOverride(
+			override: Partial<import("@/common/setting-definition").CalendarSpecificConfig> | null
+		): void {
+			this.configOverride = override ?? null;
+			// Re-render to apply new config
+			this.render();
+		}
+
+		private getEffectiveCalendarConfig(): Partial<import("@/common/setting-definition").CalendarSpecificConfig> {
+			const baseCfg = this.plugin.settings.viewConfiguration.find((v) => v.id === this.viewId)?.specificConfig as Partial<import("@/common/setting-definition").CalendarSpecificConfig> | undefined;
+			return { ...(baseCfg ?? {}), ...(this.configOverride ?? {}) };
+		}
+
 }
 
 // Helper function (example - might move to a utils file)
