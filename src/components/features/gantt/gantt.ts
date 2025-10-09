@@ -22,6 +22,8 @@ import { ActiveFilter, FilterCategory } from "@/components/features/task/filter/
 import { ScrollToDateButton } from '@/components/features/task/filter/in-view/custom/scroll-to-date-button';
 import { PRIORITY_MAP } from "@/common/default-symbol";
 
+import { GanttSpecificConfig } from "@/common/setting-definition";
+
 // Define the PRIORITY_MAP here as well, or import it if moved to a shared location
 // This is needed to convert filter value (icon/text) back to number for comparison
 
@@ -132,6 +134,10 @@ export class GanttComponent extends Component {
 	// Helpers
 	private dateHelper = new DateHelper();
 
+		// Per-view override from Bases
+		private configOverride: Partial<GanttSpecificConfig> | null = null;
+
+
 	private config = {
 		showDependencies: false,
 		taskColorBy: "status",
@@ -192,6 +198,9 @@ export class GanttComponent extends Component {
 			this.renderInternal,
 			this.config.debounceRenderMs
 		);
+
+
+
 		// Debounce header updates triggered by scroll
 		this.debouncedHeaderUpdate = debounce(
 			this.updateHeaderComponent,
@@ -201,6 +210,8 @@ export class GanttComponent extends Component {
 
 	onload() {
 		console.log("GanttComponent loaded.");
+			this.applyEffectiveConfig();
+
 		this.createBaseSVG(); // Creates SVG and groups
 
 		// Instantiate Child Components
@@ -220,6 +231,9 @@ export class GanttComponent extends Component {
 					],
 				},
 				this.plugin
+
+
+
 			)
 		);
 
@@ -249,6 +263,8 @@ export class GanttComponent extends Component {
 		this.registerDomEvent(this.containerEl, "wheel", this.handleWheel, {
 			passive: false,
 		});
+			this.applyEffectiveConfig();
+
 		// Initial render is triggered by updateTasks or refresh
 	}
 
@@ -276,6 +292,32 @@ export class GanttComponent extends Component {
 		this.tasks = [];
 		this.preparedTasks = [];
 	}
+
+	public setConfigOverride(override: Partial<GanttSpecificConfig> | null): void {
+		this.configOverride = override ?? null;
+		this.applyEffectiveConfig();
+		// Re-render with new settings
+		this.debouncedRender();
+	}
+
+	private getEffectiveGanttConfig(): Partial<GanttSpecificConfig> {
+		const view = this.plugin.settings.viewConfiguration.find(v => v.id === this.viewId);
+		let base: Partial<GanttSpecificConfig> = {};
+		if (view && view.specificConfig && view.specificConfig.viewType === "gantt") {
+			base = view.specificConfig as GanttSpecificConfig;
+		} else {
+			const def = this.plugin.settings.viewConfiguration.find(v => v.id === "gantt");
+			base = (def?.specificConfig as GanttSpecificConfig) || ({} as any);
+		}
+		return { ...(base ?? {}), ...(this.configOverride ?? {}) };
+	}
+
+	private applyEffectiveConfig(): void {
+		const eff = this.getEffectiveGanttConfig();
+		if (typeof eff.showTaskLabels === "boolean") this.config.showTaskLabels = eff.showTaskLabels;
+		if (typeof eff.useMarkdownRenderer === "boolean") this.config.useMarkdownRenderer = eff.useMarkdownRenderer;
+	}
+
 
 	setTasks(newTasks: Task[]) {
 		this.preparedTasks = []; // Clear prepared tasks
