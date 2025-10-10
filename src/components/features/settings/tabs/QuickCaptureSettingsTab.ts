@@ -1,6 +1,7 @@
-import { Setting, Notice } from "obsidian";
+import { Setting, Notice, TFile, TFolder } from "obsidian";
 import { TaskProgressBarSettingTab } from "@/setting";
 import { t } from "@/translations/helper";
+import { FolderSuggest } from "@/components/ui/inputs/AutoComplete";
 
 export function renderQuickCaptureSettingsTab(
 	settingTab: TaskProgressBarSettingTab,
@@ -335,7 +336,7 @@ export function renderQuickCaptureSettingsTab(
 		.setName(t("Use template for new files"))
 		.setDesc(
 			t(
-				"When File mode is used, ensure the new file has frontmatter; if enabled, only frontmatter is auto-inserted when missing."
+				"When File mode is used, create the new note from a template and then insert the captured content."
 			)
 		)
 		.addToggle((toggle) =>
@@ -392,17 +393,100 @@ export function renderQuickCaptureSettingsTab(
 
 	// Template file path
 	if (createFileMode.useTemplate) {
+		const templateFolderPath = (createFileMode.templateFolder || "").trim();
+		const folderFile = templateFolderPath
+			? settingTab.app.vault.getAbstractFileByPath(templateFolderPath)
+			: null;
+		const folderExists = folderFile instanceof TFolder;
+		const templateFiles: TFile[] = [];
+
+		if (folderExists) {
+			const collectMarkdownFiles = (folder: TFolder) => {
+				for (const child of folder.children) {
+					if (child instanceof TFolder) {
+						collectMarkdownFiles(child);
+					} else if (
+						child instanceof TFile &&
+						child.extension.toLowerCase() === "md"
+					) {
+						templateFiles.push(child);
+					}
+				}
+			};
+			collectMarkdownFiles(folderFile);
+			templateFiles.sort((a, b) => a.path.localeCompare(b.path));
+		}
+
 		new Setting(containerEl)
-			.setName(t("Template file"))
-			.setDesc(t("Template file to use for new files"))
-			.addText((text) =>
+			.setName(t("Template folder"))
+			.setDesc(
+				folderExists || !templateFolderPath
+					? t("Folder that contains Quick Capture templates for File mode.")
+					: t("Selected folder was not found in the vault.")
+			)
+			.addText((text) => {
 				text
-					.setValue(createFileMode.templateFile || "")
+					.setPlaceholder(t("Templates/Quick Capture"))
+					.setValue(createFileMode.templateFolder || "")
 					.onChange(async (value) => {
-						createFileMode.templateFile = value;
+						const previous = createFileMode.templateFolder || "";
+						const normalized = value.trim();
+						createFileMode.templateFolder = normalized;
+						if (previous !== normalized) {
+							createFileMode.templateFile = "";
+						}
 						settingTab.applySettingsUpdate();
-					})
-			);
+						setTimeout(() => {
+							settingTab.display();
+						}, 100);
+					});
+
+				new FolderSuggest(
+					settingTab.app,
+					text.inputEl,
+					settingTab.plugin,
+					"single"
+				);
+			});
+
+		new Setting(containerEl)
+			.setName(t("Template note"))
+			.setDesc(
+				!templateFolderPath
+					? t("Select a template folder above to enable the dropdown.")
+					: !folderExists
+					? t("Template folder is invalid; update the folder to continue.")
+					: templateFiles.length > 0
+					? t(
+							"Choose the note that should be copied; {{CONTENT}} placeholders are replaced, otherwise the captured text is appended."
+						)
+					: t("No markdown notes were found in the selected folder.")
+			)
+			.addDropdown((dropdown) => {
+				dropdown.addOption("", t("None"));
+
+				const existingTemplate = createFileMode.templateFile || "";
+				if (
+					existingTemplate &&
+					!templateFiles.some((file) => file.path === existingTemplate)
+				) {
+					dropdown.addOption(existingTemplate, existingTemplate);
+				}
+
+				for (const file of templateFiles) {
+					dropdown.addOption(file.path, file.basename);
+				}
+
+				dropdown.setValue(createFileMode.templateFile || "");
+				dropdown.onChange(async (value) => {
+					createFileMode.templateFile = value;
+					settingTab.applySettingsUpdate();
+				});
+
+				if (!templateFiles.length || !folderExists) {
+					dropdown.selectEl.disabled = true;
+				}
+			});
 	}
 
 	// Minimal mode settings

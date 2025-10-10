@@ -509,57 +509,10 @@ export abstract class BaseQuickCaptureModal extends Modal {
 					`${defaultFolder}/${targetFile}`
 				);
 			}
-			// Inject frontmatter (and tags) for File mode
-			const useTemplate = !!this.plugin.settings.quickCapture.createFileMode?.useTemplate;
-			const hasFrontmatter = processedContent.trimStart().startsWith("---");
-			if (useTemplate) {
-				// Only ensure frontmatter exists
-				if (!hasFrontmatter) {
-					processedContent = `---\nstatus: ${JSON.stringify(this.mapStatusToText(this.taskMetadata.status))}\n---\n\n${processedContent}`;
-				}
-			} else {
-				// Build full frontmatter only when none exists
-				if (!hasFrontmatter) {
-					// Status -> textual metadata
-					const statusText = this.mapStatusToText(this.taskMetadata.status);
-					// Dates
-					const startDate = this.taskMetadata.startDate
-						? this.formatDate(this.taskMetadata.startDate)
-						: undefined;
-					const dueDate = this.taskMetadata.dueDate
-						? this.formatDate(this.taskMetadata.dueDate)
-						: undefined;
-					const scheduledDate = this.taskMetadata.scheduledDate
-						? this.formatDate(this.taskMetadata.scheduledDate)
-						: undefined;
-					// Priority/project/context
-					const priorityVal =
-						this.taskMetadata.priority !== undefined && this.taskMetadata.priority !== null
-							? String(this.taskMetadata.priority)
-							: undefined;
-					const projectVal = this.taskMetadata.project || undefined;
-					const contextVal = this.taskMetadata.context || undefined;
-					// Repeat from recurrence
-					const repeatVal = this.taskMetadata.recurrence || undefined;
-					// Tags: do not use recognition config at creation; only write content tags when enabled
-					const writeContentTags = !!this.plugin.settings.quickCapture.createFileMode?.writeContentTagsToFrontmatter;
-					const mergedTags = writeContentTags ? this.extractTagsFromContentForFrontmatter(content) : [];
-					// Build YAML lines
-					const yamlLines: string[] = [];
-					yamlLines.push(`status: ${JSON.stringify(statusText)}`);
-					if (dueDate) yamlLines.push(`dueDate: ${JSON.stringify(dueDate)}`);
-					if (startDate) yamlLines.push(`startDate: ${JSON.stringify(startDate)}`);
-					if (scheduledDate) yamlLines.push(`scheduledDate: ${JSON.stringify(scheduledDate)}`);
-					if (priorityVal) yamlLines.push(`priority: ${JSON.stringify(priorityVal)}`);
-					if (projectVal) yamlLines.push(`project: ${JSON.stringify(projectVal)}`);
-					if (contextVal) yamlLines.push(`context: ${JSON.stringify(contextVal)}`);
-					if (repeatVal) yamlLines.push(`repeat: ${JSON.stringify(repeatVal)}`);
-					if (mergedTags.length > 0) {
-						yamlLines.push(`tags: [${mergedTags.map((t) => JSON.stringify(t)).join(", ")}]`);
-					}
-					processedContent = `---\n${yamlLines.join("\n")}\n---\n\n${processedContent}`;
-				}
-			}
+			processedContent = await this.buildFileModeContent(
+				content,
+				processedContent
+			);
 		}
 
 		// Convert location/targetType to valid QuickCaptureOptions type
@@ -660,6 +613,153 @@ export abstract class BaseQuickCaptureModal extends Modal {
 			default:
 				return "not-started";
 		}
+	}
+
+	protected async buildFileModeContent(
+		rawContent: string,
+		processedContent: string,
+		options: { preview?: boolean } = {}
+	): Promise<string> {
+		const createFileMode =
+			this.plugin.settings.quickCapture.createFileMode;
+		const useTemplate = !!createFileMode?.useTemplate;
+
+		if (useTemplate) {
+			const templatePath = createFileMode?.templateFile?.trim();
+			if (templatePath) {
+				const templateFile =
+					this.app.vault.getAbstractFileByPath(templatePath);
+				if (templateFile instanceof TFile) {
+					try {
+						const templateContent =
+							await this.app.vault.read(templateFile);
+						const merged = this.mergeContentIntoTemplate(
+							templateContent,
+							processedContent
+						);
+						return this.ensureMinimalFrontmatter(merged);
+					} catch (error) {
+						console.error(
+							"Failed to read quick capture template:",
+							error
+						);
+						if (!options.preview) {
+							new Notice(
+								`${t("Failed to read template file:")} ${templatePath}`
+							);
+						}
+					}
+				} else if (!options.preview) {
+					new Notice(
+						`${t("Template file not found:")} ${templatePath}`
+					);
+				}
+			} else if (!options.preview) {
+				new Notice(
+					t(
+						"Template file is not configured for Quick Capture file mode."
+					)
+				);
+			}
+		}
+
+		const hasFrontmatter = processedContent
+			.trimStart()
+			.startsWith("---");
+		if (useTemplate && hasFrontmatter) {
+			return processedContent;
+		}
+
+		if (useTemplate) {
+			return this.ensureMinimalFrontmatter(processedContent);
+		}
+
+		return this.buildFullFrontmatter(processedContent, rawContent);
+	}
+
+	private mergeContentIntoTemplate(
+		templateContent: string,
+		captureContent: string
+	): string {
+		if (!templateContent) {
+			return captureContent;
+		}
+
+		const placeholderRegex = /\{\{\s*CONTENT\s*\}\}/gi;
+		if (placeholderRegex.test(templateContent)) {
+			return templateContent.replace(placeholderRegex, captureContent);
+		}
+
+		const trimmedTemplate = templateContent.trimEnd();
+		const separator = trimmedTemplate ? "\n\n" : "";
+		return `${trimmedTemplate}${separator}${captureContent}`;
+	}
+
+	private ensureMinimalFrontmatter(content: string): string {
+		const trimmed = content.trimStart();
+		if (trimmed.startsWith("---")) {
+			return content;
+		}
+		const statusText = this.mapStatusToText(this.taskMetadata.status);
+		return `---\nstatus: ${JSON.stringify(
+			statusText
+		)}\n---\n\n${content}`;
+	}
+
+	private buildFullFrontmatter(
+		processedContent: string,
+		rawContent: string
+	): string {
+		const trimmed = processedContent.trimStart();
+		if (trimmed.startsWith("---")) {
+			return processedContent;
+		}
+
+		const statusText = this.mapStatusToText(this.taskMetadata.status);
+		const startDate = this.taskMetadata.startDate
+			? this.formatDate(this.taskMetadata.startDate)
+			: undefined;
+		const dueDate = this.taskMetadata.dueDate
+			? this.formatDate(this.taskMetadata.dueDate)
+			: undefined;
+		const scheduledDate = this.taskMetadata.scheduledDate
+			? this.formatDate(this.taskMetadata.scheduledDate)
+			: undefined;
+		const priorityVal =
+			this.taskMetadata.priority !== undefined &&
+			this.taskMetadata.priority !== null
+				? String(this.taskMetadata.priority)
+				: undefined;
+		const projectVal = this.taskMetadata.project || undefined;
+		const contextVal = this.taskMetadata.context || undefined;
+		const repeatVal = this.taskMetadata.recurrence || undefined;
+		const writeContentTags =
+			!!this.plugin.settings.quickCapture.createFileMode
+				?.writeContentTagsToFrontmatter;
+		const mergedTags = writeContentTags
+			? this.extractTagsFromContentForFrontmatter(rawContent)
+			: [];
+
+		const yamlLines: string[] = [];
+		yamlLines.push(`status: ${JSON.stringify(statusText)}`);
+		if (dueDate) yamlLines.push(`dueDate: ${JSON.stringify(dueDate)}`);
+		if (startDate) yamlLines.push(`startDate: ${JSON.stringify(startDate)}`);
+		if (scheduledDate)
+			yamlLines.push(`scheduledDate: ${JSON.stringify(scheduledDate)}`);
+		if (priorityVal)
+			yamlLines.push(`priority: ${JSON.stringify(priorityVal)}`);
+		if (projectVal) yamlLines.push(`project: ${JSON.stringify(projectVal)}`);
+		if (contextVal) yamlLines.push(`context: ${JSON.stringify(contextVal)}`);
+		if (repeatVal) yamlLines.push(`repeat: ${JSON.stringify(repeatVal)}`);
+		if (mergedTags.length > 0) {
+			yamlLines.push(
+				`tags: [${mergedTags
+					.map((t) => JSON.stringify(t))
+					.join(", ")}]`
+			);
+		}
+
+		return `---\n${yamlLines.join("\n")}\n---\n\n${processedContent}`;
 	}
 
 	/**

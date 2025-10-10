@@ -591,10 +591,17 @@ export class QuickCaptureModal extends BaseQuickCaptureModal {
 			}
 		} else {
 			if (this.previewPlainEl) {
-				const finalContent = this.computeFileModePreviewContent(
-					this.capturedContent
+				const snapshot = this.capturedContent;
+				void this.computeFileModePreviewContent(snapshot).then(
+					(finalContent) => {
+						if (
+							this.previewPlainEl &&
+							this.capturedContent === snapshot
+						) {
+							this.previewPlainEl.textContent = finalContent;
+						}
+					}
 				);
-				this.previewPlainEl.textContent = finalContent;
 			}
 		}
 	}
@@ -602,44 +609,13 @@ export class QuickCaptureModal extends BaseQuickCaptureModal {
 	/**
 	 * Build preview content for file mode by mirroring saveContent's file-mode processing
 	 */
-	private computeFileModePreviewContent(content: string): string {
-		let processedContent = this.processContentWithMetadata(content);
-		const hasFrontmatter = processedContent.trimStart().startsWith("---");
-		const useTemplate = !!this.plugin.settings.quickCapture.createFileMode?.useTemplate;
-		if (useTemplate) {
-			if (!hasFrontmatter) {
-				const statusText = this.mapStatusToText(this.taskMetadata.status);
-				processedContent = `---\nstatus: ${JSON.stringify(statusText)}\n---\n\n${processedContent}`;
-			}
-		} else {
-			if (!hasFrontmatter) {
-				const statusText = this.mapStatusToText(this.taskMetadata.status);
-				const startDate = this.taskMetadata.startDate ? this.formatDate(this.taskMetadata.startDate) : undefined;
-				const dueDate = this.taskMetadata.dueDate ? this.formatDate(this.taskMetadata.dueDate) : undefined;
-				const scheduledDate = this.taskMetadata.scheduledDate ? this.formatDate(this.taskMetadata.scheduledDate) : undefined;
-				const priorityVal = this.taskMetadata.priority !== undefined && this.taskMetadata.priority !== null ? String(this.taskMetadata.priority) : undefined;
-				const projectVal = this.taskMetadata.project || undefined;
-				const contextVal = this.taskMetadata.context || undefined;
-				const repeatVal = this.taskMetadata.recurrence || undefined;
-				// Tags: do not use recognition config at creation; only write content tags when enabled
-				const writeContentTags = !!this.plugin.settings.quickCapture.createFileMode?.writeContentTagsToFrontmatter;
-				const mergedTags = writeContentTags ? this.extractTagsFromContentForFrontmatter(content) : [];
-				const yamlLines: string[] = [];
-				yamlLines.push(`status: ${JSON.stringify(statusText)}`);
-				if (dueDate) yamlLines.push(`dueDate: ${JSON.stringify(dueDate)}`);
-				if (startDate) yamlLines.push(`startDate: ${JSON.stringify(startDate)}`);
-				if (scheduledDate) yamlLines.push(`scheduledDate: ${JSON.stringify(scheduledDate)}`);
-				if (priorityVal) yamlLines.push(`priority: ${JSON.stringify(priorityVal)}`);
-				if (projectVal) yamlLines.push(`project: ${JSON.stringify(projectVal)}`);
-				if (contextVal) yamlLines.push(`context: ${JSON.stringify(contextVal)}`);
-				if (repeatVal) yamlLines.push(`repeat: ${JSON.stringify(repeatVal)}`);
-				if (mergedTags.length > 0) {
-					yamlLines.push(`tags: [${mergedTags.map((t) => JSON.stringify(t)).join(", ")}]`);
-				}
-				processedContent = `---\n${yamlLines.join("\n")}\n---\n\n${processedContent}`;
-			}
-		}
-		return processedContent;
+	private async computeFileModePreviewContent(
+		content: string
+	): Promise<string> {
+		const processedContent = this.processContentWithMetadata(content);
+		return this.buildFileModeContent(content, processedContent, {
+			preview: true,
+		});
 	}
 
 	/**
