@@ -9,7 +9,6 @@
 - [Code Style Guide](#code-style-guide)
 - [Testing Strategy](#testing-strategy)
 - [Getting Help](#getting-help)
-- [License](#license)
 - [Questions?](#questions)
 
 ## Getting Started
@@ -115,7 +114,7 @@ SRC
 │      ├─suggest
 │      └─tree
 ├─core # Main core files for the plugin
-│  └─goal 
+│  └─goal
 ├─dataflow # Dataflow architecture(focused on performance and scalability)
 │  ├─api
 │  ├─augment
