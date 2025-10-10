@@ -13,7 +13,7 @@ import { Task } from "@/types/task";
 import { TimeComponent } from "@/types/time-parsing";
 import { t } from "@/translations/helper";
 import TaskProgressBarPlugin from "@/index";
-import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal";
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModalWithSwitch";
 import {
 	createEmbeddableMarkdownEditor,
 	EmbeddableMarkdownEditor,
@@ -219,7 +219,7 @@ export class TimelineSidebarView extends ItemView {
 
 		// Add collapse button to header
 		const headerLeft = this.quickInputHeaderEl.createDiv("quick-input-header-left");
-		
+
 		const collapseBtn = headerLeft.createDiv("quick-input-collapse-btn");
 		setIcon(collapseBtn, "chevron-down");
 		collapseBtn.setAttribute("aria-label", t("Collapse quick input"));
@@ -303,7 +303,7 @@ export class TimelineSidebarView extends ItemView {
 	private async loadEvents(): Promise<void> {
 		// Get tasks from the plugin's dataflow
 		let allTasks: Task[] = [];
-		
+
 		if (this.plugin.dataflowOrchestrator) {
 			try {
 				allTasks = await this.plugin.dataflowOrchestrator.getQueryAPI().getAllTasks();
@@ -317,10 +317,10 @@ export class TimelineSidebarView extends ItemView {
 		// Filter tasks based on showCompletedTasks setting
 		const shouldShowCompletedTasks =
 			this.plugin.settings.timelineSidebar.showCompletedTasks;
-		
+
 		// Get abandoned status markers to filter out
 		const abandonedStatuses = this.plugin.settings.taskStatuses.abandoned.split("|");
-		
+
 		const filteredTasks = shouldShowCompletedTasks
 			? allTasks
 			: allTasks.filter((task) => {
@@ -343,7 +343,7 @@ export class TimelineSidebarView extends ItemView {
 		// Convert tasks to timeline events
 		timelineFilteredTasks.forEach((task) => {
 			const dates = this.extractDatesFromTask(task);
-			dates.forEach(({ date, type }) => {
+			dates.forEach(({date, type}) => {
 				const event: EnhancedTimelineEvent = {
 					id: `${task.id}-${type}`,
 					content: task.content,
@@ -402,11 +402,11 @@ export class TimelineSidebarView extends ItemView {
 						const currentPriority =
 							DATE_TYPE_PRIORITY[
 								current.type as keyof typeof DATE_TYPE_PRIORITY
-							] || 0;
+								] || 0;
 						const highestPriority =
 							DATE_TYPE_PRIORITY[
 								highest.type as keyof typeof DATE_TYPE_PRIORITY
-							] || 0;
+								] || 0;
 
 						return currentPriority > highestPriority
 							? current
@@ -502,7 +502,7 @@ export class TimelineSidebarView extends ItemView {
 		// Determine if this is a time range
 		// Check if the time component is marked as a range OR if we have an explicit end time
 		const isRange = relevantTimeComponent.isRange || !!relevantEndTime;
-		
+
 		// If the time component is a range but we don't have enhancedDates.endDateTime,
 		// create the end time from the range partner
 		if (relevantTimeComponent.isRange && !relevantEndTime && relevantTimeComponent.rangePartner) {
@@ -530,30 +530,30 @@ export class TimelineSidebarView extends ItemView {
 		task: Task
 	): Array<{ date: Date; type: string }> {
 		// Task-level deduplication: ensure each task appears only once in timeline
-		
+
 		// Check if task has enhanced metadata with time components
 		const enhancedMetadata = task.metadata as any;
 		const timeComponents = enhancedMetadata?.timeComponents;
 		const enhancedDates = enhancedMetadata?.enhancedDates;
-		
+
 		// For completed tasks: prioritize due date, fallback to completed date
 		if (task.completed) {
 			if (task.metadata.dueDate) {
 				// Use enhanced due datetime if available, otherwise use original timestamp
 				const dueDate = enhancedDates?.dueDateTime || new Date(task.metadata.dueDate);
-				return [{ date: dueDate, type: "due" }];
+				return [{date: dueDate, type: "due"}];
 			} else if (task.metadata.completedDate) {
-				return [{ date: new Date(task.metadata.completedDate), type: "completed" }];
+				return [{date: new Date(task.metadata.completedDate), type: "completed"}];
 			}
 		}
-		
+
 		// For non-completed tasks: select single highest priority date with enhanced datetime support
 		const dates: Array<{ date: Date; type: string }> = [];
 
 		if (task.metadata.dueDate) {
 			// Use enhanced due datetime if available
 			const dueDate = enhancedDates?.dueDateTime || new Date(task.metadata.dueDate);
-			dates.push({ date: dueDate, type: "due" });
+			dates.push({date: dueDate, type: "due"});
 		}
 		if (task.metadata.scheduledDate) {
 			// Use enhanced scheduled datetime if available
@@ -571,7 +571,7 @@ export class TimelineSidebarView extends ItemView {
 				type: "start",
 			});
 		}
-		
+
 		// For non-completed tasks, select the highest priority date
 		if (dates.length > 0) {
 			const highestPriorityDate = dates.reduce((highest, current) => {
@@ -581,7 +581,7 @@ export class TimelineSidebarView extends ItemView {
 			});
 			return [highestPriorityDate];
 		}
-		
+
 		// Fallback: if no planning dates exist, use deduplication for edge cases
 		const allDates: Array<{ date: Date; type: string }> = [];
 		if (task.metadata.completedDate) {
@@ -590,7 +590,7 @@ export class TimelineSidebarView extends ItemView {
 				type: "completed",
 			});
 		}
-		
+
 		return this.deduplicateDatesByPriority(allDates);
 	}
 
@@ -679,7 +679,7 @@ export class TimelineSidebarView extends ItemView {
 	private renderEventTime(timeEl: HTMLElement, event: EnhancedTimelineEvent): void {
 		if (event.timeInfo?.timeComponent) {
 			// Use parsed time component for accurate display
-			const { timeComponent, isRange, endTime } = event.timeInfo;
+			const {timeComponent, isRange, endTime} = event.timeInfo;
 
 			if (isRange && endTime) {
 				// Display time range
@@ -697,7 +697,8 @@ export class TimelineSidebarView extends ItemView {
 							: `${minutes}m`;
 						timeEl.setAttribute("data-duration", duration);
 					}
-				} catch (_) {}
+				} catch (_) {
+				}
 			} else {
 				// Display single time
 				timeEl.setText(this.formatTimeComponent(timeComponent));
@@ -753,12 +754,12 @@ export class TimelineSidebarView extends ItemView {
 	private formatTimeComponent(timeComponent: TimeComponent): string {
 		const hour = timeComponent.hour.toString().padStart(2, '0');
 		const minute = timeComponent.minute.toString().padStart(2, '0');
-		
+
 		if (timeComponent.second !== undefined) {
 			const second = timeComponent.second.toString().padStart(2, '0');
 			return `${hour}:${minute}:${second}`;
 		}
-		
+
 		return `${hour}:${minute}`;
 	}
 
@@ -770,14 +771,14 @@ export class TimelineSidebarView extends ItemView {
 			// Get the primary time for sorting - use enhanced time if available
 			const timeA = a.timeInfo?.primaryTime || a.time;
 			const timeB = b.timeInfo?.primaryTime || b.time;
-			
+
 			// Sort by time of day (earlier times first)
 			const timeComparison = timeA.getTime() - timeB.getTime();
-			
+
 			if (timeComparison !== 0) {
 				return timeComparison;
 			}
-			
+
 			// If times are equal, sort by task content for consistent ordering
 			return a.content.localeCompare(b.content);
 		});
@@ -844,7 +845,7 @@ export class TimelineSidebarView extends ItemView {
 		events.forEach((event) => {
 			const time = event.timeInfo?.primaryTime || event.time;
 			const timeKey = this.getTimeGroupKey(time, event);
-			
+
 			if (!timeGroups.has(timeKey)) {
 				timeGroups.set(timeKey, []);
 			}
@@ -871,7 +872,7 @@ export class TimelineSidebarView extends ItemView {
 			// Use the formatted time component for precise grouping
 			return this.formatTimeComponent(event.timeInfo.timeComponent);
 		}
-		
+
 		// Fallback to hour:minute format
 		return moment(time).format("HH:mm");
 	}
@@ -881,20 +882,20 @@ export class TimelineSidebarView extends ItemView {
 	 */
 	private renderTimeGroup(containerEl: HTMLElement, timeKey: string, events: EnhancedTimelineEvent[]): void {
 		const groupEl = containerEl.createDiv("timeline-time-group");
-		
+
 		// Time group header
 		const groupHeaderEl = groupEl.createDiv("timeline-time-group-header");
 		const timeEl = groupHeaderEl.createDiv("timeline-time-group-time");
 		timeEl.setText(timeKey);
 		timeEl.addClass("timeline-event-time");
 		timeEl.addClass("timeline-event-time-group");
-		
+
 		const countEl = groupHeaderEl.createDiv("timeline-time-group-count");
 		countEl.setText(`${events.length} events`);
 
 		// Events in the group
 		const groupEventsEl = groupEl.createDiv("timeline-time-group-events");
-		
+
 		events.forEach((event) => {
 			const eventEl = groupEventsEl.createDiv("timeline-event timeline-event-grouped");
 			eventEl.setAttribute("data-event-id", event.id);
@@ -1132,7 +1133,7 @@ export class TimelineSidebarView extends ItemView {
 			// For canvas files, open directly
 			const leaf = this.app.workspace.getLeaf("tab");
 			await leaf.openFile(file);
-			this.app.workspace.setActiveLeaf(leaf, { focus: true });
+			this.app.workspace.setActiveLeaf(leaf, {focus: true});
 			return;
 		}
 
@@ -1152,7 +1153,7 @@ export class TimelineSidebarView extends ItemView {
 			},
 		});
 		// Focus the editor after opening
-		this.app.workspace.setActiveLeaf(leafToUse, { focus: true });
+		this.app.workspace.setActiveLeaf(leafToUse, {focus: true});
 	}
 
 	private async handleQuickCapture(): Promise<void> {
@@ -1191,7 +1192,7 @@ export class TimelineSidebarView extends ItemView {
 		);
 		if (todayEl) {
 			this.isAutoScrolling = true;
-			todayEl.scrollIntoView({ behavior: "smooth", block: "start" });
+			todayEl.scrollIntoView({behavior: "smooth", block: "start"});
 			setTimeout(() => {
 				this.isAutoScrolling = false;
 			}, 1000);
@@ -1211,7 +1212,7 @@ export class TimelineSidebarView extends ItemView {
 		if (this.isAutoScrolling) return;
 
 		// Implement infinite scroll or lazy loading if needed
-		const { scrollTop, scrollHeight, clientHeight } =
+		const {scrollTop, scrollHeight, clientHeight} =
 			this.timelineContainerEl;
 
 		// Load more events when near bottom
@@ -1230,7 +1231,7 @@ export class TimelineSidebarView extends ItemView {
 		task: Task,
 		event?: EnhancedTimelineEvent
 	): Promise<void> {
-		const updatedTask = { ...task, completed: !task.completed };
+		const updatedTask = {...task, completed: !task.completed};
 
 		if (updatedTask.completed) {
 			updatedTask.metadata.completedDate = Date.now();
@@ -1259,7 +1260,7 @@ export class TimelineSidebarView extends ItemView {
 				taskId: task.id,
 				updates: updatedTask,
 			});
-			
+
 			if (!result.success) {
 				console.error("Failed to toggle task completion:", result.error);
 				return;

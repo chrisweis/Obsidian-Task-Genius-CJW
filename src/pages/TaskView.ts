@@ -26,7 +26,7 @@ import {
 } from "@/components/features/task/view/details";
 import "../styles/view.css";
 import TaskProgressBarPlugin from "../index";
-import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal";
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModalWithSwitch";
 import { t } from "@/translations/helper";
 import {
 	getViewSettingOrDefault,

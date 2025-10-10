@@ -2,7 +2,7 @@ import { App, Component, setIcon } from "obsidian";
 import { Task } from "@/types/task"; // Adjust path
 import { KanbanCardComponent } from "./kanban-card";
 import TaskProgressBarPlugin from "@/index"; // Adjust path
-import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal"; // Import QuickCaptureModal
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModalWithSwitch"; // Import QuickCaptureModal
 import { t } from "@/translations/helper"; // Import translation helper
 
 const BATCH_SIZE = 20; // Number of cards to load at a time
@@ -45,7 +45,7 @@ export class KanbanColumnComponent extends Component {
 	override onload(): void {
 		this.element = this.containerEl.createDiv({
 			cls: "tg-kanban-column",
-			attr: { "data-status-name": this.statusName },
+			attr: {"data-status-name": this.statusName},
 		});
 
 		// Hide column if no tasks and hideEmptyColumns is enabled
@@ -122,7 +122,7 @@ export class KanbanColumnComponent extends Component {
 			new QuickCaptureModal(
 				this.app,
 				this.plugin,
-				{ status: taskStatusSymbol },
+				{status: taskStatusSymbol},
 				true
 			).open();
 		});

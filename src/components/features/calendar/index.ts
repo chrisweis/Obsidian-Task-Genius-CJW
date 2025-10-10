@@ -22,7 +22,7 @@ import { DayView } from "./views/day-view";
 import { AgendaView } from "./views/agenda-view";
 import { YearView } from "./views/year-view";
 import TaskProgressBarPlugin from "@/index";
-import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal";
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModalWithSwitch";
 // Import algorithm functions (optional for now, could be used within views)
 // import { calculateEventLayout, determineEventColor } from './algorithm';
 

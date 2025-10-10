@@ -1,7 +1,7 @@
 import { Setting, TextAreaComponent, Notice, setIcon } from "obsidian";
 import type TaskProgressBarPlugin from "@/index";
 import { t } from "@/translations/helper";
-import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal";
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModalWithSwitch";
 
 export class TaskCreationGuide {
 	private plugin: TaskProgressBarPlugin;
@@ -37,18 +37,18 @@ export class TaskCreationGuide {
 	 */
 	private renderTaskFormats(containerEl: HTMLElement) {
 		const formatsSection = containerEl.createDiv("task-formats-section");
-		formatsSection.createEl("h3", { text: t("Task Format Examples") });
+		formatsSection.createEl("h3", {text: t("Task Format Examples")});
 
 		// Basic task format
 		const basicFormat = formatsSection.createDiv("format-example");
-		basicFormat.createEl("h4", { text: t("Basic Task") });
+		basicFormat.createEl("h4", {text: t("Basic Task")});
 		basicFormat.createEl("code", {
 			text: "- [ ] Complete project documentation",
 		});
 
 		// Emoji format
 		const emojiFormat = formatsSection.createDiv("format-example");
-		emojiFormat.createEl("h4", { text: t("With Emoji Metadata") });
+		emojiFormat.createEl("h4", {text: t("With Emoji Metadata")});
 		emojiFormat.createEl("code", {
 			text: "- [ ] Complete project documentation 📅 2024-01-15 🔺 #project/docs",
 		});
@@ -62,14 +62,14 @@ export class TaskCreationGuide {
 
 		// Dataview format
 		const dataviewFormat = formatsSection.createDiv("format-example");
-		dataviewFormat.createEl("h4", { text: t("With Dataview Metadata") });
+		dataviewFormat.createEl("h4", {text: t("With Dataview Metadata")});
 		dataviewFormat.createEl("code", {
 			text: "- [ ] Complete project documentation [due:: 2024-01-15] [priority:: high] [project:: docs]",
 		});
 
 		// Mixed format
 		const mixedFormat = formatsSection.createDiv("format-example");
-		mixedFormat.createEl("h4", { text: t("Mixed Format") });
+		mixedFormat.createEl("h4", {text: t("Mixed Format")});
 		mixedFormat.createEl("code", {
 			text: "- [ ] Complete project documentation 📅 2024-01-15 [priority:: high] @work",
 		});
@@ -81,42 +81,42 @@ export class TaskCreationGuide {
 
 		// Status markers
 		const statusSection = formatsSection.createDiv("status-markers");
-		statusSection.createEl("h4", { text: t("Task Status Markers") });
+		statusSection.createEl("h4", {text: t("Task Status Markers")});
 
-		const statusList = statusSection.createEl("ul", { cls: "status-list" });
+		const statusList = statusSection.createEl("ul", {cls: "status-list"});
 		const statusMarkers = [
-			{ marker: "[ ]", description: t("Not started") },
-			{ marker: "[x]", description: t("Completed") },
-			{ marker: "[/]", description: t("In progress") },
-			{ marker: "[?]", description: t("Planned") },
-			{ marker: "[-]", description: t("Abandoned") },
+			{marker: "[ ]", description: t("Not started")},
+			{marker: "[x]", description: t("Completed")},
+			{marker: "[/]", description: t("In progress")},
+			{marker: "[?]", description: t("Planned")},
+			{marker: "[-]", description: t("Abandoned")},
 		];
 
 		statusMarkers.forEach((status) => {
 			const item = statusList.createEl("li");
-			item.createEl("code", { text: status.marker });
+			item.createEl("code", {text: status.marker});
 			item.createSpan().setText(" - " + status.description);
 		});
 
 		// Metadata symbols
 		const metadataSection = formatsSection.createDiv("metadata-symbols");
-		metadataSection.createEl("h4", { text: t("Common Metadata Symbols") });
+		metadataSection.createEl("h4", {text: t("Common Metadata Symbols")});
 
 		const symbolsList = metadataSection.createEl("ul", {
 			cls: "symbols-list",
 		});
 		const symbols = [
-			{ symbol: "📅", description: t("Due date") },
-			{ symbol: "🛫", description: t("Start date") },
-			{ symbol: "⏳", description: t("Scheduled date") },
-			{ symbol: "🔺", description: t("High priority") },
-			{ symbol: "⏫", description: t("Higher priority") },
-			{ symbol: "🔼", description: t("Medium priority") },
-			{ symbol: "🔽", description: t("Lower priority") },
-			{ symbol: "⏬", description: t("Lowest priority") },
-			{ symbol: "🔁", description: t("Recurring task") },
-			{ symbol: "#", description: t("Project/tag") },
-			{ symbol: "@", description: t("Context") },
+			{symbol: "📅", description: t("Due date")},
+			{symbol: "🛫", description: t("Start date")},
+			{symbol: "⏳", description: t("Scheduled date")},
+			{symbol: "🔺", description: t("High priority")},
+			{symbol: "⏫", description: t("Higher priority")},
+			{symbol: "🔼", description: t("Medium priority")},
+			{symbol: "🔽", description: t("Lower priority")},
+			{symbol: "⏬", description: t("Lowest priority")},
+			{symbol: "🔁", description: t("Recurring task")},
+			{symbol: "#", description: t("Project/tag")},
+			{symbol: "@", description: t("Context")},
 		];
 
 		symbols.forEach((symbol) => {
@@ -134,7 +134,7 @@ export class TaskCreationGuide {
 		const quickCaptureSection = containerEl.createDiv(
 			"quick-capture-section"
 		);
-		quickCaptureSection.createEl("h3", { text: t("Quick Capture") });
+		quickCaptureSection.createEl("h3", {text: t("Quick Capture")});
 
 		const demoContent = quickCaptureSection.createDiv("demo-content");
 		demoContent.createEl("p", {
@@ -179,7 +179,7 @@ export class TaskCreationGuide {
 	 */
 	private renderInteractivePractice(containerEl: HTMLElement) {
 		const practiceSection = containerEl.createDiv("practice-section");
-		practiceSection.createEl("h3", { text: t("Try It Yourself") });
+		practiceSection.createEl("h3", {text: t("Try It Yourself")});
 
 		practiceSection.createEl("p", {
 			text: t("Practice creating a task with the format you prefer:"),

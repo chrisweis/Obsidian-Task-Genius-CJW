@@ -240,7 +240,7 @@
 .quick-capture-modal.quick-capture-file {
 	width: 800px;
 	max-width: 90vw;
-	height: 750px;
+	height: 700px;
 	max-height: 80vh;
 	min-height: fit-content;
 }
@@ -513,6 +513,10 @@
 .quick-capture-cancel {
 	background-color: var(--background-modifier-border);
 	color: var(--text-normal);
+}
+
+.quick-capture-modal .modal-title:has(.is-hidden) {
+	display: none;
 }
 
 .quick-capture-modal .modal-title {

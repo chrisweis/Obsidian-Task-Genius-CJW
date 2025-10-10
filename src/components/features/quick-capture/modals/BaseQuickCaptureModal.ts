@@ -50,6 +50,7 @@ export interface TaskMetadata {
  * Provides shared functionality and state management
  */
 const LAST_USED_MODE_KEY = "task-genius.lastUsedQuickCaptureMode";
+
 export abstract class BaseQuickCaptureModal extends Modal {
 	plugin: TaskProgressBarPlugin;
 	protected markdownEditor: EmbeddableMarkdownEditor | null = null;
@@ -154,7 +155,7 @@ export abstract class BaseQuickCaptureModal extends Modal {
 	 * Called when the modal is opened
 	 */
 	onOpen() {
-		const { contentEl } = this;
+		const {contentEl} = this;
 		this.modalEl.toggleClass("quick-capture-modal", true);
 		this.modalEl.toggleClass(`quick-capture-${this.currentMode}`, true);
 
@@ -277,18 +278,21 @@ export abstract class BaseQuickCaptureModal extends Modal {
 
 		if (!(this.fileModeAvailable && this.inlineModeAvailable)) {
 			tabContainer.classList.add("is-hidden");
+			tabContainer.setAttribute("aria-hidden", "true");
 		}
 
 		// Right side: Clear button with improved styling
-		const clearButton = this.headerContainer.createEl("button", {
-			text: t("Clear"),
-			cls: ["quick-capture-clear", "clickable-icon"],
-			attr: {
-				"aria-label": t("Clear all content"),
-				type: "button",
-			},
-		});
-		clearButton.addEventListener("click", () => this.handleClear());
+		if (this.fileModeAvailable && this.inlineModeAvailable) {
+			const clearButton = this.headerContainer.createEl("button", {
+				text: t("Clear"),
+				cls: ["quick-capture-clear", "clickable-icon"],
+				attr: {
+					"aria-label": t("Clear all content"),
+					type: "button",
+				},
+			});
+			clearButton.addEventListener("click", () => this.handleClear());
+		}
 	}
 
 	/**
@@ -350,12 +354,15 @@ export abstract class BaseQuickCaptureModal extends Modal {
 
 		// Save current state
 		const savedContent = this.capturedContent;
-		const savedMetadata = { ...this.taskMetadata };
+		const savedMetadata = {...this.taskMetadata};
 
 		// Update mode
 		this.currentMode = mode;
 		// Persist last used mode to local storage
-		try { this.app.saveLocalStorage(LAST_USED_MODE_KEY, mode); } catch {}
+		try {
+			this.app.saveLocalStorage(LAST_USED_MODE_KEY, mode);
+		} catch {
+		}
 
 		// Update modal classes
 		this.modalEl.removeClass(
@@ -632,44 +639,44 @@ export abstract class BaseQuickCaptureModal extends Modal {
 	 * Sanitize filename
 	 */
 
-		/**
-		 * Map UI status (symbol or text) to textual metadata
-		 */
-		protected mapStatusToText(status?: string): string {
-			if (!status) return "not-started";
-			if (status.length > 1) return status; // already textual
-			switch (status) {
-				case "x":
-				case "X":
-					return "completed";
-				case "/":
-				case ">":
-					return "in-progress";
-				case "?":
-					return "planned";
-				case "-":
-					return "cancelled";
-				case " ":
-				default:
-					return "not-started";
-			}
+	/**
+	 * Map UI status (symbol or text) to textual metadata
+	 */
+	protected mapStatusToText(status?: string): string {
+		if (!status) return "not-started";
+		if (status.length > 1) return status; // already textual
+		switch (status) {
+			case "x":
+			case "X":
+				return "completed";
+			case "/":
+			case ">":
+				return "in-progress";
+			case "?":
+				return "planned";
+			case "-":
+				return "cancelled";
+			case " ":
+			default:
+				return "not-started";
 		}
+	}
 
-		/**
-		 * Extract #tags from content for frontmatter tags array
-		 * Simple regex scan; remove leading '#', dedupe
-		 */
-		protected extractTagsFromContentForFrontmatter(content: string): string[] {
-			if (!content) return [];
-			const tagRegex = /(^|\s)#([A-Za-z0-9_\/-]+)/g;
-			const results = new Set<string>();
-			let match: RegExpExecArray | null;
-			while ((match = tagRegex.exec(content)) !== null) {
-				const tag = match[2];
-				if (tag) results.add(tag);
-			}
-			return Array.from(results);
+	/**
+	 * Extract #tags from content for frontmatter tags array
+	 * Simple regex scan; remove leading '#', dedupe
+	 */
+	protected extractTagsFromContentForFrontmatter(content: string): string[] {
+		if (!content) return [];
+		const tagRegex = /(^|\s)#([A-Za-z0-9_\/-]+)/g;
+		const results = new Set<string>();
+		let match: RegExpExecArray | null;
+		while ((match = tagRegex.exec(content)) !== null) {
+			const tag = match[2];
+			if (tag) results.add(tag);
 		}
+		return Array.from(results);
+	}
 
 	protected sanitizeFilename(filename: string): string {
 		return filename
