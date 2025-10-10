@@ -35,7 +35,7 @@ export class SelectableCard<T = string> {
 		container: HTMLElement,
 		configs: SelectableCardConfig<T>[],
 		options: SelectableCardOptions = {},
-		onSelect: (id: T) => void
+		onSelect: (id: T) => void,
 	) {
 		this.container = container;
 		this.onSelect = onSelect;
@@ -44,7 +44,7 @@ export class SelectableCard<T = string> {
 
 	private render(
 		configs: SelectableCardConfig<T>[],
-		options: SelectableCardOptions
+		options: SelectableCardOptions,
 	) {
 		const {
 			containerClass = "selectable-cards-container",

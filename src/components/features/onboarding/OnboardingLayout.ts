@@ -33,7 +33,7 @@ export class OnboardingLayout extends Component {
 	constructor(
 		container: HTMLElement,
 		controller: OnboardingController,
-		callbacks: OnboardingLayoutCallbacks
+		callbacks: OnboardingLayoutCallbacks,
 	) {
 		super();
 		this.container = container;
@@ -50,7 +50,7 @@ export class OnboardingLayout extends Component {
 	 */
 	private createLayout() {
 		this.container.empty();
-		this.container.addClass("onboarding-view");
+		this.container.toggleClass(["onboarding-view"], true);
 
 		// Header section
 		this.headerEl = this.container.createDiv("onboarding-header");
@@ -65,6 +65,10 @@ export class OnboardingLayout extends Component {
 		// Shadow element
 		this.container.createEl("div", {
 			cls: "onboarding-shadow",
+		});
+
+		this.container.createEl("div", {
+			cls: "tg-noise-layer",
 		});
 	}
 
@@ -128,6 +132,7 @@ export class OnboardingLayout extends Component {
 		// Next button
 		const isLastStep = step === OnboardingStep.COMPLETE;
 		const isSettingsCheck = step === OnboardingStep.SETTINGS_CHECK;
+		const isModeSelect = step === OnboardingStep.MODE_SELECT;
 		this.nextButton.buttonEl.toggleVisibility(true);
 
 		// Update button text based on step and selection
@@ -139,15 +144,17 @@ export class OnboardingLayout extends Component {
 			} else {
 				this.nextButton.setButtonText(t("Continue"));
 			}
+		} else if (isModeSelect && state.uiMode === "fluent") {
+			this.nextButton.setButtonText(t("Next to Introduction"));
 		} else {
 			this.nextButton.setButtonText(
-				isLastStep ? t("Start Using Task Genius") : t("Next")
+				isLastStep ? t("Start Using Task Genius") : t("Next"),
 			);
 		}
 
 		// Enable/disable next based on validation
 		this.nextButton.setDisabled(
-			!this.controller.canGoNext() || state.isCompleting
+			!this.controller.canGoNext() || state.isCompleting,
 		);
 	}
 

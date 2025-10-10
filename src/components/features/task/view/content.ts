@@ -1,11 +1,7 @@
 import { App, Component, setIcon } from "obsidian";
 import { Task } from "@/types/task";
 import { TaskListItemComponent } from "./listItem"; // Re-import needed components
-import {
-	ViewMode,
-	getViewSettingOrDefault,
-	SortCriterion,
-} from "@/common/setting-definition"; // 导入 SortCriterion
+import { ViewMode, getViewSettingOrDefault } from "@/common/setting-definition"; // 导入 SortCriterion
 import { tasksToTree } from "@/utils/ui/tree-view-utils"; // Re-import needed utils
 import { TaskTreeItemComponent } from "./treeItem"; // Re-import needed components
 import { t } from "@/translations/helper";

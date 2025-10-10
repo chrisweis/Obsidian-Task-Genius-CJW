@@ -22,7 +22,7 @@ export class FileFilterStep {
 		headerEl: HTMLElement,
 		contentEl: HTMLElement,
 		controller: OnboardingController,
-		plugin: TaskProgressBarPlugin
+		plugin: TaskProgressBarPlugin,
 	) {
 		// Clear
 		headerEl.empty();
@@ -32,7 +32,7 @@ export class FileFilterStep {
 		headerEl.createEl("h1", { text: t("Optimize Performance") });
 		headerEl.createEl("p", {
 			text: t(
-				"Configure file filtering to improve indexing performance and focus on relevant content"
+				"Configure file filtering to improve indexing performance and focus on relevant content",
 			),
 			cls: "onboarding-subtitle",
 		});
@@ -62,15 +62,13 @@ export class FileFilterStep {
 	 */
 	private static renderConfiguration(
 		container: HTMLElement,
-		plugin: TaskProgressBarPlugin
+		plugin: TaskProgressBarPlugin,
 	) {
 		// Enable/Disable toggle
 		new Setting(container)
 			.setName(t("Enable File Filter"))
 			.setDesc(
-				t(
-					"Filter files during task indexing to improve performance"
-				)
+				t("Filter files during task indexing to improve performance"),
 			)
 			.addToggle((toggle) =>
 				toggle
@@ -80,12 +78,14 @@ export class FileFilterStep {
 						await plugin.saveSettings();
 						// Re-render to show/hide configuration
 						this.render(
-							container.parentElement?.previousElementSibling as HTMLElement,
-							container.parentElement?.parentElement as HTMLElement,
+							container.parentElement
+								?.previousElementSibling as HTMLElement,
+							container.parentElement
+								?.parentElement as HTMLElement,
 							{} as OnboardingController,
-							plugin
+							plugin,
 						);
-					})
+					}),
 			);
 
 		if (!plugin.settings.fileFilter.enabled) {
@@ -97,19 +97,22 @@ export class FileFilterStep {
 			.setName(t("Filter Mode"))
 			.setDesc(
 				t(
-					"Whitelist: Include only specified paths | Blacklist: Exclude specified paths"
-				)
+					"Whitelist: Include only specified paths | Blacklist: Exclude specified paths",
+				),
 			)
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption(FilterMode.WHITELIST, t("Whitelist (Include only)"))
+					.addOption(
+						FilterMode.WHITELIST,
+						t("Whitelist (Include only)"),
+					)
 					.addOption(FilterMode.BLACKLIST, t("Blacklist (Exclude)"))
 					.setValue(plugin.settings.fileFilter.mode)
 					.onChange(async (value: FilterMode) => {
 						plugin.settings.fileFilter.mode = value;
 						await plugin.saveSettings();
 						this.updateStats(container, plugin);
-					})
+					}),
 			);
 
 		// Quick add rules section
@@ -132,10 +135,10 @@ export class FileFilterStep {
 				autoAddRuleType: "file",
 				onClose: () => {
 					const rulesEl = container.querySelector(
-						".file-filter-rules-container"
+						".file-filter-rules-container",
 					) as HTMLElement | null;
 					const statsEl = container.querySelector(
-						".file-filter-stats-preview"
+						".file-filter-stats-preview",
 					) as HTMLElement | null;
 					if (rulesEl) {
 						this.renderRules(rulesEl, plugin);
@@ -157,10 +160,10 @@ export class FileFilterStep {
 				autoAddRuleType: "folder",
 				onClose: () => {
 					const rulesEl = container.querySelector(
-						".file-filter-rules-container"
+						".file-filter-rules-container",
 					) as HTMLElement | null;
 					const statsEl = container.querySelector(
-						".file-filter-stats-preview"
+						".file-filter-stats-preview",
 					) as HTMLElement | null;
 					if (rulesEl) {
 						this.renderRules(rulesEl, plugin);
@@ -182,10 +185,10 @@ export class FileFilterStep {
 				autoAddRuleType: "pattern",
 				onClose: () => {
 					const rulesEl = container.querySelector(
-						".file-filter-rules-container"
+						".file-filter-rules-container",
 					) as HTMLElement | null;
 					const statsEl = container.querySelector(
-						".file-filter-stats-preview"
+						".file-filter-stats-preview",
 					) as HTMLElement | null;
 					if (rulesEl) {
 						this.renderRules(rulesEl, plugin);
@@ -216,7 +219,7 @@ export class FileFilterStep {
 	 */
 	private static renderRules(
 		container: HTMLElement,
-		plugin: TaskProgressBarPlugin
+		plugin: TaskProgressBarPlugin,
 	) {
 		container.empty();
 
@@ -251,9 +254,9 @@ export class FileFilterStep {
 					this.renderRules(container, plugin);
 					this.updateStats(
 						container.parentElement?.querySelector(
-							".file-filter-stats-preview"
+							".file-filter-stats-preview",
 						) as HTMLElement,
-						plugin
+						plugin,
 					);
 				});
 
@@ -285,18 +288,13 @@ export class FileFilterStep {
 					rule.type === "pattern"
 						? "*.tmp, temp/*"
 						: rule.type === "folder"
-						? "path/to/folder"
-						: "path/to/file.md",
+							? "path/to/folder"
+							: "path/to/file.md",
 			});
 
 			// Add appropriate autocomplete based on rule type
 			if (rule.type === "folder") {
-				new FolderSuggest(
-					plugin.app,
-					pathInput,
-					plugin,
-					"single"
-				);
+				new FolderSuggest(plugin.app, pathInput, plugin, "single");
 			} else if (rule.type === "file") {
 				new FileSuggest(pathInput, plugin, (file) => {
 					rule.path = file.path;
@@ -326,9 +324,9 @@ export class FileFilterStep {
 				await plugin.saveSettings();
 				this.updateStats(
 					container.parentElement?.querySelector(
-						".file-filter-stats-preview"
+						".file-filter-stats-preview",
 					) as HTMLElement,
-					plugin
+					plugin,
 				);
 			});
 
@@ -345,9 +343,9 @@ export class FileFilterStep {
 				this.renderRules(container, plugin);
 				this.updateStats(
 					container.parentElement?.querySelector(
-						".file-filter-stats-preview"
+						".file-filter-stats-preview",
 					) as HTMLElement,
-					plugin
+					plugin,
 				);
 			});
 		});
@@ -356,13 +354,16 @@ export class FileFilterStep {
 	/**
 	 * Update statistics display
 	 */
-	private static updateStats(container: HTMLElement, plugin: TaskProgressBarPlugin) {
+	private static updateStats(
+		container: HTMLElement,
+		plugin: TaskProgressBarPlugin,
+	) {
 		if (!container) return;
 
 		container.empty();
 
 		const activeRules = plugin.settings.fileFilter.rules.filter(
-			(r) => r.enabled
+			(r) => r.enabled,
 		).length;
 
 		const stats = [
@@ -403,27 +404,13 @@ export class FileFilterStep {
 	 */
 	private static renderDescription(
 		container: HTMLElement,
-		plugin: TaskProgressBarPlugin
+		plugin: TaskProgressBarPlugin,
 	) {
 		container.createEl("h3", { text: t("Why File Filtering?") });
 		container.createEl("p", {
 			text: t(
-				"File filtering helps you focus on relevant content while improving performance, especially in large vaults."
+				"File filtering helps you focus on relevant content while improving performance, especially in large vaults.",
 			),
-		});
-
-		const benefits = container.createEl("ul", {
-			cls: "component-feature-list",
-		});
-
-		[
-			t("Faster task indexing in large vaults"),
-			t("Exclude temporary or archive files"),
-			t("Focus on specific project folders"),
-			t("Reduce memory usage"),
-			t("Improve search performance"),
-		].forEach((benefit) => {
-			benefits.createEl("li", { text: benefit });
 		});
 
 		// Recommended configurations
@@ -473,7 +460,7 @@ export class FileFilterStep {
 				rec.rules.forEach((rule) => {
 					// Check if rule already exists
 					const exists = plugin.settings.fileFilter.rules.some(
-						(r) => r.path === rule.path && r.type === rule.type
+						(r) => r.path === rule.path && r.type === rule.type,
 					);
 					if (!exists) {
 						plugin.settings.fileFilter.rules.push({
@@ -486,18 +473,17 @@ export class FileFilterStep {
 				await plugin.saveSettings();
 
 				new Notice(
-					t("Applied recommended configuration: ") + rec.title
+					t("Applied recommended configuration: ") + rec.title,
 				);
 
 				// Re-render configuration section
-				const configSection =
-					container.parentElement?.querySelector(
-						".file-filter-preview"
-					);
+				const configSection = container.parentElement?.querySelector(
+					".file-filter-preview",
+				);
 				if (configSection) {
 					this.renderConfiguration(
 						configSection as HTMLElement,
-						plugin
+						plugin,
 					);
 				}
 			});

@@ -1,3 +1,5 @@
+import { App } from "obsidian";
+
 const STORAGE_KEY = "task-genius-changelog-cache";
 
 type CacheChannel = "stable" | "beta";
@@ -17,6 +19,41 @@ interface ChangelogCachePayload {
 const getChannelKey = (isBeta: boolean): CacheChannel =>
 	isBeta ? "beta" : "stable";
 
+const isChangelogCacheEntry = (
+	value: unknown,
+): value is ChangelogCacheEntry => {
+	if (!value || typeof value !== "object") {
+		return false;
+	}
+
+	const entry = value as Partial<ChangelogCacheEntry>;
+	return (
+		typeof entry.version === "string" &&
+		typeof entry.markdown === "string" &&
+		typeof entry.sourceUrl === "string" &&
+		typeof entry.updatedAt === "number"
+	);
+};
+
+const sanitizeCachePayload = (value: unknown): ChangelogCachePayload => {
+	if (!value || typeof value !== "object") {
+		return {};
+	}
+
+	const payload = value as Partial<Record<CacheChannel, unknown>>;
+	const sanitized: ChangelogCachePayload = {};
+
+	if (isChangelogCacheEntry(payload.stable)) {
+		sanitized.stable = payload.stable;
+	}
+
+	if (isChangelogCacheEntry(payload.beta)) {
+		sanitized.beta = payload.beta;
+	}
+
+	return sanitized;
+};
+
 const getStorage = (): Storage | null => {
 	try {
 		if (typeof window === "undefined") {
@@ -29,7 +66,15 @@ const getStorage = (): Storage | null => {
 	}
 };
 
-const loadCache = (): ChangelogCachePayload => {
+const loadCache = (app?: App): ChangelogCachePayload => {
+	try {
+		if (typeof app?.loadLocalStorage === "function") {
+			return sanitizeCachePayload(app.loadLocalStorage(STORAGE_KEY));
+		}
+	} catch (error) {
+		console.warn("[ChangelogCache] Failed to load via app localStorage", error);
+	}
+
 	const storage = getStorage();
 	if (!storage) {
 		return {};
@@ -41,36 +86,46 @@ const loadCache = (): ChangelogCachePayload => {
 			return {};
 		}
 
-		const parsed = JSON.parse(raw) as ChangelogCachePayload;
-		if (!parsed || typeof parsed !== "object") {
-			return {};
-		}
-
-		return parsed;
-	} catch {
+		return sanitizeCachePayload(JSON.parse(raw));
+	} catch (error) {
+		console.warn("[ChangelogCache] Failed to load via window localStorage", error);
 		return {};
 	}
 };
 
-const saveCache = (cache: ChangelogCachePayload): void => {
+const saveCache = (cache: ChangelogCachePayload, app?: App): void => {
+	try {
+		if (typeof app?.saveLocalStorage === "function") {
+			app.saveLocalStorage(STORAGE_KEY, cache);
+			return;
+		}
+	} catch (error) {
+		console.warn("[ChangelogCache] Failed to save via app localStorage", error);
+	}
+
 	const storage = getStorage();
 	if (!storage) {
 		return;
 	}
 
 	try {
-		const serialized = JSON.stringify(cache);
-		storage.setItem(STORAGE_KEY, serialized);
-	} catch {
-		// Swallow errors silently; cache is an optimization only.
+		if (!cache.stable && !cache.beta) {
+			storage.removeItem(STORAGE_KEY);
+			return;
+		}
+
+		storage.setItem(STORAGE_KEY, JSON.stringify(cache));
+	} catch (error) {
+		console.warn("[ChangelogCache] Failed to save via window localStorage", error);
 	}
 };
 
 export const getCachedChangelog = (
 	version: string,
 	isBeta: boolean,
+	app?: App,
 ): ChangelogCacheEntry | null => {
-	const cache = loadCache();
+	const cache = loadCache(app);
 	const channel = getChannelKey(isBeta);
 	const entry = cache[channel];
 	if (!entry || entry.version !== version) {
@@ -82,8 +137,9 @@ export const getCachedChangelog = (
 
 export const getLatestCachedChangelog = (
 	isBeta: boolean,
+	app?: App,
 ): ChangelogCacheEntry | null => {
-	const cache = loadCache();
+	const cache = loadCache(app);
 	const channel = getChannelKey(isBeta);
 	return cache[channel] ?? null;
 };
@@ -92,8 +148,9 @@ export const cacheChangelog = (
 	version: string,
 	isBeta: boolean,
 	data: Pick<ChangelogCacheEntry, "markdown" | "sourceUrl">,
+	app?: App,
 ): void => {
-	const cache = loadCache();
+	const cache = loadCache(app);
 	const channel = getChannelKey(isBeta);
 	cache[channel] = {
 		version,
@@ -101,6 +158,5 @@ export const cacheChangelog = (
 		sourceUrl: data.sourceUrl,
 		updatedAt: Date.now(),
 	};
-	saveCache(cache);
+	saveCache(cache, app);
 };
-

@@ -532,6 +532,7 @@ const translations = {
   "No tasks with the selected tags": "没有带有所选标签的任务",
   "Select a tag to see related tasks": "选择一个标签以查看相关任务",
   "Open Task Genius view": "打开 Task Genius 视图",
+  "Open Task Genius changelog": "打开 Task Genius 更新日志",
   "Task capture with metadata": "带元数据的任务捕获",
   "Refresh task index": "刷新任务索引",
   "Refreshing task index...": "正在刷新任务索引...",

@@ -1,8 +1,7 @@
 import { t } from "@/translations/helper";
 import type TaskProgressBarPlugin from "@/index";
-import { OnboardingController } from "../OnboardingController";
-import { FormatExamples } from "./guide/FormatExamples";
-import { QuickCaptureDemo } from "./guide/QuickCaptureDemo";
+import type { OnboardingController } from "../OnboardingController";
+import { TaskCreationGuide } from "../TaskCreationGuide";
 
 /**
  * Task Guide Step - Learn how to create tasks
@@ -14,7 +13,7 @@ export class TaskGuideStep {
 	static render(
 		headerEl: HTMLElement,
 		contentEl: HTMLElement,
-		controller: OnboardingController,
+		_controller: OnboardingController,
 		plugin: TaskProgressBarPlugin
 	) {
 		// Clear
@@ -22,27 +21,16 @@ export class TaskGuideStep {
 		contentEl.empty();
 
 		// Header
-		headerEl.createEl("h1", { text: t("Creating Tasks") });
+		headerEl.createEl("h1", { text: t("Create Your First Task") });
 		headerEl.createEl("p", {
 			text: t(
-				"Learn different ways to create and format tasks in Task Genius"
+				"Learn the fastest ways to capture and format tasks inside Task Genius"
 			),
 			cls: "onboarding-subtitle",
 		});
 
-		// Introduction
-		const intro = contentEl.createDiv("task-guide-intro");
-		intro.createEl("p", {
-			text: t(
-				"You can use either emoji-based or Dataview-style syntax for task metadata"
-			),
-			cls: "guide-description",
-		});
-
-		// Format examples
-		FormatExamples.render(contentEl);
-
-		// Quick capture demo
-		QuickCaptureDemo.render(contentEl, plugin);
+		// Use the shared task creation guide to render examples and demos
+		const guide = new TaskCreationGuide(plugin);
+		guide.render(contentEl);
 	}
 }

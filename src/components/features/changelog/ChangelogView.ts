@@ -1,6 +1,7 @@
 import { ItemView, MarkdownRenderer, WorkspaceLeaf } from "obsidian";
 import type TaskProgressBarPlugin from "@/index";
 import { getCachedChangelog } from "@/utils/changelog-cache";
+import { t } from "@/translations/helper";
 
 export const CHANGELOG_VIEW_TYPE = "task-genius-changelog";
 
@@ -26,11 +27,11 @@ export class ChangelogView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "Task Genius Changelog";
+		return t("Changelog");
 	}
 
 	getIcon(): string {
-		return "list";
+		return "task-genius";
 	}
 
 	async onOpen() {
@@ -97,7 +98,7 @@ export class ChangelogView extends ItemView {
 		});
 
 		headerEl.createEl("h2", {
-			text: "Task Genius Changelog",
+			text: t("Task Genius Changelog"),
 		});
 
 		if (this.content?.version) {
@@ -113,7 +114,7 @@ export class ChangelogView extends ItemView {
 				metaEl.createSpan({ text: " • " });
 				metaEl.createEl("a", {
 					text: "View full changelog",
-					href: this.content.sourceUrl,
+					href: "https://taskgenius.md/changelog",
 					attr: {
 						target: "_blank",
 						rel: "noopener noreferrer",

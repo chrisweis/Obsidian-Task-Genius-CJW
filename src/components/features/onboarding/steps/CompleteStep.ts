@@ -8,9 +8,9 @@ import { OnboardingConfig } from "@/managers/onboarding-manager";
  */
 export class CompleteStep {
 	private static readonly ICON_MAP: Record<string, string> = {
-		beginner: "seedling",
-		advanced: "zap",
-		power: "rocket",
+		beginner: "edit-3",
+		advanced: "settings",
+		power: "zap",
 	};
 
 	/**
@@ -29,20 +29,21 @@ export class CompleteStep {
 		if (!config) return;
 
 		// Header
-		headerEl.createEl("h1", { text: t("Setup Complete! 🎉") });
+		headerEl.createEl("h1", { text: t("Task Genius is ready!") });
 		headerEl.createEl("p", {
-			text: t("Task Genius is ready to use"),
+			text: t("You're all set to start managing your tasks"),
 			cls: "onboarding-subtitle",
 		});
 
 		// Success section
 		const successSection = contentEl.createDiv("completion-success");
 		const successIcon = successSection.createDiv("success-icon");
-		successIcon.setText("✨");
+		successIcon.setText("🎉");
 
+		successSection.createEl("h2", { text: t("Congratulations!") });
 		successSection.createEl("p", {
 			text: t(
-				"Your task management workspace has been configured successfully"
+				"Task Genius has been configured with your selected preferences"
 			),
 			cls: "success-message",
 		});
@@ -52,9 +53,6 @@ export class CompleteStep {
 
 		// Quick start guide
 		this.renderQuickStart(contentEl, config);
-
-		// Next steps
-		this.renderNextSteps(contentEl);
 
 		// Resources
 		this.renderResources(contentEl);
@@ -102,35 +100,11 @@ export class CompleteStep {
 	}
 
 	/**
-	 * Render next steps
-	 */
-	private static renderNextSteps(container: HTMLElement) {
-		const section = container.createDiv("next-steps-section");
-		section.createEl("h3", { text: t("What's next?") });
-
-		const list = section.createEl("ul", { cls: "next-steps-list" });
-
-		const steps = [
-			t("Open Task Genius view from the left sidebar"),
-			t("Create your first task using Quick Capture"),
-			t("Explore different views to organize your tasks"),
-			t("Customize settings anytime in plugin settings"),
-		];
-
-		steps.forEach((step) => {
-			const item = list.createEl("li");
-			const checkIcon = item.createSpan("step-check");
-			setIcon(checkIcon, "arrow-right");
-			item.createSpan("step-text").setText(step);
-		});
-	}
-
-	/**
 	 * Render resources
 	 */
 	private static renderResources(container: HTMLElement) {
 		const section = container.createDiv("resources-section");
-		section.createEl("h3", { text: t("Resources") });
+		section.createEl("h3", { text: t("Helpful Resources") });
 
 		const list = section.createDiv("resources-list");
 
@@ -138,7 +112,7 @@ export class CompleteStep {
 			{
 				icon: "book-open",
 				title: t("Documentation"),
-				desc: t("Learn all features"),
+				desc: t("Complete guide to all features"),
 				url: "https://taskgenius.md",
 			},
 			{
@@ -147,19 +121,35 @@ export class CompleteStep {
 				desc: t("Get help and share tips"),
 				url: "https://discord.gg/ARR2rHHX6b",
 			},
+			{
+				icon: "settings",
+				title: t("Settings"),
+				desc: t("Customize Task Genius"),
+				action: "open-settings",
+			},
 		];
 
 		resources.forEach((r) => {
-			const item = list.createDiv("resource-item resource-clickable");
+			const item = list.createDiv("resource-item");
 			const icon = item.createDiv("resource-icon");
 			setIcon(icon, r.icon);
 			const content = item.createDiv("resource-content");
 			content.createEl("h4", { text: r.title });
 			content.createEl("p", { text: r.desc });
 
-			item.addEventListener("click", () => {
-				window.open(r.url, "_blank");
-			});
+			if (r.url) {
+				item.addEventListener("click", () => {
+					window.open(r.url, "_blank");
+				});
+				item.addClass("resource-clickable");
+			} else if (r.action === "open-settings") {
+				item.addEventListener("click", () => {
+					// Signal main plugin to open settings so we keep UI logic here.
+					const event = new CustomEvent("task-genius-open-settings");
+					document.dispatchEvent(event);
+				});
+				item.addClass("resource-clickable");
+			}
 		});
 	}
 
@@ -172,7 +162,7 @@ export class CompleteStep {
 				return [
 					t("Click the Task Genius icon in the left sidebar"),
 					t("Start with the Inbox view to see all your tasks"),
-					t("Use Quick Capture to add your first task"),
+					t("Use quick capture panel to quickly add your first task"),
 					t("Try the Forecast view to see tasks by date"),
 				];
 			case "advanced":
@@ -184,7 +174,7 @@ export class CompleteStep {
 				];
 			case "power":
 				return [
-					t("Explore all available views and configurations"),
+					t("Explore all available views and their configurations"),
 					t("Set up complex workflows for your projects"),
 					t("Configure habits and rewards to stay motivated"),
 					t("Integrate with external calendars and systems"),
@@ -193,7 +183,7 @@ export class CompleteStep {
 				return [
 					t("Open Task Genius from the left sidebar"),
 					t("Create your first task"),
-					t("Explore different views"),
+					t("Explore the different views available"),
 					t("Customize settings as needed"),
 				];
 		}

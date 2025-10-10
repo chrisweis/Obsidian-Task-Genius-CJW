@@ -16,7 +16,7 @@ export class PlacementStep {
 	static render(
 		headerEl: HTMLElement,
 		contentEl: HTMLElement,
-		controller: OnboardingController
+		controller: OnboardingController,
 	) {
 		// Clear
 		headerEl.empty();
@@ -25,9 +25,7 @@ export class PlacementStep {
 		// Header
 		headerEl.createEl("h1", { text: t("Fluent Layout") });
 		headerEl.createEl("p", {
-			text: t(
-				"Choose how to display Fluent views in your workspace"
-			),
+			text: t("Choose how to display Fluent views in your workspace"),
 			cls: "onboarding-subtitle",
 		});
 
@@ -43,7 +41,7 @@ export class PlacementStep {
 				title: t("Sideleaves"),
 				subtitle: t("Multi-Column Collaboration"),
 				description: t(
-					"Left navigation and right details as separate workspace sidebars, ideal for simultaneous browsing and editing"
+					"Left navigation and right details as separate workspace sidebars, ideal for simultaneous browsing and editing",
 				),
 				preview: this.createSideleavesPreview(),
 			},
@@ -52,7 +50,7 @@ export class PlacementStep {
 				title: t("Inline"),
 				subtitle: t("Single-Page Immersion"),
 				description: t(
-					"All content in one page, focusing on the main view and reducing interface distractions"
+					"All content in one page, focusing on the main view and reducing interface distractions",
 				),
 				preview: this.createInlinePreview(),
 			},
@@ -68,12 +66,12 @@ export class PlacementStep {
 				showPreview: true,
 			},
 			(placement) => {
-				controller.setUseSideLeaves(placement === "inline");
-			}
+				controller.setUseSideLeaves(placement === "sideleaves");
+			},
 		);
 
 		// Set initial selection
-		card.setSelected(currentPlacement);
+		card.setSelected("inline");
 
 		// Add info alert
 		Alert.create(
@@ -82,7 +80,7 @@ export class PlacementStep {
 			{
 				variant: "info",
 				className: "placement-selection-tip",
-			}
+			},
 		);
 	}
 

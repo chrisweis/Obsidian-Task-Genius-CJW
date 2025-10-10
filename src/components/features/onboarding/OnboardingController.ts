@@ -14,13 +14,14 @@ export enum OnboardingStep {
 	FLUENT_PROJECTS = 5,
 	FLUENT_OTHER_VIEWS = 6,
 	FLUENT_TOPNAV = 7,
+	FLUENT_PLACEMENT = 8,
 	// Config & rest
-	SETTINGS_CHECK = 8,
-	USER_LEVEL_SELECT = 9,
-	FILE_FILTER = 10,
-	CONFIG_PREVIEW = 11,
-	TASK_CREATION_GUIDE = 12,
-	COMPLETE = 13,
+	SETTINGS_CHECK = 9,
+	USER_LEVEL_SELECT = 10,
+	FILE_FILTER = 11,
+	CONFIG_PREVIEW = 12,
+	TASK_CREATION_GUIDE = 13,
+	COMPLETE = 14,
 }
 
 export interface OnboardingState {
@@ -173,6 +174,9 @@ export class OnboardingController {
 				nextStep = OnboardingStep.FLUENT_TOPNAV;
 				break;
 			case OnboardingStep.FLUENT_TOPNAV:
+				nextStep = OnboardingStep.FLUENT_PLACEMENT;
+				break;
+			case OnboardingStep.FLUENT_PLACEMENT:
 				nextStep = OnboardingStep.SETTINGS_CHECK;
 				break;
 
@@ -259,11 +263,14 @@ export class OnboardingController {
 			case OnboardingStep.FLUENT_TOPNAV:
 				prevStep = OnboardingStep.FLUENT_OTHER_VIEWS;
 				break;
+			case OnboardingStep.FLUENT_PLACEMENT:
+				prevStep = OnboardingStep.FLUENT_TOPNAV;
+				break;
 
 			case OnboardingStep.SETTINGS_CHECK:
 				// Go back to last fluent step or mode select based on UI mode
 				if (this.state.uiMode === "fluent") {
-					prevStep = OnboardingStep.FLUENT_TOPNAV;
+					prevStep = OnboardingStep.FLUENT_PLACEMENT;
 				} else {
 					prevStep = OnboardingStep.MODE_SELECT;
 				}
@@ -277,7 +284,7 @@ export class OnboardingController {
 				) {
 					prevStep = OnboardingStep.SETTINGS_CHECK;
 				} else if (this.state.uiMode === "fluent") {
-					prevStep = OnboardingStep.FLUENT_TOPNAV;
+					prevStep = OnboardingStep.FLUENT_PLACEMENT;
 				} else {
 					prevStep = OnboardingStep.MODE_SELECT;
 				}
@@ -383,11 +390,15 @@ export class OnboardingController {
 	 * Check if skip button should be shown
 	 */
 	canSkip(): boolean {
+		const step = this.state.currentStep;
+
+		if (step === OnboardingStep.COMPLETE) {
+			return false;
+		}
+
 		return (
-			this.state.currentStep === OnboardingStep.INTRO ||
-			this.state.currentStep === OnboardingStep.MODE_SELECT ||
-			this.state.currentStep === OnboardingStep.SETTINGS_CHECK ||
-			this.state.currentStep === OnboardingStep.FILE_FILTER
+			step === OnboardingStep.INTRO ||
+			this.canGoBack()
 		);
 	}
 

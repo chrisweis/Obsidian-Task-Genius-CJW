@@ -34,7 +34,11 @@ export class ChangelogManager {
 				return;
 			}
 
-			const cached = getCachedChangelog(version, isBeta);
+			const cached = getCachedChangelog(
+				version,
+				isBeta,
+				this.plugin.app,
+			);
 			if (cached) {
 				this.currentVersionDisplayed = version;
 				await view.setContent({
@@ -58,7 +62,7 @@ export class ChangelogManager {
 				return;
 			}
 
-			cacheChangelog(version, isBeta, data);
+			cacheChangelog(version, isBeta, data, this.plugin.app);
 			await view.setContent({
 				version,
 				markdown: data.markdown,

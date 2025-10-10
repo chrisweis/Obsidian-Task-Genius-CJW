@@ -19,7 +19,7 @@ export class ConfigPreviewStep {
 		headerEl: HTMLElement,
 		contentEl: HTMLElement,
 		controller: OnboardingController,
-		configManager: OnboardingConfigManager
+		configManager: OnboardingConfigManager,
 	) {
 		// Clear
 		headerEl.empty();
@@ -38,7 +38,7 @@ export class ConfigPreviewStep {
 		headerEl.createEl("h1", { text: t("Review Your Configuration") });
 		headerEl.createEl("p", {
 			text: t(
-				"Review the settings that will be applied for your selected mode"
+				"Review the settings that will be applied for your selected mode",
 			),
 			cls: "onboarding-subtitle",
 		});
@@ -81,23 +81,21 @@ export class ConfigPreviewStep {
 			.setName(t("Include task creation guide"))
 			.setDesc(t("Show a quick tutorial on creating your first task"))
 			.addToggle((toggle) => {
-				toggle
-					.setValue(!state.skipTaskGuide)
-					.onChange((value) => {
-						controller.setSkipTaskGuide(!value);
-					});
+				toggle.setValue(!state.skipTaskGuide).onChange((value) => {
+					controller.setSkipTaskGuide(!value);
+				});
 			});
 
 		// Note about customization
 		Alert.create(
 			contentEl,
 			t(
-				"You can customize any of these settings later in the plugin settings"
+				"You can customize any of these settings later in the plugin settings",
 			),
 			{
 				variant: "info",
 				className: "customization-note",
-			}
+			},
 		);
 	}
 }

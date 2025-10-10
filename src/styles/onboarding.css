@@ -15,10 +15,10 @@
 	/* shadcn design tokens */
 	--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	--shadow-md: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-	--shadow-lg: 0 4px 6px -1px rgb(0 0 0 / 0.1),
-	0 2px 4px -2px rgb(0 0 0 / 0.1);
-	--shadow-xl: 0 10px 15px -3px rgb(0 0 0 / 0.1),
-	0 4px 6px -4px rgb(0 0 0 / 0.1);
+	--shadow-lg:
+		0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+	--shadow-xl:
+		0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 /* Modal specific styles */
@@ -47,12 +47,6 @@
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-}
-
-/* Header section */
-.onboarding-view .onboarding-header {
-	padding: calc(var(--onboarding-spacing) * 4) var(--onboarding-spacing) var(--size-4-2) var(--onboarding-spacing);
-	text-align: center;
 }
 
 /* Hide onboarding-header if no header content */
@@ -150,7 +144,9 @@
 	border-radius: 50%;
 	background: rgba(255, 255, 255, 0.3);
 	transform: translate(-50%, -50%);
-	transition: width 0.6s, height 0.6s;
+	transition:
+		width 0.6s,
+		height 0.6s;
 }
 
 .onboarding-view .onboarding-buttons button:active::after {
@@ -264,8 +260,9 @@
 		rgba(var(--interactive-accent-rgb), 0.05) 0%,
 		var(--background-primary) 100%
 	);
-	box-shadow: var(--shadow-md),
-	0 0 0 3px rgba(var(--interactive-accent-rgb), 0.1);
+	box-shadow:
+		var(--shadow-md),
+		0 0 0 3px rgba(var(--interactive-accent-rgb), 0.1);
 }
 
 .onboarding-view .settings-check-action-card:hover {
@@ -692,6 +689,11 @@
 .onboarding-view .updated-views,
 .onboarding-modal .updated-views {
 	display: flex;
+}
+
+.onboarding-view .change-item {
+	display: flex;
+	flex-direction: row;
 }
 
 .onboarding-view .change-icon {
@@ -1466,8 +1468,13 @@
 /* Wrapper to prevent layout shift */
 .intro-typing-wrapper {
 	width: 100%;
-	max-width: max(900px, 70%);
-	margin: 0 auto;
+	padding-left: calc(var(--onboarding-spacing) * 3);
+	padding-right: calc(var(--onboarding-spacing) * 3);
+}
+
+.onboarding-view .onboarding-content.intro-typing-wrapper {
+	padding-left: calc(var(--onboarding-spacing) * 3);
+	padding-right: calc(var(--onboarding-spacing) * 3);
 }
 
 .intro-typing {
@@ -1522,9 +1529,10 @@
 	opacity: 0;
 	filter: blur(4px);
 	transform: translateY(-2px);
-	transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-	filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-	transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	transition:
+		opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+		filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+		transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
 }
 
@@ -1582,7 +1590,9 @@
 .intro-line-fadeout {
 	opacity: 0;
 	transform: translateY(-10px);
-	transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+	transition:
+		opacity 0.5s ease-out,
+		transform 0.5s ease-out;
 	pointer-events: none;
 }
 
@@ -1686,9 +1696,10 @@
 }
 
 .config-check-typing .check-line {
-	margin-bottom: var(--size-4-4);
 	line-height: 1.6;
 	color: var(--text-normal);
+	margin-block-start: var(--size-4-2);
+	margin-block-end: var(--size-4-2);
 }
 
 .config-check-typing .check-line-1 {

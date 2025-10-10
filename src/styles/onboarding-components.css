@@ -29,19 +29,9 @@
 	width: 200px;
 	min-width: 200px;
 	border-right: 1px solid var(--background-modifier-border);
-	border-top: unset;
 }
 
 .tg-fluent-container.component-preview-topnav {
-	background: var(--background-primary);
-}
-
-.component-showcase:has(
-		.tg-fluent-container.component-preview-sidebar
-			+ .tg-fluent-container.component-preview-topnav
-	)
-	.tg-fluent-container.component-preview-topnav {
-	border-top: unset;
 	background: var(--background-primary);
 }
 
@@ -77,7 +67,6 @@
 .component-showcase-description h3 {
 	margin: 0;
 	color: var(--text-normal);
-	font-size: var(--font-ui-large);
 }
 
 .component-showcase-description p {
@@ -297,6 +286,41 @@
 	position: relative;
 	outline: 1px solid var(--color-accent);
 	outline-offset: -1px;
-	sborder-radius: var(--radius-s);
+	border-radius: var(--radius-s);
 	z-index: 1;
+}
+
+.component-showcase:has(.fluent-top-navigation):not(
+		:has(.component-preview-sidebar)
+	) {
+	flex-direction: column;
+}
+
+.component-showcase-preview.focus-mode.tg-fluent-container.component-preview-topnav {
+	flex: unset;
+	height: max-content;
+}
+
+.fluent-top-navigation.component-preview.is-focused {
+	outline: unset;
+}
+
+.component-showcase-preview:has(
+		.component-preview-sidebar + .component-preview-topnav
+	)
+	.component-preview-sidebar {
+	border-top: unset;
+}
+
+.component-showcase:has(
+		.tg-fluent-container.component-preview-sidebar
+			+ .tg-fluent-container.component-preview-topnav
+	)
+	.tg-fluent-container.component-preview-topnav {
+	border-top: unset;
+	background: var(--background-primary);
+}
+
+.onboarding-content .resources-section {
+	width: 100%;
 }

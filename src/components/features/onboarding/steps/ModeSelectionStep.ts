@@ -18,7 +18,7 @@ export class ModeSelectionStep {
 	static render(
 		headerEl: HTMLElement,
 		contentEl: HTMLElement,
-		controller: OnboardingController
+		controller: OnboardingController,
 	) {
 		// Clear
 		headerEl.empty();
@@ -31,7 +31,7 @@ export class ModeSelectionStep {
 		headerEl.createEl("p", {
 			cls: "intro-line intro-line-4",
 			text: t(
-				"In the current version, Task Genius provides a brand new visual and interactive experience: Fluent; while also providing the option to return to the previous interface. Which one do you prefer?"
+				"In the current version, Task Genius provides a brand new visual and interactive experience: Fluent; while also providing the option to return to the previous interface. Which one do you prefer?",
 			),
 		});
 
@@ -45,7 +45,7 @@ export class ModeSelectionStep {
 				title: t("Fluent"),
 				subtitle: t("Modern & Sleek"),
 				description: t(
-					"New visual design with elegant animations and modern interactions"
+					"New visual design with elegant animations and modern interactions",
 				),
 				preview: this.createFluentPreview(),
 			},
@@ -54,7 +54,7 @@ export class ModeSelectionStep {
 				title: t("Legacy"),
 				subtitle: t("Classic & Familiar"),
 				description: t(
-					"Keep the familiar interface and interaction style you know"
+					"Keep the familiar interface and interaction style you know",
 				),
 				preview: this.createLegacyPreview(),
 			},
@@ -71,7 +71,7 @@ export class ModeSelectionStep {
 			},
 			(mode) => {
 				controller.setUIMode(mode);
-			}
+			},
 		);
 
 		// Set initial selection
@@ -82,11 +82,11 @@ export class ModeSelectionStep {
 		// Add info alert
 		Alert.create(
 			contentEl,
-			t("You can change this option later in settings"),
+			t("You can change this option later in interface settings"),
 			{
 				variant: "info",
 				className: "mode-selection-tip",
-			}
+			},
 		);
 	}
 

@@ -15,6 +15,7 @@ import { FluentMainNavigationStep } from "./steps/FluentMainNavigationStep";
 import { FluentProjectSectionStep } from "./steps/FluentProjectSectionStep";
 import { FluentOtherViewsStep } from "./steps/FluentOtherViewsStep";
 import { FluentTopNavigationStep } from "./steps/FluentTopNavigationStep";
+import { PlacementStep } from "./steps/PlacementStep";
 import { UserLevelStep } from "./steps/UserLevelStep";
 import { FileFilterStep } from "./steps/FileFilterStep";
 import { ConfigPreviewStep } from "./steps/ConfigPreviewStep";
@@ -51,7 +52,7 @@ export class OnboardingView extends ItemView {
 	constructor(
 		leaf: WorkspaceLeaf,
 		plugin: TaskProgressBarPlugin,
-		onComplete: () => void
+		onComplete: () => void,
 	) {
 		super(leaf);
 		this.plugin = plugin;
@@ -78,7 +79,7 @@ export class OnboardingView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return t("Task Genius Setup");
+		return t("Setup");
 	}
 
 	getIcon(): string {
@@ -140,7 +141,7 @@ export class OnboardingView extends ItemView {
 						headerEl,
 						contentEl,
 						footerEl,
-						this.controller
+						this.controller,
 					);
 					break;
 
@@ -148,7 +149,7 @@ export class OnboardingView extends ItemView {
 					ModeSelectionStep.render(
 						headerEl,
 						contentEl,
-						this.controller
+						this.controller,
 					);
 					break;
 
@@ -156,50 +157,53 @@ export class OnboardingView extends ItemView {
 					FluentOverviewStep.render(
 						headerEl,
 						contentEl,
-						this.controller
+						this.controller,
 					);
 					break;
 				case OnboardingStep.FLUENT_WS_SELECTOR:
 					FluentWorkspaceSelectorStep.render(
 						headerEl,
 						contentEl,
-						this.controller
+						this.controller,
 					);
 					break;
 				case OnboardingStep.FLUENT_MAIN_NAV:
 					FluentMainNavigationStep.render(
 						headerEl,
 						contentEl,
-						this.controller
+						this.controller,
 					);
 					break;
 				case OnboardingStep.FLUENT_PROJECTS:
 					FluentProjectSectionStep.render(
 						headerEl,
 						contentEl,
-						this.controller
+						this.controller,
 					);
 					break;
 				case OnboardingStep.FLUENT_OTHER_VIEWS:
 					FluentOtherViewsStep.render(
 						headerEl,
 						contentEl,
-						this.controller
+						this.controller,
 					);
 					break;
 				case OnboardingStep.FLUENT_TOPNAV:
 					FluentTopNavigationStep.render(
 						headerEl,
 						contentEl,
-						this.controller
+						this.controller,
 					);
+					break;
+				case OnboardingStep.FLUENT_PLACEMENT:
+					PlacementStep.render(headerEl, contentEl, this.controller);
 					break;
 
 				case OnboardingStep.SETTINGS_CHECK:
 					SettingsCheckStep.render(
 						headerEl,
 						contentEl,
-						this.controller
+						this.controller,
 					);
 					break;
 
@@ -208,7 +212,7 @@ export class OnboardingView extends ItemView {
 						headerEl,
 						contentEl,
 						this.controller,
-						this.configManager
+						this.configManager,
 					);
 					break;
 
@@ -217,7 +221,7 @@ export class OnboardingView extends ItemView {
 						headerEl,
 						contentEl,
 						this.controller,
-						this.plugin
+						this.plugin,
 					);
 					break;
 
@@ -226,7 +230,7 @@ export class OnboardingView extends ItemView {
 						headerEl,
 						contentEl,
 						this.controller,
-						this.configManager
+						this.configManager,
 					);
 					break;
 
@@ -235,7 +239,7 @@ export class OnboardingView extends ItemView {
 						headerEl,
 						contentEl,
 						this.controller,
-						this.plugin
+						this.plugin,
 					);
 					break;
 
@@ -253,13 +257,9 @@ export class OnboardingView extends ItemView {
 		const step = this.controller.getCurrentStep();
 		const state = this.controller.getState();
 
-		console.log("handleNext - Current step:", OnboardingStep[step]);
-		console.log("handleNext - UI Mode:", state.uiMode);
-		console.log("handleNext - User has changes:", state.userHasChanges);
-
 		// Show config check transition only when entering Settings Check from:
 		// - Mode Select with Legacy
-		// - The last Fluent step (Top Navigation)
+		// - The final Fluent step (Placement selection)
 		if (step === OnboardingStep.MODE_SELECT) {
 			if (state.uiMode === "legacy" && state.userHasChanges) {
 				// Clear header before showing transition to avoid residual UI
@@ -267,7 +267,7 @@ export class OnboardingView extends ItemView {
 				await this.showConfigCheckTransition();
 			}
 		}
-		if (step === OnboardingStep.FLUENT_TOPNAV) {
+		if (step === OnboardingStep.FLUENT_PLACEMENT) {
 			if (state.userHasChanges) {
 				// Clear header before showing transition to avoid residual UI
 				this.layout.clearHeader();
@@ -309,7 +309,7 @@ export class OnboardingView extends ItemView {
 		console.log("handleNext - Navigation result:", success);
 		console.log(
 			"handleNext - New step:",
-			OnboardingStep[this.controller.getCurrentStep()]
+			OnboardingStep[this.controller.getCurrentStep()],
 		);
 	}
 
@@ -330,7 +330,7 @@ export class OnboardingView extends ItemView {
 				() => {
 					resolve();
 				},
-				state.userHasChanges
+				state.userHasChanges,
 			);
 		});
 	}
@@ -381,9 +381,8 @@ export class OnboardingView extends ItemView {
 		}
 
 		if (isFluent && this.plugin.settings.fluentView) {
-			(
-				this.plugin.settings.fluentView
-			).useWorkspaceSideLeaves = !!state.useSideLeaves;
+			this.plugin.settings.fluentView.useWorkspaceSideLeaves =
+				!!state.useSideLeaves;
 		}
 
 		await this.plugin.saveSettings();
@@ -398,7 +397,7 @@ export class OnboardingView extends ItemView {
 
 		if (!config || state.isCompleting) return;
 
-		this.controller.updateState({isCompleting: true});
+		this.controller.updateState({ isCompleting: true });
 
 		try {
 			// Mark onboarding as completed
@@ -409,7 +408,7 @@ export class OnboardingView extends ItemView {
 			this.leaf.detach();
 		} catch (error) {
 			console.error("Failed to complete onboarding:", error);
-			this.controller.updateState({isCompleting: false});
+			this.controller.updateState({ isCompleting: false });
 		}
 	}
 }

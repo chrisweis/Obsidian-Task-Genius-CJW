@@ -322,6 +322,30 @@ export default class TaskProgressBarPlugin extends Plugin {
 				},
 			});
 
+			this.addCommand({
+				id: "open-task-genius-changelog",
+				name: t("Open Task Genius changelog"),
+				callback: () => {
+					if (!this.changelogManager) {
+						return;
+					}
+
+					const targetVersion =
+						this.manifest?.version ||
+						this.settings.changelog.lastVersion;
+
+					if (!targetVersion) {
+						return;
+					}
+
+					const isBeta = targetVersion.toLowerCase().includes("beta");
+					void this.changelogManager.openChangelog(
+						targetVersion,
+						isBeta,
+					);
+				},
+			});
+
 			addIcon("task-genius", getTaskGeniusIcon());
 			addIcon("completed", getStatusIcon("completed"));
 			addIcon("inProgress", getStatusIcon("inProgress"));

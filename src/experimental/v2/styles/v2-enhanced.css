@@ -49,7 +49,7 @@
 	overflow: hidden;
 }
 
-.task-list-item::before {
+.tg-task-list-item::before {
 	content: "";
 	position: absolute;
 	left: 0;
@@ -70,12 +70,12 @@
 	background: var(--interactive-accent);
 }
 
-.task-list-item.is-completed {
+.tg-task-list-item.is-completed {
 	opacity: 0.6;
 	background: var(--background-secondary);
 }
 
-.task-list-item.is-overdue::before {
+.tg-task-list-item.is-overdue::before {
 	background: var(--text-error);
 }
 
@@ -179,7 +179,7 @@
 }
 
 /* ========== Filter Panel Styles ========== */
-.tg-fluent-filter-panel {
+.tg-v2-filter-panel {
 	position: fixed;
 	right: -380px;
 	top: 0;
@@ -195,7 +195,7 @@
 	flex-direction: column;
 }
 
-.tg-fluent-filter-panel.is-open {
+.tg-v2-filter-panel.is-open {
 	right: 0;
 }
 
@@ -386,7 +386,7 @@
 }
 
 /* ========== Loading States ========== */
-.tg-fluent-loading {
+.tg-v2-loading {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -395,7 +395,7 @@
 	gap: 1rem;
 }
 
-.tg-fluent-spinner {
+.tg-v2-spinner {
 	width: 32px;
 	height: 32px;
 	border: 3px solid var(--background-modifier-border);
@@ -410,13 +410,13 @@
 	}
 }
 
-.tg-fluent-loading-text {
+.tg-v2-loading-text {
 	color: var(--text-muted);
 	font-size: 0.9rem;
 }
 
 /* ========== Empty States ========== */
-.tg-fluent-empty-state {
+.tg-v2-empty-state {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -426,7 +426,7 @@
 	text-align: center;
 }
 
-.tg-fluent-empty-icon {
+.tg-v2-empty-icon {
 	width: 64px;
 	height: 64px;
 	margin-bottom: 1rem;
@@ -434,20 +434,20 @@
 	opacity: 0.5;
 }
 
-.tg-fluent-empty-title {
+.tg-v2-empty-title {
 	font-size: 1.25rem;
 	font-weight: 600;
 	color: var(--text-normal);
 	margin-bottom: 0.5rem;
 }
 
-.tg-fluent-empty-description {
+.tg-v2-empty-description {
 	color: var(--text-muted);
 	margin-bottom: 1.5rem;
 	max-width: 400px;
 }
 
-.tg-fluent-empty-action {
+.tg-v2-empty-action {
 	padding: 0.75rem 1.5rem;
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
@@ -458,14 +458,14 @@
 	transition: all var(--tg-transition-fast);
 }
 
-.tg-fluent-empty-action:hover {
+.tg-v2-empty-action:hover {
 	background: var(--interactive-accent-hover);
 	transform: translateY(-1px);
 	box-shadow: var(--tg-shadow);
 }
 
 /* ========== Tooltips ========== */
-.tg-fluent-tooltip {
+.tg-v2-tooltip {
 	position: absolute;
 	background: var(--background-secondary);
 	color: var(--text-normal);
@@ -480,13 +480,13 @@
 	transition: all var(--tg-transition-fast);
 }
 
-.tg-fluent-tooltip.is-visible {
+.tg-v2-tooltip.is-visible {
 	opacity: 1;
 	transform: translateY(0);
 }
 
 /* ========== Cards ========== */
-.tg-fluent-card {
+.tg-v2-card {
 	background: var(--background-primary);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--tg-radius-lg);
@@ -495,12 +495,12 @@
 	transition: all var(--tg-transition-base);
 }
 
-.tg-fluent-card:hover {
+.tg-v2-card:hover {
 	box-shadow: var(--tg-shadow-md);
 	border-color: var(--interactive-accent);
 }
 
-.tg-fluent-card-header {
+.tg-v2-card-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -509,18 +509,18 @@
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.tg-fluent-card-title {
+.tg-v2-card-title {
 	font-size: 1rem;
 	font-weight: 600;
 	color: var(--text-normal);
 }
 
-.tg-fluent-card-actions {
+.tg-v2-card-actions {
 	display: flex;
 	gap: 0.5rem;
 }
 
-.tg-fluent-card-action {
+.tg-v2-card-action {
 	width: 28px;
 	height: 28px;
 	display: flex;
@@ -532,13 +532,13 @@
 	color: var(--text-muted);
 }
 
-.tg-fluent-card-action:hover {
+.tg-v2-card-action:hover {
 	background: var(--background-modifier-hover);
 	color: var(--text-normal);
 }
 
 /* ========== Buttons ========== */
-.tg-fluent-button {
+.tg-v2-button {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -554,7 +554,7 @@
 	overflow: hidden;
 }
 
-.tg-fluent-button::before {
+.tg-v2-button::before {
 	content: "";
 	position: absolute;
 	top: 50%;
@@ -569,48 +569,48 @@
 		height var(--tg-transition-slow);
 }
 
-.tg-fluent-button:active::before {
+.tg-v2-button:active::before {
 	width: 300px;
 	height: 300px;
 }
 
-.tg-fluent-button-primary {
+.tg-v2-button-primary {
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 }
 
-.tg-fluent-button-primary:hover {
+.tg-v2-button-primary:hover {
 	background: var(--interactive-accent-hover);
 	transform: translateY(-1px);
 	box-shadow: var(--tg-shadow);
 }
 
-.tg-fluent-button-secondary {
+.tg-v2-button-secondary {
 	background: var(--background-secondary);
 	color: var(--text-normal);
 	border: 1px solid var(--background-modifier-border);
 }
 
-.tg-fluent-button-secondary:hover {
+.tg-v2-button-secondary:hover {
 	background: var(--background-modifier-hover);
 	border-color: var(--interactive-accent);
 }
 
-.tg-fluent-button-ghost {
+.tg-v2-button-ghost {
 	background: transparent;
 	color: var(--text-normal);
 }
 
-.tg-fluent-button-ghost:hover {
+.tg-v2-button-ghost:hover {
 	background: var(--background-modifier-hover);
 }
 
-.tg-fluent-button-danger {
+.tg-v2-button-danger {
 	background: var(--text-error);
 	color: white;
 }
 
-.tg-fluent-button-danger:hover {
+.tg-v2-button-danger:hover {
 	background: #dc2626;
 	transform: translateY(-1px);
 	box-shadow: var(--tg-shadow);
@@ -663,7 +663,7 @@
 		padding: 1rem;
 	}
 
-	.tg-fluent-filter-panel {
+	.tg-v2-filter-panel {
 		width: 100%;
 		right: -100%;
 	}
@@ -678,7 +678,7 @@
 		padding: 0.75rem 1rem;
 	}
 
-	.tg-fluent-card {
+	.tg-v2-card {
 		padding: 1rem;
 	}
 }
@@ -695,7 +695,7 @@
 		0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
 }
 
-.theme-dark .tg-fluent-card:hover,
+.theme-dark .tg-v2-card:hover,
 .theme-dark .tg-task-list-item:hover,
 .theme-dark .task-tree-project:hover {
 	box-shadow:
@@ -704,7 +704,7 @@
 }
 
 /* ========== Progress Bars ========== */
-.tg-fluent-progress {
+.tg-v2-progress {
 	width: 100%;
 	height: 6px;
 	background: var(--background-modifier-border);
@@ -713,7 +713,7 @@
 	margin: 0.5rem 0;
 }
 
-.tg-fluent-progress-bar {
+.tg-v2-progress-bar {
 	height: 100%;
 	background: var(--interactive-accent);
 	border-radius: var(--tg-radius-full);
@@ -722,7 +722,7 @@
 	overflow: hidden;
 }
 
-.tg-fluent-progress-bar::after {
+.tg-v2-progress-bar::after {
 	content: "";
 	position: absolute;
 	top: 0;
@@ -748,7 +748,7 @@
 }
 
 /* ========== Tags ========== */
-.tg-fluent-tag {
+.tg-v2-tag {
 	display: inline-flex;
 	align-items: center;
 	padding: 0.25rem 0.625rem;
@@ -762,30 +762,30 @@
 	transition: all var(--tg-transition-fast);
 }
 
-.tg-fluent-tag:hover {
+.tg-v2-tag:hover {
 	background: var(--background-modifier-hover);
 	border-color: var(--interactive-accent);
 }
 
-.tg-fluent-tag-primary {
+.tg-v2-tag-primary {
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 	border-color: var(--interactive-accent);
 }
 
-.tg-fluent-tag-success {
+.tg-v2-tag-success {
 	background: #10b981;
 	color: white;
 	border-color: #10b981;
 }
 
-.tg-fluent-tag-warning {
+.tg-v2-tag-warning {
 	background: #f59e0b;
 	color: white;
 	border-color: #f59e0b;
 }
 
-.tg-fluent-tag-danger {
+.tg-v2-tag-danger {
 	background: var(--text-error);
 	color: white;
 	border-color: var(--text-error);
