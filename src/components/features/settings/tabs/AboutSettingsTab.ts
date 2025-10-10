@@ -16,6 +16,18 @@ export function renderAboutSettingsTab(
 		.setDesc(`Task Genius v${settingTab.plugin.manifest.version}`);
 
 	new Setting(containerEl)
+		.setName(t("Changelog"))
+		.setDesc(t("Show changelog after plugin updates"))
+		.addToggle((toggle) => {
+			toggle
+				.setValue(settingTab.plugin.settings.changelog.enabled)
+				.onChange(async (value) => {
+					settingTab.plugin.settings.changelog.enabled = value;
+					await settingTab.plugin.saveSettings();
+				});
+		});
+
+	new Setting(containerEl)
 		.setName(t("Donate"))
 		.setDesc(
 			t(

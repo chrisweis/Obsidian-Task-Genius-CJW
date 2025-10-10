@@ -696,6 +696,11 @@ export interface DesktopIntegrationSettings {
 }
 
 /** Define the main settings structure */
+export interface ChangelogSettings {
+	enabled: boolean;
+	lastVersion: string;
+}
+
 export interface TaskProgressBarSettings {
 	// General Settings (Example)
 	progressBarDisplayMode: "none" | "graphical" | "text" | "both";
@@ -720,6 +725,9 @@ export interface TaskProgressBarSettings {
 	// Desktop integration and notifications
 	notifications?: NotificationSettings;
 	desktopIntegration?: DesktopIntegrationSettings;
+
+	// Changelog Settings
+	changelog: ChangelogSettings;
 
 	// Project Tree View Settings
 	projectViewDefaultMode: "list" | "tree";
@@ -878,6 +886,10 @@ export interface TaskProgressBarSettings {
 
 /** Define the default settings */
 export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
+	changelog: {
+		enabled: true,
+		lastVersion: "",
+	},
 	// General Defaults
 	progressBarDisplayMode: "both",
 	supportHoverToShowProgressInfo: false,

@@ -89,11 +89,6 @@ All notable changes to this project will be documented in this file.
 
 * **debounce:** use Obsidian's built-in debounce utility and reduce log spam ([36ca266](https://github.com/Quorafind/Obsidian-Task-Genius/commit/36ca266))
 
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-
 ## [9.8.6](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.5...9.8.6) (2025-09-07)
 
 ### Bug Fixes
