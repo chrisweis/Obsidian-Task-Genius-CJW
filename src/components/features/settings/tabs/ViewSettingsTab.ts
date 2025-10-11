@@ -507,7 +507,8 @@ export function renderViewSettingsTab(
 							new Notice(t("Error: View ID already exists."));
 						}
 					},
-					view
+					view,
+					view.id
 				).open();
 			};
 

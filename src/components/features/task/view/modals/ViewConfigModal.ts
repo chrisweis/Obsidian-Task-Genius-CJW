@@ -8,7 +8,7 @@ import {
 	moment,
 	setIcon,
 } from "obsidian";
-import { t } from '@/translations/helper';
+import { t } from "@/translations/helper";
 import {
 	CalendarSpecificConfig,
 	KanbanSpecificConfig,
@@ -24,15 +24,15 @@ import {
 	PropertyExistType,
 	DEFAULT_SETTINGS,
 	SortCriterion,
-} from '@/common/setting-definition';
-import TaskProgressBarPlugin from '@/index';
-import { FolderSuggest } from '@/components/ui/inputs/AutoComplete';
-import { attachIconMenu } from '@/components/ui/menus/IconMenu';
-import { ConfirmModal } from '@/components/ui/modals/ConfirmModal';
+} from "@/common/setting-definition";
+import TaskProgressBarPlugin from "@/index";
+import { FolderSuggest } from "@/components/ui/inputs/AutoComplete";
+import { attachIconMenu } from "@/components/ui/menus/IconMenu";
+import { ConfirmModal } from "@/components/ui/modals/ConfirmModal";
 import {
 	TaskFilterComponent,
 	RootFilterState,
-} from '@/components/features/task/filter/ViewTaskFilter';
+} from "@/components/features/task/filter/ViewTaskFilter";
 
 export class ViewConfigModal extends Modal {
 	private viewConfig: ViewConfig;
@@ -41,6 +41,7 @@ export class ViewConfigModal extends Modal {
 	private isCreate: boolean;
 	private isCopyMode: boolean = false;
 	private sourceViewId: string | null = null;
+	private copySourceIdentifier: string | null = null;
 	private onSave: (config: ViewConfig, rules: ViewFilterRule) => void;
 	private originalViewConfig: string;
 	private originalViewFilterRule: string;
@@ -70,35 +71,60 @@ export class ViewConfigModal extends Modal {
 		initialViewConfig: ViewConfig | null, // Null for creating
 		initialFilterRule: ViewFilterRule | null, // Null for creating
 		onSave: (config: ViewConfig, rules: ViewFilterRule) => void,
-		sourceViewForCopy?: ViewConfig // 新增：可选的源视图用于拷贝
+		sourceViewForCopy?: ViewConfig, // 新增：可选的源视图用于拷贝
+		sourceViewIdentifierForCopy?: string, // 新增：可选的源视图标识
 	) {
 		super(app);
 		this.plugin = plugin;
 		this.isCreate = initialViewConfig === null;
-		this.isCopyMode = sourceViewForCopy !== undefined;
+
+		const resolvedCopySource =
+			sourceViewForCopy ??
+			(sourceViewIdentifierForCopy
+				? this.plugin.settings.viewConfiguration.find(
+						(view) => view.id === sourceViewIdentifierForCopy,
+					)
+				: undefined);
+
+		this.isCopyMode =
+			sourceViewForCopy !== undefined ||
+			sourceViewIdentifierForCopy !== undefined;
+
+		this.sourceViewId =
+			resolvedCopySource?.id ?? sourceViewIdentifierForCopy ?? null;
+		this.copySourceIdentifier =
+			sourceViewIdentifierForCopy ?? resolvedCopySource?.id ?? null;
 
 		if (this.isCreate) {
 			const newId = `custom_${Date.now()}`;
 
-			if (this.isCopyMode && sourceViewForCopy) {
+			if (this.isCopyMode && resolvedCopySource) {
 				// 拷贝模式：基于源视图创建新视图
-				this.sourceViewId = sourceViewForCopy.id;
 				this.viewConfig = {
-					...JSON.parse(JSON.stringify(sourceViewForCopy)), // 深拷贝源视图配置
+					...JSON.parse(JSON.stringify(resolvedCopySource)), // 深拷贝源视图配置
 					id: newId, // 使用新的ID
-					name: t("Copy of ") + sourceViewForCopy.name, // 修改名称
+					name: t("Copy of ") + resolvedCopySource.name, // 修改名称
 					type: "custom", // 确保类型为自定义
 				};
-				
+
 				// Apply default region if not set (for backward compatibility)
 				if (!this.viewConfig.region) {
-					const bottomViewIds = ["habit", "calendar", "gantt", "kanban"];
-					this.viewConfig.region = bottomViewIds.includes(sourceViewForCopy.id) ? "bottom" : "top";
+					const bottomViewIds = [
+						"habit",
+						"calendar",
+						"gantt",
+						"kanban",
+					];
+					this.viewConfig.region = bottomViewIds.includes(
+						resolvedCopySource.id,
+					)
+						? "bottom"
+						: "top";
 				}
 
 				// 如果源视图有过滤规则，也拷贝过来
-				this.viewFilterRule = sourceViewForCopy.filterRules
-					? JSON.parse(JSON.stringify(sourceViewForCopy.filterRules))
+				this.viewFilterRule = resolvedCopySource.filterRules
+					? JSON.parse(JSON.stringify(resolvedCopySource.filterRules))
 					: initialFilterRule || {};
 			} else {
 				// 普通创建模式
@@ -119,19 +145,27 @@ export class ViewConfigModal extends Modal {
 			// Deep copy to avoid modifying original objects until save
 			this.viewConfig = JSON.parse(JSON.stringify(initialViewConfig));
 			this.viewFilterRule = JSON.parse(
-				JSON.stringify(initialFilterRule || {})
+				JSON.stringify(initialFilterRule || {}),
 			);
 
 			// Make sure sortCriteria exists
 			if (!this.viewConfig.sortCriteria) {
 				this.viewConfig.sortCriteria = [];
 			}
-			
+
 			// Apply default region if not set (for backward compatibility)
 			if (!this.viewConfig.region) {
 				const bottomViewIds = ["habit", "calendar", "gantt", "kanban"];
-				this.viewConfig.region = bottomViewIds.includes(this.viewConfig.id) ? "bottom" : "top";
+				this.viewConfig.region = bottomViewIds.includes(
+					this.viewConfig.id,
+				)
+					? "bottom"
+					: "top";
 			}
+		}
+
+		if (this.isCopyMode) {
+			this.applyTwoColumnPresetIfNeeded(resolvedCopySource);
 		}
 
 		// Store original values for change detection
@@ -139,6 +173,211 @@ export class ViewConfigModal extends Modal {
 		this.originalViewFilterRule = JSON.stringify(this.viewFilterRule);
 
 		this.onSave = onSave;
+	}
+
+	private applyTwoColumnPresetIfNeeded(
+		sourceConfig?: ViewConfig,
+	): void {
+		if (!this.isCopyMode) {
+			return;
+		}
+
+		const hasTwoColumnConfig =
+			this.viewConfig.specificConfig?.viewType === "twocolumn";
+
+		const preset = this.buildTwoColumnPreset(
+			this.copySourceIdentifier ?? sourceConfig?.id ?? null,
+			sourceConfig,
+		);
+
+		if (!preset) {
+			return;
+		}
+
+		if (hasTwoColumnConfig) {
+			// Already a two column view; ensure task property aligns with preset if missing
+			const currentConfig =
+				this.viewConfig.specificConfig as TwoColumnSpecificConfig;
+			if (!currentConfig.taskPropertyKey) {
+				currentConfig.taskPropertyKey = preset.taskPropertyKey;
+			}
+			return;
+		}
+
+		this.viewConfig.specificConfig = preset;
+	}
+
+	private buildTwoColumnPreset(
+		sourceIdentifier: string | null,
+		sourceConfig?: ViewConfig,
+	): TwoColumnSpecificConfig | null {
+		if (!sourceIdentifier && !sourceConfig) {
+			return null;
+		}
+
+		const identifier =
+			sourceIdentifier ??
+			sourceConfig?.id ??
+			sourceConfig?.name ??
+			null;
+
+		if (!identifier) {
+			return null;
+		}
+
+		const normalized = identifier.toLowerCase();
+
+		let propertyKey: string | null = null;
+
+		const directKey =
+			normalized.startsWith("twocolumn:") ||
+			normalized.startsWith("two-column:") ||
+			normalized.startsWith("property:");
+		if (directKey) {
+			const [, rawKey] = normalized.split(":");
+			if (rawKey) {
+				propertyKey = rawKey;
+			}
+		}
+
+		if (!propertyKey) {
+			if (normalized.includes("tag")) {
+				propertyKey = "tags";
+			} else if (normalized.includes("review")) {
+				propertyKey = "project";
+			} else if (normalized.includes("project")) {
+				propertyKey = "project";
+			} else if (normalized.includes("context")) {
+				propertyKey = "context";
+			} else if (normalized.includes("priority")) {
+				propertyKey = "priority";
+			} else if (normalized.includes("status")) {
+				propertyKey = "status";
+			} else if (normalized.includes("due")) {
+				propertyKey = "dueDate";
+			} else if (normalized.includes("schedule")) {
+				propertyKey = "scheduledDate";
+			} else if (normalized.includes("start")) {
+				propertyKey = "startDate";
+			} else if (normalized.includes("file")) {
+				propertyKey = "filePath";
+			}
+		}
+
+		if (!propertyKey) {
+			return null;
+		}
+
+		let leftColumnTitle = this.resolveLeftColumnTitle(
+			propertyKey,
+			normalized,
+			sourceConfig,
+		);
+		const rightColumnTitle = t("Tasks");
+		let multiSelectText = t("selected items");
+		let emptyStateText = t("No items selected");
+
+		switch (propertyKey) {
+			case "project":
+				multiSelectText = t("projects selected");
+				if (normalized.includes("review")) {
+					emptyStateText = t(
+						"Select a project to review its tasks.",
+					);
+					leftColumnTitle = t("Review Projects");
+				} else {
+					emptyStateText = t("Select a project to see related tasks");
+					leftColumnTitle = t("Projects");
+				}
+				break;
+			case "tags":
+				leftColumnTitle = t("Tags");
+				multiSelectText = t("tags selected");
+				emptyStateText = t("Select a tag to see related tasks");
+				break;
+			case "context":
+				leftColumnTitle = t("Contexts");
+				break;
+			case "priority":
+				leftColumnTitle = t("Priority");
+				break;
+			case "status":
+				leftColumnTitle = t("Status");
+				break;
+			case "dueDate":
+				leftColumnTitle = t("Due Date");
+				break;
+			case "scheduledDate":
+				leftColumnTitle = t("Scheduled Date");
+				break;
+			case "startDate":
+				leftColumnTitle = t("Start Date");
+				break;
+			case "filePath":
+				leftColumnTitle = t("Files");
+				break;
+		}
+
+		return {
+			viewType: "twocolumn",
+			taskPropertyKey: propertyKey,
+			leftColumnTitle,
+			rightColumnDefaultTitle: rightColumnTitle,
+			multiSelectText,
+			emptyStateText,
+		};
+	}
+
+	private resolveLeftColumnTitle(
+		propertyKey: string,
+		normalizedIdentifier: string,
+		sourceConfig?: ViewConfig,
+	): string {
+		if (propertyKey === "project" && normalizedIdentifier.includes("review")) {
+			return t("Review Projects");
+		}
+
+		if (propertyKey === "project") {
+			return t("Projects");
+		}
+
+		if (propertyKey === "tags") {
+			return t("Tags");
+		}
+
+		if (propertyKey === "context") {
+			return t("Contexts");
+		}
+
+		if (propertyKey === "priority") {
+			return t("Priority");
+		}
+
+		if (propertyKey === "status") {
+			return t("Status");
+		}
+
+		if (propertyKey === "dueDate") {
+			return t("Due Date");
+		}
+
+		if (propertyKey === "scheduledDate") {
+			return t("Scheduled Date");
+		}
+
+		if (propertyKey === "startDate") {
+			return t("Start Date");
+		}
+
+		if (propertyKey === "filePath") {
+			return t("Files");
+		}
+
+		if (sourceConfig?.name) {
+			return sourceConfig.name;
+		}
+
+		return t("Items");
 	}
 
 	onOpen() {
@@ -213,7 +452,7 @@ export class ViewConfigModal extends Modal {
 		if (this.isCopyMode && this.sourceViewId) {
 			const sourceViewConfig =
 				this.plugin.settings.viewConfiguration.find(
-					(v) => v.id === this.sourceViewId
+					(v) => v.id === this.sourceViewId,
 				);
 			if (sourceViewConfig) {
 				const infoEl = contentEl.createDiv({ cls: "copy-mode-info" });
@@ -224,7 +463,7 @@ export class ViewConfigModal extends Modal {
 				});
 				infoEl.createEl("p", {
 					text: t(
-						"You can modify all settings below. The original view will remain unchanged."
+						"You can modify all settings below. The original view will remain unchanged.",
 					),
 					cls: "setting-item-description",
 				});
@@ -235,7 +474,7 @@ export class ViewConfigModal extends Modal {
 		new Setting(contentEl).setName(t("View Name")).addText((text) => {
 			this.nameInput = text;
 			text.setValue(this.viewConfig.name).setPlaceholder(
-				t("My Custom Task View")
+				t("My Custom Task View"),
 			);
 			text.onChange(() => this.checkForChanges());
 		});
@@ -244,8 +483,8 @@ export class ViewConfigModal extends Modal {
 			.setName(t("Icon name"))
 			.setDesc(
 				t(
-					"Enter any Lucide icon name (e.g., list-checks, filter, inbox)"
-				)
+					"Enter any Lucide icon name (e.g., list-checks, filter, inbox)",
+				),
 			)
 			.addText((text) => {
 				text.inputEl.hide();
@@ -278,14 +517,16 @@ export class ViewConfigModal extends Modal {
 		// Add Region setting for sidebar position
 		// Default to 'bottom' for specific views for backward compatibility
 		const bottomViewIds = ["habit", "calendar", "gantt", "kanban"];
-		const defaultRegion = bottomViewIds.includes(this.viewConfig.id) ? "bottom" : "top";
-		
+		const defaultRegion = bottomViewIds.includes(this.viewConfig.id)
+			? "bottom"
+			: "top";
+
 		new Setting(contentEl)
 			.setName(t("Sidebar Position"))
 			.setDesc(
 				t(
-					"Choose where this view appears in the sidebar. Views in the bottom section are visually separated from top section views."
-				)
+					"Choose where this view appears in the sidebar. Views in the bottom section are visually separated from top section views.",
+				),
 			)
 			.addDropdown((dropdown) => {
 				dropdown
@@ -372,8 +613,8 @@ export class ViewConfigModal extends Modal {
 				.setName(t("Hide weekends"))
 				.setDesc(
 					t(
-						"Hide weekend columns (Saturday and Sunday) in calendar views."
-					)
+						"Hide weekend columns (Saturday and Sunday) in calendar views.",
+					),
 				)
 				.addToggle((toggle) => {
 					const currentValue =
@@ -406,7 +647,7 @@ export class ViewConfigModal extends Modal {
 			new Setting(contentEl)
 				.setName(t("Group by"))
 				.setDesc(
-					t("Select which task property to use for creating columns")
+					t("Select which task property to use for creating columns"),
 				)
 				.addDropdown((dropdown) => {
 					dropdown
@@ -423,7 +664,7 @@ export class ViewConfigModal extends Modal {
 							(
 								this.viewConfig
 									.specificConfig as KanbanSpecificConfig
-							)?.groupBy || "status"
+							)?.groupBy || "status",
 						)
 						.onChange((value) => {
 							if (
@@ -457,7 +698,7 @@ export class ViewConfigModal extends Modal {
 				.addToggle((toggle) => {
 					toggle.setValue(
 						(this.viewConfig.specificConfig as KanbanSpecificConfig)
-							?.showCheckbox as boolean
+							?.showCheckbox as boolean,
 					);
 					toggle.onChange((value) => {
 						if (
@@ -488,7 +729,7 @@ export class ViewConfigModal extends Modal {
 				.addToggle((toggle) => {
 					toggle.setValue(
 						(this.viewConfig.specificConfig as KanbanSpecificConfig)
-							?.hideEmptyColumns as boolean
+							?.hideEmptyColumns as boolean,
 					);
 					toggle.onChange((value) => {
 						if (
@@ -516,7 +757,7 @@ export class ViewConfigModal extends Modal {
 			new Setting(contentEl)
 				.setName(t("Default sort field"))
 				.setDesc(
-					t("Default field to sort tasks by within each column.")
+					t("Default field to sort tasks by within each column."),
 				)
 				.addDropdown((dropdown) => {
 					dropdown
@@ -529,7 +770,7 @@ export class ViewConfigModal extends Modal {
 							(
 								this.viewConfig
 									.specificConfig as KanbanSpecificConfig
-							)?.defaultSortField || "priority"
+							)?.defaultSortField || "priority",
 						)
 						.onChange((value) => {
 							if (
@@ -566,7 +807,7 @@ export class ViewConfigModal extends Modal {
 							(
 								this.viewConfig
 									.specificConfig as KanbanSpecificConfig
-							)?.defaultSortOrder || "desc"
+							)?.defaultSortOrder || "desc",
 						)
 						.onChange((value) => {
 							if (
@@ -600,8 +841,8 @@ export class ViewConfigModal extends Modal {
 					.setName(t("Custom Columns"))
 					.setDesc(
 						t(
-							"Configure custom columns for the selected grouping property"
-						)
+							"Configure custom columns for the selected grouping property",
+						),
 					)
 					.setHeading();
 
@@ -622,7 +863,7 @@ export class ViewConfigModal extends Modal {
 					if (columns.length === 0) {
 						columnsContainer.createEl("p", {
 							text: t(
-								"No custom columns defined. Add columns below."
+								"No custom columns defined. Add columns below.",
 							),
 							cls: "setting-item-description",
 						});
@@ -686,18 +927,18 @@ export class ViewConfigModal extends Modal {
 										const item =
 											kanbanConfig.customColumns.splice(
 												index,
-												1
+												1,
 											)[0];
 										kanbanConfig.customColumns.splice(
 											index - 1,
 											0,
-											item
+											item,
 										);
 										// Update order values
 										kanbanConfig.customColumns.forEach(
 											(col, i) => {
 												col.order = i;
-											}
+											},
 										);
 										this.checkForChanges();
 										refreshColumnsList();
@@ -717,18 +958,18 @@ export class ViewConfigModal extends Modal {
 										const item =
 											kanbanConfig.customColumns.splice(
 												index,
-												1
+												1,
 											)[0];
 										kanbanConfig.customColumns.splice(
 											index + 1,
 											0,
-											item
+											item,
 										);
 										// Update order values
 										kanbanConfig.customColumns.forEach(
 											(col, i) => {
 												col.order = i;
-											}
+											},
 										);
 										this.checkForChanges();
 										refreshColumnsList();
@@ -743,13 +984,13 @@ export class ViewConfigModal extends Modal {
 									if (kanbanConfig.customColumns) {
 										kanbanConfig.customColumns.splice(
 											index,
-											1
+											1,
 										);
 										// Update order values
 										kanbanConfig.customColumns.forEach(
 											(col, i) => {
 												col.order = i;
-											}
+											},
 										);
 										this.checkForChanges();
 										refreshColumnsList();
@@ -846,8 +1087,8 @@ export class ViewConfigModal extends Modal {
 				.setName(t("Hide weekends"))
 				.setDesc(
 					t(
-						"Hide weekend columns (Saturday and Sunday) in forecast calendar."
-					)
+						"Hide weekend columns (Saturday and Sunday) in forecast calendar.",
+					),
 				)
 				.addToggle((toggle) => {
 					const currentValue =
@@ -938,14 +1179,14 @@ export class ViewConfigModal extends Modal {
 					.setName(t("Urgent Priority Threshold"))
 					.setDesc(
 						t(
-							"Tasks with priority >= this value are considered urgent (1-5)"
-						)
+							"Tasks with priority >= this value are considered urgent (1-5)",
+						),
 					)
 					.addSlider((slider) => {
 						slider
 							.setLimits(1, 5, 1)
 							.setValue(
-								quadrantConfig?.urgentPriorityThreshold ?? 4
+								quadrantConfig?.urgentPriorityThreshold ?? 4,
 							)
 							.setDynamicTooltip()
 							.onChange((value) => {
@@ -966,14 +1207,14 @@ export class ViewConfigModal extends Modal {
 					.setName(t("Important Priority Threshold"))
 					.setDesc(
 						t(
-							"Tasks with priority >= this value are considered important (1-5)"
-						)
+							"Tasks with priority >= this value are considered important (1-5)",
+						),
 					)
 					.addSlider((slider) => {
 						slider
 							.setLimits(1, 5, 1)
 							.setValue(
-								quadrantConfig?.importantPriorityThreshold ?? 3
+								quadrantConfig?.importantPriorityThreshold ?? 3,
 							)
 							.setDynamicTooltip()
 							.onChange((value) => {
@@ -994,7 +1235,9 @@ export class ViewConfigModal extends Modal {
 				new Setting(contentEl)
 					.setName(t("Urgent Tag"))
 					.setDesc(
-						t("Tag to identify urgent tasks (e.g., #urgent, #fire)")
+						t(
+							"Tag to identify urgent tasks (e.g., #urgent, #fire)",
+						),
 					)
 					.addText((text) => {
 						text.setValue(quadrantConfig?.urgentTag ?? "#urgent")
@@ -1017,12 +1260,12 @@ export class ViewConfigModal extends Modal {
 					.setName(t("Important Tag"))
 					.setDesc(
 						t(
-							"Tag to identify important tasks (e.g., #important, #key)"
-						)
+							"Tag to identify important tasks (e.g., #important, #key)",
+						),
 					)
 					.addText((text) => {
 						text.setValue(
-							quadrantConfig?.importantTag ?? "#important"
+							quadrantConfig?.importantTag ?? "#important",
 						)
 							.setPlaceholder("#important")
 							.onChange((value) => {
@@ -1043,8 +1286,8 @@ export class ViewConfigModal extends Modal {
 					.setName(t("Urgent Threshold Days"))
 					.setDesc(
 						t(
-							"Tasks due within this many days are considered urgent"
-						)
+							"Tasks due within this many days are considered urgent",
+						),
 					)
 					.addSlider((slider) => {
 						slider
@@ -1071,8 +1314,8 @@ export class ViewConfigModal extends Modal {
 				.setName(t("Auto Update Priority"))
 				.setDesc(
 					t(
-						"Automatically update task priority when moved between quadrants"
-					)
+						"Automatically update task priority when moved between quadrants",
+					),
 				)
 				.addToggle((toggle) => {
 					toggle
@@ -1095,8 +1338,8 @@ export class ViewConfigModal extends Modal {
 				.setName(t("Auto Update Tags"))
 				.setDesc(
 					t(
-						"Automatically add/remove urgent/important tags when moved between quadrants"
-					)
+						"Automatically add/remove urgent/important tags when moved between quadrants",
+					),
 				)
 				.addToggle((toggle) => {
 					toggle
@@ -1144,7 +1387,10 @@ export class ViewConfigModal extends Modal {
 		) {
 			// For custom views, allow changing view type even in edit mode
 			// 对于自定义视图，编辑模式下也允许切换视图类型
-			if ((this.isCreate && !this.isCopyMode) || this.viewConfig.type === "custom") {
+			if (
+				(this.isCreate && !this.isCopyMode) ||
+				this.viewConfig.type === "custom"
+			) {
 				new Setting(contentEl)
 					.setName(t("View type"))
 					.setDesc(t("Select the type of view to create"))
@@ -1156,7 +1402,7 @@ export class ViewConfigModal extends Modal {
 								this.viewConfig.specificConfig?.viewType ===
 									"twocolumn"
 									? "twocolumn"
-									: "standard"
+									: "standard",
 							)
 							.onChange((value) => {
 								if (value === "twocolumn") {
@@ -1192,8 +1438,8 @@ export class ViewConfigModal extends Modal {
 					.setName(t("Group by task property"))
 					.setDesc(
 						t(
-							"Select which task property to use for left column grouping"
-						)
+							"Select which task property to use for left column grouping",
+						),
 					)
 					.addDropdown((dropdown) => {
 						dropdown
@@ -1210,7 +1456,7 @@ export class ViewConfigModal extends Modal {
 								(
 									this.viewConfig
 										.specificConfig as TwoColumnSpecificConfig
-								).taskPropertyKey || "tags"
+								).taskPropertyKey || "tags",
 							)
 							.onChange((value) => {
 								if (
@@ -1255,7 +1501,7 @@ export class ViewConfigModal extends Modal {
 												break;
 										}
 										this.leftColumnTitleInput.setValue(
-											title
+											title,
 										);
 										(
 											this.viewConfig
@@ -1278,7 +1524,7 @@ export class ViewConfigModal extends Modal {
 							(
 								this.viewConfig
 									.specificConfig as TwoColumnSpecificConfig
-							).leftColumnTitle || t("Items")
+							).leftColumnTitle || t("Items"),
 						);
 						text.onChange((value) => {
 							if (
@@ -1298,7 +1544,7 @@ export class ViewConfigModal extends Modal {
 				new Setting(contentEl)
 					.setName(t("Right column title"))
 					.setDesc(
-						t("Default title for the right column (tasks list)")
+						t("Default title for the right column (tasks list)"),
 					)
 					.addText((text) => {
 						this.rightColumnTitleInput = text;
@@ -1306,7 +1552,7 @@ export class ViewConfigModal extends Modal {
 							(
 								this.viewConfig
 									.specificConfig as TwoColumnSpecificConfig
-							).rightColumnDefaultTitle || t("Tasks")
+							).rightColumnDefaultTitle || t("Tasks"),
 						);
 						text.onChange((value) => {
 							if (
@@ -1332,7 +1578,7 @@ export class ViewConfigModal extends Modal {
 							(
 								this.viewConfig
 									.specificConfig as TwoColumnSpecificConfig
-							).multiSelectText || t("selected items")
+							).multiSelectText || t("selected items"),
 						);
 						text.onChange((value) => {
 							if (
@@ -1358,7 +1604,7 @@ export class ViewConfigModal extends Modal {
 							(
 								this.viewConfig
 									.specificConfig as TwoColumnSpecificConfig
-							).emptyStateText || t("No items selected")
+							).emptyStateText || t("No items selected"),
 						);
 						text.onChange((value) => {
 							if (
@@ -1405,14 +1651,14 @@ export class ViewConfigModal extends Modal {
 		new Setting(contentEl)
 			.setName(t("Advanced Filtering"))
 			.setDesc(
-				t("Use advanced multi-group filtering with complex conditions")
+				t("Use advanced multi-group filtering with complex conditions"),
 			)
 			.addToggle((toggle) => {
 				const hasAdvancedFilter = !!this.viewFilterRule.advancedFilter;
 				console.log(
 					"Initial advanced filter state:",
 					hasAdvancedFilter,
-					this.viewFilterRule.advancedFilter
+					this.viewFilterRule.advancedFilter,
 				);
 				toggle.setValue(hasAdvancedFilter);
 				toggle.onChange((value) => {
@@ -1426,7 +1672,7 @@ export class ViewConfigModal extends Modal {
 							};
 							console.log(
 								"Created new advanced filter:",
-								this.viewFilterRule.advancedFilter
+								this.viewFilterRule.advancedFilter,
 							);
 						}
 						this.setupAdvancedFilter();
@@ -1455,15 +1701,15 @@ export class ViewConfigModal extends Modal {
 
 		if (
 			!["kanban", "gantt", "calendar"].includes(
-				this.viewConfig.specificConfig?.viewType || ""
+				this.viewConfig.specificConfig?.viewType || "",
 			)
 		) {
 			new Setting(contentEl)
 				.setName(t("Sort Criteria"))
 				.setDesc(
 					t(
-						"Define the order in which tasks should be sorted. Criteria are applied sequentially."
-					)
+						"Define the order in which tasks should be sorted. Criteria are applied sequentially.",
+					),
 				)
 				.setHeading();
 
@@ -1484,7 +1730,7 @@ export class ViewConfigModal extends Modal {
 				if (criteria.length === 0) {
 					criteriaContainer.createEl("p", {
 						text: t(
-							"No sort criteria defined. Add criteria below."
+							"No sort criteria defined. Add criteria below.",
 						),
 						cls: "setting-item-description",
 					});
@@ -1527,7 +1773,7 @@ export class ViewConfigModal extends Modal {
 							// Add tooltips explaining what asc/desc means for each field type if possible
 							if (criterion.field === "priority") {
 								dropdown.selectEl.title = t(
-									"Ascending: High -> Low -> None. Descending: None -> Low -> High"
+									"Ascending: High -> Low -> None. Descending: None -> Low -> High",
 								);
 							} else if (
 								[
@@ -1537,15 +1783,15 @@ export class ViewConfigModal extends Modal {
 								].includes(criterion.field)
 							) {
 								dropdown.selectEl.title = t(
-									"Ascending: Earlier -> Later -> None. Descending: None -> Later -> Earlier"
+									"Ascending: Earlier -> Later -> None. Descending: None -> Later -> Earlier",
 								);
 							} else if (criterion.field === "status") {
 								dropdown.selectEl.title = t(
-									"Ascending respects status order (Overdue first). Descending reverses it."
+									"Ascending respects status order (Overdue first). Descending reverses it.",
 								);
 							} else {
 								dropdown.selectEl.title = t(
-									"Ascending: A-Z. Descending: Z-A"
+									"Ascending: A-Z. Descending: Z-A",
 								);
 							}
 						});
@@ -1561,12 +1807,12 @@ export class ViewConfigModal extends Modal {
 									const item =
 										this.viewConfig.sortCriteria.splice(
 											index,
-											1
+											1,
 										)[0];
 									this.viewConfig.sortCriteria.splice(
 										index - 1,
 										0,
-										item
+										item,
 									);
 									this.checkForChanges();
 									refreshCriteriaList();
@@ -1586,12 +1832,12 @@ export class ViewConfigModal extends Modal {
 									const item =
 										this.viewConfig.sortCriteria.splice(
 											index,
-											1
+											1,
 										)[0];
 									this.viewConfig.sortCriteria.splice(
 										index + 1,
 										0,
-										item
+										item,
 									);
 									this.checkForChanges();
 									refreshCriteriaList();
@@ -1606,7 +1852,7 @@ export class ViewConfigModal extends Modal {
 								if (this.viewConfig.sortCriteria) {
 									this.viewConfig.sortCriteria.splice(
 										index,
-										1
+										1,
 									);
 									this.checkForChanges();
 									refreshCriteriaList();
@@ -1778,7 +2024,7 @@ export class ViewConfigModal extends Modal {
 			this.advancedFilterContainer,
 			this.app,
 			`view-config-${this.viewConfig.id}`, // 使用 view-config- 前缀确保不影响实时筛选器
-			this.plugin
+			this.plugin,
 		);
 
 		console.log("TaskFilterComponent created:", this.taskFilterComponent);
@@ -1789,14 +2035,14 @@ export class ViewConfigModal extends Modal {
 			: {
 					rootCondition: "any" as const,
 					filterGroups: [],
-			  };
+				};
 
 		console.log("Filter state for view config:", existingFilterState);
 
 		// 预先保存空的筛选器状态到localStorage，防止加载意外的状态
 		this.app.saveLocalStorage(
 			`task-genius-view-filter-view-config-${this.viewConfig.id}`,
-			existingFilterState
+			existingFilterState,
 		);
 
 		// 手动调用 onload
@@ -1811,7 +2057,7 @@ export class ViewConfigModal extends Modal {
 		// Set up event listener for filter changes
 		this.filterChangeHandler = (
 			filterState: RootFilterState,
-			leafId?: string
+			leafId?: string,
 		) => {
 			// 只处理来自当前ViewConfig筛选器的变化
 			if (
@@ -1820,7 +2066,7 @@ export class ViewConfigModal extends Modal {
 			) {
 				console.log(
 					"Filter changed in view config modal:",
-					filterState
+					filterState,
 				);
 				this.viewFilterRule.advancedFilter = filterState;
 				this.checkForChanges();
@@ -1829,7 +2075,7 @@ export class ViewConfigModal extends Modal {
 
 		this.app.workspace.on(
 			"task-genius:filter-changed",
-			this.filterChangeHandler
+			this.filterChangeHandler,
 		);
 
 		// Show the container
@@ -1856,7 +2102,7 @@ export class ViewConfigModal extends Modal {
 		if (this.filterChangeHandler) {
 			this.app.workspace.off(
 				"task-genius:filter-changed",
-				this.filterChangeHandler
+				this.filterChangeHandler,
 			);
 			this.filterChangeHandler = null;
 		}

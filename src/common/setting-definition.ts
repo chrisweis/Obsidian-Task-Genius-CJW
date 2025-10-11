@@ -3,7 +3,6 @@ import type TaskProgressBarPlugin from "../index"; // Type-only import
 import { BaseHabitData } from "../types/habit-card";
 import type { RootFilterState } from "../components/features/task/filter/ViewTaskFilter";
 import { IcsManagerConfig } from "../types/ics";
-import { TimeParsingConfig } from "../services/time-parsing-service";
 import type { EnhancedTimeParsingConfig } from "../types/time-parsing";
 import type { FileSourceConfiguration } from "../types/file-source";
 import { WorkspacesConfig } from "@/types/workspace";
@@ -901,21 +900,21 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	// Desktop integration and notifications defaults
 	notifications: {
 		enabled: false,
-		dailySummary: {enabled: true, time: "09:00"},
-		perTask: {enabled: false, leadMinutes: 10},
+		dailySummary: { enabled: true, time: "09:00" },
+		perTask: { enabled: false, leadMinutes: 10 },
 	},
-	desktopIntegration: {enableTray: false},
+	desktopIntegration: { enableTray: false },
 	countSubLevel: false,
 	displayMode: "bracketFraction",
 	customFormat: "[{{COMPLETED}}/{{TOTAL}}]",
 	showPercentage: false,
 	customizeProgressRanges: false,
 	progressRanges: [
-		{min: 0, max: 20, text: t("Just started") + " {{PROGRESS}}%"},
-		{min: 20, max: 40, text: t("Making progress") + " {{PROGRESS}}% "},
-		{min: 40, max: 60, text: t("Half way") + " {{PROGRESS}}% "},
-		{min: 60, max: 80, text: t("Good progress") + " {{PROGRESS}}% "},
-		{min: 80, max: 100, text: t("Almost there") + " {{PROGRESS}}% "},
+		{ min: 0, max: 20, text: t("Just started") + " {{PROGRESS}}%" },
+		{ min: 20, max: 40, text: t("Making progress") + " {{PROGRESS}}% " },
+		{ min: 40, max: 60, text: t("Half way") + " {{PROGRESS}}% " },
+		{ min: 60, max: 80, text: t("Good progress") + " {{PROGRESS}}% " },
+		{ min: 80, max: 100, text: t("Almost there") + " {{PROGRESS}}% " },
 	],
 	allowCustomProgressGoal: false,
 	hideProgressBarBasedOnConditions: false,
@@ -1459,9 +1458,9 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 			}, // Add imageUrl example if needed
 		],
 		occurrenceLevels: [
-			{name: t("common"), chance: 70},
-			{name: t("rare"), chance: 25},
-			{name: t("legendary"), chance: 5},
+			{ name: t("common"), chance: 70 },
+			{ name: t("rare"), chance: 25 },
+			{ name: t("legendary"), chance: 5 },
 		],
 		showRewardType: "modal",
 	},
@@ -1482,10 +1481,10 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 	sortTasks: true, // Default to enabled
 	sortCriteria: [
 		// Default sorting criteria
-		{field: "completed", order: "asc"}, // 未完成任务优先 (false < true)
-		{field: "status", order: "asc"},
-		{field: "priority", order: "asc"},
-		{field: "dueDate", order: "asc"},
+		{ field: "completed", order: "asc" }, // 未完成任务优先 (false < true)
+		{ field: "status", order: "asc" },
+		{ field: "priority", order: "asc" },
+		{ field: "dueDate", order: "asc" },
 	],
 
 	// Auto Date Manager Defaults
@@ -1735,7 +1734,7 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 // Helper function to get view settings safely
 export function getViewSettingOrDefault(
 	plugin: TaskProgressBarPlugin,
-	viewId: ViewMode
+	viewId: ViewMode,
 ): ViewConfig {
 	const viewConfiguration =
 		plugin.settings.viewConfiguration || DEFAULT_SETTINGS.viewConfiguration;
@@ -1745,7 +1744,7 @@ export function getViewSettingOrDefault(
 
 	// Then check if it exists in default settings
 	const defaultConfig = DEFAULT_SETTINGS.viewConfiguration.find(
-		(v) => v.id === viewId
+		(v) => v.id === viewId,
 	);
 
 	// If neither exists, create a fallback default for custom views
@@ -1775,19 +1774,19 @@ export function getViewSettingOrDefault(
 		// Explicitly handle merging filterRules
 		filterRules: savedConfig?.filterRules
 			? {
-				...(baseConfig.filterRules || {}), // Start with base's filterRules
-				...savedConfig.filterRules, // Override with saved filterRules properties
-			}
+					...(baseConfig.filterRules || {}), // Start with base's filterRules
+					...savedConfig.filterRules, // Override with saved filterRules properties
+				}
 			: baseConfig.filterRules || {}, // If no saved filterRules, use base's
 		// Merge specificConfig: Saved overrides default, default overrides base (which might be fallback without specificConfig)
 		// Ensure that the spread of savedConfig doesn't overwrite specificConfig object entirely if base has one and saved doesn't.
 		specificConfig:
 			savedConfig?.specificConfig !== undefined
 				? {
-					// If saved has specificConfig, merge it onto base's
-					...(baseConfig.specificConfig || {}),
-					...savedConfig.specificConfig,
-				}
+						// If saved has specificConfig, merge it onto base's
+						...(baseConfig.specificConfig || {}),
+						...savedConfig.specificConfig,
+					}
 				: baseConfig.specificConfig, // Otherwise, just use base's specificConfig (could be undefined)
 	};
 

@@ -80,14 +80,14 @@ export interface BatchCreateSubtasksArgs {
 }
 
 export class WriteAPI {
-	private canvasTaskUpdater: CanvasTaskUpdater;
+	canvasTaskUpdater: CanvasTaskUpdater;
 
 	constructor(
 		private app: App,
 		private vault: Vault,
 		private metadataCache: MetadataCache,
 		private plugin: TaskProgressBarPlugin,
-		private getTaskById: (id: string) => Promise<Task | null> | Task | null
+		private getTaskById: (id: string) => Promise<Task | null> | Task | null,
 	) {
 		this.canvasTaskUpdater = new CanvasTaskUpdater(vault, plugin);
 	}
@@ -103,7 +103,7 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Check if this is a Canvas task
@@ -118,17 +118,17 @@ export class WriteAPI {
 			}
 
 			const file = this.vault.getAbstractFileByPath(
-				task.filePath
+				task.filePath,
 			) as TFile;
 			if (!file) {
-				return {success: false, error: "File not found"};
+				return { success: false, error: "File not found" };
 			}
 
 			const content = await this.vault.read(file);
 			const lines = content.split("\n");
 
 			if (task.line < 0 || task.line >= lines.length) {
-				return {success: false, error: "Invalid line number"};
+				return { success: false, error: "Invalid line number" };
 			}
 
 			let taskLine = lines[task.line];
@@ -141,7 +141,7 @@ export class WriteAPI {
 				args.completed === true ||
 				(args.status !== undefined &&
 					((typeof (args.status as any).toLowerCase === "function" &&
-							(args.status as any).toLowerCase() === "x") ||
+						(args.status as any).toLowerCase() === "x") ||
 						args.status === configuredCompleted));
 			// Determine mark to write to checkbox
 			const markToWrite =
@@ -152,7 +152,7 @@ export class WriteAPI {
 						: " ";
 			taskLine = taskLine.replace(
 				/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
-				`$1${markToWrite}$2`
+				`$1${markToWrite}$2`,
 			);
 			// Handle date writing based on status changes
 			const previousMark = task.status || " ";
@@ -176,7 +176,7 @@ export class WriteAPI {
 					taskLine = this.insertDateAtCorrectPosition(
 						taskLine,
 						completionMeta,
-						"completed"
+						"completed",
 					);
 				}
 			}
@@ -198,7 +198,7 @@ export class WriteAPI {
 					taskLine = this.insertDateAtCorrectPosition(
 						taskLine,
 						cancelledMeta,
-						"cancelled"
+						"cancelled",
 					);
 				}
 			}
@@ -220,7 +220,7 @@ export class WriteAPI {
 					taskLine = this.insertDateAtCorrectPosition(
 						taskLine,
 						startMeta,
-						"start"
+						"start",
 					);
 				}
 			}
@@ -243,13 +243,13 @@ export class WriteAPI {
 								completedDate: Date.now(),
 							},
 						} as Task,
-						indentation
+						indentation,
 					);
 					lines.splice(task.line + 1, 0, newTaskLine);
 				} catch (e) {
 					console.error(
 						"WriteAPI: failed to create next recurring task from updateTaskStatus:",
-						e
+						e,
 					);
 				}
 			}
@@ -267,17 +267,17 @@ export class WriteAPI {
 
 			// Trigger task-completed event if task was just completed
 			if (args.completed === true && !task.completed) {
-				const updatedTask = {...task, completed: true};
+				const updatedTask = { ...task, completed: true };
 				this.app.workspace.trigger(
 					"task-genius:task-completed",
-					updatedTask
+					updatedTask,
 				);
 			}
 
-			return {success: true};
+			return { success: true };
 		} catch (error) {
 			console.error("WriteAPI: Error updating task status:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -285,14 +285,14 @@ export class WriteAPI {
 	 * Update a task with new properties
 	 */
 	async updateTask(
-		args: UpdateTaskArgs
+		args: UpdateTaskArgs,
 	): Promise<{ success: boolean; task?: Task; error?: string }> {
 		try {
 			const originalTask = await Promise.resolve(
-				this.getTaskById(args.taskId)
+				this.getTaskById(args.taskId),
 			);
 			if (!originalTask) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Check if this is a Canvas task
@@ -308,25 +308,25 @@ export class WriteAPI {
 				return this.updateFileSourceTask(
 					originalTask,
 					args.updates,
-					args.taskId
+					args.taskId,
 				);
 			}
 
 			const file = this.vault.getAbstractFileByPath(
-				originalTask.filePath
+				originalTask.filePath,
 			) as TFile;
 			if (!file) {
-				return {success: false, error: "File not found"};
+				return { success: false, error: "File not found" };
 			}
 
 			const content = await this.vault.read(file);
 			const lines = content.split("\n");
 
 			if (originalTask.line < 0 || originalTask.line >= lines.length) {
-				return {success: false, error: "Invalid line number"};
+				return { success: false, error: "Invalid line number" };
 			}
 
-			const updatedTask = {...originalTask, ...args.updates};
+			const updatedTask = { ...originalTask, ...args.updates };
 			let taskLine = lines[originalTask.line];
 
 			// Track previous status for date management
@@ -340,7 +340,7 @@ export class WriteAPI {
 				newStatus = statusMark;
 				taskLine = taskLine.replace(
 					/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
-					`$1${statusMark}$2`
+					`$1${statusMark}$2`,
 				);
 			} else if (args.updates.completed !== undefined) {
 				// Fallback to setting based on completed boolean
@@ -348,7 +348,7 @@ export class WriteAPI {
 				newStatus = statusMark;
 				taskLine = taskLine.replace(
 					/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
-					`$1${statusMark}$2`
+					`$1${statusMark}$2`,
 				);
 			}
 
@@ -379,7 +379,7 @@ export class WriteAPI {
 					taskLine = this.insertDateAtCorrectPosition(
 						taskLine,
 						completionMeta,
-						"completed"
+						"completed",
 					);
 				}
 			}
@@ -401,7 +401,7 @@ export class WriteAPI {
 					taskLine = this.insertDateAtCorrectPosition(
 						taskLine,
 						cancelledMeta,
-						"cancelled"
+						"cancelled",
 					);
 				}
 			}
@@ -423,7 +423,7 @@ export class WriteAPI {
 					taskLine = this.insertDateAtCorrectPosition(
 						taskLine,
 						startMeta,
-						"start"
+						"start",
 					);
 				}
 			}
@@ -435,7 +435,7 @@ export class WriteAPI {
 			) {
 				// Extract the task prefix and metadata
 				const prefixMatch = taskLine.match(
-					/^(\s*[-*+]\s*\[[^\]]*\]\s*)/
+					/^(\s*[-*+]\s*\[[^\]]*\]\s*)/,
 				);
 				if (prefixMatch) {
 					const prefix = prefixMatch[1];
@@ -444,7 +444,7 @@ export class WriteAPI {
 					const sanitized2 = afterPrefix
 						.replace(/\[\[[^\]]*\]\]/g, (m) => "x".repeat(m.length))
 						.replace(/\[[^\]]*\]\([^\)]*\)/g, (m) =>
-							"x".repeat(m.length)
+							"x".repeat(m.length),
 						)
 						.replace(/`[^`]*`/g, (m) => "x".repeat(m.length));
 					const esc2 = (s: string) =>
@@ -480,8 +480,8 @@ export class WriteAPI {
 					const tm2 = sanitized2.match(trailing2);
 					const trailingMeta = tm2
 						? afterPrefix.slice(
-							afterPrefix.length - (tm2[0]?.length || 0)
-						)
+								afterPrefix.length - (tm2[0]?.length || 0),
+							)
 						: "";
 					taskLine = `${prefix}${args.updates.content}${trailingMeta}`;
 				}
@@ -489,7 +489,7 @@ export class WriteAPI {
 				// Log warning if attempting to clear content
 				console.warn(
 					"[WriteAPI] Prevented clearing task content for task:",
-					originalTask.id
+					originalTask.id,
 				);
 			}
 
@@ -537,7 +537,7 @@ export class WriteAPI {
 						"id",
 					]);
 					const hasManagedUpdate = mdKeys.some((k) =>
-						managedKeys.has(k)
+						managedKeys.has(k),
 					);
 					if (!hasManagedUpdate) {
 						// Ignore unknown metadata-only updates to avoid stripping user content like [projt::new]
@@ -546,12 +546,12 @@ export class WriteAPI {
 						// Remove existing metadata and regenerate from merged values
 						// First, extract the checkbox prefix
 						const checkboxMatch = taskLine.match(
-							/^(\s*[-*+]\s*\[[^\]]*\]\s*)/
+							/^(\s*[-*+]\s*\[[^\]]*\]\s*)/,
 						);
 						if (checkboxMatch) {
 							const checkboxPrefix = checkboxMatch[1];
 							const afterCheckbox = taskLine.substring(
-								checkboxPrefix.length
+								checkboxPrefix.length,
 							);
 
 							// Find where metadata starts (look for emoji markers or dataview fields)
@@ -560,13 +560,13 @@ export class WriteAPI {
 							const sanitized = afterCheckbox
 								// Use non-whitespace placeholders to prevent \s+ from consuming across links/code
 								.replace(/\[\[[^\]]*\]\]/g, (m) =>
-									"x".repeat(m.length)
+									"x".repeat(m.length),
 								)
 								.replace(/\[[^\]]*\]\([^\)]*\)/g, (m) =>
-									"x".repeat(m.length)
+									"x".repeat(m.length),
 								)
 								.replace(/`[^`]*`/g, (m) =>
-									"x".repeat(m.length)
+									"x".repeat(m.length),
 								);
 
 							// Build trailing-metadata matcher. Recognize Dataview fields and
@@ -605,10 +605,10 @@ export class WriteAPI {
 								"@";
 							// Allow spaces within project/context values when stripping trailing metadata
 							const projectWideToken = `#${esc(
-								projectPrefixTasks
+								projectPrefixTasks,
 							)}/[^\\n\\r]*`;
 							const atWideToken = `${esc(
-								contextPrefixTasks
+								contextPrefixTasks,
 							)}[^\\n\\r]*`;
 							const tagToken = EMOJI_TAG_REGEX.source;
 							const atToken = TOKEN_CONTEXT_REGEX.source;
@@ -621,12 +621,12 @@ export class WriteAPI {
 							// Extract the task content (everything before trailing metadata)
 							const taskContentRaw = tm
 								? afterCheckbox
-									.substring(
-										0,
-										sanitized.length -
-										(tm[0]?.length || 0)
-									)
-									.trim()
+										.substring(
+											0,
+											sanitized.length -
+												(tm[0]?.length || 0),
+										)
+										.trim()
 								: afterCheckbox.trim();
 
 							// If we are regenerating managed metadata, scrub inline project tokens from content
@@ -641,9 +641,9 @@ export class WriteAPI {
 								// Remove Dataview-style inline project fields anywhere in content
 								const dvProjectRe = new RegExp(
 									`\\[\\s*${esc(
-										dvProjectKeyInline
+										dvProjectKeyInline,
 									)}\\s*::[^\\]]*\\]`,
-									"gi"
+									"gi",
 								);
 								taskContent = taskContent
 									.replace(dvProjectRe, "")
@@ -651,13 +651,13 @@ export class WriteAPI {
 								// Remove tasks-style inline project tags like #project/xxx (stop at next whitespace)
 								const projectInlineRe = new RegExp(
 									`(^|\\s)#${esc(
-										projectPrefixTasksInline
+										projectPrefixTasksInline,
 									)}/[^\\s#@+]+`,
-									"g"
+									"g",
 								);
 								taskContent = taskContent.replace(
 									projectInlineRe,
-									"$1"
+									"$1",
 								);
 								// Collapse extra spaces left by removals
 								taskContent = taskContent
@@ -670,7 +670,7 @@ export class WriteAPI {
 							console.log(
 								"edit content",
 								taskContent,
-								afterCheckbox
+								afterCheckbox,
 							);
 
 							const mergedMd = {
@@ -726,13 +726,13 @@ export class WriteAPI {
 								...(args.updates.metadata || {}),
 							},
 						} as Task,
-						indentation
+						indentation,
 					);
 
 					// Insert the new task line after the current task
 					lines.splice(originalTask.line + 1, 0, newTaskLine);
 					console.log(
-						`Created new recurring task after line ${originalTask.line}`
+						`Created new recurring task after line ${originalTask.line}`,
 					);
 				} catch (error) {
 					console.error("Error creating recurring task:", error);
@@ -767,14 +767,14 @@ export class WriteAPI {
 			if (args.updates.completed === true && !originalTask.completed) {
 				this.app.workspace.trigger(
 					"task-genius:task-completed",
-					updatedTaskObj
+					updatedTaskObj,
 				);
 			}
 
-			return {success: true, task: updatedTaskObj};
+			return { success: true, task: updatedTaskObj };
 		} catch (error) {
 			console.error("WriteAPI: Error updating task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -784,13 +784,13 @@ export class WriteAPI {
 	private async updateFileSourceTask(
 		originalTask: Task,
 		updates: Partial<Task>,
-		taskId: string
+		taskId: string,
 	): Promise<{ success: boolean; task?: Task; error?: string }> {
 		const file = this.vault.getAbstractFileByPath(
-			originalTask.filePath
+			originalTask.filePath,
 		) as TFile;
 		if (!file) {
-			return {success: false, error: "File not found"};
+			return { success: false, error: "File not found" };
 		}
 
 		// Announce start of write operation
@@ -821,17 +821,17 @@ export class WriteAPI {
 							file,
 							(fm) => {
 								(fm as any).title = updates.content;
-							}
+							},
 						);
 						console.log(
 							"[WriteAPI][FileSource] wrote fm.title (branch: title)",
-							{title: updates.content}
+							{ title: updates.content },
 						);
 						const cacheAfter =
 							this.app.metadataCache.getFileCache(file);
 						console.log(
 							"[WriteAPI][FileSource] cache fm.title after write (branch: title)",
-							{title: cacheAfter?.frontmatter?.title}
+							{ title: cacheAfter?.frontmatter?.title },
 						);
 						break;
 					}
@@ -846,14 +846,14 @@ export class WriteAPI {
 								(fm) => {
 									(fm as any)[customContentField] =
 										updates.content;
-								}
+								},
 							);
 							console.log(
 								"[WriteAPI][FileSource] wrote fm[customContentField] (branch: custom)",
 								{
 									field: customContentField,
 									value: updates.content,
-								}
+								},
 							);
 							const cacheAfter =
 								this.app.metadataCache.getFileCache(file);
@@ -863,34 +863,34 @@ export class WriteAPI {
 									field: customContentField,
 									value: cacheAfter?.frontmatter?.[
 										customContentField
-										],
-								}
+									],
+								},
 							);
 						} else if (preferFrontmatterTitle) {
 							await this.app.fileManager.processFrontMatter(
 								file,
 								(fm) => {
 									(fm as any).title = updates.content;
-								}
+								},
 							);
 							console.log(
 								"[WriteAPI][FileSource] wrote fm.title (branch: custom fallback)",
-								{title: updates.content}
+								{ title: updates.content },
 							);
 							const cacheAfter2 =
 								this.app.metadataCache.getFileCache(file);
 							console.log(
 								"[WriteAPI][FileSource] cache fm.title after write (branch: custom fallback)",
-								{title: cacheAfter2?.frontmatter?.title}
+								{ title: cacheAfter2?.frontmatter?.title },
 							);
 						} else {
 							newFilePath = await this.renameFile(
 								file,
-								updates.content!
+								updates.content!,
 							);
 							console.log(
 								"[WriteAPI][FileSource] renamed file (branch: custom fallback)",
-								{newFilePath}
+								{ newFilePath },
 							);
 						}
 						break;
@@ -902,26 +902,26 @@ export class WriteAPI {
 								file,
 								(fm) => {
 									(fm as any).title = updates.content;
-								}
+								},
 							);
 							console.log(
 								"[WriteAPI][FileSource] wrote fm.title (branch: filename/default)",
-								{title: updates.content}
+								{ title: updates.content },
 							);
 							const cacheAfter =
 								this.app.metadataCache.getFileCache(file);
 							console.log(
 								"[WriteAPI][FileSource] cache fm.title after write (branch: filename/default)",
-								{title: cacheAfter?.frontmatter?.title}
+								{ title: cacheAfter?.frontmatter?.title },
 							);
 						} else {
 							newFilePath = await this.renameFile(
 								file,
-								updates.content!
+								updates.content!,
 							);
 							console.log(
 								"[WriteAPI][FileSource] renamed file (branch: filename/default)",
-								{newFilePath}
+								{ newFilePath },
 							);
 						}
 						break;
@@ -936,9 +936,9 @@ export class WriteAPI {
 			} catch (error) {
 				console.error(
 					"WriteAPI: Error updating file-source task content:",
-					error
+					error,
 				);
-				return {success: false, error: String(error)};
+				return { success: false, error: String(error) };
 			}
 		}
 
@@ -959,14 +959,14 @@ export class WriteAPI {
 		};
 
 		// Emit file-task update so repository updates fileTasks map directly
-		emit(this.app, Events.FILE_TASK_UPDATED, {task: updatedTaskObj});
+		emit(this.app, Events.FILE_TASK_UPDATED, { task: updatedTaskObj });
 
-		return {success: true, task: updatedTaskObj};
+		return { success: true, task: updatedTaskObj };
 	}
 
 	private async updateH1Heading(
 		file: TFile,
-		newHeading: string
+		newHeading: string,
 	): Promise<void> {
 		const content = await this.vault.read(file);
 		const lines = content.split("\n");
@@ -1019,7 +1019,7 @@ export class WriteAPI {
 	 * Create a new task
 	 */
 	async createTask(
-		args: CreateTaskArgs
+		args: CreateTaskArgs,
 	): Promise<{ success: boolean; task?: Task; error?: string }> {
 		try {
 			let filePath = args.filePath;
@@ -1038,7 +1038,7 @@ export class WriteAPI {
 
 			const file = this.vault.getAbstractFileByPath(filePath) as TFile;
 			if (!file) {
-				return {success: false, error: "File not found"};
+				return { success: false, error: "File not found" };
 			}
 
 			const content = await this.vault.read(file);
@@ -1072,7 +1072,7 @@ export class WriteAPI {
 				newContent = this.insertSubtask(
 					content,
 					args.parent,
-					taskContent
+					taskContent,
 				);
 			} else {
 				// Append to end of file
@@ -1082,16 +1082,16 @@ export class WriteAPI {
 			}
 
 			// Notify about write operation
-			emit(this.app, Events.WRITE_OPERATION_START, {path: file.path});
+			emit(this.app, Events.WRITE_OPERATION_START, { path: file.path });
 			await this.vault.modify(file, newContent);
 			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
 				path: file.path,
 			});
 
-			return {success: true};
+			return { success: true };
 		} catch (error) {
 			console.error("WriteAPI: Error creating task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -1099,12 +1099,12 @@ export class WriteAPI {
 	 * Delete a task and optionally its children
 	 */
 	async deleteTask(
-		args: DeleteTaskArgs
+		args: DeleteTaskArgs,
 	): Promise<{ success: boolean; error?: string }> {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Check if this is a Canvas task
@@ -1113,10 +1113,10 @@ export class WriteAPI {
 			}
 
 			const file = this.vault.getAbstractFileByPath(
-				task.filePath
+				task.filePath,
 			) as TFile;
 			if (!file) {
-				return {success: false, error: "File not found"};
+				return { success: false, error: "File not found" };
 			}
 
 			const content = await this.vault.read(file);
@@ -1128,7 +1128,7 @@ export class WriteAPI {
 			if (args.deleteChildren) {
 				// Get all descendant tasks
 				const descendantIds = await this.getDescendantTaskIds(
-					args.taskId
+					args.taskId,
 				);
 				deletedTaskIds.push(...descendantIds);
 			}
@@ -1167,10 +1167,10 @@ export class WriteAPI {
 				mode: args.deleteChildren ? "subtree" : "single",
 			});
 
-			return {success: true};
+			return { success: true };
 		} catch (error) {
 			console.error("WriteAPI: Error deleting task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -1178,7 +1178,7 @@ export class WriteAPI {
 	 * Batch update text in multiple tasks
 	 */
 	async batchUpdateText(
-		args: BatchUpdateTextArgs
+		args: BatchUpdateTextArgs,
 	): Promise<{ success: boolean; updatedCount: number; error?: string }> {
 		try {
 			let updatedCount = 0;
@@ -1195,7 +1195,7 @@ export class WriteAPI {
 				// Update the task content
 				const updatedContent = task.content.replace(
 					args.findText,
-					args.replaceText
+					args.replaceText,
 				);
 				if (updatedContent !== task.content) {
 					if (!fileUpdates.has(task.filePath)) {
@@ -1211,7 +1211,7 @@ export class WriteAPI {
 			// Apply updates to files
 			for (const [filePath, lineUpdates] of fileUpdates) {
 				const file = this.vault.getAbstractFileByPath(
-					filePath
+					filePath,
 				) as TFile;
 				if (!file) continue;
 
@@ -1222,23 +1222,23 @@ export class WriteAPI {
 					if (lineNum >= 0 && lineNum < lines.length) {
 						const taskLine = lines[lineNum];
 						const prefixMatch = taskLine.match(
-							/^(\s*[-*+]\s*\[[^\]]*\]\s*)/
+							/^(\s*[-*+]\s*\[[^\]]*\]\s*)/,
 						);
 						if (prefixMatch) {
 							const prefix = prefixMatch[1];
 							// Preserve trailing metadata (strict trailing-only, recognized keys)
 							const afterPrefix2 = taskLine.substring(
-								prefix.length
+								prefix.length,
 							);
 							const sanitized3 = afterPrefix2
 								.replace(/\[\[[^\]]*\]\]/g, (m) =>
-									"x".repeat(m.length)
+									"x".repeat(m.length),
 								)
 								.replace(/\[[^\]]*\]\([^\)]*\)/g, (m) =>
-									"x".repeat(m.length)
+									"x".repeat(m.length),
 								)
 								.replace(/`[^`]*`/g, (m) =>
-									"x".repeat(m.length)
+									"x".repeat(m.length),
 								);
 							const esc3 = (s: string) =>
 								s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -1274,13 +1274,12 @@ export class WriteAPI {
 							const tm3 = sanitized3.match(trailing3);
 							const trailingMeta2 = tm3
 								? afterPrefix2.slice(
-									afterPrefix2.length -
-									(tm3[0]?.length || 0)
-								)
+										afterPrefix2.length -
+											(tm3[0]?.length || 0),
+									)
 								: "";
-							lines[
-								lineNum
-								] = `${prefix}${newContent}${trailingMeta2}`;
+							lines[lineNum] =
+								`${prefix}${newContent}${trailingMeta2}`;
 						}
 					}
 				}
@@ -1295,10 +1294,10 @@ export class WriteAPI {
 				});
 			}
 
-			return {success: true, updatedCount};
+			return { success: true, updatedCount };
 		} catch (error) {
 			console.error("WriteAPI: Error in batch update text:", error);
-			return {success: false, updatedCount: 0, error: String(error)};
+			return { success: false, updatedCount: 0, error: String(error) };
 		}
 	}
 
@@ -1306,11 +1305,11 @@ export class WriteAPI {
 	 * Create multiple subtasks under a parent task
 	 */
 	async batchCreateSubtasks(
-		args: BatchCreateSubtasksArgs
+		args: BatchCreateSubtasksArgs,
 	): Promise<{ success: boolean; createdCount: number; error?: string }> {
 		try {
 			const parentTask = await Promise.resolve(
-				this.getTaskById(args.parentTaskId)
+				this.getTaskById(args.parentTaskId),
 			);
 			if (!parentTask) {
 				return {
@@ -1331,7 +1330,7 @@ export class WriteAPI {
 			}
 
 			const file = this.vault.getAbstractFileByPath(
-				parentTask.filePath
+				parentTask.filePath,
 			) as TFile;
 			if (!file) {
 				return {
@@ -1398,10 +1397,10 @@ export class WriteAPI {
 				taskId: args.parentTaskId,
 			});
 
-			return {success: true, createdCount: subtaskLines.length};
+			return { success: true, createdCount: subtaskLines.length };
 		} catch (error) {
 			console.error("WriteAPI: Error creating subtasks:", error);
-			return {success: false, createdCount: 0, error: String(error)};
+			return { success: false, createdCount: 0, error: String(error) };
 		}
 	}
 
@@ -1436,7 +1435,7 @@ export class WriteAPI {
 			}
 		}
 
-		return {updated, failed};
+		return { updated, failed };
 	}
 
 	/**
@@ -1488,7 +1487,7 @@ export class WriteAPI {
 		for (const taskId of args.taskIds) {
 			const result = await this.updateTask({
 				taskId,
-				updates: {metadata: {dueDate: newDateMs} as any},
+				updates: { metadata: { dueDate: newDateMs } as any },
 			});
 
 			if (result.success) {
@@ -1501,7 +1500,7 @@ export class WriteAPI {
 			}
 		}
 
-		return {updated, failed};
+		return { updated, failed };
 	}
 
 	/**
@@ -1522,7 +1521,7 @@ export class WriteAPI {
 	 */
 	private findTaskLineById(
 		lines: string[],
-		taskId: string
+		taskId: string,
 	): { line: number; content: string } | null {
 		// This would need to match the task ID format used in your system
 		// For now, returning null as a placeholder
@@ -1598,7 +1597,7 @@ export class WriteAPI {
 
 				// Create file if not exists
 				let file = this.vault.getAbstractFileByPath(
-					path
+					path,
 				) as TFile | null;
 				if (!file) {
 					file = await this.vault.create(path, "");
@@ -1638,7 +1637,7 @@ export class WriteAPI {
 				newContent = this.insertSubtask(
 					current,
 					args.parent,
-					taskContent
+					taskContent,
 				);
 			} else {
 				// Use heading from Quick Capture settings if available
@@ -1649,14 +1648,14 @@ export class WriteAPI {
 					const headingRegex = new RegExp(
 						`^#{1,6}\\s+${fallbackHeading.replace(
 							/[.*+?^${}()|[\]\\]/g,
-							"\\$&"
+							"\\$&",
 						)}\\s*$`,
-						"m"
+						"m",
 					);
 					if (headingRegex.test(current)) {
 						newContent = current.replace(
 							headingRegex,
-							`$&\n\n${taskContent}`
+							`$&\n\n${taskContent}`,
 						);
 					} else {
 						newContent = `${current}${
@@ -1671,18 +1670,18 @@ export class WriteAPI {
 			}
 
 			// Notify about write operation
-			emit(this.app, Events.WRITE_OPERATION_START, {path: file.path});
+			emit(this.app, Events.WRITE_OPERATION_START, { path: file.path });
 			await this.vault.modify(file, newContent);
 			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {
 				path: file.path,
 			});
-			return {success: true};
+			return { success: true };
 		} catch (error) {
 			console.error(
 				"WriteAPI: Error creating task in daily note:",
-				error
+				error,
 			);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -1690,7 +1689,7 @@ export class WriteAPI {
 	 * Backward-compatible: create a task in daily note (wrapper)
 	 */
 	async createTaskInDailyNote(
-		args: CreateTaskArgs & { heading?: string }
+		args: CreateTaskArgs & { heading?: string },
 	): Promise<{ success: boolean; error?: string }> {
 		return this.addTaskToDailyNote({
 			content: args.content,
@@ -1764,14 +1763,14 @@ export class WriteAPI {
 				"quick-capture.md"; // Use the target file
 
 			// Notify about write operation
-			emit(this.app, Events.WRITE_OPERATION_START, {path: filePath});
-			emit(this.app, Events.WRITE_OPERATION_COMPLETE, {path: filePath});
+			emit(this.app, Events.WRITE_OPERATION_START, { path: filePath });
+			emit(this.app, Events.WRITE_OPERATION_COMPLETE, { path: filePath });
 
-			return {filePath, success: true};
+			return { filePath, success: true };
 		} catch (error) {
 			console.error(
 				"WriteAPI: Error adding project task to quick capture:",
-				error
+				error,
 			);
 			throw error;
 		}
@@ -1809,8 +1808,8 @@ export class WriteAPI {
 				// Ensure tags don't already have # prefix before adding one
 				metadata.push(
 					...args.tags.map((tag) =>
-						tag.startsWith("#") ? tag : `#${tag}`
-					)
+						tag.startsWith("#") ? tag : `#${tag}`,
+					),
 				);
 			}
 		}
@@ -1910,7 +1909,7 @@ export class WriteAPI {
 			metadata.push(
 				useDataviewFormat
 					? `[repeat:: ${args.recurrence}]`
-					: `🔁 ${args.recurrence}`
+					: `🔁 ${args.recurrence}`,
 			);
 		}
 
@@ -1918,7 +1917,7 @@ export class WriteAPI {
 		if (args.startDate) {
 			const dateStr = moment(args.startDate).format("YYYY-MM-DD");
 			metadata.push(
-				useDataviewFormat ? `[start:: ${dateStr}]` : `🛫 ${dateStr}`
+				useDataviewFormat ? `[start:: ${dateStr}]` : `🛫 ${dateStr}`,
 			);
 		}
 
@@ -1926,7 +1925,9 @@ export class WriteAPI {
 		if (args.scheduledDate) {
 			const dateStr = moment(args.scheduledDate).format("YYYY-MM-DD");
 			metadata.push(
-				useDataviewFormat ? `[scheduled:: ${dateStr}]` : `⏳ ${dateStr}`
+				useDataviewFormat
+					? `[scheduled:: ${dateStr}]`
+					: `⏳ ${dateStr}`,
 			);
 		}
 
@@ -1934,7 +1935,7 @@ export class WriteAPI {
 		if (args.dueDate) {
 			const dateStr = moment(args.dueDate).format("YYYY-MM-DD");
 			metadata.push(
-				useDataviewFormat ? `[due:: ${dateStr}]` : `📅 ${dateStr}`
+				useDataviewFormat ? `[due:: ${dateStr}]` : `📅 ${dateStr}`,
 			);
 		}
 
@@ -1944,7 +1945,7 @@ export class WriteAPI {
 			metadata.push(
 				useDataviewFormat
 					? `[completion:: ${dateStr}]`
-					: `✅ ${dateStr}`
+					: `✅ ${dateStr}`,
 			);
 		}
 
@@ -1953,7 +1954,7 @@ export class WriteAPI {
 			metadata.push(
 				useDataviewFormat
 					? `[onCompletion:: ${args.onCompletion}]`
-					: `🏁 ${args.onCompletion}`
+					: `🏁 ${args.onCompletion}`,
 			);
 		}
 
@@ -1968,14 +1969,14 @@ export class WriteAPI {
 			metadata.push(
 				useDataviewFormat
 					? `[dependsOn:: ${dependsStr}]`
-					: `⛔ ${dependsStr}`
+					: `⛔ ${dependsStr}`,
 			);
 		}
 
 		// ID
 		if (args.id) {
 			metadata.push(
-				useDataviewFormat ? `[id:: ${args.id}]` : `🆔 ${args.id}`
+				useDataviewFormat ? `[id:: ${args.id}]` : `🆔 ${args.id}`,
 			);
 		}
 
@@ -1988,7 +1989,7 @@ export class WriteAPI {
 	private insertSubtask(
 		content: string,
 		parentTaskId: string,
-		subtaskContent: string
+		subtaskContent: string,
 	): string {
 		const lines = content.split("\n");
 		const parentTask = this.findTaskLineById(lines, parentTaskId);
@@ -2040,7 +2041,7 @@ export class WriteAPI {
 
 		// Try parsing "every X days/weeks/months/years"
 		const everyMatch = pattern.match(
-			/every\s+(\d+)?\s*(day|week|month|year)s?/i
+			/every\s+(\d+)?\s*(day|week|month|year)s?/i,
 		);
 		if (everyMatch) {
 			return {
@@ -2050,7 +2051,7 @@ export class WriteAPI {
 		}
 
 		// Default to daily
-		return {interval: 1, unit: "d"};
+		return { interval: 1, unit: "d" };
 	}
 
 	/**
@@ -2084,19 +2085,19 @@ export class WriteAPI {
 	 * Update a Canvas task
 	 */
 	async updateCanvasTask(
-		args: UpdateTaskArgs
+		args: UpdateTaskArgs,
 	): Promise<{ success: boolean; task?: Task; error?: string }> {
 		try {
 			const originalTask = await Promise.resolve(
-				this.getTaskById(args.taskId)
+				this.getTaskById(args.taskId),
 			);
 			if (!originalTask) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(originalTask)) {
-				return {success: false, error: "Task is not a Canvas task"};
+				return { success: false, error: "Task is not a Canvas task" };
 			}
 
 			// Create updated task object (deep-merge metadata to preserve unchanged fields)
@@ -2112,12 +2113,12 @@ export class WriteAPI {
 			// Use CanvasTaskUpdater to update the task
 			const result = await this.canvasTaskUpdater.updateCanvasTask(
 				originalTask as Task<CanvasTaskMetadata>,
-				updatedTask
+				updatedTask,
 			);
 
 			if (result.success) {
 				// Emit task updated event for dataflow
-				emit(this.app, Events.TASK_UPDATED, {task: updatedTask});
+				emit(this.app, Events.TASK_UPDATED, { task: updatedTask });
 
 				// Trigger task-completed event if task was just completed
 				if (
@@ -2126,17 +2127,17 @@ export class WriteAPI {
 				) {
 					this.app.workspace.trigger(
 						"task-genius:task-completed",
-						updatedTask
+						updatedTask,
 					);
 				}
 
-				return {success: true, task: updatedTask};
+				return { success: true, task: updatedTask };
 			} else {
-				return {success: false, error: result.error};
+				return { success: false, error: result.error };
 			}
 		} catch (error) {
 			console.error("WriteAPI: Error updating Canvas task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -2144,17 +2145,17 @@ export class WriteAPI {
 	 * Delete a Canvas task
 	 */
 	async deleteCanvasTask(
-		args: DeleteTaskArgs
+		args: DeleteTaskArgs,
 	): Promise<{ success: boolean; error?: string }> {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(task)) {
-				return {success: false, error: "Task is not a Canvas task"};
+				return { success: false, error: "Task is not a Canvas task" };
 			}
 
 			// Collect all tasks to delete
@@ -2163,7 +2164,7 @@ export class WriteAPI {
 			if (args.deleteChildren) {
 				// Get all descendant tasks
 				const descendantIds = await this.getDescendantTaskIds(
-					args.taskId
+					args.taskId,
 				);
 				deletedTaskIds.push(...descendantIds);
 			}
@@ -2171,7 +2172,7 @@ export class WriteAPI {
 			// Use CanvasTaskUpdater to delete the task(s)
 			const result = await this.canvasTaskUpdater.deleteCanvasTask(
 				task as Task<CanvasTaskMetadata>,
-				args.deleteChildren
+				args.deleteChildren,
 			);
 
 			if (result.success) {
@@ -2187,7 +2188,7 @@ export class WriteAPI {
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error deleting Canvas task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -2203,12 +2204,12 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(task)) {
-				return {success: false, error: "Task is not a Canvas task"};
+				return { success: false, error: "Task is not a Canvas task" };
 			}
 
 			// Use CanvasTaskUpdater to move the task
@@ -2216,13 +2217,13 @@ export class WriteAPI {
 				task as Task<CanvasTaskMetadata>,
 				args.targetFilePath,
 				args.targetNodeId,
-				args.targetSection
+				args.targetSection,
 			);
 
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error moving Canvas task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -2239,12 +2240,12 @@ export class WriteAPI {
 		try {
 			const task = await Promise.resolve(this.getTaskById(args.taskId));
 			if (!task) {
-				return {success: false, error: "Task not found"};
+				return { success: false, error: "Task not found" };
 			}
 
 			// Ensure it's a Canvas task
 			if (!CanvasTaskUpdater.isCanvasTask(task)) {
-				return {success: false, error: "Task is not a Canvas task"};
+				return { success: false, error: "Task is not a Canvas task" };
 			}
 
 			// Use CanvasTaskUpdater to duplicate the task
@@ -2253,13 +2254,13 @@ export class WriteAPI {
 				args.targetFilePath,
 				args.targetNodeId,
 				args.targetSection,
-				args.preserveMetadata
+				args.preserveMetadata,
 			);
 
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error duplicating Canvas task:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -2292,13 +2293,13 @@ export class WriteAPI {
 				args.filePath,
 				taskContent,
 				args.targetNodeId,
-				args.targetSection
+				args.targetSection,
 			);
 
 			return result;
 		} catch (error) {
 			console.error("WriteAPI: Error adding task to Canvas node:", error);
-			return {success: false, error: String(error)};
+			return { success: false, error: String(error) };
 		}
 	}
 
@@ -2315,7 +2316,7 @@ export class WriteAPI {
 	private insertDateAtCorrectPosition(
 		taskLine: string,
 		dateMetadata: string,
-		dateType: "completed" | "cancelled" | "start"
+		dateType: "completed" | "cancelled" | "start",
 	): string {
 		// Check for block reference at the end
 		const blockRefPattern = /\s*(\^[a-zA-Z0-9-]+)$/;
@@ -2393,13 +2394,13 @@ export class WriteAPI {
 	 */
 	private createRecurringTask(
 		completedTask: Task,
-		indentation: string
+		indentation: string,
 	): string {
 		// Calculate the next due date based on the recurrence pattern
 		const nextDate = this.calculateNextDueDate(completedTask);
 
 		// Create a new task with the same content but updated dates
-		const newTask = {...completedTask};
+		const newTask = { ...completedTask };
 		// Reset completion status and date
 		newTask.completed = false;
 		newTask.metadata.completedDate = undefined;
@@ -2421,7 +2422,7 @@ export class WriteAPI {
 		if (completedTask.originalMarkdown) {
 			// Match the list marker pattern: could be "- ", "* ", "1. ", etc.
 			const listMarkerMatch = completedTask.originalMarkdown.match(
-				/^(\s*)([*\-+]|\d+\.)\s+\[/
+				/^(\s*)([*\-+]|\d+\.)\s+\[/,
 			);
 			if (listMarkerMatch && listMarkerMatch[2]) {
 				listMarker = listMarkerMatch[2] + " ";
@@ -2506,7 +2507,7 @@ export class WriteAPI {
 				// We want the first occurrence strictly after today (not just after baseDate)
 				// This ensures the next task is always in the future
 				const afterDate = new Date(
-					Math.max(baseDate.getTime(), todayStart.getTime()) + 1000
+					Math.max(baseDate.getTime(), todayStart.getTime()) + 1000,
 				); // 1 second after the later of baseDate or today
 				const nextOccurrence = rule.after(afterDate);
 
@@ -2523,7 +2524,7 @@ export class WriteAPI {
 					}
 					// If somehow still not in future, try getting the next occurrence
 					const futureOccurrence = rule.after(
-						new Date(todayStart.getTime() + 86400000)
+						new Date(todayStart.getTime() + 86400000),
 					); // Tomorrow
 					if (futureOccurrence) {
 						futureOccurrence.setHours(0, 0, 0, 0);
@@ -2537,7 +2538,7 @@ export class WriteAPI {
 			} catch (e) {
 				// rrulestr failed, fall back to simple parsing
 				console.log(
-					`Failed to parse recurrence '${task.metadata.recurrence}' with rrule. Falling back to simple logic.`
+					`Failed to parse recurrence '${task.metadata.recurrence}' with rrule. Falling back to simple logic.`,
 				);
 			}
 
@@ -2572,14 +2573,14 @@ export class WriteAPI {
 								break;
 							case "week":
 								nextDate.setDate(
-									nextDate.getDate() + interval * 7
+									nextDate.getDate() + interval * 7,
 								);
 								break;
 							case "month":
 								// Save the original day of month for proper month rolling
 								const originalDay = baseDate.getDate();
 								nextDate.setMonth(
-									nextDate.getMonth() + interval
+									nextDate.getMonth() + interval,
 								);
 								// If day has changed (e.g., Jan 31 -> Feb 28), adjust back
 								if (nextDate.getDate() !== originalDay) {
@@ -2588,7 +2589,7 @@ export class WriteAPI {
 								break;
 							case "year":
 								nextDate.setFullYear(
-									nextDate.getFullYear() + interval
+									nextDate.getFullYear() + interval,
 								);
 								break;
 							default:
@@ -2636,7 +2637,7 @@ export class WriteAPI {
 							break;
 						case "y":
 							nextDate.setFullYear(
-								nextDate.getFullYear() + interval
+								nextDate.getFullYear() + interval,
 							);
 							break;
 					}

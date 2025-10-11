@@ -226,7 +226,8 @@ export class SidebarComponent extends Component {
 									);
 								}
 							},
-							view // 传入当前视图作为拷贝源
+							view, // 传入当前视图作为拷贝源
+							view.id
 						).open();
 					});
 				})
