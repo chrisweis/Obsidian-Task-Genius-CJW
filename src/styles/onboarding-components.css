@@ -9,6 +9,10 @@
 		var(--size-4-2) var(--onboarding-spacing);
 }
 
+.onboarding-view .onboarding-header {
+	text-align: center;
+}
+
 .fluent-top-navigation.component-preview {
 	overflow-x: auto;
 }

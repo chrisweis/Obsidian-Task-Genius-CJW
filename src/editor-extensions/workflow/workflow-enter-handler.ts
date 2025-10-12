@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { App, editorInfoField, Menu } from "obsidian";
+import { App, Editor, editorInfoField, Menu } from "obsidian";
 import TaskProgressBarPlugin from "@/index";
 import { Prec } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
@@ -9,10 +9,29 @@ import {
 	determineNextStage,
 	generateWorkflowTaskText,
 	createWorkflowStageTransition,
+	type WorkflowInfo,
 } from "@/editor-extensions/workflow/workflow-handler";
+import type { WorkflowStage } from "@/common/setting-definition";
 import { t } from "@/translations/helper";
 import { buildIndentString } from "@/utils";
 import { taskStatusChangeAnnotation } from "@/editor-extensions/task-operations/status-switcher";
+
+const TASK_REGEX = /^(\s*)([-*+]|\d+\.)\s+\[(.)]/;
+const TASK_PREFIX = "- [ ] ";
+type WorkflowSubStage = NonNullable<WorkflowStage["subStages"]>[number];
+
+function getIndentation(text: string): string {
+	const match = text.match(/^(\s*)/);
+	return match ? match[1] : "";
+}
+
+function getEditorFromView(view: EditorView): Editor | null {
+	return view.state.field(editorInfoField)?.editor ?? null;
+}
+
+function cursorAfterTaskPrefix(lineEnd: number, indentation: string): number {
+	return lineEnd + 1 + indentation.length + TASK_PREFIX.length;
+}
 
 /**
  * Show workflow menu at cursor position
@@ -27,46 +46,25 @@ function showWorkflowMenu(
 	app: App,
 	plugin: TaskProgressBarPlugin,
 	lineNumber: number,
-	workflowInfo: {
-		workflowType: string;
-		currentStage: string;
-		subStage?: string;
-	}
+	workflowInfo: WorkflowInfo,
 ): boolean {
 	const menu = new Menu();
-	const line = view.state.doc.line(lineNumber);
+	const doc = view.state.doc;
+	if (lineNumber < 1 || lineNumber > doc.lines) {
+		return false;
+	}
+	const line = doc.line(lineNumber);
 	const lineText = line.text;
-
-	console.log("showWorkflowMenu called with:", {
-		lineNumber,
-		workflowInfo,
-		lineText,
-	});
-
-	// Resolve complete workflow information
-	const resolvedInfo = resolveWorkflowInfo(
-		lineText,
-		view.state.doc,
-		lineNumber,
-		plugin
-	);
-
-	console.log("resolvedInfo in showWorkflowMenu:", resolvedInfo);
+	const resolvedInfo = resolveWorkflowInfo(lineText, doc, lineNumber, plugin);
 
 	if (!resolvedInfo) {
-		console.log("No resolved info, returning early");
 		return false;
 	}
 
 	const { currentStage, currentSubStage, workflow, isRootTask } =
 		resolvedInfo;
 
-	console.log("Current stage type:", currentStage.type);
-	console.log("Is root task:", isRootTask);
-
-	// Handle different workflow states
 	if (workflowInfo.currentStage === "root" || isRootTask) {
-		// Root workflow task options
 		menu.addItem((item) => {
 			item.setTitle(t("Start workflow"))
 				.setIcon("play")
@@ -75,46 +73,40 @@ function showWorkflowMenu(
 				});
 		});
 	} else if (currentStage.type === "terminal") {
-		console.log("Adding terminal stage menu item");
 		menu.addItem((item) => {
 			item.setTitle(t("Complete workflow"))
 				.setIcon("check")
 				.onClick(() => {
-					completeWorkflow(view, app, plugin, lineNumber);
+					completeWorkflow(view, plugin, lineNumber);
 				});
 		});
 	} else {
-		// Use determineNextStage to find the next stage
 		const { nextStageId, nextSubStageId } = determineNextStage(
 			currentStage,
 			workflow,
-			currentSubStage
+			currentSubStage,
 		);
 
 		if (nextStageId) {
 			const nextStage = workflow.stages.find((s) => s.id === nextStageId);
 			if (nextStage) {
-				// Determine the menu title based on the transition type
 				let menuTitle: string;
 
 				if (
 					nextStageId === currentStage.id &&
 					nextSubStageId === currentSubStage?.id
 				) {
-					// Same stage and substage - cycling the same substage
 					menuTitle = `${t("Continue")} ${nextStage.name}${
 						nextSubStageId ? ` (${currentSubStage?.name})` : ""
 					}`;
 				} else if (nextStageId === currentStage.id && nextSubStageId) {
-					// Same stage but different substage
 					const nextSubStage = nextStage.subStages?.find(
-						(ss) => ss.id === nextSubStageId
+						(ss) => ss.id === nextSubStageId,
 					);
 					menuTitle = `${t("Move to")} ${nextStage.name} (${
 						nextSubStage?.name || nextSubStageId
 					})`;
 				} else {
-					// Different stage
 					menuTitle = `${t("Move to")} ${nextStage.name}`;
 				}
 
@@ -131,136 +123,70 @@ function showWorkflowMenu(
 								false,
 								nextSubStageId
 									? nextStage.subStages?.find(
-											(ss) => ss.id === nextSubStageId
-									  )
+											(ss) => ss.id === nextSubStageId,
+										)
 									: undefined,
-								currentSubStage
+								currentSubStage,
 							);
 						});
 				});
 			}
 		}
 
-		// Add option to complete current substage and move to next main stage
-		// This is only available when we're in a substage of a cycle stage
 		if (currentSubStage && currentStage.type === "cycle") {
-			// Check if there's a next main stage available using canProceedTo
-			const canProceedTo = currentStage.canProceedTo as
-				| string[]
-				| undefined;
-			if (canProceedTo && canProceedTo.length > 0) {
-				canProceedTo.forEach((nextStageId: string) => {
-					const nextMainStage = workflow.stages.find(
-						(s) => s.id === nextStageId
-					);
-					if (nextMainStage) {
-						menu.addItem((item) => {
-							item.setTitle(
-								`${t("Complete substage and move to")} ${
-									nextMainStage.name
-								}`
-							)
-								.setIcon("skip-forward")
-								.onClick(() => {
-									completeSubstageAndMoveToNextMainStage(
-										view,
-										app,
-										plugin,
-										lineNumber,
-										nextMainStage,
-										currentSubStage
-									);
-								});
-						});
-					}
-				});
-			}
-			// Also check for explicit next stage
-			else if (typeof currentStage.next === "string") {
-				const nextMainStage = workflow.stages.find(
-					(s) => s.id === currentStage.next
+			const candidateStageIds = new Set<string>();
+
+			if (currentStage.canProceedTo?.length) {
+				currentStage.canProceedTo.forEach((id) =>
+					candidateStageIds.add(id),
 				);
-				if (nextMainStage) {
-					menu.addItem((item) => {
-						item.setTitle(
-							`${t("Complete substage and move to")} ${
-								nextMainStage.name
-							}`
-						)
-							.setIcon("skip-forward")
-							.onClick(() => {
-								completeSubstageAndMoveToNextMainStage(
-									view,
-									app,
-									plugin,
-									lineNumber,
-									nextMainStage,
-									currentSubStage
-								);
-							});
-					});
-				}
+			} else if (typeof currentStage.next === "string") {
+				candidateStageIds.add(currentStage.next);
 			} else if (
 				Array.isArray(currentStage.next) &&
 				currentStage.next.length > 0
 			) {
-				const nextMainStage = workflow.stages.find(
-					(s) => s.id === currentStage.next![0]
-				);
-				if (nextMainStage) {
-					menu.addItem((item) => {
-						item.setTitle(
-							`${t("Complete substage and move to")} ${
-								nextMainStage.name
-							}`
-						)
-							.setIcon("skip-forward")
-							.onClick(() => {
-								completeSubstageAndMoveToNextMainStage(
-									view,
-									app,
-									plugin,
-									lineNumber,
-									nextMainStage,
-									currentSubStage
-								);
-							});
-					});
-				}
-			}
-			// Finally check sequential next stage
-			else {
+				candidateStageIds.add(currentStage.next[0]);
+			} else {
 				const currentIndex = workflow.stages.findIndex(
-					(s) => s.id === currentStage.id
+					(s) => s.id === currentStage.id,
 				);
 				if (
 					currentIndex >= 0 &&
 					currentIndex < workflow.stages.length - 1
 				) {
-					const nextMainStage = workflow.stages[currentIndex + 1];
-					menu.addItem((item) => {
-						item.setTitle(
-							`${t("Complete substage and move to")} ${
-								nextMainStage.name
-							}`
-						)
-							.setIcon("skip-forward")
-							.onClick(() => {
-								completeSubstageAndMoveToNextMainStage(
-									view,
-									app,
-									plugin,
-									lineNumber,
-									nextMainStage,
-									currentSubStage
-								);
-							});
-					});
+					candidateStageIds.add(workflow.stages[currentIndex + 1].id);
 				}
 			}
+
+			candidateStageIds.forEach((nextStageCandidate) => {
+				const nextMainStage = workflow.stages.find(
+					(stage) => stage.id === nextStageCandidate,
+				);
+				if (!nextMainStage) {
+					return;
+				}
+
+				menu.addItem((item) => {
+					item.setTitle(
+						`${t("Complete substage and move to")} ${
+							nextMainStage.name
+						}`,
+					)
+						.setIcon("skip-forward")
+						.onClick(() => {
+							completeSubstageAndMoveToNextMainStage(
+								view,
+								plugin,
+								lineNumber,
+								nextMainStage,
+								currentSubStage,
+							);
+						});
+				});
+			});
 		}
 
-		// Add child task with same stage option
 		menu.addSeparator();
 		menu.addItem((item) => {
 			item.setTitle(t("Add child task with same stage"))
@@ -272,21 +198,19 @@ function showWorkflowMenu(
 						plugin,
 						lineNumber,
 						currentStage,
-						currentSubStage
+						currentSubStage,
 					);
 				});
 		});
 	}
 
-	// Common options for all workflow tasks
 	menu.addSeparator();
 
-	// Add new task option (same level)
 	menu.addItem((item) => {
 		item.setTitle(t("Add new task"))
 			.setIcon("plus")
 			.onClick(() => {
-				addNewSiblingTask(view, app, lineNumber);
+				addNewSiblingTask(view, lineNumber);
 			});
 	});
 
@@ -299,15 +223,12 @@ function showWorkflowMenu(
 			});
 	});
 
-	// Calculate menu position based on cursor
 	const selection = view.state.selection.main;
 	const coords = view.coordsAtPos(selection.head);
 
 	if (coords) {
-		// Show menu at cursor position
 		menu.showAtPosition({ x: coords.left, y: coords.bottom });
 	} else {
-		// Fallback to mouse position
 		menu.showAtMouseEvent(window.event as MouseEvent);
 	}
 
@@ -317,31 +238,20 @@ function showWorkflowMenu(
 /**
  * Add a new sibling task after the current line (same indentation level)
  * @param view The editor view
- * @param app The Obsidian app instance
  * @param lineNumber The current line number
  */
-function addNewSiblingTask(
-	view: EditorView,
-	app: App,
-	lineNumber: number
-): void {
+function addNewSiblingTask(view: EditorView, lineNumber: number): void {
 	const line = view.state.doc.line(lineNumber);
-	const indentMatch = line.text.match(/^([\s|\t]*)/);
-	const indentation = indentMatch ? indentMatch[1] : "";
+	const indentation = getIndentation(line.text);
 
-	// Insert a new task at the same indentation level
+	const insert = `\n${indentation}${TASK_PREFIX}`;
 	view.dispatch({
-		changes: {
-			from: line.to,
-			to: line.to,
-			insert: `\n${indentation}- [ ] `,
-		},
+		changes: { from: line.to, to: line.to, insert },
 		selection: {
-			anchor: line.to + indentation.length + 7, // Position cursor after "- [ ] "
+			anchor: cursorAfterTaskPrefix(line.to, indentation),
 		},
 	});
 
-	// Focus the editor
 	view.focus();
 }
 
@@ -353,24 +263,18 @@ function addNewSiblingTask(
  */
 function addNewSubTask(view: EditorView, app: App, lineNumber: number): void {
 	const line = view.state.doc.line(lineNumber);
-	const indentMatch = line.text.match(/^([\s|\t]*)/);
-	const indentation = indentMatch ? indentMatch[1] : "";
+	const indentation = getIndentation(line.text);
 	const defaultIndentation = buildIndentString(app);
 	const newTaskIndentation = indentation + defaultIndentation;
 
-	// Insert a new sub-task with additional indentation
+	const insert = `\n${newTaskIndentation}${TASK_PREFIX}`;
 	view.dispatch({
-		changes: {
-			from: line.to,
-			to: line.to,
-			insert: `\n${newTaskIndentation}- [ ] `,
-		},
+		changes: { from: line.to, to: line.to, insert },
 		selection: {
-			anchor: line.to + newTaskIndentation.length + 7, // Position cursor after "- [ ] "
+			anchor: cursorAfterTaskPrefix(line.to, newTaskIndentation),
 		},
 	});
 
-	// Focus the editor
 	view.focus();
 }
 
@@ -385,12 +289,15 @@ function startWorkflow(
 	view: EditorView,
 	app: App,
 	plugin: TaskProgressBarPlugin,
-	lineNumber: number
+	lineNumber: number,
 ): void {
-	const line = view.state.doc.line(lineNumber);
+	const doc = view.state.doc;
+	if (lineNumber < 1 || lineNumber > doc.lines) {
+		return;
+	}
+	const line = doc.line(lineNumber);
 	const lineText = line.text;
 
-	// Extract workflow information
 	const workflowInfo = extractWorkflowInfo(lineText);
 	if (!workflowInfo) {
 		return;
@@ -401,7 +308,7 @@ function startWorkflow(
 		lineText,
 		view.state.doc,
 		lineNumber,
-		plugin
+		plugin,
 	);
 
 	if (!resolvedInfo || !resolvedInfo.workflow.stages.length) {
@@ -411,34 +318,16 @@ function startWorkflow(
 	const { workflow } = resolvedInfo;
 	const firstStage = workflow.stages[0];
 
-	// Get indentation
-	const indentMatch = lineText.match(/^([\s|\t]*)/);
-	const indentation = indentMatch ? indentMatch[1] : "";
-	const defaultIndentation = buildIndentString(app);
-	const newTaskIndentation = indentation + defaultIndentation;
-
-	// Create task text for the first stage
-	const timestamp = plugin.settings.workflow.autoAddTimestamp
-		? ` 🛫 ${new Date().toISOString().slice(0, 19).replace("T", " ")}`
-		: "";
-
-	let newTaskText = `${newTaskIndentation}- [ ] ${firstStage.name} [stage::${firstStage.id}]${timestamp}`;
-
-	// Add subtask for first substage if this is a cycle stage with substages
-	if (
-		firstStage.type === "cycle" &&
-		firstStage.subStages &&
-		firstStage.subStages.length > 0
-	) {
-		const firstSubStage = firstStage.subStages[0];
-		const subTaskIndentation = newTaskIndentation + defaultIndentation;
-		newTaskText += `\n${subTaskIndentation}- [ ] ${firstStage.name} (${firstSubStage.name}) [stage::${firstStage.id}.${firstSubStage.id}]${timestamp}`;
-	}
-
-	// Insert the new task after the current line and move cursor to it
+	const indentation = getIndentation(lineText);
+	const newTaskIndentation = indentation + buildIndentString(app);
+	const newTaskText = generateWorkflowTaskText(
+		firstStage,
+		newTaskIndentation,
+		plugin,
+		true,
+	);
 	const insertText = `\n${newTaskText}`;
-	const newTaskLineStart = line.to + 1; // Start of the new line
-	const cursorPosition = newTaskLineStart + newTaskIndentation.length + 7; // Position after "- [ ] "
+	const cursorPosition = cursorAfterTaskPrefix(line.to, newTaskIndentation);
 
 	view.dispatch({
 		changes: {
@@ -451,7 +340,6 @@ function startWorkflow(
 		},
 	});
 
-	// Focus the editor
 	view.focus();
 }
 
@@ -463,7 +351,7 @@ function startWorkflow(
  */
 export function workflowRootEnterHandlerExtension(
 	app: App,
-	plugin: TaskProgressBarPlugin
+	plugin: TaskProgressBarPlugin,
 ) {
 	// Don't enable if workflow feature is disabled
 	if (!plugin.settings.workflow.enableWorkflow) {
@@ -481,8 +369,7 @@ export function workflowRootEnterHandlerExtension(
 					const lineText = line.text;
 
 					// Check if this is a workflow root task
-					const taskRegex = /^([\s|\t]*)([-*+]|\d+\.)\s+\[(.)]/;
-					const taskMatch = lineText.match(taskRegex);
+					const taskMatch = lineText.match(TASK_REGEX);
 
 					if (!taskMatch) {
 						return false; // Not a task, allow default behavior
@@ -505,11 +392,11 @@ export function workflowRootEnterHandlerExtension(
 						app,
 						plugin,
 						line.number,
-						workflowInfo
+						workflowInfo,
 					);
 				},
 			},
-		])
+		]),
 	);
 
 	return [keymapExtension];
@@ -531,32 +418,23 @@ function moveToNextStageWithSubStage(
 	app: App,
 	plugin: TaskProgressBarPlugin,
 	lineNumber: number,
-	nextStage: any,
+	nextStage: WorkflowStage,
 	isRootTask: boolean,
-	nextSubStage?: any,
-	currentSubStage?: any
+	nextSubStage?: WorkflowSubStage,
+	currentSubStage?: WorkflowSubStage,
 ): void {
 	const doc = view.state.doc;
+	if (lineNumber < 1 || lineNumber > doc.lines) {
+		return;
+	}
 	const line = doc.line(lineNumber);
 	const lineText = line.text;
 
-	// Validate that the line exists and is within document bounds
-	if (lineNumber > doc.lines || lineNumber < 1) {
-		console.warn(
-			`Invalid line number: ${lineNumber}, doc has ${doc.lines} lines`
-		);
-		return;
-	}
-
-	// Create a mock Editor object that wraps the EditorView
-	const editor = view.state.field(editorInfoField)?.editor;
-
+	const editor = getEditorFromView(view);
 	if (!editor) {
-		console.warn("Editor not found");
 		return;
 	}
 
-	// Use the existing createWorkflowStageTransition function
 	const changes = createWorkflowStageTransition(
 		plugin,
 		editor,
@@ -565,30 +443,21 @@ function moveToNextStageWithSubStage(
 		nextStage,
 		isRootTask,
 		nextSubStage,
-		currentSubStage
+		currentSubStage,
 	);
 
-	// Calculate cursor position for the new task
-	let cursorPosition = line.to; // Default to end of current line
-
-	// Find the insertion point for the new task from the changes
-	const insertChange = changes.find(
-		(change) => change.insert && change.insert.includes("- [ ]")
+	const indentation = getIndentation(lineText);
+	const defaultIndentation = buildIndentString(app);
+	const newTaskIndentation = isRootTask
+		? indentation + defaultIndentation
+		: indentation;
+	const insertedTask = changes.some(
+		(change) => change.insert && change.insert.includes(TASK_PREFIX),
 	);
+	const cursorPosition = insertedTask
+		? cursorAfterTaskPrefix(line.to, newTaskIndentation)
+		: line.to;
 
-	if (insertChange) {
-		// Calculate position after the new task marker "- [ ] "
-		const indentMatch = lineText.match(/^([\s|\t]*)/);
-		const indentation = indentMatch ? indentMatch[1] : "";
-		const defaultIndentation = buildIndentString(app);
-		const newTaskIndentation =
-			indentation + (isRootTask ? defaultIndentation : "");
-
-		// Position after the insertion point + newline + indentation + "- [ ] "
-		cursorPosition = insertChange.from + 1 + newTaskIndentation.length + 6;
-	}
-
-	// Apply all changes in a single transaction
 	view.dispatch({
 		changes,
 		selection: {
@@ -614,30 +483,21 @@ function moveToNextStage(
 	app: App,
 	plugin: TaskProgressBarPlugin,
 	lineNumber: number,
-	nextStage: any,
-	isRootTask: boolean
+	nextStage: WorkflowStage,
+	isRootTask: boolean,
 ): void {
 	const doc = view.state.doc;
+	if (lineNumber < 1 || lineNumber > doc.lines) {
+		return;
+	}
 	const line = doc.line(lineNumber);
 	const lineText = line.text;
 
-	// Validate that the line exists and is within document bounds
-	if (lineNumber > doc.lines || lineNumber < 1) {
-		console.warn(
-			`Invalid line number: ${lineNumber}, doc has ${doc.lines} lines`
-		);
-		return;
-	}
-
-	// Create a mock Editor object that wraps the EditorView
-	const editor = view.state.field(editorInfoField)?.editor;
-
+	const editor = getEditorFromView(view);
 	if (!editor) {
-		console.warn("Editor not found");
 		return;
 	}
 
-	// Use the existing createWorkflowStageTransition function
 	const changes = createWorkflowStageTransition(
 		plugin,
 		editor,
@@ -646,30 +506,21 @@ function moveToNextStage(
 		nextStage,
 		isRootTask,
 		undefined, // nextSubStage
-		undefined // currentSubStage
+		undefined, // currentSubStage
 	);
 
-	// Calculate cursor position for the new task
-	let cursorPosition = line.to; // Default to end of current line
-
-	// Find the insertion point for the new task from the changes
-	const insertChange = changes.find(
-		(change) => change.insert && change.insert.includes("- [ ]")
+	const indentation = getIndentation(lineText);
+	const defaultIndentation = buildIndentString(app);
+	const newTaskIndentation = isRootTask
+		? indentation + defaultIndentation
+		: indentation;
+	const insertedTask = changes.some(
+		(change) => change.insert && change.insert.includes(TASK_PREFIX),
 	);
+	const cursorPosition = insertedTask
+		? cursorAfterTaskPrefix(line.to, newTaskIndentation)
+		: line.to;
 
-	if (insertChange) {
-		// Calculate position after the new task marker "- [ ] "
-		const indentMatch = lineText.match(/^([\s|\t]*)/);
-		const indentation = indentMatch ? indentMatch[1] : "";
-		const defaultIndentation = buildIndentString(app);
-		const newTaskIndentation =
-			indentation + (isRootTask ? defaultIndentation : "");
-
-		// Position after the insertion point + newline + indentation + "- [ ] "
-		cursorPosition = insertChange.from + 1 + newTaskIndentation.length + 6;
-	}
-
-	// Apply all changes in a single transaction
 	view.dispatch({
 		changes,
 		selection: {
@@ -684,53 +535,35 @@ function moveToNextStage(
 /**
  * Complete the workflow
  * @param view The editor view
- * @param app The Obsidian app instance
  * @param plugin The plugin instance
  * @param lineNumber The current line number
  */
 function completeWorkflow(
 	view: EditorView,
-	app: App,
 	plugin: TaskProgressBarPlugin,
-	lineNumber: number
+	lineNumber: number,
 ): void {
 	const doc = view.state.doc;
+	if (lineNumber < 1 || lineNumber > doc.lines) {
+		return;
+	}
 	const line = doc.line(lineNumber);
 	const lineText = line.text;
 
-	// Validate that the line exists and is within document bounds
-	if (lineNumber > doc.lines || lineNumber < 1) {
-		console.warn(
-			`Invalid line number: ${lineNumber}, doc has ${doc.lines} lines`
-		);
-		return;
-	}
-
-	// Create a mock Editor object that wraps the EditorView
-	const editor = view.state.field(editorInfoField)?.editor;
+	const editor = getEditorFromView(view);
 
 	if (!editor) {
-		console.warn("Editor not found");
 		return;
 	}
 
-	// Resolve workflow information to get the current stage
 	const resolvedInfo = resolveWorkflowInfo(lineText, doc, lineNumber, plugin);
 
-	console.log("resolvedInfo", resolvedInfo);
-
 	if (!resolvedInfo) {
-		console.warn("Could not resolve workflow information");
 		return;
 	}
 
 	const { currentStage, currentSubStage } = resolvedInfo;
 
-	console.log("currentStage", currentStage);
-	console.log("currentSubStage", currentSubStage);
-
-	// Use the existing createWorkflowStageTransition function to handle the completion
-	// For terminal stages, this will complete the current task and handle root task completion
 	const changes = createWorkflowStageTransition(
 		plugin,
 		editor,
@@ -739,11 +572,9 @@ function completeWorkflow(
 		currentStage, // Pass the current stage as the "next" stage for terminal completion
 		false, // Not a root task
 		undefined, // No next substage
-		currentSubStage
+		currentSubStage,
 	);
 
-	// Apply all changes in a single transaction
-	// Use workflowChange annotation instead of workflowComplete to allow autoCompleteParent to work
 	view.dispatch({
 		changes,
 		annotations: taskStatusChangeAnnotation.of("workflowChange"),
@@ -766,12 +597,11 @@ function addChildTaskWithSameStage(
 	app: App,
 	plugin: TaskProgressBarPlugin,
 	lineNumber: number,
-	currentStage: any,
-	currentSubStage?: any
+	currentStage: WorkflowStage,
+	currentSubStage?: WorkflowSubStage,
 ): void {
 	const line = view.state.doc.line(lineNumber);
-	const indentMatch = line.text.match(/^([\s|\t]*)/);
-	const indentation = indentMatch ? indentMatch[1] : "";
+	const indentation = getIndentation(line.text);
 	const defaultIndentation = buildIndentString(app);
 	const newTaskIndentation = indentation + defaultIndentation;
 
@@ -781,7 +611,7 @@ function addChildTaskWithSameStage(
 		newTaskIndentation,
 		plugin,
 		false,
-		currentSubStage
+		currentSubStage,
 	);
 
 	// Insert the new task after the current line
@@ -792,7 +622,7 @@ function addChildTaskWithSameStage(
 			insert: `\n${newTaskText}`,
 		},
 		selection: {
-			anchor: line.to + newTaskIndentation.length + 7,
+			anchor: cursorAfterTaskPrefix(line.to, newTaskIndentation),
 		},
 	});
 
@@ -802,7 +632,6 @@ function addChildTaskWithSameStage(
 /**
  * Move to the next main stage and complete both current substage and parent stage
  * @param view The editor view
- * @param app The Obsidian app instance
  * @param plugin The plugin instance
  * @param lineNumber The current line number
  * @param nextStage The next main stage to move to
@@ -810,52 +639,36 @@ function addChildTaskWithSameStage(
  */
 function completeSubstageAndMoveToNextMainStage(
 	view: EditorView,
-	app: App,
 	plugin: TaskProgressBarPlugin,
 	lineNumber: number,
-	nextStage: any,
-	currentSubStage: any
+	nextStage: WorkflowStage,
+	currentSubStage: WorkflowSubStage,
 ): void {
 	const doc = view.state.doc;
+	if (lineNumber < 1 || lineNumber > doc.lines) {
+		return;
+	}
 	const line = doc.line(lineNumber);
 	const lineText = line.text;
 
-	// Validate that the line exists and is within document bounds
-	if (lineNumber > doc.lines || lineNumber < 1) {
-		console.warn(
-			`Invalid line number: ${lineNumber}, doc has ${doc.lines} lines`
-		);
-		return;
-	}
-
-	// Create a mock Editor object that wraps the EditorView
-	const editor = view.state.field(editorInfoField)?.editor;
+	const editor = getEditorFromView(view);
 
 	if (!editor) {
-		console.warn("Editor not found");
 		return;
 	}
 
 	let changes: { from: number; to: number; insert: string }[] = [];
 
-	// 1. Find and handle the parent stage task first
-	const currentIndentMatch = lineText.match(/^([\s|\t]*)/);
-	const currentIndent = currentIndentMatch ? currentIndentMatch[1].length : 0;
-	const taskRegex = /^([\s|\t]*)([-*+]|\d+\.)\s+\[(.)]/;
+	const currentIndent = getIndentation(lineText).length;
 
-	// Look upward to find the parent stage task (with less indentation)
 	for (let i = lineNumber - 1; i >= 1; i--) {
 		const checkLine = doc.line(i);
-		const checkIndentMatch = checkLine.text.match(/^([\s|\t]*)/);
-		const checkIndent = checkIndentMatch ? checkIndentMatch[1].length : 0;
+		const checkIndent = getIndentation(checkLine.text).length;
 
-		// If this line has less indentation and is a task, it's likely the parent stage
 		if (checkIndent < currentIndent) {
-			const parentTaskMatch = checkLine.text.match(taskRegex);
+			const parentTaskMatch = checkLine.text.match(TASK_REGEX);
 			if (parentTaskMatch) {
-				// Check if this is a stage task (has [stage::] marker)
 				if (checkLine.text.includes("[stage::")) {
-					// Use createWorkflowStageTransition for the parent task to handle timestamps and time calculation
 					const parentTransitionChanges =
 						createWorkflowStageTransition(
 							plugin,
@@ -865,15 +678,14 @@ function completeSubstageAndMoveToNextMainStage(
 							nextStage, // The next stage we're transitioning to
 							false, // Not a root task
 							undefined, // No next substage for parent
-							undefined // No current substage for parent
+							undefined, // No current substage for parent
 						);
 
-					// Filter out the "insert new task" changes from parent transition since we'll handle that separately
 					const parentCompletionChanges =
 						parentTransitionChanges.filter(
 							(change) =>
 								!change.insert ||
-								!change.insert.includes("- [ ]")
+								!change.insert.includes(TASK_PREFIX),
 						);
 
 					changes.push(...parentCompletionChanges);
@@ -893,13 +705,12 @@ function completeSubstageAndMoveToNextMainStage(
 		nextStage,
 		false, // Not a root task
 		undefined, // No next substage - moving to main stage
-		currentSubStage
+		currentSubStage,
 	);
 
 	// Combine all changes
 	changes.push(...transitionChanges);
 
-	// Apply all changes in a single transaction
 	view.dispatch({
 		changes,
 		annotations: taskStatusChangeAnnotation.of("workflowChange"),

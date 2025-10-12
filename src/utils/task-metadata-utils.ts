@@ -13,12 +13,26 @@ import { StandardTaskMetadata, EnhancedStandardTaskMetadata } from "../types/tas
  */
 export function timestampToTimeComponent(timestamp: number): TimeComponent {
 	const date = new Date(timestamp);
+	const isLikelyDateOnly =
+		date.getUTCHours() === 0 &&
+		date.getUTCMinutes() === 0 &&
+		date.getUTCSeconds() === 0 &&
+		date.getUTCMilliseconds() === 0;
+	const hour = isLikelyDateOnly ? 0 : date.getHours();
+	const minute = isLikelyDateOnly ? 0 : date.getMinutes();
+	const secondValue = isLikelyDateOnly ? 0 : date.getSeconds();
+	const second =
+		secondValue !== undefined && secondValue !== 0 ? secondValue : undefined;
 	return {
-		hour: date.getHours(),
-		minute: date.getMinutes(),
-		second: date.getSeconds(),
-		originalText: `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`,
-		isRange: false
+		hour,
+		minute,
+		second,
+		originalText: `${hour.toString().padStart(2, '0')}:${minute
+			.toString()
+			.padStart(2, '0')}${second !== undefined ? `:${second
+			.toString()
+			.padStart(2, '0')}` : ''}`,
+		isRange: false,
 	};
 }
 
@@ -84,6 +98,16 @@ export function createEnhancedDates(
 	// Combine due date and time
 	if (metadata.dueDate && timeComponents.dueTime) {
 		enhancedDates.dueDateTime = combineDateAndTime(metadata.dueDate, timeComponents.dueTime);
+	}
+
+	// If we have a due date but only scheduled time, use it for scheduled and due datetimes
+	if (metadata.dueDate && !metadata.scheduledDate && timeComponents.scheduledTime) {
+		if (!enhancedDates.dueDateTime) {
+			enhancedDates.dueDateTime = combineDateAndTime(metadata.dueDate, timeComponents.scheduledTime);
+		}
+		if (!enhancedDates.scheduledDateTime) {
+			enhancedDates.scheduledDateTime = combineDateAndTime(metadata.dueDate, timeComponents.scheduledTime);
+		}
 	}
 
 	// Combine scheduled date and time

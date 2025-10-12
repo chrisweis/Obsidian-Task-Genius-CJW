@@ -747,10 +747,34 @@ export class FileTaskManagerImpl implements FileTaskManager {
 	): number | undefined {
 		if (!propertyName) return undefined;
 		try {
-			const value = entry.getValue({
-				type: "property",
-				name: propertyName,
-			});
+			const fallbackNames: Record<string, string[]> = {
+				createdDate: ["created"],
+				startDate: ["start"],
+				scheduledDate: ["scheduled"],
+				dueDate: ["due"],
+				completedDate: ["completion", "completed", "done"],
+			};
+
+			const candidateNames = [
+				propertyName,
+				...(fallbackNames[propertyName] || []),
+			];
+
+			let value: any = undefined;
+			for (const name of candidateNames) {
+				try {
+					value = entry.getValue({
+						type: "property",
+						name,
+					});
+				} catch {
+					value = undefined;
+				}
+
+				if (value !== undefined && value !== null) {
+					break;
+				}
+			}
 
 			if (value === null || value === undefined) return undefined;
 
@@ -923,6 +947,23 @@ export class FileTaskManagerImpl implements FileTaskManager {
 			enhancedDates.startDateTime = combineDateTime(dates.startDate, timeComponents.startTime);
 		}
 
+		// Fallback for start datetime when explicit start date is missing
+		if (
+			!enhancedDates.startDateTime &&
+			timeComponents.startTime
+		) {
+			const fallbackDate =
+				dates.dueDate ??
+				dates.scheduledDate ??
+				dates.completedDate;
+			if (fallbackDate) {
+				enhancedDates.startDateTime = combineDateTime(
+					fallbackDate,
+					timeComponents.startTime
+				);
+			}
+		}
+
 		// Combine due date with due time
 		if (dates.dueDate && timeComponents.dueTime) {
 			enhancedDates.dueDateTime = combineDateTime(dates.dueDate, timeComponents.dueTime);
@@ -946,8 +987,15 @@ export class FileTaskManagerImpl implements FileTaskManager {
 		}
 
 		// Handle end time - if we have start date and end time, create end datetime
-		if (dates.startDate && timeComponents.endTime) {
-			enhancedDates.endDateTime = combineDateTime(dates.startDate, timeComponents.endTime);
+		if (timeComponents.endTime) {
+			const endBaseDate =
+				dates.startDate ??
+				dates.dueDate ??
+				dates.scheduledDate ??
+				dates.completedDate;
+			if (endBaseDate) {
+				enhancedDates.endDateTime = combineDateTime(endBaseDate, timeComponents.endTime);
+			}
 		}
 
 		return Object.keys(enhancedDates).length > 0 ? enhancedDates : undefined;

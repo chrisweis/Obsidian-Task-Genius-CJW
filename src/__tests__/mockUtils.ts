@@ -471,6 +471,9 @@ const createMockPlugin = (
 		app: mockApp,
 		dataflowOrchestrator: mockDataflowOrchestrator,
 		writeAPI: mockWriteAPI,
+		taskManager: {
+			getCanvasTaskUpdater: jest.fn(),
+		},
 		rewardManager: {
 			// Mock RewardManager
 			showReward: jest.fn(),

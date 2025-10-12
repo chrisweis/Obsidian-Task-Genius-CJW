@@ -576,9 +576,9 @@ export class IcsManager extends Component {
 		}
 
 		// Format time as HH:MM or HH:MM:SS depending on whether seconds are present
-		const hours = date.getHours().toString().padStart(2, '0');
-		const minutes = date.getMinutes().toString().padStart(2, '0');
-		const seconds = date.getSeconds();
+		const hours = date.getUTCHours().toString().padStart(2, '0');
+		const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+		const seconds = date.getUTCSeconds();
 		
 		let originalText = `${hours}:${minutes}`;
 		if (seconds > 0) {
@@ -586,8 +586,8 @@ export class IcsManager extends Component {
 		}
 
 		return {
-			hour: date.getHours(),
-			minute: date.getMinutes(),
+			hour: parseInt(hours, 10),
+			minute: parseInt(minutes, 10),
 			second: seconds > 0 ? seconds : undefined,
 			originalText,
 			isRange: false,

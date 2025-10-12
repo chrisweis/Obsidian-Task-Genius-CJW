@@ -118,27 +118,27 @@ function handleParentTaskUpdateTransaction(
 		);
 
 		// Check if there are any child tasks at all
-		const hasAnyChildTasks = hasAnyChildTasksAtLevel(
-			doc,
-			parentLineNumber,
-			indentationLevel,
-			app
-		);
+	const hasAnyChildTasks = hasAnyChildTasksAtLevel(
+		doc,
+		parentLineNumber,
+		indentationLevel,
+		app
+	);
 
-		// Mark as in-progress if:
-		// 1. Parent is currently empty and any sibling has status, OR
-		// 2. Parent is currently complete but not all siblings are complete and there are child tasks
-		if (
-			(parentCurrentStatus === " " && anySiblingHasStatus) ||
-			(parentCurrentStatus === "x" &&
-				!allSiblingsCompleted &&
-				hasAnyChildTasks)
-		) {
-			const inProgressMarker =
-				plugin.settings.taskStatuses.inProgress.split("|")[0] || "/";
+	// Mark as in-progress if:
+	// 1. Parent is currently empty and any sibling has status, OR
+	// 2. Parent is currently complete but not all siblings are complete and there are child tasks
+	if (
+		(parentCurrentStatus === " " && anySiblingHasStatus) ||
+		(parentCurrentStatus === "x" &&
+			!allSiblingsCompleted &&
+			hasAnyChildTasks)
+	) {
+		const inProgressMarker =
+			plugin.settings.taskStatuses.inProgress.split("|")[0] || "/";
 
-			return markParentAsInProgress(tr, parentLineNumber, doc, [
-				inProgressMarker,
+		return markParentAsInProgress(tr, parentLineNumber, doc, [
+			inProgressMarker,
 			]);
 		}
 	}
@@ -312,13 +312,13 @@ function findTaskStatusChange(tr: Transaction): {
 					// Line might not exist in old document
 				}
 
-				// If we couldn't get the old line or the content has changed in the task marker area
-				if (
-					!oldLine ||
-					(inserted.length > 0 &&
-						line.from + lineText.indexOf("[") <= toB &&
-						line.from + lineText.indexOf("]") >= fromB)
-				) {
+				const newStatus = taskMatch[2];
+				const oldStatus = oldLine
+					? (oldLine.text.match(/^[\s|\t]*([-*+]|\d+\.)\s\[(.)\]/i)?.[2] ?? null)
+					: null;
+
+				// If the status character changed or we couldn't get the old line, mark as changed
+				if (!oldLine || newStatus !== oldStatus) {
 					taskChangedLine = line.number;
 				}
 			}

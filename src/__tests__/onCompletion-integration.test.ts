@@ -14,7 +14,7 @@ import { createMockPlugin, createMockApp } from "./mockUtils";
 import { OnCompletionActionType } from "../types/onCompletion";
 
 // Mock all the actual executor implementations
-jest.mock("../utils/onCompletion/DeleteActionExecutor", () => ({
+jest.mock("../executors/completion/delete-executor", () => ({
 	DeleteActionExecutor: jest.fn().mockImplementation(() => ({
 		execute: jest
 			.fn()
@@ -24,7 +24,7 @@ jest.mock("../utils/onCompletion/DeleteActionExecutor", () => ({
 	})),
 }));
 
-jest.mock("../utils/onCompletion/CompleteActionExecutor", () => ({
+jest.mock("../executors/completion/complete-executor", () => ({
 	CompleteActionExecutor: jest.fn().mockImplementation(() => ({
 		execute: jest
 			.fn()
@@ -34,7 +34,7 @@ jest.mock("../utils/onCompletion/CompleteActionExecutor", () => ({
 	})),
 }));
 
-jest.mock("../utils/onCompletion/MoveActionExecutor", () => ({
+jest.mock("../executors/completion/move-executor", () => ({
 	MoveActionExecutor: jest.fn().mockImplementation(() => ({
 		execute: jest
 			.fn()
@@ -44,7 +44,7 @@ jest.mock("../utils/onCompletion/MoveActionExecutor", () => ({
 	})),
 }));
 
-jest.mock("../utils/onCompletion/ArchiveActionExecutor", () => ({
+jest.mock("../executors/completion/archive-executor", () => ({
 	ArchiveActionExecutor: jest.fn().mockImplementation(() => ({
 		execute: jest
 			.fn()
@@ -54,7 +54,7 @@ jest.mock("../utils/onCompletion/ArchiveActionExecutor", () => ({
 	})),
 }));
 
-jest.mock("../utils/onCompletion/DuplicateActionExecutor", () => ({
+jest.mock("../executors/completion/duplicate-executor", () => ({
 	DuplicateActionExecutor: jest.fn().mockImplementation(() => ({
 		execute: jest
 			.fn()
@@ -64,7 +64,7 @@ jest.mock("../utils/onCompletion/DuplicateActionExecutor", () => ({
 	})),
 }));
 
-jest.mock("../utils/onCompletion/KeepActionExecutor", () => ({
+jest.mock("../executors/completion/keep-executor", () => ({
 	KeepActionExecutor: jest.fn().mockImplementation(() => ({
 		execute: jest
 			.fn()

@@ -92,7 +92,7 @@ jest.mock("moment", () => {
 	return moment;
 });
 
-jest.mock("../editor-ext/markdownEditor", () => ({
+jest.mock("../editor-extensions/core/markdown-editor", () => ({
 	createEmbeddableMarkdownEditor: jest.fn(() => ({
 		value: "",
 		editor: { focus: jest.fn() },
@@ -101,7 +101,7 @@ jest.mock("../editor-ext/markdownEditor", () => ({
 	})),
 }));
 
-jest.mock("../utils/fileUtils", () => ({
+jest.mock("../utils/file/file-operations", () => ({
 	saveCapture: jest.fn(),
 	processDateTemplates: jest.fn(),
 }));

@@ -75,6 +75,12 @@ export class App {
 				extension: "md",
 			};
 		},
+
+		onLayoutReady: function (callback: () => void) {
+			if (typeof callback === "function") {
+				callback();
+			}
+		},
 	};
 
 	fileManager = {
@@ -418,6 +424,40 @@ export class Component {
 
 	registerEvent(eventRef: { unload: () => void }): void {
 		this._events.push(eventRef);
+	}
+}
+
+export class Modal extends Component {
+	app: App;
+	modalEl: HTMLElement | Record<string, unknown>;
+	contentEl: HTMLElement | Record<string, unknown>;
+
+	constructor(app: App) {
+		super();
+		this.app = app;
+		if (typeof document !== "undefined" && document.createElement) {
+			this.modalEl = document.createElement("div");
+			this.contentEl = document.createElement("div");
+		} else {
+			this.modalEl = {};
+			this.contentEl = {};
+		}
+	}
+
+	open(): void {
+		this.onOpen();
+	}
+
+	close(): void {
+		this.onClose();
+	}
+
+	onOpen(): void {
+		// Override in subclasses
+	}
+
+	onClose(): void {
+		// Override in subclasses
 	}
 }
 

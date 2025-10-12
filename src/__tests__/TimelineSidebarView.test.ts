@@ -39,19 +39,19 @@ jest.mock('obsidian', () => {
 });
 
 // Mock other dependencies
-jest.mock('../components/QuickCaptureModal', () => ({
+jest.mock('../components/features/quick-capture/modals/QuickCaptureModal', () => ({
 	QuickCaptureModal: class MockQuickCaptureModal {},
 }));
 
-jest.mock('../editor-ext/markdownEditor', () => ({
+jest.mock('../editor-extensions/core/markdown-editor', () => ({
 	createEmbeddableMarkdownEditor: jest.fn(),
 }));
 
-jest.mock('../utils/fileUtils', () => ({
+jest.mock('../utils/file/file-operations', () => ({
 	saveCapture: jest.fn(),
 }));
 
-jest.mock('../components/task-view/details', () => ({
+jest.mock('../components/features/task/view/details', () => ({
 	createTaskCheckbox: jest.fn(),
 }));
 

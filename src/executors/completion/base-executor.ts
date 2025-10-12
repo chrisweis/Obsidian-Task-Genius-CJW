@@ -5,6 +5,7 @@ import {
 } from "../../types/onCompletion";
 import { Task, CanvasTaskMetadata } from "../../types/task";
 import { CanvasTaskUpdater } from "../../parsers/canvas-task-updater";
+import TaskProgressBarPlugin from "@/index";
 
 /**
  * Abstract base class for all onCompletion action executors
@@ -18,12 +19,12 @@ export abstract class BaseActionExecutor {
 	 */
 	public async execute(
 		context: OnCompletionExecutionContext,
-		config: OnCompletionConfig
+		config: OnCompletionConfig,
 	): Promise<OnCompletionExecutionResult> {
 		if (!this.validateConfig(config)) {
 			return this.createErrorResult("Invalid configuration");
 		}
-		
+
 		// Route to appropriate execution method based on task type
 		if (this.isCanvasTask(context.task)) {
 			return this.executeForCanvas(context, config);
@@ -40,7 +41,7 @@ export abstract class BaseActionExecutor {
 	 */
 	protected abstract executeForCanvas(
 		context: OnCompletionExecutionContext,
-		config: OnCompletionConfig
+		config: OnCompletionConfig,
 	): Promise<OnCompletionExecutionResult>;
 
 	/**
@@ -51,7 +52,7 @@ export abstract class BaseActionExecutor {
 	 */
 	protected abstract executeForMarkdown(
 		context: OnCompletionExecutionContext,
-		config: OnCompletionConfig
+		config: OnCompletionConfig,
 	): Promise<OnCompletionExecutionResult>;
 
 	/**
@@ -74,7 +75,7 @@ export abstract class BaseActionExecutor {
 	 * @returns Success result
 	 */
 	protected createSuccessResult(
-		message?: string
+		message?: string,
 	): OnCompletionExecutionResult {
 		return {
 			success: true,
@@ -109,9 +110,14 @@ export abstract class BaseActionExecutor {
 	 * @returns CanvasTaskUpdater instance
 	 */
 	protected getCanvasTaskUpdater(
-		context: OnCompletionExecutionContext
+		context: OnCompletionExecutionContext,
 	): CanvasTaskUpdater {
-		// Create CanvasTaskUpdater directly without TaskManager
+		// Prefer using the plugin's task manager if available (allows mocking in tests)
+		const plugin = context.plugin as TaskProgressBarPlugin;
+		if (plugin?.writeAPI) {
+			return plugin.writeAPI.canvasTaskUpdater;
+		}
+
 		return new CanvasTaskUpdater(context.app.vault, context.plugin);
 	}
 }

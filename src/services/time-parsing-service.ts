@@ -53,19 +53,25 @@ export interface TimeParsingConfig {
 
 export class TimeParsingService {
 	private config: TimeParsingConfig | EnhancedTimeParsingConfig;
-	private parseCache: Map<string, ParsedTimeResult | EnhancedParsedTimeResult> = new Map();
+	private parseCache: Map<
+		string,
+		ParsedTimeResult | EnhancedParsedTimeResult
+	> = new Map();
 	private maxCacheSize: number = 100;
-	
+
 	// Time pattern regexes
 	private readonly TIME_PATTERNS = {
 		// 24-hour format: 12:00, 12:00:00
 		TIME_24H: /\b([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\b/g,
 		// 12-hour format: 1:30 PM, 1:30:00 PM
-		TIME_12H: /\b(1[0-2]|0?[1-9]):([0-5]\d)(?::([0-5]\d))?\s*(AM|PM|am|pm)\b/g,
+		TIME_12H:
+			/\b(1[0-2]|0?[1-9]):([0-5]\d)(?::([0-5]\d))?\s*(AM|PM|am|pm)\b/g,
 		// Time range: 12:00-13:00, 12:00~13:00, 12:00 - 13:00
-		TIME_RANGE: /\b([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\s*[-~～]\s*([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\b/g,
+		TIME_RANGE:
+			/\b([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\s*[-~～]\s*([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\b/g,
 		// Time range with 12-hour format
-		TIME_RANGE_12H: /\b(1[0-2]|0?[1-9]):([0-5]\d)(?::([0-5]\d))?\s*(AM|PM|am|pm)?\s*[-~～]\s*(1[0-2]|0?[1-9]):([0-5]\d)(?::([0-5]\d))?\s*(AM|PM|am|pm)\b/g,
+		TIME_RANGE_12H:
+			/\b(1[0-2]|0?[1-9]):([0-5]\d)(?::([0-5]\d))?\s*(AM|PM|am|pm)?\s*[-~～]\s*(1[0-2]|0?[1-9]):([0-5]\d)(?::([0-5]\d))?\s*(AM|PM|am|pm)\b/g,
 	};
 
 	constructor(config: TimeParsingConfig | EnhancedTimeParsingConfig) {
@@ -93,11 +99,14 @@ export class TimeParsingService {
 				type: "invalid-format",
 				originalText: text,
 				position: 0,
-				message: error instanceof Error ? error.message : "Unknown error during time parsing",
+				message:
+					error instanceof Error
+						? error.message
+						: "Unknown error during time parsing",
 				fallbackUsed: true,
 			};
 			errors.push(timeError);
-			
+
 			return {
 				timeComponents: {},
 				errors,
@@ -140,9 +149,11 @@ export class TimeParsingService {
 	private parseTimeComponent(timeText: string): TimeComponent | null {
 		// Clean input
 		const cleanedText = timeText.trim();
-		
+
 		// Try 12-hour format first (more specific)
-		const match12h = cleanedText.match(/^(1[0-2]|0?[1-9]):([0-5]\d)(?::([0-5]\d))?\s*(AM|PM|am|pm)$/i);
+		const match12h = cleanedText.match(
+			/^(1[0-2]|0?[1-9]):([0-5]\d)(?::([0-5]\d))?\s*(AM|PM|am|pm)$/i,
+		);
 		if (match12h) {
 			let hour = parseInt(match12h[1], 10);
 			const minute = parseInt(match12h[2], 10);
@@ -164,28 +175,36 @@ export class TimeParsingService {
 				isRange: false,
 			};
 		}
-		
+
 		// Try 24-hour format
-		const match24h = cleanedText.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+		const match24h = cleanedText.match(
+			/^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/,
+		);
 		if (match24h) {
 			let hour = parseInt(match24h[1], 10);
 			const minute = parseInt(match24h[2], 10);
 			const second = match24h[3] ? parseInt(match24h[3], 10) : undefined;
-			
+
 			// Validate ranges
-			if (hour > 23 || minute > 59 || (second !== undefined && second > 59)) {
+			if (
+				hour > 23 ||
+				minute > 59 ||
+				(second !== undefined && second > 59)
+			) {
 				return null;
 			}
-			
+
 			// Handle ambiguous times (e.g., 3:00 could be AM or PM)
 			// Note: Only apply defaults when explicitly configured and for truly ambiguous times
-			const isEnhancedConfig = (config: any): config is EnhancedTimeParsingConfig => {
-				return config && 'timeDefaults' in config;
+			const isEnhancedConfig = (
+				config: any,
+			): config is EnhancedTimeParsingConfig => {
+				return config && "timeDefaults" in config;
 			};
-			
+
 			// Check if this is a user-configured scenario for ambiguous time handling
 			// For now, we'll keep 24-hour times as-is unless there's specific context
-			
+
 			return {
 				hour,
 				minute,
@@ -215,6 +234,12 @@ export class TimeParsingService {
 		}>;
 	} {
 		const timeComponents: EnhancedParsedTimeResult["timeComponents"] = {};
+		const componentSources: Partial<
+			Record<
+				keyof NonNullable<EnhancedParsedTimeResult["timeComponents"]>,
+				"explicit" | "inferred"
+			>
+		> = {};
 		const timeExpressions: Array<{
 			text: string;
 			index: number;
@@ -226,8 +251,10 @@ export class TimeParsingService {
 
 		// Check for time ranges first (they contain single times too)
 		const rangeMatches = [...text.matchAll(this.TIME_PATTERNS.TIME_RANGE)];
-		const range12hMatches = [...text.matchAll(this.TIME_PATTERNS.TIME_RANGE_12H)];
-		
+		const range12hMatches = [
+			...text.matchAll(this.TIME_PATTERNS.TIME_RANGE_12H),
+		];
+
 		for (const match of [...rangeMatches, ...range12hMatches]) {
 			const fullMatch = match[0];
 			const index = match.index || 0;
@@ -253,10 +280,16 @@ export class TimeParsingService {
 					});
 
 					// Determine context for time range
-					const context = this.determineTimeContext(text, fullMatch, index);
+					const context = this.determineTimeContext(
+						text,
+						fullMatch,
+						index,
+					);
 					if (context === "start" || !timeComponents.startTime) {
 						timeComponents.startTime = startTime;
 						timeComponents.endTime = endTime;
+						componentSources.startTime =
+							context === "start" ? "explicit" : "inferred";
 					}
 				}
 			}
@@ -276,15 +309,38 @@ export class TimeParsingService {
 			const index = match.index || 0;
 
 			// Skip if this time is part of a range we already found
-			const isPartOfRange = timeExpressions.some(expr => 
-				expr.isRange && 
-				index >= expr.index && 
-				index < expr.index + expr.text.length
+			const isPartOfRange = timeExpressions.some(
+				(expr) =>
+					expr.isRange &&
+					index >= expr.index &&
+					index < expr.index + expr.text.length,
 			);
 
 			if (!isPartOfRange) {
 				const timeComponent = this.parseTimeComponent(fullMatch);
 				if (timeComponent) {
+					const nextChar = text[index + fullMatch.length];
+					const followingChar = text[index + fullMatch.length + 1];
+					const prevChar = index > 0 ? text[index - 1] : undefined;
+					const prevPrevChar =
+						index > 1 ? text[index - 2] : undefined;
+
+					if (
+						nextChar === ":" &&
+						followingChar !== undefined &&
+						/\d/.test(followingChar)
+					) {
+						continue;
+					}
+
+					if (nextChar === "-" && followingChar === "-") {
+						continue;
+					}
+
+					if (prevChar === "-" && prevPrevChar === "-") {
+						continue;
+					}
+
 					processedPositions.add(index);
 					timeExpressions.push({
 						text: fullMatch,
@@ -294,16 +350,33 @@ export class TimeParsingService {
 					});
 
 					// Determine context and assign to appropriate field
-					const context = this.determineTimeContext(text, fullMatch, index);
+					const context = this.determineTimeContext(
+						text,
+						fullMatch,
+						index,
+					);
 					switch (context) {
 						case "start":
-							if (!timeComponents.startTime) timeComponents.startTime = timeComponent;
+							timeComponents.startTime = timeComponent;
+							componentSources.startTime = "explicit";
 							break;
 						case "due":
-							if (!timeComponents.dueTime) timeComponents.dueTime = timeComponent;
+							if (
+								!timeComponents.dueTime ||
+								componentSources.dueTime !== "explicit"
+							) {
+								timeComponents.dueTime = timeComponent;
+								componentSources.dueTime = "explicit";
+							}
 							break;
 						case "scheduled":
-							if (!timeComponents.scheduledTime) timeComponents.scheduledTime = timeComponent;
+							if (
+								!timeComponents.scheduledTime ||
+								componentSources.scheduledTime !== "explicit"
+							) {
+								timeComponents.scheduledTime = timeComponent;
+								componentSources.scheduledTime = "explicit";
+							}
 							break;
 					}
 				}
@@ -321,15 +394,38 @@ export class TimeParsingService {
 			}
 
 			// Skip if this time is part of a range we already found
-			const isPartOfRange = timeExpressions.some(expr => 
-				expr.isRange && 
-				index >= expr.index && 
-				index < expr.index + expr.text.length
+			const isPartOfRange = timeExpressions.some(
+				(expr) =>
+					expr.isRange &&
+					index >= expr.index &&
+					index < expr.index + expr.text.length,
 			);
 
 			if (!isPartOfRange) {
 				const timeComponent = this.parseTimeComponent(fullMatch);
 				if (timeComponent) {
+					const nextChar = text[index + fullMatch.length];
+					const followingChar = text[index + fullMatch.length + 1];
+					const prevChar = index > 0 ? text[index - 1] : undefined;
+					const prevPrevChar =
+						index > 1 ? text[index - 2] : undefined;
+
+					if (
+						nextChar === ":" &&
+						followingChar !== undefined &&
+						/\d/.test(followingChar)
+					) {
+						continue;
+					}
+
+					if (nextChar === "-" && followingChar === "-") {
+						continue;
+					}
+
+					if (prevChar === "-" && prevPrevChar === "-") {
+						continue;
+					}
+
 					timeExpressions.push({
 						text: fullMatch,
 						index,
@@ -338,20 +434,41 @@ export class TimeParsingService {
 					});
 
 					// Determine context and assign to appropriate field
-					const context = this.determineTimeContext(text, fullMatch, index);
+					const context = this.determineTimeContext(
+						text,
+						fullMatch,
+						index,
+					);
 					switch (context) {
 						case "start":
-							if (!timeComponents.startTime) timeComponents.startTime = timeComponent;
+							timeComponents.startTime = timeComponent;
+							componentSources.startTime = "explicit";
 							break;
 						case "due":
-							if (!timeComponents.dueTime) timeComponents.dueTime = timeComponent;
+							if (
+								!timeComponents.dueTime ||
+								componentSources.dueTime !== "explicit"
+							) {
+								timeComponents.dueTime = timeComponent;
+								componentSources.dueTime = "explicit";
+							}
 							break;
 						case "scheduled":
-							if (!timeComponents.scheduledTime) timeComponents.scheduledTime = timeComponent;
+							if (
+								!timeComponents.scheduledTime ||
+								componentSources.scheduledTime !== "explicit"
+							) {
+								timeComponents.scheduledTime = timeComponent;
+								componentSources.scheduledTime = "explicit";
+							}
 							break;
 					}
 				}
 			}
+		}
+
+		if (timeComponents.startTime && !timeComponents.scheduledTime) {
+			timeComponents.scheduledTime = timeComponents.startTime;
 		}
 
 		return { timeComponents, timeExpressions };
@@ -360,7 +477,11 @@ export class TimeParsingService {
 	/**
 	 * Determine time context based on surrounding keywords
 	 */
-	private determineTimeContext(text: string, expression: string, index: number): "start" | "due" | "scheduled" {
+	private determineTimeContext(
+		text: string,
+		expression: string,
+		index: number,
+	): "start" | "due" | "scheduled" {
 		// Get text before the expression (look back up to 20 characters)
 		const beforeText = text
 			.substring(Math.max(0, index - 20), index)
@@ -370,7 +491,7 @@ export class TimeParsingService {
 		const afterText = text
 			.substring(
 				index + expression.length,
-				Math.min(text.length, index + expression.length + 20)
+				Math.min(text.length, index + expression.length + 20),
 			)
 			.toLowerCase();
 
@@ -412,42 +533,39 @@ export class TimeParsingService {
 	 * @param text - Input text containing potential time expressions
 	 * @returns ParsedTimeResult with extracted dates and cleaned text
 	 */
-	parseTimeExpressions(text: string): ParsedTimeResult | EnhancedParsedTimeResult {
+	parseTimeExpressions(
+		text: string,
+	): ParsedTimeResult | EnhancedParsedTimeResult {
+		const safeText = text ?? "";
+
 		if (!this.config.enabled) {
 			return {
-				originalText: text,
-				cleanedText: text,
+				originalText: safeText,
+				cleanedText: safeText,
 				parsedExpressions: [],
 			};
 		}
 
 		// Check cache first
-		const cacheKey = this.generateCacheKey(text);
+		const cacheKey = this.generateCacheKey(safeText);
 		if (this.parseCache.has(cacheKey)) {
 			return this.parseCache.get(cacheKey)!;
 		}
 
 		// Extract time components first
-		const { timeComponents, timeExpressions } = this.extractTimeComponents(text);
-		
+		const { timeComponents, timeExpressions } =
+			this.extractTimeComponents(safeText);
+
 		// Create enhanced result if time components found
 		const result: EnhancedParsedTimeResult = {
-			originalText: text,
-			cleanedText: text,
+			originalText: safeText,
+			cleanedText: safeText,
 			parsedExpressions: [],
 			timeComponents: timeComponents,
 		};
 
 		try {
-			// Validate input
-			if (typeof text !== "string") {
-				console.warn(
-					"TimeParsingService: Invalid input type, expected string"
-				);
-				return result;
-			}
-
-			if (text.trim().length === 0) {
+			if (safeText.trim().length === 0) {
 				return result;
 			}
 
@@ -456,18 +574,18 @@ export class TimeParsingService {
 			const chronoModule = chrono;
 			let parseResults;
 			try {
-				parseResults = chronoModule.parse(text);
+				parseResults = chronoModule.parse(safeText);
 			} catch (chronoError) {
 				console.warn(
 					"TimeParsingService: Chrono parsing failed:",
-					chronoError
+					chronoError,
 				);
 				parseResults = [];
 			}
 
 			// If no results found with default parser and text contains Chinese characters,
 			// try with different locale parsers as fallback
-			if (parseResults.length === 0 && /[\u4e00-\u9fff]/.test(text)) {
+			if (parseResults.length === 0 && /[\u4e00-\u9fff]/.test(safeText)) {
 				try {
 					// Try Chinese traditional (zh.hant) first if available
 					if (
@@ -475,7 +593,7 @@ export class TimeParsingService {
 						chronoModule.zh.hant &&
 						typeof chronoModule.zh.hant.parse === "function"
 					) {
-						const zhHantResult = chronoModule.zh.parse(text);
+						const zhHantResult = chronoModule.zh.parse(safeText);
 						if (zhHantResult && zhHantResult.length > 0) {
 							parseResults = zhHantResult;
 						}
@@ -487,7 +605,7 @@ export class TimeParsingService {
 						chronoModule.zh &&
 						typeof chronoModule.zh.parse === "function"
 					) {
-						const zhResult = chronoModule.zh.parse(text);
+						const zhResult = chronoModule.zh.parse(safeText);
 						if (zhResult && zhResult.length > 0) {
 							parseResults = zhResult;
 						}
@@ -495,20 +613,22 @@ export class TimeParsingService {
 
 					// If still no results, fallback to custom Chinese parsing
 					if (parseResults.length === 0) {
-						parseResults = this.parseChineseTimeExpressions(text);
+						parseResults =
+							this.parseChineseTimeExpressions(safeText);
 					}
 				} catch (chineseParsingError) {
 					console.warn(
 						"TimeParsingService: Chinese parsing failed:",
-						chineseParsingError
+						chineseParsingError,
 					);
 					// Fallback to custom Chinese parsing
 					try {
-						parseResults = this.parseChineseTimeExpressions(text);
+						parseResults =
+							this.parseChineseTimeExpressions(safeText);
 					} catch (customParsingError) {
 						console.warn(
 							"TimeParsingService: Custom Chinese parsing failed:",
-							customParsingError
+							customParsingError,
 						);
 						parseResults = [];
 					}
@@ -525,7 +645,7 @@ export class TimeParsingService {
 					) {
 						console.warn(
 							"TimeParsingService: Invalid parse result structure:",
-							parseResult
+							parseResult,
 						);
 						continue;
 					}
@@ -537,7 +657,7 @@ export class TimeParsingService {
 					} catch (dateError) {
 						console.warn(
 							"TimeParsingService: Failed to extract date from parse result:",
-							dateError
+							dateError,
 						);
 						continue;
 					}
@@ -546,7 +666,7 @@ export class TimeParsingService {
 					if (!date || isNaN(date.getTime())) {
 						console.warn(
 							"TimeParsingService: Invalid date extracted:",
-							date
+							date,
 						);
 						continue;
 					}
@@ -558,27 +678,34 @@ export class TimeParsingService {
 					let type: "start" | "due" | "scheduled";
 					try {
 						type = this.determineTimeType(
-							text,
+							safeText,
 							expressionText,
-							index
+							index,
 						);
 					} catch (typeError) {
 						console.warn(
 							"TimeParsingService: Failed to determine time type:",
-							typeError
+							typeError,
 						);
 						type = "due"; // Default fallback
 					}
 
 					// Check if this date expression has an associated time component
-					let matchingTimeExpr = timeExpressions.find(te => 
-						te.index >= index - 10 && te.index <= index + length + 10
+					let matchingTimeExpr = timeExpressions.find(
+						(te) =>
+							te.index >= index - 10 &&
+							te.index <= index + length + 10,
 					);
 
 					// Check if time range crosses midnight
 					let crossesMidnight = false;
-					if (matchingTimeExpr?.rangeStart && matchingTimeExpr?.rangeEnd) {
-						crossesMidnight = matchingTimeExpr.rangeStart.hour > matchingTimeExpr.rangeEnd.hour;
+					if (
+						matchingTimeExpr?.rangeStart &&
+						matchingTimeExpr?.rangeEnd
+					) {
+						crossesMidnight =
+							matchingTimeExpr.rangeStart.hour >
+							matchingTimeExpr.rangeEnd.hour;
 					}
 
 					const expression: EnhancedTimeExpression = {
@@ -611,14 +738,14 @@ export class TimeParsingService {
 						default:
 							console.warn(
 								"TimeParsingService: Unknown date type:",
-								type
+								type,
 							);
 							break;
 					}
 				} catch (expressionError) {
 					console.warn(
 						"TimeParsingService: Error processing expression:",
-						expressionError
+						expressionError,
 					);
 					continue;
 				}
@@ -627,7 +754,7 @@ export class TimeParsingService {
 			// Clean the text by removing parsed expressions
 			result.cleanedText = this.cleanTextFromTimeExpressions(
 				text,
-				result.parsedExpressions
+				result.parsedExpressions,
 			);
 		} catch (error) {
 			console.warn("Time parsing error:", error);
@@ -684,7 +811,7 @@ export class TimeParsingService {
 	 */
 	cleanTextFromTimeExpressions(
 		text: string,
-		expressions: ParsedTimeResult["parsedExpressions"]
+		expressions: ParsedTimeResult["parsedExpressions"],
 	): string {
 		if (!this.config.removeOriginalText || expressions.length === 0) {
 			return text;
@@ -693,7 +820,7 @@ export class TimeParsingService {
 		// Sort expressions by index in descending order to remove from end to start
 		// This prevents index shifting issues when removing multiple expressions
 		const sortedExpressions = [...expressions].sort(
-			(a, b) => b.index - a.index
+			(a, b) => b.index - a.index,
 		);
 
 		let cleanedText = text;
@@ -701,7 +828,7 @@ export class TimeParsingService {
 		for (const expression of sortedExpressions) {
 			const beforeExpression = cleanedText.substring(0, expression.index);
 			const afterExpression = cleanedText.substring(
-				expression.index + expression.length
+				expression.index + expression.length,
 			);
 
 			// Check if we need to clean up extra whitespace
@@ -805,7 +932,7 @@ export class TimeParsingService {
 	private determineTimeType(
 		text: string,
 		expression: string,
-		index: number
+		index: number,
 	): "start" | "due" | "scheduled" {
 		// Get text before the expression (look back up to 20 characters)
 		const beforeText = text
@@ -816,7 +943,7 @@ export class TimeParsingService {
 		const afterText = text
 			.substring(
 				index + expression.length,
-				Math.min(text.length, index + expression.length + 20)
+				Math.min(text.length, index + expression.length + 20),
 			)
 			.toLowerCase();
 
@@ -934,7 +1061,7 @@ export class TimeParsingService {
 		const today = new Date(
 			now.getFullYear(),
 			now.getMonth(),
-			now.getDate()
+			now.getDate(),
 		);
 
 		// Helper function to get weekday number (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
@@ -955,7 +1082,7 @@ export class TimeParsingService {
 		// Helper function to get date for specific weekday
 		const getDateForWeekday = (
 			targetWeekday: number,
-			weekOffset: number = 0
+			weekOffset: number = 0,
 		): Date => {
 			const currentWeekday = today.getDay();
 			let daysToAdd = targetWeekday - currentWeekday;
@@ -974,7 +1101,7 @@ export class TimeParsingService {
 
 		// Handle weekday expressions
 		const weekdayMatch = expression.match(
-			/(?:(下|上|这)?(?:周|礼拜|星期)?)([一二三四五六日天])/
+			/(?:(下|上|这)?(?:周|礼拜|星期)?)([一二三四五六日天])/,
 		);
 		if (weekdayMatch) {
 			const [, weekPrefix, dayStr] = weekdayMatch;
@@ -1018,14 +1145,14 @@ export class TimeParsingService {
 				return new Date(
 					now.getFullYear(),
 					now.getMonth() + 1,
-					now.getDate()
+					now.getDate(),
 				);
 			case "上个月":
 			case "上月":
 				return new Date(
 					now.getFullYear(),
 					now.getMonth() - 1,
-					now.getDate()
+					now.getDate(),
 				);
 			case "这个月":
 			case "这月":
@@ -1034,13 +1161,13 @@ export class TimeParsingService {
 				return new Date(
 					now.getFullYear() + 1,
 					now.getMonth(),
-					now.getDate()
+					now.getDate(),
 				);
 			case "去年":
 				return new Date(
 					now.getFullYear() - 1,
 					now.getMonth(),
-					now.getDate()
+					now.getDate(),
 				);
 			case "今年":
 				return today;
@@ -1054,17 +1181,17 @@ export class TimeParsingService {
 					switch (unit) {
 						case "天":
 							return new Date(
-								today.getTime() + num * 24 * 60 * 60 * 1000
+								today.getTime() + num * 24 * 60 * 60 * 1000,
 							);
 						case "周":
 							return new Date(
-								today.getTime() + num * 7 * 24 * 60 * 60 * 1000
+								today.getTime() + num * 7 * 24 * 60 * 60 * 1000,
 							);
 						case "月":
 							return new Date(
 								now.getFullYear(),
 								now.getMonth() + num,
-								now.getDate()
+								now.getDate(),
 							);
 					}
 				}
@@ -1074,7 +1201,8 @@ export class TimeParsingService {
 }
 
 // Default configuration
-export const DEFAULT_TIME_PARSING_CONFIG: TimeParsingConfig & Partial<EnhancedTimeParsingConfig> = {
+export const DEFAULT_TIME_PARSING_CONFIG: TimeParsingConfig &
+	Partial<EnhancedTimeParsingConfig> = {
 	enabled: true,
 	supportedLanguages: ["en", "zh"],
 	dateKeywords: {

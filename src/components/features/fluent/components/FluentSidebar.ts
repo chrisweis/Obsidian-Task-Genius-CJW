@@ -717,7 +717,8 @@ export class FluentSidebar extends Component {
 									);
 								}
 							},
-							view // Pass current view as copy source
+							view, // Pass current view as copy source
+							view.id
 						).open();
 					});
 			});

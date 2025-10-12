@@ -20,12 +20,12 @@ import { createMockPlugin, createMockApp } from "./mockUtils";
 import TaskProgressBarPlugin from "../index";
 
 // Mock all action executors
-jest.mock("../utils/onCompletion/DeleteActionExecutor");
-jest.mock("../utils/onCompletion/KeepActionExecutor");
-jest.mock("../utils/onCompletion/CompleteActionExecutor");
-jest.mock("../utils/onCompletion/MoveActionExecutor");
-jest.mock("../utils/onCompletion/ArchiveActionExecutor");
-jest.mock("../utils/onCompletion/DuplicateActionExecutor");
+jest.mock("../executors/completion/delete-executor");
+jest.mock("../executors/completion/keep-executor");
+jest.mock("../executors/completion/complete-executor");
+jest.mock("../executors/completion/move-executor");
+jest.mock("../executors/completion/archive-executor");
+jest.mock("../executors/completion/duplicate-executor");
 
 describe("OnCompletionManager", () => {
 	let manager: OnCompletionManager;

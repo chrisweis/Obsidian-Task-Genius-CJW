@@ -50,6 +50,9 @@ const moment = function(input) {
     clone: function() {
       return moment(date);
     },
+    isValid: function() {
+      return !isNaN(date.getTime());
+    },
     add: function(amount, unit) {
       return this;
     },
@@ -122,5 +125,7 @@ moment.monthsShort = function() {
   return ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 };
+
+moment.ISO_8601 = "ISO_8601";
 
 module.exports = moment;

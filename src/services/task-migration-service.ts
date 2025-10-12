@@ -1,11 +1,20 @@
-import { Task, StandardTaskMetadata, EnhancedStandardTaskMetadata, EnhancedTask } from "../types/task";
+import {
+	Task,
+	StandardTaskMetadata,
+	EnhancedStandardTaskMetadata,
+	EnhancedTask,
+} from "../types/task";
 import { TimeComponent } from "../types/time-parsing";
-import { 
-	enhanceTaskMetadata, 
-	extractTimeComponentsFromMetadata, 
+import {
+	enhanceTaskMetadata,
+	extractTimeComponentsFromMetadata,
 	hasTimeComponents,
-	validateTimeComponent
+	validateTimeComponent,
 } from "../utils/task-metadata-utils";
+import {
+	TimeParsingService,
+	DEFAULT_TIME_PARSING_CONFIG,
+} from "./time-parsing-service";
 
 /**
  * Service for migrating tasks to enhanced metadata format
@@ -14,6 +23,13 @@ import {
 export class TaskMigrationService {
 	private migrationCache = new Map<string, boolean>();
 	private migrationInProgress = new Set<string>();
+	private timeParsingService: TimeParsingService;
+
+	constructor(timeParsingService?: TimeParsingService) {
+		this.timeParsingService =
+			timeParsingService ||
+			new TimeParsingService(DEFAULT_TIME_PARSING_CONFIG);
+	}
 
 	/**
 	 * Migrate a standard task to enhanced format
@@ -45,11 +61,18 @@ export class TaskMigrationService {
 			// Only add time components if they contain meaningful time information
 			// (not just 00:00:00 which indicates date-only)
 			const meaningfulTimeComponents = this.filterMeaningfulTimeComponents(extractedTimeComponents);
+			const parsedTimeComponents = task.content
+				? this.getMeaningfulTimeComponentsFromContent(task.content)
+				: {};
+			const mergedTimeComponents = this.mergeTimeComponents(
+				meaningfulTimeComponents,
+				parsedTimeComponents
+			);
 			
 			// Create enhanced metadata
 			const enhancedMetadata = enhanceTaskMetadata(
 				task.metadata,
-				Object.keys(meaningfulTimeComponents).length > 0 ? meaningfulTimeComponents : undefined
+				Object.keys(mergedTimeComponents).length > 0 ? mergedTimeComponents : undefined
 			);
 
 			// Create enhanced task
@@ -98,8 +121,14 @@ export class TaskMigrationService {
 		// Check if task has meaningful time information
 		const extractedTimeComponents = extractTimeComponentsFromMetadata(task.metadata);
 		const meaningfulTimeComponents = this.filterMeaningfulTimeComponents(extractedTimeComponents);
+		const parsedTimeComponents = task.content
+			? this.getMeaningfulTimeComponentsFromContent(task.content)
+			: {};
 
-		if (Object.keys(meaningfulTimeComponents).length === 0) {
+		if (
+			Object.keys(meaningfulTimeComponents).length === 0 &&
+			Object.keys(parsedTimeComponents).length === 0
+		) {
 			// No meaningful time information, return original task
 			return task;
 		}
@@ -230,6 +259,54 @@ export class TaskMigrationService {
 		}
 
 		return meaningful;
+	}
+
+	/**
+	 * Extract meaningful time components from task content using enhanced parsing
+	 */
+	private getMeaningfulTimeComponentsFromContent(
+		content: string
+	): NonNullable<EnhancedStandardTaskMetadata["timeComponents"]> {
+		if (!content || !content.trim()) {
+			return {};
+		}
+
+		try {
+			const { timeComponents } =
+				this.timeParsingService.parseTimeComponents(content);
+			if (!timeComponents) {
+				return {};
+			}
+			return this.filterMeaningfulTimeComponents(timeComponents);
+		} catch (error) {
+			console.warn(
+				"[TaskMigrationService] Failed to parse time components from content:",
+				error
+			);
+			return {};
+		}
+	}
+
+	/**
+	 * Merge existing and newly parsed time components without overwriting explicit values
+	 */
+	private mergeTimeComponents(
+		base: NonNullable<EnhancedStandardTaskMetadata["timeComponents"]>,
+		additional: NonNullable<EnhancedStandardTaskMetadata["timeComponents"]>
+	): NonNullable<EnhancedStandardTaskMetadata["timeComponents"]> {
+		const merged: NonNullable<
+			EnhancedStandardTaskMetadata["timeComponents"]
+		> = { ...base };
+
+		(
+			["startTime", "endTime", "dueTime", "scheduledTime"] as const
+		).forEach((key) => {
+			if (!merged[key] && additional[key]) {
+				merged[key] = additional[key];
+			}
+		});
+
+		return merged;
 	}
 
 	/**
