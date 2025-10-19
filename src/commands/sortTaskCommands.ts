@@ -299,18 +299,18 @@ function compareTasks<
 		return obj.metadata ? obj.metadata[field] : undefined;
 	};
 
-	// 初始化Collator用于文本排序优化
+	// Initialize Collator for text sorting optimization
 	const sortCollator = new Intl.Collator(undefined, {
 		usage: "sort",
-		sensitivity: "base", // 不区分大小写
-		numeric: true, // 智能处理数字
+		sensitivity: "base", // Case-insensitive
+		numeric: true, // Intelligent number handling
 	});
 
-	// 创建排序工厂对象
+	// Create sort factory object
 	const sortFactory = {
 		status: (a: T, b: T, order: "asc" | "desc") => {
 			// Status comparison logic (relies on statusOrder having numbers)
-			// 使用calculatedStatus优先，如果没有则使用status
+			// Use calculatedStatus first, otherwise use status
 			const statusA = (a as any).calculatedStatus || (a as any).status || "";
 			const statusB = (b as any).calculatedStatus || (b as any).status || "";
 
@@ -390,8 +390,8 @@ function compareTasks<
 		},
 
 		content: (a: T, b: T, order: "asc" | "desc") => {
-			// 使用Collator进行更智能的文本比较，代替简单的localeCompare
-			// 首先检查content是否存在
+			// Use Collator for smarter text comparison instead of simple localeCompare
+			// First check if content exists
 			const contentA = (a as any).content?.trim() || null;
 			const contentB = (b as any).content?.trim() || null;
 
@@ -489,7 +489,7 @@ function compareTasks<
 		},
 	};
 
-	// 通用日期排序函数
+	// Generic date sorting function
 	function sortByDate(
 		field:
 			| "dueDate"
@@ -544,7 +544,7 @@ function compareTasks<
 		return order === "asc" ? comparison : -comparison;
 	}
 
-	// 使用工厂方法进行排序
+	// Use factory method for sorting
 	for (const criterion of criteria) {
 		if (criterion.field in sortFactory) {
 			const sortMethod =
@@ -672,7 +672,7 @@ export function sortTasks<
 
 	preparedTasks.sort((a, b) => compareTasks(a, b, criteria, statusOrder));
 
-	return preparedTasks as T[]; // 类型断言回原类型
+	return preparedTasks as T[]; // Type assertion back to original type
 }
 
 // Recursively sort tasks and their subtasks

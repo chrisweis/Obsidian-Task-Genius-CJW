@@ -11,41 +11,41 @@ This file is used to test the fix for duplicate task display in Project view tre
 
 ## Test Case 1: Basic Parent-Child Tasks
 
-- [ ] 测试🔽 📅 2025-06-17
-    - [ ] 子任务1
-    - [ ] 子任务2
-    - [ ] 子任务3
-    - [ ] 子任务4
+- [ ] Test🔽 📅 2025-06-17
+    - [ ] Subtask 1
+    - [ ] Subtask 2
+    - [ ] Subtask 3
+    - [ ] Subtask 4
 
 ## Test Case 2: Multiple Parent Tasks
 
-- [ ] 父任务A 🔽
-    - [ ] A的子任务1
-    - [ ] A的子任务2
+- [ ] Parent Task A 🔽
+    - [ ] Subtask 1 of A
+    - [ ] Subtask 2 of A
 
-- [ ] 父任务B 🔽
-    - [ ] B的子任务1
-    - [ ] B的子任务2
+- [ ] Parent Task B 🔽
+    - [ ] Subtask 1 of B
+    - [ ] Subtask 2 of B
 
 ## Test Case 3: Nested Tasks (Grandchildren)
 
-- [ ] 顶级任务 🔽
-    - [ ] 二级任务1
-        - [ ] 三级任务1
-        - [ ] 三级任务2
-    - [ ] 二级任务2
-        - [ ] 三级任务3
+- [ ] Top-level Task 🔽
+    - [ ] Second-level Task 1
+        - [ ] Third-level Task 1
+        - [ ] Third-level Task 2
+    - [ ] Second-level Task 2
+        - [ ] Third-level Task 3
 
 ## Test Case 4: Mixed Independent and Hierarchical Tasks
 
-- [ ] 独立任务1
-- [ ] 独立任务2
+- [ ] Independent Task 1
+- [ ] Independent Task 2
 
-- [ ] 有子任务的父任务 🔽
-    - [ ] 子任务A
-    - [ ] 子任务B
+- [ ] Parent Task with Subtasks 🔽
+    - [ ] Subtask A
+    - [ ] Subtask B
 
-- [ ] 另一个独立任务
+- [ ] Another Independent Task
 
 ## Expected Behavior
 
@@ -61,7 +61,7 @@ In Project view tree mode, each task should appear only once:
 3. Select "myproject-2" project
 4. Switch to tree view mode
 5. Verify that:
-   - "测试🔽" appears only once as a parent task
-   - "子任务1-4" appear only as children of "测试🔽"
+   - "Test🔽" appears only once as a parent task
+   - "Subtasks 1-4" appear only as children of "Test🔽"
    - No child tasks appear as independent root tasks
    - All parent-child relationships are preserved

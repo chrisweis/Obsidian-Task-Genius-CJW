@@ -2,9 +2,9 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	margin: var(--size-2-2) 0; /* 使用 Obsidian 的尺寸变量 */
-	color: var(--text-muted); /* 使用 Obsidian 的次要文本颜色 */
-	font-size: var(--font-ui-smaller); /* 使用 Obsidian 的字体大小变量 */
+	margin: var(--size-2-2) 0; /* Use Obsidian size variables */
+	color: var(--text-muted); /* Use Obsidian secondary text color */
+	font-size: var(--font-ui-smaller); /* Use Obsidian font size variables */
 }
 
 .filter-group-separator::before,
@@ -14,8 +14,8 @@
 	height: 1px;
 	background-color: var(
 		--background-modifier-border
-	); /* 使用 Obsidian 的边框颜色 */
-	margin: 0 var(--size-2-1); /* 使用 Obsidian 的尺寸变量 */
+	); /* Use Obsidian border color */
+	margin: 0 var(--size-2-1); /* Use Obsidian size variables */
 }
 
 .drag-handle {
@@ -25,9 +25,9 @@
 	justify-content: center;
 }
 
-/* 按钮和输入框的较小文本和内边距 */
+/* Smaller text and padding for buttons and inputs */
 .compact-btn {
-	padding: var(--size-2-1) var(--size-2-2); /* 使用 Obsidian 的尺寸变量 */
+	padding: var(--size-2-1) var(--size-2-2); /* Use Obsidian size variables */
 	box-shadow: unset !important;
 	border: unset !important;
 	--icon-size: var(--size-4-4);
@@ -61,8 +61,8 @@
 
 .compact-input,
 .compact-select {
-	font-size: var(--font-ui-smaller); /* 使用 Obsidian 的字体大小变量 */
-	height: var(--input-height); /* 使用 Obsidian 的输入框高度变量 */
+	font-size: var(--font-ui-smaller); /* Use Obsidian font size variables */
+	height: var(--input-height); /* Use Obsidian input height variables */
 	border: 1px solid var(--background-modifier-border);
 	box-shadow: none;
 }
@@ -72,28 +72,28 @@
 }
 
 .compact-text {
-	font-size: var(--font-ui-smaller); /* 使用 Obsidian 的字体大小变量 */
+	font-size: var(--font-ui-smaller); /* Use Obsidian font size variables */
 }
 
-/* 拖动时的占位符 */
+/* Placeholder when dragging */
 .dragging-placeholder {
 	opacity: 0.5;
 	background-color: var(
 		--background-modifier-hover
-	); /* 使用 Obsidian 的悬停背景色 */
+	); /* Use Obsidian hover background color */
 }
 
-/* 如果需要，为过滤器组件的根容器设置样式 */
+/* Style for root container of filter component if needed */
 .task-filter-root-container.task-popover-content {
-	padding: var(--size-2-2); /* 使用 Obsidian 的尺寸变量 */
+	padding: var(--size-2-2); /* Use Obsidian size variables */
 	max-width: 100%;
 	max-height: 100%;
 }
 
 .task-filter-main-panel {
 	max-width: 100%;
-	padding: var(--size-2-2); /* 使用 Obsidian 的尺寸变量 */
-	border-radius: var(--radius-m); /* 使用 Obsidian 的圆角变量 */
+	padding: var(--size-2-2); /* Use Obsidian size variables */
+	border-radius: var(--radius-m); /* Use Obsidian border radius variables */
 }
 
 .filter-menu {

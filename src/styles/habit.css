@@ -17,7 +17,7 @@
 	width: 100%;
 }
 
-/* 小屏幕设备 */
+/* Small screen devices */
 @media screen and (max-width: 480px) {
 	.habit-list-container {
 		padding: 0.5rem;
@@ -25,7 +25,7 @@
 	}
 }
 
-/* 中等屏幕设备 ~768px */
+/* Medium screen devices ~768px */
 @media screen and (min-width: 768px) {
 	.habit-list-container {
 		margin-left: auto;
@@ -36,7 +36,7 @@
 	}
 }
 
-/* 大屏幕设备 */
+/* Large screen devices */
 @media screen and (min-width: 1024px) {
 	.habit-list-container {
 		max-width: 500px;

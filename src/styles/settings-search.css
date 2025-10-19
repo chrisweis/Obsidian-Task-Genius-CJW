@@ -1,6 +1,6 @@
 /* Settings Search Component Styles */
 
-/* 搜索输入框容器 - 使用 Obsidian 标准输入框样式 */
+/* Search input container - use Obsidian standard input style */
 .tg-settings-search-input-container {
 	position: relative;
 	display: flex;
@@ -17,7 +17,7 @@
 	box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
 }
 
-/* 搜索图标 */
+/* Search icon */
 .tg-settings-search-icon {
 	display: flex;
 	align-items: center;
@@ -32,7 +32,7 @@
 	height: var(--icon-s);
 }
 
-/* 搜索输入框 - 重置 Obsidian 默认样式 */
+/* Search input - reset Obsidian default styles */
 .tg-settings-search-input {
 	flex: 1;
 	padding: var(--size-2-2) var(--size-2-1);
@@ -53,7 +53,7 @@ input.tg-settings-search-input {
 	opacity: 0.7;
 }
 
-/* 清除按钮 - 使用 Obsidian 按钮样式 */
+/* Clear button - use Obsidian button style */
 .tg-settings-search-clear {
 	display: flex;
 	align-items: center;
@@ -86,7 +86,7 @@ input.tg-settings-search-input {
 	height: var(--icon-xs);
 }
 
-/* 搜索结果容器 - 使用 Obsidian 弹出菜单样式 */
+/* Search results container - use Obsidian popup menu style */
 .tg-settings-search-results {
 	position: absolute;
 	top: calc(100% + var(--size-2-1));
@@ -102,7 +102,7 @@ input.tg-settings-search-input {
 	overflow-x: hidden;
 }
 
-/* 搜索结果项 - 使用 Obsidian 菜单项样式 */
+/* Search result item - use Obsidian menu item style */
 .tg-settings-search-result {
 	display: flex;
 	flex-direction: column;
@@ -126,7 +126,7 @@ input.tg-settings-search-input {
 	background: var(--background-modifier-active);
 }
 
-/* 搜索结果名称 */
+/* Search result name */
 .tg-settings-search-result-name {
 	font-weight: var(--font-weight-medium);
 	color: var(--text-normal);
@@ -135,7 +135,7 @@ input.tg-settings-search-input {
 	line-height: var(--line-height-tight);
 }
 
-/* 搜索结果元信息 */
+/* Search result metadata */
 .tg-settings-search-result-meta {
 	display: flex;
 	align-items: center;
@@ -154,7 +154,7 @@ input.tg-settings-search-input {
 	letter-spacing: 0.02em;
 }
 
-/* 搜索结果描述 */
+/* Search result description */
 .tg-settings-search-result-desc {
 	font-size: var(--font-ui-small);
 	color: var(--text-muted);
@@ -162,7 +162,7 @@ input.tg-settings-search-input {
 	margin-top: var(--size-2-1);
 }
 
-/* 无结果状态 */
+/* No results state */
 .tg-settings-search-no-result {
 	padding: var(--size-4-4) var(--size-4-3);
 	text-align: center;
@@ -171,7 +171,7 @@ input.tg-settings-search-input {
 	font-style: italic;
 }
 
-/* 设置项高亮效果 */
+/* Settings item highlight effect */
 .tg-settings-search-highlight {
 	background: var(--background-secondary) !important;
 	border-radius: var(--radius-s);
@@ -194,14 +194,14 @@ input.tg-settings-search-input {
 	}
 }
 
-/* 键盘导航指示器 */
+/* Keyboard navigation indicator */
 .tg-settings-search-result-selected {
 	background: var(--background-modifier-hover) !important;
 	outline: var(--border-width) solid var(--interactive-accent);
 	outline-offset: -1px;
 }
 
-/* 响应式设计 */
+/* Responsive design */
 @media (max-width: 768px) {
 	.tg-settings-search-results {
 		max-height: 280px;
@@ -222,7 +222,7 @@ input.tg-settings-search-input {
 	}
 }
 
-/* 滚动条样式 - 使用 Obsidian 标准滚动条 */
+/* Scrollbar style - use Obsidian standard scrollbar */
 .tg-settings-search-results {
 	scrollbar-width: thin;
 	scrollbar-color: var(--scrollbar-thumb-bg) transparent;
@@ -248,24 +248,24 @@ input.tg-settings-search-input {
 	background-clip: content-box;
 }
 
-/* 与设置标签页容器的间距调整 */
+/* Spacing adjustment with settings tab container */
 .task-genius-settings .settings-tabs-categorized-container {
 	margin-top: var(--size-4-3);
 }
 
-/* 修复可能的 z-index 问题 */
+/* Fix possible z-index issues */
 .tg-settings-search-results {
 	z-index: var(--layer-popover, 200);
 }
 
-/* 确保输入框聚焦时的样式正确 */
+/* Ensure input focus style is correct */
 .tg-settings-search-input:focus {
 	border: none !important;
 	outline: none !important;
 	box-shadow: none !important;
 }
 
-/* 搜索图标的交互状态 */
+/* Search icon interaction state */
 .tg-settings-search-icon {
 	transition: color 0.15s ease-in-out;
 }
@@ -274,7 +274,7 @@ input.tg-settings-search-input {
 	color: var(--interactive-accent);
 }
 
-/* 清除按钮的图标样式 */
+/* Clear button icon style */
 .tg-settings-search-clear {
 	opacity: 0.8;
 }

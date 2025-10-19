@@ -341,9 +341,9 @@
 }
 
 .drop-target-active {
-	background-color: rgba(0, 128, 0, 0.2); /* 半透明绿色背景 */
-	outline: 2px dashed green; /* 绿色虚线边框 */
-	/* 你可能还需要调整 padding 或 margin 来 '放大' 视觉区域 */
+	background-color: rgba(0, 128, 0, 0.2); /* Semi-transparent green background */
+	outline: 2px dashed green; /* Green dashed border */
+	/* You may also need to adjust padding or margin to 'enlarge' the visual area */
 	/* padding-top: 20px; */
 	/* padding-bottom: 20px; */
 }

@@ -1,5 +1,5 @@
 /**
- * 获取 noise SVG 字符串
+ * Get noise SVG string
  */
 export function noiseBackground() {
 	return `<svg width="1901" height="961" viewBox="0 0 1901 961" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -28,16 +28,16 @@ export function noiseBackground() {
 }
 
 /**
- * 将 noise 效果插入到指定的 HTML 元素中
- * @param container - 目标容器元素
- * @param options - 配置选项
+ * Insert noise effect into the specified HTML element
+ * @param container - Target container element
+ * @param options - Configuration options
  */
 export function insertNoise(
 	container: HTMLElement,
 	options?: {
-		opacity?: number; // 透明度，默认 0.25
-		position?: 'absolute' | 'relative'; // 定位方式，默认 'absolute'
-		zIndex?: number; // z-index 值，默认 1
+		opacity?: number; // Opacity, default 0.25
+		position?: 'absolute' | 'relative'; // Positioning method, default 'absolute'
+		zIndex?: number; // z-index value, default 1
 	}
 ) {
 	const {
@@ -46,10 +46,10 @@ export function insertNoise(
 		zIndex = 1
 	} = options || {};
 
-	// 创建 noise 容器
+	// Create noise container
 	const noiseLayer = container.createDiv('tg-noise-layer-inline');
 
-	// 设置样式
+	// Set styles
 	noiseLayer.style.position = position;
 	noiseLayer.style.top = '0';
 	noiseLayer.style.left = '0';
@@ -59,19 +59,19 @@ export function insertNoise(
 	noiseLayer.style.opacity = opacity.toString();
 	noiseLayer.style.zIndex = zIndex.toString();
 
-	// 插入 SVG
+	// Insert SVG
 	noiseLayer.innerHTML = noiseBackground();
 
-	// 将 noise 层插入到容器的第一个位置
+	// Insert noise layer at the first position of the container
 	container.insertBefore(noiseLayer, container.firstChild);
 
-	// 返回 noise 元素，方便后续移除
+	// Return noise element for easy removal later
 	return noiseLayer;
 }
 
 /**
- * 移除通过 insertNoise 添加的 noise 效果
- * @param container - 容器元素
+ * Remove noise effect added via insertNoise
+ * @param container - Container element
  */
 export function removeNoise(container: HTMLElement) {
 	const noiseLayer = container.querySelector('.tg-noise-layer-inline');
