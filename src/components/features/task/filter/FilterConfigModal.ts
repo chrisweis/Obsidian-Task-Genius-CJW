@@ -3,6 +3,7 @@ import { t } from "@/translations/helper";
 import { SavedFilterConfig } from "@/common/setting-definition";
 import { RootFilterState } from "./ViewTaskFilter";
 import type TaskProgressBarPlugin from "@/index";
+import { Events, emit } from "@/dataflow/events/Events";
 
 export class FilterConfigModal extends Modal {
 	private plugin: TaskProgressBarPlugin;
@@ -230,32 +231,105 @@ export class FilterConfigModal extends Modal {
 			return;
 		}
 
+		// Check for duplicate name
+		const existingConfig = this.plugin.settings.filterConfig.savedConfigs.find(
+			(c) => c.name.toLowerCase() === name.trim().toLowerCase()
+		);
+
+		if (existingConfig) {
+			// Ask user if they want to overwrite
+			const confirmed = await new Promise<boolean>((resolve) => {
+				const confirmModal = new Modal(this.app);
+				confirmModal.contentEl.createEl("h2", {
+					text: t("A filter configuration with this name already exists"),
+				});
+				confirmModal.contentEl.createEl("p", {
+					text: t("Do you want to overwrite the existing filter configuration?"),
+				});
+				confirmModal.contentEl.createEl("p", {
+					text: `"${existingConfig.name}"`,
+					cls: "filter-config-name-highlight",
+				});
+
+				new Setting(confirmModal.contentEl)
+					.addButton((btn) => {
+						btn.setButtonText(t("Overwrite"))
+							.setWarning()
+							.onClick(() => {
+								resolve(true);
+								confirmModal.close();
+							});
+					})
+					.addButton((btn) => {
+						btn.setButtonText(t("Cancel")).onClick(() => {
+							resolve(false);
+							confirmModal.close();
+						});
+					});
+
+				confirmModal.open();
+			});
+
+			if (!confirmed) return;
+		}
+
 		const now = new Date().toISOString();
-		const config: SavedFilterConfig = {
-			id: `filter-config-${Date.now()}-${Math.random()
-				.toString(36)
-				.substr(2, 9)}`,
-			name: name.trim(),
-			description: description.trim() || undefined,
-			filterState: JSON.parse(JSON.stringify(this.currentFilterState)),
-			createdAt: now,
-			updatedAt: now,
-		};
 
-		try {
-			this.plugin.settings.filterConfig.savedConfigs.push(config);
-			await this.plugin.saveSettings();
+		if (existingConfig) {
+			// Update existing config
+			existingConfig.name = name.trim();
+			existingConfig.description = description.trim() || undefined;
+			existingConfig.filterState = JSON.parse(JSON.stringify(this.currentFilterState));
+			existingConfig.updatedAt = now;
 
-			new Notice(t("Filter configuration saved successfully"));
+			try {
+				await this.plugin.saveSettings();
 
-			if (this.onSave) {
-				this.onSave(config);
+				new Notice(t("Filter configuration saved successfully"));
+
+				// Emit event to notify that saved filters have changed
+				emit(this.app, Events.SAVED_FILTERS_CHANGED);
+
+				if (this.onSave) {
+					this.onSave(existingConfig);
+				}
+
+				this.close();
+			} catch (error) {
+				console.error("Failed to save filter configuration:", error);
+				new Notice(t("Failed to save filter configuration"));
 			}
+		} else {
+			// Create new config
+			const config: SavedFilterConfig = {
+				id: `filter-config-${Date.now()}-${Math.random()
+					.toString(36)
+					.substr(2, 9)}`,
+				name: name.trim(),
+				description: description.trim() || undefined,
+				filterState: JSON.parse(JSON.stringify(this.currentFilterState)),
+				createdAt: now,
+				updatedAt: now,
+			};
 
-			this.close();
-		} catch (error) {
-			console.error("Failed to save filter configuration:", error);
-			new Notice(t("Failed to save filter configuration"));
+			try {
+				this.plugin.settings.filterConfig.savedConfigs.push(config);
+				await this.plugin.saveSettings();
+
+				new Notice(t("Filter configuration saved successfully"));
+
+				// Emit event to notify that saved filters have changed
+				emit(this.app, Events.SAVED_FILTERS_CHANGED);
+
+				if (this.onSave) {
+					this.onSave(config);
+				}
+
+				this.close();
+			} catch (error) {
+				console.error("Failed to save filter configuration:", error);
+				new Notice(t("Failed to save filter configuration"));
+			}
 		}
 	}
 
@@ -348,6 +422,9 @@ export class FilterConfigModal extends Modal {
 			await this.plugin.saveSettings();
 
 			new Notice(t("Filter configuration deleted successfully"));
+
+			// Emit event to notify that saved filters have changed
+			emit(this.app, Events.SAVED_FILTERS_CHANGED);
 
 			// Refresh the load mode display
 			this.close();

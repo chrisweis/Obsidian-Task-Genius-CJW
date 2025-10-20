@@ -2575,6 +2575,141 @@ async onload() {
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2025-10-19 | Initial specification document created |
+| 1.1 | 2025-10-19 | UI/UX improvements, filter enhancements, navigation reorganization |
+
+---
+
+## Recent Changes (Session 2025-10-19)
+
+### Filter Configuration Management
+**Feature:** Duplicate Filter Name Validation
+- **Location:** `FilterConfigModal.ts:222-333`, `en.ts:595-597`
+- **Changes:**
+  - Added validation to prevent duplicate filter configuration names
+  - Implemented confirmation modal when attempting to save with existing name
+  - User can choose to overwrite existing filter or cancel
+  - Existing filter preserves original `createdAt` and `id`, updates `updatedAt` timestamp
+- **Translation Keys Added:**
+  - "A filter configuration with this name already exists"
+  - "Do you want to overwrite the existing filter configuration?"
+  - "Overwrite"
+
+### Reset Filter Functionality
+**Feature:** Filter Dropdown Reset on Clear
+- **Location:** `FluentTaskView.ts:853-854`, `FluentTopNavigation.ts:368-372`
+- **Changes:**
+  - Reset Filter button now also resets filter dropdown to "All tasks"
+  - Added `resetFilterDropdown()` method to TopNavigation component
+  - Ensures consistent state between filter button and dropdown selector
+
+### Resize Handle Improvements
+**Feature:** Conditional Resize Handle Display
+- **Location:** `FluentTaskView.ts:455-486`
+- **Changes:**
+  - Custom resize handle only shows when NOT using Workspace Side Leaves
+  - Prevents double resize handles (custom + Obsidian native)
+  - Checks `useWorkspaceSideLeaves` setting before creating resize handle
+- **Logic:**
+  - `if (!Platform.isPhone && !useWorkspaceSideLeaves)` - only create when both conditions true
+  - When side leaves enabled, Obsidian's native handle is used instead
+
+### Visual Improvements
+**Feature:** Hide Completed Projects Toggle Visibility
+- **Location:** `fluent-main.css:255-264`
+- **Changes:**
+  - Disabled state: Reduced opacity from 0.25 to 0.15 (much lighter)
+  - Enabled state: Added `font-weight: 600` and `filter: brightness(1.2)` for emphasis
+  - Clearer visual distinction between on/off states
+
+### Navigation Reorganization
+**Feature:** Single-Row Three-Section Navigation Layout
+- **Location:** `FluentTopNavigation.ts:77-153`, `FluentTaskView.ts:508-529`, `fluent-main.css:392-430`
+- **Changes:**
+  - Reorganized navigation into single row with three distinct sections
+  - **Left Section:** Search field (far left) + Filter dropdown (next to search)
+  - **Center Section:** View mode tabs (List, Kanban, Tree, Calendar)
+  - **Right Section:** Notifications bell + Settings gear
+  - Added saved filter dropdown with "All Tasks" option
+  - Dropdown populates from `plugin.settings.filterConfig.savedConfigs`
+  - Auto-refreshes when saved filters change via event listener
+- **CSS Classes:**
+  - `.fluent-nav-left` - left-side search and filter container (flex: 1 1 auto, max-width: 500px)
+  - `.fluent-nav-center` - center view tabs container (flex: 0 0 auto)
+  - `.fluent-nav-right` - right-side notifications and settings container
+  - `.fluent-search-container` - search field wrapper (max-width: 300px, min-width: 200px)
+  - `.fluent-filter-dropdown-container` - filter dropdown wrapper (min-width: 180px)
+
+### UI Layout Structure
+**Previous Layout:**
+```
+[Search] [List|Kanban|Tree|Calendar] [Bell|Settings]
+```
+
+**Current Layout:**
+```
+[Search...] [Filter ▼] ... [List | Kanban | Tree | Calendar] ... [🔔] [⚙]
+```
+
+### Saved Filter Dropdown Integration
+**Feature:** Quick Filter Selection
+- **Location:** `FluentTopNavigation.ts:336-368`, `FluentTaskView.ts:802-833`
+- **Functionality:**
+  - Dropdown shows "All Tasks" as default option
+  - Lists all saved filter configurations from settings
+  - Selecting a filter applies its saved `filterState` to the view
+  - Selecting "All Tasks" resets all filters
+  - Automatically refreshes when filters are saved/deleted via `task-genius:saved-filters-changed` event
+  - Reset Filter button also resets dropdown to "All Tasks"
+
+### Notification Feature Enhancement
+**Feature:** Overdue Task Notifications with Task Details
+- **Location:** `FluentTopNavigation.ts:194-245`, `FluentTaskView.ts:527`
+- **Display Logic:**
+  - Shows up to 10 overdue tasks (incomplete tasks with due dates on or before today)
+  - Badge displays count of overdue tasks
+  - Updates automatically when tasks change
+- **Click Behavior:**
+  - Previously: Showed broken translation template `"Task: {{content}}"`
+  - Now: Opens task details modal/sidebar via `handleTaskSelection()`
+  - Same behavior as clicking "Edit" in task context menu
+  - Integrated with existing task selection workflow
+- **Changes:**
+  - Added `onTaskSelect` callback parameter to TopNavigation constructor
+  - Removed broken Notice with translation template
+  - Connected to FluentActionHandlers.handleTaskSelection()
+
+### Technical Implementation Details
+
+#### Duplicate Filter Validation Flow
+1. User saves filter with name
+2. System checks existing filters (case-insensitive)
+3. If duplicate found:
+   - Show confirmation modal
+   - User clicks "Overwrite" or "Cancel"
+4. If overwrite confirmed:
+   - Update existing filter object
+   - Preserve original ID and creation date
+   - Update timestamp to current time
+5. If no duplicate or new save:
+   - Create new filter object with unique ID
+   - Set both created and updated timestamps
+
+#### Navigation Component Architecture
+- **FluentTaskView** owns the TopNavigation component
+- **TopNavigation** exposes public methods for header rendering
+- **Header controls** and **header actions** are rendered externally in Obsidian header
+- **View tabs** remain in custom navigation area below header
+- **Separation of concerns:** Header integration vs custom view modes
+
+### Files Modified
+
+| File | Lines Changed | Purpose |
+|------|---------------|---------|
+| `FilterConfigModal.ts` | 222-333 | Duplicate name validation and overwrite confirmation |
+| `en.ts` | 595-597 | Translation keys for overwrite confirmation |
+| `FluentTaskView.ts` | 455-486, 508-529, 720-729, 802-833, 835-854 | Resize handle logic, navigation integration, filter handling, event listeners |
+| `FluentTopNavigation.ts` | 28-40, 77-153, 194-245, 336-368 | Navigation layout, filter dropdown, notification click handling |
+| `fluent-main.css` | 255-264, 392-430, 559-582 | Toggle visibility, navigation sections styling, responsive layout |
 
 ---
 

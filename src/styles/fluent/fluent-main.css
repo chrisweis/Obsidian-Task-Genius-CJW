@@ -398,24 +398,35 @@
 	gap: 20px;
 }
 
+/* Left Navigation - Search and Filter */
 .fluent-nav-left {
-	flex: 0 1 400px;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 1 1 auto;
+	max-width: 500px;
 }
 
 .fluent-search-container {
 	position: relative;
 	display: flex;
 	align-items: center;
-
-	max-width: 400px;
+	max-width: 300px;
+	min-width: 200px;
 	flex: 1;
 }
 
-/* Center Navigation */
+.fluent-filter-dropdown-container {
+	min-width: 180px;
+	flex: 0 0 auto;
+}
+
+/* Center Navigation - View tabs */
 .fluent-nav-center {
 	display: flex;
 	align-items: center;
 	gap: 12px;
+	flex: 0 0 auto;
 }
 
 .fluent-view-tabs {
@@ -555,12 +566,18 @@
 		display: none;
 	}
 
-	.fluent-search-container {
+	.fluent-nav-left {
 		flex: 1;
+		max-width: none;
 	}
 
-	.fluent-nav-left .search-input-container {
-		width: 300px;
+	.fluent-search-container {
+		max-width: 200px;
+		min-width: 150px;
+	}
+
+	.fluent-filter-dropdown-container {
+		min-width: 120px;
 	}
 }
 

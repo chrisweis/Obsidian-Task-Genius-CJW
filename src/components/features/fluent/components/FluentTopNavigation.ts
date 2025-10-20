@@ -5,10 +5,12 @@ import {
 	SearchComponent,
 	Platform,
 	Component,
+	DropdownComponent,
 } from "obsidian";
 import TaskProgressBarPlugin from "@/index";
 import { Task } from "@/types/task";
 import { t } from "@/translations/helper";
+import { SavedFilterConfig } from "@/common/setting-definition";
 
 export type ViewMode = "list" | "kanban" | "tree" | "calendar";
 
@@ -20,6 +22,8 @@ export class TopNavigation extends Component {
 	private notificationCount = 0;
 	private availableModes: ViewMode[] = ["list", "kanban", "tree", "calendar"];
 	private viewTabsContainer: HTMLElement | null = null;
+	private filterDropdownContainer: HTMLElement | null = null;
+	private filterDropdown: DropdownComponent | null = null;
 
 	constructor(
 		containerEl: HTMLElement,
@@ -30,7 +34,9 @@ export class TopNavigation extends Component {
 		private onSortClick: () => void,
 		private onSettingsClick: () => void,
 		availableModes?: ViewMode[],
-		private onToggleSidebar?: () => void
+		private onToggleSidebar?: () => void,
+		private onFilterSelect?: (configId: string | null) => void,
+		private onTaskSelect?: (task: Task) => void
 	) {
 		super();
 		this.containerEl = containerEl;
@@ -82,11 +88,12 @@ export class TopNavigation extends Component {
 		// Show navigation when modes are available
 		this.containerEl.style.display = "";
 
-		// Left section - Hamburger menu (mobile) and Search
+		// Left section - Search and Filter dropdown
 		const leftSection = this.containerEl.createDiv({
 			cls: "fluent-nav-left",
 		});
 
+		// Search (far left)
 		const searchContainer = leftSection.createDiv({
 			cls: "fluent-search-container",
 		});
@@ -96,6 +103,15 @@ export class TopNavigation extends Component {
 			.onChange((value) => {
 				this.onSearch(value);
 			});
+
+		// Add filter dropdown (to the right of search)
+		if (this.onFilterSelect) {
+			this.filterDropdownContainer = leftSection.createDiv({
+				cls: "fluent-filter-dropdown-container",
+			});
+
+			this.renderFilterDropdown();
+		}
 
 		// Center section - View mode tabs
 		const centerSection = this.containerEl.createDiv({
@@ -217,11 +233,9 @@ export class TopNavigation extends Component {
 					item.setTitle(task.content || t("Untitled task"))
 						.setIcon("alert-circle")
 						.onClick(() => {
-							new Notice(
-								t("Task: {{content}}", {
-									content: task.content || "",
-								})
-							);
+							if (this.onTaskSelect) {
+								this.onTaskSelect(task);
+							}
 						});
 				});
 			});
@@ -321,5 +335,39 @@ export class TopNavigation extends Component {
 
 	public getCurrentViewMode(): ViewMode {
 		return this.currentViewMode;
+	}
+
+	private renderFilterDropdown() {
+		if (!this.filterDropdownContainer) return;
+
+		this.filterDropdownContainer.empty();
+
+		const savedFilters = this.plugin.settings.filterConfig.savedConfigs;
+
+		this.filterDropdown = new DropdownComponent(
+			this.filterDropdownContainer
+		)
+			.addOption("", t("All Tasks"))
+			.onChange((value) => {
+				if (this.onFilterSelect) {
+					// null for "All Tasks", otherwise the config ID
+					this.onFilterSelect(value || null);
+				}
+			});
+
+		// Add saved filter options
+		savedFilters.forEach((config: SavedFilterConfig) => {
+			this.filterDropdown?.addOption(config.id, config.name);
+		});
+	}
+
+	public refreshFilterDropdown() {
+		this.renderFilterDropdown();
+	}
+
+	public resetFilterDropdown() {
+		if (this.filterDropdown) {
+			this.filterDropdown.setValue("");
+		}
 	}
 }

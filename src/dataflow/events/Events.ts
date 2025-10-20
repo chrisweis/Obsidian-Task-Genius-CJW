@@ -16,6 +16,7 @@ export const Events = {
   ICS_EVENTS_UPDATED: "task-genius:ics-events-updated",
   FILE_TASK_UPDATED: "task-genius:file-task-updated",
   FILE_TASK_REMOVED: "task-genius:file-task-removed",
+  SAVED_FILTERS_CHANGED: "task-genius:saved-filters-changed",
 } as const;
 
 export type SeqClock = { next(): number };

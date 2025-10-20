@@ -520,7 +520,11 @@ export class FluentTaskView extends ItemView {
 				// Sort click
 				// TODO: Implement sort
 			},
-			() => this.actionHandlers.handleSettingsClick()
+			() => this.actionHandlers.handleSettingsClick(),
+			undefined, // availableModes - use defaults
+			undefined, // onToggleSidebar
+			(configId: string | null) => this.handleFilterSelect(configId),
+			(task: Task) => this.actionHandlers.handleTaskSelection(task)
 		);
 		this.addChild(this.topNavigation);
 
@@ -714,6 +718,18 @@ export class FluentTaskView extends ItemView {
 			)
 		);
 
+		// Listen for saved filter changes to refresh dropdown
+		this.registerEvent(
+			on(
+				this.app,
+				Events.SAVED_FILTERS_CHANGED,
+				() => {
+					console.log("[TG-V2] Saved filters changed, refreshing dropdown");
+					this.topNavigation?.refreshFilterDropdown();
+				}
+			)
+		);
+
 		// Sidebar selection changed (when using side leaves)
 		if (this.useSideLeaves()) {
 			this.registerEvent(
@@ -799,6 +815,39 @@ export class FluentTaskView extends ItemView {
 	/**
 	 * Reset all active filters
 	 */
+	private handleFilterSelect(configId: string | null): void {
+		console.log("[TG-V2] Filter selected:", configId);
+
+		if (!configId) {
+			// "All Tasks" selected - reset filter
+			this.resetCurrentFilter();
+			return;
+		}
+
+		// Find the saved filter configuration
+		const config = this.plugin.settings.filterConfig.savedConfigs.find(
+			(c) => c.id === configId
+		);
+
+		if (!config) {
+			console.error("[TG-V2] Filter config not found:", configId);
+			return;
+		}
+
+		// Apply the saved filter state
+		this.liveFilterState = config.filterState;
+		this.currentFilterState = config.filterState;
+
+		// Save to localStorage
+		this.app.saveLocalStorage(
+			"task-genius-view-filter",
+			config.filterState
+		);
+
+		// Refresh data
+		this.dataManager.loadTasks();
+	}
+
 	private resetCurrentFilter(): void {
 		console.log("[TG-V2] Resetting filter");
 
@@ -806,6 +855,9 @@ export class FluentTaskView extends ItemView {
 		this.liveFilterState = null;
 		this.currentFilterState = null;
 		this.viewState.selectedProject = undefined; // keep project state in sync when clearing via UI
+
+		// Reset filter dropdown to "All tasks"
+		this.topNavigation?.resetFilterDropdown();
 
 		// Clear localStorage
 		this.app.saveLocalStorage("task-genius-view-filter", null);
