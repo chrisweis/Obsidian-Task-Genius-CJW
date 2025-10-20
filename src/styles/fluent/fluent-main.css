@@ -132,17 +132,65 @@
 /* Sidebar Content */
 .fluent-sidebar-content {
 	flex: 1;
-	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 	padding: 8px 0;
 	--icon-size: 16px;
 }
 
 .fluent-sidebar-section {
 	padding: 8px 0;
+	flex-shrink: 0;
 }
 
 .fluent-sidebar-section + .fluent-sidebar-section {
 	border-top: 1px solid var(--background-modifier-border);
+}
+
+/* Resizable sections with overflow handling */
+.fluent-sidebar-section-resizable {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+}
+
+/* Project list container with scrollbar */
+.fluent-project-list-container {
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	min-height: 0;
+}
+
+/* Resize handle between sections */
+.fluent-sidebar-resize-handle {
+	height: 8px;
+	cursor: ns-resize;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+
+.fluent-sidebar-resize-handle::before {
+	content: "";
+	width: 40px;
+	height: 3px;
+	background-color: var(--background-modifier-border);
+	border-radius: 2px;
+	transition: background-color 0.15s;
+}
+
+.fluent-sidebar-resize-handle:hover::before {
+	background-color: var(--interactive-accent);
+}
+
+body.fluent-sidebar-resizing {
+	cursor: ns-resize !important;
+	user-select: none;
 }
 
 .fluent-section-header {
@@ -188,6 +236,14 @@
 /* Navigation Items */
 .fluent-navigation-list {
 	padding: 0 8px;
+}
+
+/* Navigation list inside resizable section needs overflow */
+.fluent-sidebar-section-resizable .fluent-navigation-list {
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	min-height: 0;
 }
 
 .fluent-navigation-item {
