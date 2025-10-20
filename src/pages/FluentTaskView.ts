@@ -334,6 +334,11 @@ export class FluentTaskView extends ItemView {
 
 					// Only add project filter if projectId is not empty
 					if (projectId && projectId.trim() !== "") {
+						// Convert custom project ID to project name for filtering
+						const customProjects = this.plugin.settings.projectConfig?.customProjects || [];
+						const customProject = customProjects.find((p) => p.id === projectId);
+						const projectNameForFilter = customProject ? customProject.name : projectId;
+
 						// Append a dedicated group for project filter to enforce AND semantics
 						nextState.filterGroups.push({
 							id: `fluent-proj-group-${timestamp}`,
@@ -343,7 +348,7 @@ export class FluentTaskView extends ItemView {
 									id: `fluent-proj-filter-${timestamp}`,
 									property: "project",
 									condition: "is",
-									value: projectId,
+									value: projectNameForFilter,
 								},
 							],
 						});

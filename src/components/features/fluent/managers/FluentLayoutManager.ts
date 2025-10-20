@@ -537,8 +537,10 @@ export class FluentLayoutManager extends Component {
 					setTimeout(() => {
 						const liveFilterState = this.getLiveFilterState?.();
 						if (liveFilterState && popover.taskFilterComponent) {
+							// Pass false to prevent triggering filter-changed event when initializing
 							popover.taskFilterComponent.loadFilterState(
-								liveFilterState
+								liveFilterState,
+								false
 							);
 						}
 					}, 100);
@@ -558,8 +560,10 @@ export class FluentLayoutManager extends Component {
 				const liveFilterState = this.getLiveFilterState?.();
 				if (liveFilterState && modal.taskFilterComponent) {
 					setTimeout(() => {
+						// Pass false to prevent triggering filter-changed event when initializing
 						modal.taskFilterComponent.loadFilterState(
-							liveFilterState
+							liveFilterState,
+							false
 						);
 					}, 100);
 				}

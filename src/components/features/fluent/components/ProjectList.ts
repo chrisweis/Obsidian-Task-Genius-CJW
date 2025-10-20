@@ -1,4 +1,4 @@
-import { Component, Platform, setIcon, Menu, Modal, App } from "obsidian";
+import { Component, Platform, setIcon, Menu, Modal, App, SearchComponent } from "obsidian";
 import TaskProgressBarPlugin from "@/index";
 import { Task } from "@/types/task";
 import {
@@ -8,6 +8,8 @@ import {
 } from "./ProjectPopover";
 import type { CustomProject } from "@/common/setting-definition";
 import { t } from "@/translations/helper";
+import { Events, on } from "@/dataflow/events/Events";
+import { isDataflowEnabled } from "@/dataflow/createDataflow";
 
 interface Project {
 	id: string;
@@ -15,6 +17,7 @@ interface Project {
 	displayName?: string;
 	color: string;
 	taskCount: number;
+	incompleteTaskCount?: number; // Count of incomplete tasks
 	createdAt?: number;
 	updatedAt?: number;
 	isVirtual?: boolean; // Flag for intermediate nodes
@@ -35,6 +38,8 @@ type SortOption =
 	| "name-desc"
 	| "tasks-asc"
 	| "tasks-desc"
+	| "incomplete-asc"
+	| "incomplete-desc"
 	| "created-asc"
 	| "created-desc";
 
@@ -52,6 +57,10 @@ export class ProjectList extends Component {
 	private isTreeView = false;
 	private expandedNodes: Set<string> = new Set();
 	private treeNodes: ProjectTreeNode[] = [];
+	private filterQuery = "";
+	private scrollAreaEl: HTMLElement | null = null;
+	private hideCompletedProjects = false;
+	private readonly HIDE_COMPLETED_KEY = "task-genius-hide-completed-projects";
 
 	constructor(
 		containerEl: HTMLElement,
@@ -76,8 +85,37 @@ export class ProjectList extends Component {
 	async onload() {
 		await this.loadSortPreference();
 		await this.loadExpandedNodes();
+		await this.loadHideCompletedPreference();
 		await this.loadProjects();
 		this.render();
+		this.setupEventListeners();
+	}
+
+	private setupEventListeners() {
+		// Listen for task cache updates to refresh the project list
+		if (
+			isDataflowEnabled(this.plugin) &&
+			this.plugin.dataflowOrchestrator
+		) {
+			// Listen for task cache updates
+			this.registerEvent(
+				on(this.plugin.app, Events.TASK_CACHE_UPDATED, async () => {
+					await this.loadProjects();
+					this.render();
+				})
+			);
+		} else {
+			// Legacy event support
+			this.registerEvent(
+				this.plugin.app.workspace.on(
+					"task-genius:task-cache-updated",
+					async () => {
+						await this.loadProjects();
+						this.render();
+					}
+				)
+			);
+		}
 	}
 
 	onunload() {
@@ -113,11 +151,16 @@ export class ProjectList extends Component {
 						displayName: displayName,
 						color: this.generateColorForProject(projectName),
 						taskCount: 0,
+						incompleteTaskCount: 0,
 					});
 				}
 				const project = projectMap.get(projectName);
 				if (project) {
 					project.taskCount++;
+					if (!task.completed) {
+						project.incompleteTaskCount =
+							(project.incompleteTaskCount || 0) + 1;
+					}
 				}
 			}
 		});
@@ -177,6 +220,20 @@ export class ProjectList extends Component {
 		);
 	}
 
+	private async loadHideCompletedPreference() {
+		const saved = await this.plugin.app.loadLocalStorage(
+			this.HIDE_COMPLETED_KEY
+		);
+		this.hideCompletedProjects = saved === true || saved === "true";
+	}
+
+	private async saveHideCompletedPreference() {
+		await this.plugin.app.saveLocalStorage(
+			this.HIDE_COMPLETED_KEY,
+			this.hideCompletedProjects
+		);
+	}
+
 	public setViewMode(isTreeView: boolean) {
 		this.isTreeView = isTreeView;
 		this.render();
@@ -199,6 +256,10 @@ export class ProjectList extends Component {
 					return a.taskCount - b.taskCount;
 				case "tasks-desc":
 					return b.taskCount - a.taskCount;
+				case "incomplete-asc":
+					return (a.incompleteTaskCount || 0) - (b.incompleteTaskCount || 0);
+				case "incomplete-desc":
+					return (b.incompleteTaskCount || 0) - (a.incompleteTaskCount || 0);
 				case "created-asc":
 					return (a.createdAt || 0) - (b.createdAt || 0);
 				case "created-desc":
@@ -418,24 +479,42 @@ export class ProjectList extends Component {
 			this.containerEl.removeClass("is-tree-view");
 		}
 
-		const scrollArea = this.containerEl.createDiv({
+		// Create scroll area
+		this.scrollAreaEl = this.containerEl.createDiv({
 			cls: "fluent-project-scroll",
 		});
+
+		// Render projects
+		this.renderFilteredProjects();
+	}
+
+	private renderFilteredProjects() {
+		if (!this.scrollAreaEl) return;
+
+		this.scrollAreaEl.empty();
+
+		// Add "All Projects" option at the top
+		this.renderAllProjectsItem();
+
+		// Filter projects based on query
+		const filteredProjects = this.getFilteredProjects();
 
 		if (this.isTreeView) {
 			// Build tree structure first
 			this.buildTreeStructure();
+			// Filter tree nodes
+			const filteredTreeNodes = this.filterTreeNodes(this.treeNodes);
 			// Render tree view
-			this.renderTreeNodes(scrollArea, this.treeNodes, 0);
+			this.renderTreeNodes(this.scrollAreaEl, filteredTreeNodes, 0);
 		} else {
 			// Render flat list view
-			this.projects.forEach((project) => {
-				this.renderProjectItem(scrollArea, project, 0, false);
+			filteredProjects.forEach((project) => {
+				this.renderProjectItem(this.scrollAreaEl!, project, 0, false);
 			});
 		}
 
 		// Add new project button
-		const addProjectBtn = scrollArea.createDiv({
+		const addProjectBtn = this.scrollAreaEl.createDiv({
 			cls: "fluent-project-item fluent-add-project",
 		});
 
@@ -452,6 +531,102 @@ export class ProjectList extends Component {
 		this.registerDomEvent(addProjectBtn, "click", () => {
 			this.handleAddProject(addProjectBtn);
 		});
+	}
+
+	private getFilteredProjects(): Project[] {
+		let filtered = this.projects;
+
+		// Filter by hide completed projects
+		if (this.hideCompletedProjects) {
+			filtered = filtered.filter((project) => {
+				// Show project if it has any incomplete tasks
+				return (project.incompleteTaskCount || 0) > 0;
+			});
+		}
+
+		// Filter by search query
+		if (this.filterQuery && this.filterQuery.trim() !== "") {
+			const query = this.filterQuery.toLowerCase().trim();
+			filtered = filtered.filter((project) => {
+				const displayName = (
+					project.displayName || project.name
+				).toLowerCase();
+				return displayName.includes(query);
+			});
+		}
+
+		return filtered;
+	}
+
+	private filterTreeNodes(nodes: ProjectTreeNode[]): ProjectTreeNode[] {
+		const hasSearchQuery = this.filterQuery && this.filterQuery.trim() !== "";
+		const query = hasSearchQuery ? this.filterQuery.toLowerCase().trim() : "";
+
+		const matchesQuery = (node: ProjectTreeNode): boolean => {
+			if (!hasSearchQuery) return true;
+			const displayName = (
+				node.project.displayName || node.project.name
+			).toLowerCase();
+			return displayName.includes(query);
+		};
+
+		const matchesCompletedFilter = (node: ProjectTreeNode): boolean => {
+			if (!this.hideCompletedProjects) return true;
+			// Show if project has incomplete tasks
+			return (node.project.incompleteTaskCount || 0) > 0;
+		};
+
+		const filterNodes = (
+			nodes: ProjectTreeNode[]
+		): ProjectTreeNode[] => {
+			const filtered: ProjectTreeNode[] = [];
+
+			for (const node of nodes) {
+				const nodeMatchesQuery = matchesQuery(node);
+				const nodeMatchesCompleted = matchesCompletedFilter(node);
+				const filteredChildren = filterNodes(node.children);
+
+				// Include node if:
+				// 1. It matches the query (or no query)
+				// 2. It matches the completed filter (or filter is off)
+				// 3. OR it has matching children
+				const shouldInclude =
+					(nodeMatchesQuery && nodeMatchesCompleted) ||
+					filteredChildren.length > 0;
+
+				if (shouldInclude) {
+					filtered.push({
+						...node,
+						children: filteredChildren,
+						// Auto-expand nodes when filtering to show matches
+						expanded: hasSearchQuery ? true : node.expanded,
+					});
+				}
+			}
+
+			return filtered;
+		};
+
+		return filterNodes(nodes);
+	}
+
+	public toggleHideCompletedProjects(): void {
+		this.hideCompletedProjects = !this.hideCompletedProjects;
+		this.saveHideCompletedPreference();
+		this.renderFilteredProjects();
+	}
+
+	public getHideCompletedProjects(): boolean {
+		return this.hideCompletedProjects;
+	}
+
+	public setFilterQuery(query: string): void {
+		this.filterQuery = query;
+		this.renderFilteredProjects();
+	}
+
+	public getFilterQuery(): string {
+		return this.filterQuery;
 	}
 
 	private renderTreeNodes(
@@ -472,6 +647,36 @@ export class ProjectList extends Component {
 			if (hasChildren && node.expanded) {
 				this.renderTreeNodes(container, node.children, level + 1);
 			}
+		});
+	}
+
+	private renderAllProjectsItem() {
+		if (!this.scrollAreaEl) return;
+
+		const allProjectsItem = this.scrollAreaEl.createDiv({
+			cls: "fluent-project-item fluent-all-projects",
+		});
+
+		// Add active class if no project is selected
+		if (!this.activeProjectId) {
+			allProjectsItem.addClass("is-active");
+		}
+
+		// Icon representing all projects
+		const icon = allProjectsItem.createDiv({
+			cls: "fluent-project-color",
+		});
+		icon.style.backgroundColor = "var(--interactive-accent)";
+
+		const projectName = allProjectsItem.createSpan({
+			cls: "fluent-project-name",
+			text: t("All Projects"),
+		});
+
+		// Click handler to clear project filter
+		this.registerDomEvent(allProjectsItem, "click", () => {
+			this.setActiveProject(null);
+			this.onProjectSelect(""); // Empty string clears the filter
 		});
 	}
 
@@ -782,6 +987,16 @@ export class ProjectList extends Component {
 			{
 				label: t("Tasks (High to Low)"),
 				value: "tasks-desc",
+				icon: "arrow-down-1-0",
+			},
+			{
+				label: t("Tasks Incomplete (Low to High)"),
+				value: "incomplete-asc",
+				icon: "arrow-up-1-0",
+			},
+			{
+				label: t("Tasks Incomplete (High to Low)"),
+				value: "incomplete-desc",
 				icon: "arrow-down-1-0",
 			},
 			{

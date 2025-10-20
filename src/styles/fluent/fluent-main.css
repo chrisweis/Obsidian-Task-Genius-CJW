@@ -199,6 +199,7 @@ body.fluent-sidebar-resizing {
 	justify-content: space-between;
 	padding: 4px 16px;
 	margin-bottom: 4px;
+	gap: 8px;
 }
 
 .fluent-section-header span {
@@ -206,6 +207,27 @@ body.fluent-sidebar-resizing {
 	font-weight: 600;
 	text-transform: uppercase;
 	color: var(--text-muted);
+}
+
+/* Project filter container */
+.fluent-project-filter-container {
+	flex: 1;
+	max-width: 160px;
+}
+
+/* Hide the search icon from the project filter */
+.fluent-project-filter-container .search-input-clear-button {
+	display: none;
+}
+
+.fluent-project-filter-container .search-input-container::before {
+	display: none;
+}
+
+/* Left-align the text and cursor in the project filter */
+.fluent-project-filter-container input {
+	text-align: left !important;
+	padding-left: 8px !important;
 }
 
 .fluent-project-header-buttons {
@@ -216,10 +238,11 @@ body.fluent-sidebar-resizing {
 
 .fluent-add-project-btn,
 .fluent-sort-project-btn,
-.fluent-tree-toggle-btn {
+.fluent-tree-toggle-btn,
+.fluent-hide-completed-btn {
 	cursor: pointer;
 	color: var(--text-muted);
-	transition: color 0.15s;
+	transition: color 0.15s, opacity 0.15s, font-weight 0.15s, filter 0.15s;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -229,8 +252,21 @@ body.fluent-sidebar-resizing {
 
 .fluent-add-project-btn:hover,
 .fluent-sort-project-btn:hover,
-.fluent-tree-toggle-btn:hover {
+.fluent-tree-toggle-btn:hover,
+.fluent-hide-completed-btn:hover {
 	color: var(--text-normal);
+}
+
+/* Hide completed projects button states */
+.fluent-hide-completed-btn {
+	opacity: 0.15;
+}
+
+.fluent-hide-completed-btn.is-active {
+	opacity: 1;
+	color: var(--interactive-accent);
+	font-weight: 600;
+	filter: brightness(1.2);
 }
 
 /* Navigation Items */
@@ -297,8 +333,7 @@ body.fluent-sidebar-resizing {
 
 /* Project List */
 .fluent-project-scroll {
-	max-height: 300px;
-	overflow-y: auto;
+	/* Overflow handled by parent .fluent-project-list-container */
 	padding: 0 8px;
 }
 
@@ -325,6 +360,11 @@ body.fluent-sidebar-resizing {
 	height: 12px;
 	border-radius: 3px;
 	flex-shrink: 0;
+}
+
+/* All Projects has a white icon */
+.fluent-all-projects .fluent-project-color {
+	background-color: white !important;
 }
 
 .fluent-project-color-dashed {
@@ -355,6 +395,25 @@ body.fluent-sidebar-resizing {
 /* Tree View Styles */
 .fluent-project-list.is-tree-view .fluent-project-item {
 	transition: all 0.15s ease;
+	gap: 6px;
+}
+
+/* Reduce chevron and spacer size in tree view */
+.fluent-project-list.is-tree-view .fluent-project-chevron {
+	width: 12px;
+	height: 12px;
+	margin-right: 2px;
+}
+
+.fluent-project-list.is-tree-view .fluent-project-chevron svg {
+	width: 10px;
+	height: 10px;
+}
+
+.fluent-project-list.is-tree-view .fluent-project-chevron-spacer {
+	width: 12px;
+	height: 12px;
+	margin-right: 2px;
 }
 
 .fluent-project-chevron {
@@ -386,17 +445,25 @@ body.fluent-sidebar-resizing {
 	flex-shrink: 0;
 }
 
-/* Tree indentation */
+/* Tree indentation - reduced spacing with tight left alignment */
+.fluent-project-list.is-tree-view .fluent-project-item[data-level="0"] {
+	padding-left: 0px !important;
+}
+
 .fluent-project-list.is-tree-view .fluent-project-item[data-level="1"] {
-	padding-left: 28px;
+	padding-left: 12px !important;
 }
 
 .fluent-project-list.is-tree-view .fluent-project-item[data-level="2"] {
-	padding-left: 48px;
+	padding-left: 22px !important;
 }
 
 .fluent-project-list.is-tree-view .fluent-project-item[data-level="3"] {
-	padding-left: 68px;
+	padding-left: 32px !important;
+}
+
+.fluent-project-list.is-tree-view .fluent-project-item[data-level="4"] {
+	padding-left: 42px !important;
 }
 
 /* Tree hierarchy lines (optional - can be added later) */

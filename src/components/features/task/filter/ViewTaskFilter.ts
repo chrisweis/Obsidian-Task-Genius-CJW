@@ -1090,7 +1090,7 @@ export class TaskFilterComponent extends Component {
 	}
 
 	// Public method to load filter state
-	public loadFilterState(state: RootFilterState): void {
+	public loadFilterState(state: RootFilterState, triggerRealtimeUpdate: boolean = true): void {
 		// Safely destroy sortable instances
 		try {
 			if (this.groupsSortable) {
@@ -1123,7 +1123,7 @@ export class TaskFilterComponent extends Component {
 			});
 
 		this.rootFilterState = JSON.parse(JSON.stringify(state));
-		this.saveStateToLocalStorage();
+		this.saveStateToLocalStorage(triggerRealtimeUpdate);
 
 		this.render();
 	}
