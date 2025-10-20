@@ -1232,6 +1232,73 @@ export class TaskBasesView extends BasesView {
 					});
 				}
 			})
+			.addItem((item) => {
+				item.setIcon('folder');
+				item.setTitle(t('Choose Project'));
+				const submenu = item.setSubmenu();
+
+				// Get all unique projects from tasks
+				const projects = new Set<string>();
+				let allTasks: Task[] = [];
+
+				if (this.plugin.dataflowOrchestrator) {
+					const queryAPI = this.plugin.dataflowOrchestrator.getQueryAPI();
+					allTasks = queryAPI.getAllTasksSync() || [];
+				} else {
+					allTasks = this.plugin.preloadedTasks || [];
+				}
+
+				allTasks.forEach((t: Task) => {
+					if (t.metadata?.project) {
+						projects.add(t.metadata.project);
+					}
+				});
+
+				// Add "No Project" option to clear project
+				submenu.addItem((item) => {
+					item.setTitle(t('No Project'));
+					item.setIcon(task.metadata?.project ? '' : 'check');
+					item.onClick(async () => {
+						const updatedTask = {
+							...task,
+							metadata: {
+								...task.metadata,
+								project: undefined,
+							},
+						};
+						await this.updateTask(task, updatedTask);
+					});
+				});
+
+				// Add separator
+				if (projects.size > 0) {
+					submenu.addSeparator();
+				}
+
+				// Add menu items for each project
+				const sortedProjects = Array.from(projects).sort((a, b) =>
+					a.localeCompare(b, undefined, { sensitivity: 'base' })
+				);
+
+				for (const projectName of sortedProjects) {
+					submenu.addItem((item) => {
+						const displayName = projectName.replace(/-/g, ' ');
+						item.setTitle(displayName);
+						// Show check mark if this is the current project
+						item.setIcon(task.metadata?.project === projectName ? 'check' : '');
+						item.onClick(async () => {
+							const updatedTask = {
+								...task,
+								metadata: {
+									...task.metadata,
+									project: projectName,
+								},
+							};
+							await this.updateTask(task, updatedTask);
+						});
+					});
+				}
+			})
 			.addSeparator()
 			.addItem((item) => {
 				item.setTitle(t('Edit'));

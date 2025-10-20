@@ -1,4 +1,4 @@
-import { Component, setIcon, Menu, Notice, Modal, Platform } from "obsidian";
+import { Component, setIcon, Menu, Notice, Modal, Platform, SearchComponent, DropdownComponent } from "obsidian";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import { ProjectList } from "@/components/features/fluent/components/ProjectList";
 import { FluentTaskNavigationItem } from "@/types/fluent-types";
@@ -28,6 +28,13 @@ export class FluentSidebar extends Component {
 	private isTreeView = false;
 	private otherViewsSection: HTMLElement | null = null;
 	private railEl: HTMLElement | null = null;
+	private filterDropdownContainer: HTMLElement | null = null;
+	private filterDropdown: import("obsidian").DropdownComponent | null = null;
+
+	// Resizable sections
+	private projectsSection: HTMLElement | null = null;
+	private projectsSectionHeight = 60; // Default 60% for projects section
+	private readonly SECTION_HEIGHT_KEY = "task-genius-projects-section-height";
 
 	private primaryItems: FluentTaskNavigationItem[] = [
 		{id: "inbox", label: t("Inbox"), icon: "inbox", type: "primary"},
@@ -68,6 +75,8 @@ export class FluentSidebar extends Component {
 		plugin: TaskProgressBarPlugin,
 		private onNavigate: (viewId: string) => void,
 		private onProjectSelect: (projectId: string) => void,
+		private onSearch?: (query: string) => void,
+		private onFilterSelect?: (configId: string | null) => void,
 		collapsed = false
 	) {
 		super();
@@ -76,6 +85,26 @@ export class FluentSidebar extends Component {
 		this.collapsed = collapsed;
 		this.currentWorkspaceId =
 			plugin.workspaceManager?.getActiveWorkspace().id || "";
+
+		// Load saved section height
+		this.loadSectionHeight();
+	}
+
+	private loadSectionHeight() {
+		const saved = this.plugin.app.loadLocalStorage(this.SECTION_HEIGHT_KEY);
+		if (saved !== null && saved !== undefined) {
+			const height = parseFloat(saved);
+			if (!isNaN(height) && height >= 20 && height <= 80) {
+				this.projectsSectionHeight = height;
+			}
+		}
+	}
+
+	private saveSectionHeight() {
+		this.plugin.app.saveLocalStorage(
+			this.SECTION_HEIGHT_KEY,
+			String(this.projectsSectionHeight)
+		);
 	}
 
 	private render() {
@@ -122,25 +151,84 @@ export class FluentSidebar extends Component {
 			cls: "fluent-sidebar-content",
 		});
 
-		// Primary navigation section
-		const primarySection = content.createDiv({
-			cls: "fluent-sidebar-section",
-		});
-		this.renderNavigationItems(primarySection, this.primaryItems);
+		// FILTERS AT TOP
+		// Filter dropdown (first)
+		if (this.onFilterSelect) {
+			const filterSection = content.createDiv({
+				cls: "fluent-sidebar-filter-section",
+			});
+			this.filterDropdownContainer = filterSection.createDiv({
+				cls: "fluent-sidebar-filter-dropdown-container",
+			});
+			this.renderFilterDropdown();
+		}
 
-		// Projects section
-		const projectsSection = content.createDiv({
-			cls: "fluent-sidebar-section",
+		// Search field (second)
+		if (this.onSearch) {
+			const searchSection = content.createDiv({
+				cls: "fluent-sidebar-search-section",
+			});
+			const searchContainer = searchSection.createDiv({
+				cls: "fluent-sidebar-search-container",
+			});
+
+			new SearchComponent(searchContainer)
+				.setPlaceholder(t("Search tasks, projects"))
+				.onChange((value) => {
+					if (this.onSearch) {
+						this.onSearch(value);
+					}
+				});
+		}
+
+		// Projects section (third - resizable)
+		this.projectsSection = content.createDiv({
+			cls: "fluent-sidebar-section fluent-sidebar-section-resizable",
 		});
-		const projectHeader = projectsSection.createDiv({
+		// Apply saved height
+		this.projectsSection.style.height = `${this.projectsSectionHeight}%`;
+		const projectHeader = this.projectsSection.createDiv({
 			cls: "fluent-section-header",
 		});
 
 		projectHeader.createSpan({text: t("Projects")});
 
+		// Filter input for projects
+		const filterContainer = projectHeader.createDiv({
+			cls: "fluent-project-filter-container",
+		});
+
+		new SearchComponent(filterContainer)
+			.setPlaceholder(t("Filter projects..."))
+			.onChange((value) => {
+				if (this.projectList) {
+					(this.projectList as any).setFilterQuery?.(value);
+				}
+			});
+
 		// Button container for tree toggle and sort
 		const buttonContainer = projectHeader.createDiv({
 			cls: "fluent-project-header-buttons",
+		});
+
+		// Hide completed projects toggle button
+		const hideCompletedBtn = buttonContainer.createDiv({
+			cls: "fluent-hide-completed-btn",
+			attr: {"aria-label": t("Hide completed projects")},
+		});
+		setIcon(hideCompletedBtn, "check-circle");
+
+		hideCompletedBtn.addEventListener("click", () => {
+			if (this.projectList) {
+				(this.projectList as any).toggleHideCompletedProjects?.();
+				const isHidden = (this.projectList as any).getHideCompletedProjects?.() || false;
+				// Update icon opacity to show active state
+				if (isHidden) {
+					hideCompletedBtn.addClass("is-active");
+				} else {
+					hideCompletedBtn.removeClass("is-active");
+				}
+			}
 		});
 
 		// Tree/List toggle button
@@ -181,7 +269,9 @@ export class FluentSidebar extends Component {
 			(this.projectList as any).showSortMenu?.(sortProjectBtn);
 		});
 
-		const projectListEl = projectsSection.createDiv();
+		const projectListEl = this.projectsSection.createDiv({
+			cls: "fluent-project-list-container",
+		});
 		this.projectList = new ProjectList(
 			projectListEl,
 			this.plugin,
@@ -191,11 +281,125 @@ export class FluentSidebar extends Component {
 		// Add ProjectList as a child component
 		this.addChild(this.projectList);
 
-		// Other views section
+		// Set initial state of hide completed button
+		const isHidden = (this.projectList as any).getHideCompletedProjects?.() || false;
+		if (isHidden) {
+			hideCompletedBtn.addClass("is-active");
+		}
+
+		// Resize handle
+		const resizeHandle = content.createDiv({
+			cls: "fluent-sidebar-resize-handle",
+		});
+		this.setupResizeHandle(resizeHandle);
+
+		// VIEWS AT BOTTOM (in a resizable container)
 		this.otherViewsSection = content.createDiv({
+			cls: "fluent-sidebar-section fluent-sidebar-section-resizable fluent-sidebar-views-section",
+		});
+		// Calculate and apply views section height
+		this.otherViewsSection.style.height = `${100 - this.projectsSectionHeight}%`;
+
+		// Primary navigation (Inbox, Today, Upcoming, Flagged)
+		const primarySection = this.otherViewsSection.createDiv({
 			cls: "fluent-sidebar-section",
 		});
-		this.renderOtherViewsSection();
+		this.renderNavigationItems(primarySection, this.primaryItems);
+
+		// Other views (Calendar, Gantt, Review, Tags, etc.)
+		const allOtherItems = this.computeOtherItems();
+		const visibleCount =
+			this.plugin?.settings?.fluentView?.fluentConfig
+				?.maxOtherViewsBeforeOverflow ?? 5;
+		const displayedOther: FluentTaskNavigationItem[] = allOtherItems.slice(
+			0,
+			visibleCount
+		);
+		const remainingOther: FluentTaskNavigationItem[] =
+			allOtherItems.slice(visibleCount);
+
+		// Create other views section with header
+		const otherViewsSubSection = this.otherViewsSection.createDiv({
+			cls: "fluent-sidebar-section",
+		});
+
+		const otherHeader = otherViewsSubSection.createDiv({
+			cls: "fluent-section-header",
+		});
+		otherHeader.createSpan({text: t("Other Views")});
+
+		if (remainingOther.length > 0) {
+			const moreBtn = otherHeader.createDiv({
+				cls: "fluent-section-action",
+				attr: {"aria-label": t("More views")},
+			});
+			setIcon(moreBtn, "more-horizontal");
+			moreBtn.addEventListener("click", (e) =>
+				this.showOtherViewsMenu(e as MouseEvent, remainingOther)
+			);
+		}
+
+		this.renderNavigationItems(otherViewsSubSection, displayedOther);
+	}
+
+	private setupResizeHandle(resizeHandle: HTMLElement) {
+		let isResizing = false;
+		let startY = 0;
+		let startHeight = 0;
+
+		const onMouseDown = (e: MouseEvent) => {
+			isResizing = true;
+			startY = e.clientY;
+			startHeight = this.projectsSectionHeight;
+
+			// Add resizing class to body for cursor
+			document.body.addClass("fluent-sidebar-resizing");
+
+			e.preventDefault();
+		};
+
+		const onMouseMove = (e: MouseEvent) => {
+			if (!isResizing || !this.projectsSection || !this.otherViewsSection) {
+				return;
+			}
+
+			// Calculate the container height
+			const content = this.projectsSection.parentElement;
+			if (!content) return;
+
+			const contentRect = content.getBoundingClientRect();
+			const contentHeight = contentRect.height;
+
+			// Calculate delta and new percentage
+			const deltaY = e.clientY - startY;
+			const deltaPercent = (deltaY / contentHeight) * 100;
+			let newHeight = startHeight + deltaPercent;
+
+			// Constrain between 20% and 80%
+			newHeight = Math.max(20, Math.min(80, newHeight));
+
+			// Apply new heights
+			this.projectsSectionHeight = newHeight;
+			this.projectsSection.style.height = `${newHeight}%`;
+			this.otherViewsSection.style.height = `${100 - newHeight}%`;
+
+			e.preventDefault();
+		};
+
+		const onMouseUp = () => {
+			if (isResizing) {
+				isResizing = false;
+				document.body.removeClass("fluent-sidebar-resizing");
+
+				// Save the new height
+				this.saveSectionHeight();
+			}
+		};
+
+		// Register events
+		this.registerDomEvent(resizeHandle, "mousedown", onMouseDown);
+		this.registerDomEvent(document, "mousemove", onMouseMove);
+		this.registerDomEvent(document, "mouseup", onMouseUp);
 	}
 
 	private renderRailMode() {
@@ -359,6 +563,40 @@ export class FluentSidebar extends Component {
 			return items.length ? items : this.otherItems;
 		} catch (e) {
 			return this.otherItems;
+		}
+	}
+
+	private renderFilterDropdown() {
+		if (!this.filterDropdownContainer) return;
+
+		this.filterDropdownContainer.empty();
+
+		const savedFilters = this.plugin.settings.filterConfig.savedConfigs;
+
+		this.filterDropdown = new DropdownComponent(
+			this.filterDropdownContainer
+		)
+			.addOption("", t("All Tasks"))
+			.onChange((value) => {
+				if (this.onFilterSelect) {
+					// null for "All Tasks", otherwise the config ID
+					this.onFilterSelect(value || null);
+				}
+			});
+
+		// Add saved filter options
+		savedFilters.forEach((config) => {
+			this.filterDropdown?.addOption(config.id, config.name);
+		});
+	}
+
+	public refreshFilterDropdown() {
+		this.renderFilterDropdown();
+	}
+
+	public resetFilterDropdown() {
+		if (this.filterDropdown) {
+			this.filterDropdown.setValue("");
 		}
 	}
 

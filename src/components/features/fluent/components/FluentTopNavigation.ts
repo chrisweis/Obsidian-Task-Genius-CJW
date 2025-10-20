@@ -88,31 +88,6 @@ export class TopNavigation extends Component {
 		// Show navigation when modes are available
 		this.containerEl.style.display = "";
 
-		// Left section - Search and Filter dropdown
-		const leftSection = this.containerEl.createDiv({
-			cls: "fluent-nav-left",
-		});
-
-		// Search (far left)
-		const searchContainer = leftSection.createDiv({
-			cls: "fluent-search-container",
-		});
-
-		new SearchComponent(searchContainer)
-			.setPlaceholder(t("Search tasks, projects ..."))
-			.onChange((value) => {
-				this.onSearch(value);
-			});
-
-		// Add filter dropdown (to the right of search)
-		if (this.onFilterSelect) {
-			this.filterDropdownContainer = leftSection.createDiv({
-				cls: "fluent-filter-dropdown-container",
-			});
-
-			this.renderFilterDropdown();
-		}
-
 		// Center section - View mode tabs
 		const centerSection = this.containerEl.createDiv({
 			cls: "fluent-nav-center",

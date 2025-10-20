@@ -139,6 +139,44 @@
 	--icon-size: 16px;
 }
 
+/* Filter Section (at top) */
+.fluent-sidebar-filter-section {
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+}
+
+.fluent-sidebar-filter-dropdown-container {
+	width: 100%;
+}
+
+.fluent-sidebar-filter-dropdown-container select {
+	width: 100%;
+}
+
+/* Search Section (below filter) */
+.fluent-sidebar-search-section {
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+}
+
+.fluent-sidebar-search-container {
+	width: 100%;
+}
+
+.fluent-sidebar-search-container .search-input-container {
+	width: 100%;
+}
+
+/* Views Section (at bottom) */
+.fluent-sidebar-views-section {
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
 .fluent-sidebar-section {
 	padding: 8px 0;
 	flex-shrink: 0;

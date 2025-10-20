@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import type TaskProgressBarPlugin from "@/index";
 import { FluentSidebar } from "@/components/features/fluent/components/FluentSidebar";
 import { emitSidebarSelectionChanged, onSidebarSelectionChanged } from "@/components/features/fluent/events/ui-event";
+import { QuickCaptureModal } from "@/components/features/quick-capture/modals/QuickCaptureModal";
 import { t } from "@/translations/helper";
 
 
@@ -36,8 +37,14 @@ export class LeftSidebarView extends ItemView {
 		this.sidebar = new FluentSidebar(
 			this.rootEl,
 			this.plugin,
-			// Emit view navigation to main view
+			// Emit view navigation to main view (or open new task modal)
 			(viewId: string) => {
+				// Special handling for new task button
+				if (viewId === "new-task") {
+					new QuickCaptureModal(this.app, this.plugin).open();
+					return;
+				}
+
 				emitSidebarSelectionChanged(this.app, {
 					selectionType: "view",
 					selectionId: viewId,
@@ -50,6 +57,24 @@ export class LeftSidebarView extends ItemView {
 				emitSidebarSelectionChanged(this.app, {
 					selectionType: "project",
 					selectionId: projectId,
+					source: "left",
+					workspaceId: this.plugin.workspaceManager?.getActiveWorkspace().id,
+				});
+			},
+			// Emit search query changes
+			(query: string) => {
+				emitSidebarSelectionChanged(this.app, {
+					selectionType: "search",
+					selectionId: query,
+					source: "left",
+					workspaceId: this.plugin.workspaceManager?.getActiveWorkspace().id,
+				});
+			},
+			// Emit filter selection changes
+			(configId: string | null) => {
+				emitSidebarSelectionChanged(this.app, {
+					selectionType: "filter",
+					selectionId: configId || "",
 					source: "left",
 					workspaceId: this.plugin.workspaceManager?.getActiveWorkspace().id,
 				});

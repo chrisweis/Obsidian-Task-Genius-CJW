@@ -36,6 +36,7 @@ export class FluentActionHandlers extends Component {
 	private showDetailsPanel?: (task: Task) => void;
 	private toggleDetailsVisibility?: (visible: boolean) => void;
 	private getIsDetailsVisible?: () => boolean;
+	private onSavedFilterSelected?: (configId: string | null) => void;
 
 	constructor(
 		private app: App,
@@ -60,6 +61,7 @@ export class FluentActionHandlers extends Component {
 		showDetailsPanel?: (task: Task) => void;
 		toggleDetailsVisibility?: (visible: boolean) => void;
 		getIsDetailsVisible?: () => boolean;
+		onSavedFilterSelected?: (configId: string | null) => void;
 	}): void {
 		this.onTaskSelectionChanged = callbacks.onTaskSelectionChanged;
 		this.onTaskUpdated = callbacks.onTaskUpdated;
@@ -71,6 +73,7 @@ export class FluentActionHandlers extends Component {
 		this.showDetailsPanel = callbacks.showDetailsPanel;
 		this.toggleDetailsVisibility = callbacks.toggleDetailsVisibility;
 		this.getIsDetailsVisible = callbacks.getIsDetailsVisible;
+		this.onSavedFilterSelected = callbacks.onSavedFilterSelected;
 	}
 
 	/**
@@ -272,6 +275,73 @@ export class FluentActionHandlers extends Component {
 					});
 				}
 			})
+			.addItem((item) => {
+				item.setIcon("folder");
+				item.setTitle(t("Choose Project"));
+				const submenu = item.setSubmenu();
+
+				// Get all unique projects from tasks
+				const projects = new Set<string>();
+				let allTasks: Task[] = [];
+
+				if (this.plugin.dataflowOrchestrator) {
+					const queryAPI = this.plugin.dataflowOrchestrator.getQueryAPI();
+					allTasks = queryAPI.getAllTasksSync() || [];
+				} else {
+					allTasks = this.plugin.preloadedTasks || [];
+				}
+
+				allTasks.forEach((t: Task) => {
+					if (t.metadata?.project) {
+						projects.add(t.metadata.project);
+					}
+				});
+
+				// Add "No Project" option to clear project
+				submenu.addItem((item) => {
+					item.setTitle(t("No Project"));
+					item.setIcon(task.metadata?.project ? "" : "check");
+					item.onClick(async () => {
+						const updatedTask = {
+							...task,
+							metadata: {
+								...task.metadata,
+								project: undefined,
+							},
+						};
+						await this.handleTaskUpdate(task, updatedTask);
+					});
+				});
+
+				// Add separator
+				if (projects.size > 0) {
+					submenu.addSeparator();
+				}
+
+				// Add menu items for each project
+				const sortedProjects = Array.from(projects).sort((a, b) =>
+					a.localeCompare(b, undefined, { sensitivity: 'base' })
+				);
+
+				for (const projectName of sortedProjects) {
+					submenu.addItem((item) => {
+						const displayName = projectName.replace(/-/g, " ");
+						item.setTitle(displayName);
+						// Show check mark if this is the current project
+						item.setIcon(task.metadata?.project === projectName ? "check" : "");
+						item.onClick(async () => {
+							const updatedTask = {
+								...task,
+								metadata: {
+									...task.metadata,
+									project: projectName,
+								},
+							};
+							await this.handleTaskUpdate(task, updatedTask);
+						});
+					});
+				}
+			})
 			.addSeparator()
 			.addItem((item) => {
 				item.setTitle(t("Edit"));
@@ -442,6 +512,13 @@ export class FluentActionHandlers extends Component {
 		// Open Obsidian settings and navigate to the plugin tab
 		this.app.setting.open();
 		this.app.setting.openTabById(this.plugin.manifest.id);
+	}
+
+	/**
+	 * Handle saved filter selection from dropdown
+	 */
+	handleSavedFilterSelect(configId: string | null): void {
+		this.onSavedFilterSelected?.(configId);
 	}
 
 	/**

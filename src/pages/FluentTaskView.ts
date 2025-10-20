@@ -476,6 +476,12 @@ export class FluentTaskView extends ItemView {
 		this.layoutManager.setOnProjectSelect((projectId) => {
 			this.actionHandlers.handleProjectSelect(projectId);
 		});
+		this.layoutManager.setOnSearch((query) => {
+			this.actionHandlers.handleSearch(query);
+		});
+		this.layoutManager.setOnFilterSelect((configId) => {
+			this.handleFilterSelect(configId);
+		});
 		this.layoutManager.setTaskCallbacks({
 			onTaskToggleComplete: (task) => {
 				this.actionHandlers.toggleTaskCompletion(task);
@@ -730,7 +736,7 @@ export class FluentTaskView extends ItemView {
 				Events.SAVED_FILTERS_CHANGED,
 				() => {
 					console.log("[TG-V2] Saved filters changed, refreshing dropdown");
-					this.topNavigation?.refreshFilterDropdown();
+					this.layoutManager?.sidebar?.refreshFilterDropdown();
 				}
 			)
 		);
@@ -755,6 +761,19 @@ export class FluentTaskView extends ItemView {
 							this.actionHandlers.handleProjectSelect(
 								payload.selectionId || ""
 							);
+						}
+						if (
+							payload.selectionType === "search" &&
+							payload.selectionId !== undefined
+						) {
+							// Handle search query from sidebar
+							this.actionHandlers.handleSearch(payload.selectionId);
+						}
+						if (
+							payload.selectionType === "filter"
+						) {
+							// Handle filter selection from sidebar
+							this.handleFilterSelect(payload.selectionId || null);
 						}
 					}
 				})
@@ -805,6 +824,12 @@ export class FluentTaskView extends ItemView {
 			this.componentManager.renderEmptyState();
 			return;
 		}
+
+		// Update available view modes for top navigation based on current view
+		const availableModes = this.componentManager.getAvailableModesForView(
+			this.currentViewId
+		);
+		this.topNavigation.updateAvailableModes(availableModes);
 
 		// Switch to appropriate component
 		this.componentManager.switchView(
@@ -862,7 +887,7 @@ export class FluentTaskView extends ItemView {
 		this.viewState.selectedProject = undefined; // keep project state in sync when clearing via UI
 
 		// Reset filter dropdown to "All tasks"
-		this.topNavigation?.resetFilterDropdown();
+		this.layoutManager?.sidebar?.resetFilterDropdown();
 
 		// Clear localStorage
 		this.app.saveLocalStorage("task-genius-view-filter", null);

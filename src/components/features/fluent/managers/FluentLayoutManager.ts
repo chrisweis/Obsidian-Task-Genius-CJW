@@ -43,6 +43,8 @@ export class FluentLayoutManager extends Component {
 	// Callbacks
 	private onSidebarNavigate?: (viewId: string) => void;
 	private onProjectSelect?: (projectId: string) => void;
+	private onSearch?: (query: string) => void;
+	private onFilterSelect?: (configId: string | null) => void;
 	private onTaskToggleComplete?: (task: Task) => void;
 	private onTaskEdit?: (task: Task) => void;
 	private onTaskUpdate?: (
@@ -79,6 +81,20 @@ export class FluentLayoutManager extends Component {
 	 */
 	setOnProjectSelect(callback: (projectId: string) => void): void {
 		this.onProjectSelect = callback;
+	}
+
+	/**
+	 * Set search callback
+	 */
+	setOnSearch(callback: (query: string) => void): void {
+		this.onSearch = callback;
+	}
+
+	/**
+	 * Set filter select callback
+	 */
+	setOnFilterSelect(callback: (configId: string | null) => void): void {
+		this.onFilterSelect = callback;
 	}
 
 	/**
@@ -145,6 +161,12 @@ export class FluentLayoutManager extends Component {
 				if (Platform.isPhone) {
 					this.closeMobileDrawer();
 				}
+			},
+			(query) => {
+				this.onSearch?.(query);
+			},
+			(configId) => {
+				this.onFilterSelect?.(configId);
 			},
 			initialCollapsedState
 		);
