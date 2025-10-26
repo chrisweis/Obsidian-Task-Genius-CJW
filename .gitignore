@@ -47,3 +47,9 @@ dist/*
 # Documentation site (separate repository)
 docs-site
 
+# Compiled JavaScript files (keep only TypeScript sources)
+# Exception: keep JS files without corresponding TS files
+src/**/*.js
+!src/__mocks__/moment.js
+!src/__mocks__/styleMock.js
+
