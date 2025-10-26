@@ -443,12 +443,11 @@ export class FluentComponentManager extends Component {
 		);
 
 		if (
-			this.isContentBasedView(viewId) &&
 			viewModes.length > 0 &&
 			viewMode !== "list" &&
 			viewMode !== "tree"
 		) {
-			// For content-based views in kanban/calendar mode, use special rendering
+			// For views with multiple modes in kanban/calendar mode, use special rendering
 			console.log(
 				"[FluentComponent] Using renderContentWithViewMode for non-list/tree mode:",
 				viewMode
@@ -572,10 +571,10 @@ export class FluentComponentManager extends Component {
 				// Special handling for components that need only all tasks (single parameter)
 				if (viewId === "review" || viewId === "tags") {
 					console.log(
-						`[FluentComponent] Calling setTasks for ${viewId} with ALL tasks:`,
-						tasks.length
+						`[FluentComponent] Calling setTasks for ${viewId} with filtered tasks:`,
+						filteredTasks.length
 					);
-					targetComponent.setTasks(tasks);
+					targetComponent.setTasks(filteredTasks);
 				} else {
 					// Use filtered tasks
 					let filteredTasksLocal = [...filteredTasks];
@@ -769,7 +768,7 @@ export class FluentComponentManager extends Component {
 			if (viewId === "projects" || this.isContentBasedView(viewId)) {
 				target.setTasks(filteredTasks, tasks, true);
 			} else if (viewId === "review" || viewId === "tags") {
-				target.setTasks(tasks);
+				target.setTasks(filteredTasks);
 			} else {
 				target.setTasks(filteredTasks);
 			}
@@ -905,7 +904,12 @@ export class FluentComponentManager extends Component {
 			return [];
 		}
 
-		// Return the configured modes for the view, or empty array
+		// Check if view config has availableModes defined
+		if (viewConfig?.availableModes !== undefined) {
+			return viewConfig.availableModes as ViewMode[];
+		}
+
+		// Fall back to the hardcoded config for the view, or empty array
 		return VIEW_MODE_CONFIG[viewId] || [];
 	}
 

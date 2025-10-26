@@ -338,6 +338,7 @@ export class DataflowOrchestrator {
 					"[DataflowOrchestrator] No cached tasks found, performing initial scan..."
 				);
 
+
 				// Get all markdown and canvas files
 				const mdFiles = this.vault.getMarkdownFiles();
 				const canvasFiles = this.vault
@@ -346,7 +347,7 @@ export class DataflowOrchestrator {
 				const allFiles = [...mdFiles, ...canvasFiles];
 
 				console.log(
-					`[DataflowOrchestrator] Found ${allFiles.length} files to process`
+					`[DataflowOrchestrator] Found ${allFiles.length} files to process (${mdFiles.length} md, ${canvasFiles.length} canvas)`
 				);
 
 				// Process in batches for performance

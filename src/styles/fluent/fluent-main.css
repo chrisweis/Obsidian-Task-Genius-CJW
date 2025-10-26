@@ -42,7 +42,7 @@
 }
 
 .fluent-sidebar-header {
-	padding: 12px;
+	padding: 6px 12px 12px 12px;
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
@@ -106,7 +106,7 @@
 /* New Task Button */
 .fluent-new-task-btn {
 	width: 100%;
-	margin-top: 12px;
+	margin-top: 0;
 	padding: 10px;
 	background-color: var(--interactive-accent);
 	color: var(--text-on-accent);
@@ -135,7 +135,7 @@
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	padding: 8px 0;
+	padding: 8px 0 0 0;
 	--icon-size: 16px;
 }
 
@@ -163,27 +163,96 @@
 
 .fluent-sidebar-search-container {
 	width: 100%;
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .fluent-sidebar-search-container .search-input-container {
-	width: 100%;
+	flex: 1;
+}
+
+.fluent-clear-filters-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 4px;
+	cursor: pointer;
+	color: var(--text-muted);
+	transition: all 0.15s ease;
+	flex-shrink: 0;
+}
+
+.fluent-clear-filters-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.fluent-clear-filters-btn:active {
+	background-color: var(--background-modifier-active);
+}
+
+.fluent-clear-filters-btn svg {
+	width: 16px;
+	height: 16px;
+}
+
+/* Disabled state */
+.fluent-clear-filters-btn.is-disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+.fluent-clear-filters-btn.is-disabled:hover {
+	background-color: transparent;
+	color: var(--text-muted);
 }
 
 /* Views Section (at bottom) */
 .fluent-sidebar-views-section {
+	flex: 1;
 	display: flex;
 	flex-direction: column;
+	overflow: hidden;
+	min-height: 0;
+	padding: 0;
+}
+
+/* Scrollable views container */
+.fluent-sidebar-views-container {
+	flex: 1;
 	overflow-y: auto;
 	overflow-x: hidden;
+	padding: 0;
+	min-height: 0;
+}
+
+/* Overflow menu button in views section */
+.fluent-views-overflow-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px;
+	margin: 0 12px 8px 12px;
+	border-radius: 6px;
+	cursor: pointer;
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	transition: background-color 0.15s;
+}
+
+.fluent-views-overflow-btn:hover {
+	background: var(--background-modifier-active-hover);
+	color: var(--text-normal);
 }
 
 .fluent-sidebar-section {
-	padding: 8px 0;
+	padding: 8px 0 0 0;
 	flex-shrink: 0;
-}
-
-.fluent-sidebar-section + .fluent-sidebar-section {
-	border-top: 1px solid var(--background-modifier-border);
 }
 
 /* Resizable sections with overflow handling */
@@ -391,6 +460,26 @@ body.fluent-sidebar-resizing {
 
 .fluent-project-item.is-active {
 	background-color: var(--background-modifier-active-hover);
+	font-weight: 600;
+	position: relative;
+}
+
+/* Add a left border indicator for selected projects */
+.fluent-project-item.is-active::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 2px;
+	bottom: 2px;
+	width: 3px;
+	background-color: var(--interactive-accent);
+	border-radius: 0 2px 2px 0;
+}
+
+/* Enhance the color dot for selected projects */
+.fluent-project-item.is-active .fluent-project-color {
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+	transform: scale(1.1);
 }
 
 .fluent-project-color {
@@ -909,7 +998,7 @@ body.fluent-sidebar-resizing {
 }
 
 .is-mobile .fluent-sidebar-header {
-	padding: 16px;
+	padding: 8px 16px 16px 16px;
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 

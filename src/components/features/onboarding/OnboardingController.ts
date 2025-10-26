@@ -7,7 +7,6 @@ import { Component } from "obsidian";
 export enum OnboardingStep {
 	INTRO = 0,
 	MODE_SELECT = 1,
-	// Fluent progressive steps
 	FLUENT_OVERVIEW = 2,
 	FLUENT_WS_SELECTOR = 3,
 	FLUENT_MAIN_NAV = 4,
@@ -146,22 +145,11 @@ export class OnboardingController {
 		// Determine next step based on current step and state
 		switch (currentStep) {
 			case OnboardingStep.INTRO:
-				// Always go to mode selection
-				nextStep = OnboardingStep.MODE_SELECT;
-				break;
-
-			case OnboardingStep.MODE_SELECT:
-				if (this.state.uiMode === "fluent") {
-					nextStep = OnboardingStep.FLUENT_OVERVIEW;
-				} else {
-					nextStep = OnboardingStep.SETTINGS_CHECK;
-				}
+				// Always go to Fluent overview (mode selection removed, workspaces removed)
+				nextStep = OnboardingStep.FLUENT_OVERVIEW;
 				break;
 
 			case OnboardingStep.FLUENT_OVERVIEW:
-				nextStep = OnboardingStep.FLUENT_WS_SELECTOR;
-				break;
-			case OnboardingStep.FLUENT_WS_SELECTOR:
 				nextStep = OnboardingStep.FLUENT_MAIN_NAV;
 				break;
 			case OnboardingStep.FLUENT_MAIN_NAV:
@@ -241,18 +229,11 @@ export class OnboardingController {
 
 		// Determine previous step based on current step and state
 		switch (currentStep) {
-			case OnboardingStep.MODE_SELECT:
+			case OnboardingStep.FLUENT_OVERVIEW:
 				prevStep = OnboardingStep.INTRO;
 				break;
-
-			case OnboardingStep.FLUENT_OVERVIEW:
-				prevStep = OnboardingStep.MODE_SELECT;
-				break;
-			case OnboardingStep.FLUENT_WS_SELECTOR:
-				prevStep = OnboardingStep.FLUENT_OVERVIEW;
-				break;
 			case OnboardingStep.FLUENT_MAIN_NAV:
-				prevStep = OnboardingStep.FLUENT_WS_SELECTOR;
+				prevStep = OnboardingStep.FLUENT_OVERVIEW;
 				break;
 			case OnboardingStep.FLUENT_PROJECTS:
 				prevStep = OnboardingStep.FLUENT_MAIN_NAV;
@@ -268,12 +249,8 @@ export class OnboardingController {
 				break;
 
 			case OnboardingStep.SETTINGS_CHECK:
-				// Go back to last fluent step or mode select based on UI mode
-				if (this.state.uiMode === "fluent") {
-					prevStep = OnboardingStep.FLUENT_PLACEMENT;
-				} else {
-					prevStep = OnboardingStep.MODE_SELECT;
-				}
+				// Go back to last fluent step (always Fluent mode now)
+				prevStep = OnboardingStep.FLUENT_PLACEMENT;
 				break;
 
 			case OnboardingStep.USER_LEVEL_SELECT:
@@ -283,10 +260,9 @@ export class OnboardingController {
 					this.state.settingsCheckAction === "wizard"
 				) {
 					prevStep = OnboardingStep.SETTINGS_CHECK;
-				} else if (this.state.uiMode === "fluent") {
-					prevStep = OnboardingStep.FLUENT_PLACEMENT;
 				} else {
-					prevStep = OnboardingStep.MODE_SELECT;
+					// Always use Fluent mode
+					prevStep = OnboardingStep.FLUENT_PLACEMENT;
 				}
 				break;
 
@@ -344,10 +320,6 @@ export class OnboardingController {
 			case OnboardingStep.INTRO:
 				// Can always proceed from intro
 				return true;
-
-			case OnboardingStep.MODE_SELECT:
-				// Must have UI mode selected
-				return !!this.state.uiMode;
 
 			case OnboardingStep.SETTINGS_CHECK:
 				// Must have an action selected

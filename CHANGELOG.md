@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] (Unreleased)
+
+### Features
+
+* **fluent:** add "Choose Project" context menu option to assign projects to tasks
+  - Right-click context menu now includes project assignment
+  - Displays submenu with all existing projects sorted alphabetically
+  - Includes "No Project" option to clear project assignment
+  - Shows checkmarks indicating currently assigned project
+  - Implemented across all view types (FluentActionHandlers, TaskView, TaskBasesView)
+
+* **fluent:** relocate search and filter controls to left sidebar
+  - Move saved filter dropdown and search field from top navigation to sidebar
+  - Reorganize sidebar into logical sections: filter → search → projects → resize handle → views
+  - Filters now available globally across all views (Tags, Events, etc.)
+  - Support both workspace side leaves and non-side-leaves modes
+
+* **dev:** add auto-deployment development workflow
+  - Set up automatic deployment to Obsidian vault during development
+  - Add `.env.local.example` template for configuration
+  - Update build configuration to support auto-deployment
+  - Improve developer experience with hot reload
+
+### Improvements
+
+* **fluent:** enhance sidebar layout and organization
+  - Better visual hierarchy with clear section separation
+  - Improved resizable project list
+  - Enhanced workspace selector integration
+
+* **build:** modernize build and test infrastructure
+  - Update esbuild configuration for better performance
+  - Add comprehensive test suite with 1421 tests
+  - Improve mock infrastructure for testing
+
+* **docs:** update development documentation
+  - Add auto-deployment setup instructions
+  - Clarify development workflow
+  - Update repository URLs and paths
+
+### Bug Fixes
+
+* **fluent:** improve UI/UX for project filtering and tree view
+* **fluent:** prevent project list from overlapping other views in sidebar
+* **settings:** enhance navigation, filters, and notifications
+
+### Documentation
+
+* Add comprehensive auto-deployment setup guide to DEVELOPMENT.md
+* Translate Chinese comments to English for better code maintainability
 
 ## [9.8.14](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.8.13...9.8.14) (2025-09-19)
 

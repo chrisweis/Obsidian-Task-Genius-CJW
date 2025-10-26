@@ -20,7 +20,7 @@ export async function createDataflow(
 ): Promise<DataflowOrchestrator> {
   const startTime = Date.now();
   console.log("[createDataflow] Creating dataflow orchestrator...");
-  
+
   const orchestrator = new DataflowOrchestrator(
     app,
     vault,
@@ -28,7 +28,7 @@ export async function createDataflow(
     plugin,
     projectOptions
   );
-  
+
   console.log("[createDataflow] Initializing dataflow orchestrator...");
   try {
     await orchestrator.initialize();
@@ -38,7 +38,7 @@ export async function createDataflow(
     console.error("[createDataflow] Failed to initialize orchestrator:", error);
     throw error;
   }
-  
+
   return orchestrator;
 }
 

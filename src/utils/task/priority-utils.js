@@ -1,0 +1,43 @@
+/**
+ * Utility functions for handling task priorities
+ */
+/**
+ * Sanitizes a priority value to make it safe for use in CSS class names.
+ * Removes spaces and special characters that are invalid in CSS tokens.
+ *
+ * @param priority - The priority value to sanitize (can be string or number)
+ * @returns A sanitized string safe for CSS class names, or empty string if invalid
+ */
+export function sanitizePriorityForClass(priority) {
+    if (priority === undefined || priority === null) {
+        return '';
+    }
+    // Convert to string and trim
+    const priorityStr = String(priority).trim();
+    // If it's a numeric priority (1-5), return as-is
+    const numericPriority = parseInt(priorityStr, 10);
+    if (!isNaN(numericPriority) && numericPriority >= 1 && numericPriority <= 5) {
+        return String(numericPriority);
+    }
+    // For non-numeric priorities, remove all spaces and special characters
+    // Only keep alphanumeric characters and hyphens
+    const sanitized = priorityStr
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/[^\w-]/g, '') // Remove non-word characters except hyphens
+        .replace(/--+/g, '-') // Replace multiple hyphens with single hyphen
+        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    return sanitized;
+}
+/**
+ * Checks if a priority value is valid for use in DOM operations
+ * @param priority - The priority value to check
+ * @returns true if the priority is valid, false otherwise
+ */
+export function isValidPriority(priority) {
+    if (priority === undefined || priority === null) {
+        return false;
+    }
+    const sanitized = sanitizePriorityForClass(priority);
+    return sanitized.length > 0;
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicHJpb3JpdHktdXRpbHMuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJwcmlvcml0eS11dGlscy50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTs7R0FFRztBQUVIOzs7Ozs7R0FNRztBQUNILE1BQU0sVUFBVSx3QkFBd0IsQ0FBQyxRQUE0QztJQUNqRixJQUFJLFFBQVEsS0FBSyxTQUFTLElBQUksUUFBUSxLQUFLLElBQUksRUFBRTtRQUM3QyxPQUFPLEVBQUUsQ0FBQztLQUNiO0lBRUQsNkJBQTZCO0lBQzdCLE1BQU0sV0FBVyxHQUFHLE1BQU0sQ0FBQyxRQUFRLENBQUMsQ0FBQyxJQUFJLEVBQUUsQ0FBQztJQUU1QyxpREFBaUQ7SUFDakQsTUFBTSxlQUFlLEdBQUcsUUFBUSxDQUFDLFdBQVcsRUFBRSxFQUFFLENBQUMsQ0FBQztJQUNsRCxJQUFJLENBQUMsS0FBSyxDQUFDLGVBQWUsQ0FBQyxJQUFJLGVBQWUsSUFBSSxDQUFDLElBQUksZUFBZSxJQUFJLENBQUMsRUFBRTtRQUN6RSxPQUFPLE1BQU0sQ0FBQyxlQUFlLENBQUMsQ0FBQztLQUNsQztJQUVELHVFQUF1RTtJQUN2RSxnREFBZ0Q7SUFDaEQsTUFBTSxTQUFTLEdBQUcsV0FBVztTQUN4QixPQUFPLENBQUMsTUFBTSxFQUFFLEdBQUcsQ0FBQyxDQUFDLDhCQUE4QjtTQUNuRCxPQUFPLENBQUMsU0FBUyxFQUFFLEVBQUUsQ0FBQyxDQUFDLDRDQUE0QztTQUNuRSxPQUFPLENBQUMsTUFBTSxFQUFFLEdBQUcsQ0FBQyxDQUFDLDhDQUE4QztTQUNuRSxPQUFPLENBQUMsUUFBUSxFQUFFLEVBQUUsQ0FBQyxDQUFDLENBQUMsa0NBQWtDO0lBRTlELE9BQU8sU0FBUyxDQUFDO0FBQ3JCLENBQUM7QUFFRDs7OztHQUlHO0FBQ0gsTUFBTSxVQUFVLGVBQWUsQ0FBQyxRQUE0QztJQUN4RSxJQUFJLFFBQVEsS0FBSyxTQUFTLElBQUksUUFBUSxLQUFLLElBQUksRUFBRTtRQUM3QyxPQUFPLEtBQUssQ0FBQztLQUNoQjtJQUVELE1BQU0sU0FBUyxHQUFHLHdCQUF3QixDQUFDLFFBQVEsQ0FBQyxDQUFDO0lBQ3JELE9BQU8sU0FBUyxDQUFDLE1BQU0sR0FBRyxDQUFDLENBQUM7QUFDaEMsQ0FBQyIsInNvdXJjZXNDb250ZW50IjpbIi8qKlxyXG4gKiBVdGlsaXR5IGZ1bmN0aW9ucyBmb3IgaGFuZGxpbmcgdGFzayBwcmlvcml0aWVzXHJcbiAqL1xyXG5cclxuLyoqXHJcbiAqIFNhbml0aXplcyBhIHByaW9yaXR5IHZhbHVlIHRvIG1ha2UgaXQgc2FmZSBmb3IgdXNlIGluIENTUyBjbGFzcyBuYW1lcy5cclxuICogUmVtb3ZlcyBzcGFjZXMgYW5kIHNwZWNpYWwgY2hhcmFjdGVycyB0aGF0IGFyZSBpbnZhbGlkIGluIENTUyB0b2tlbnMuXHJcbiAqIFxyXG4gKiBAcGFyYW0gcHJpb3JpdHkgLSBUaGUgcHJpb3JpdHkgdmFsdWUgdG8gc2FuaXRpemUgKGNhbiBiZSBzdHJpbmcgb3IgbnVtYmVyKVxyXG4gKiBAcmV0dXJucyBBIHNhbml0aXplZCBzdHJpbmcgc2FmZSBmb3IgQ1NTIGNsYXNzIG5hbWVzLCBvciBlbXB0eSBzdHJpbmcgaWYgaW52YWxpZFxyXG4gKi9cclxuZXhwb3J0IGZ1bmN0aW9uIHNhbml0aXplUHJpb3JpdHlGb3JDbGFzcyhwcmlvcml0eTogc3RyaW5nIHwgbnVtYmVyIHwgdW5kZWZpbmVkIHwgbnVsbCk6IHN0cmluZyB7XHJcbiAgICBpZiAocHJpb3JpdHkgPT09IHVuZGVmaW5lZCB8fCBwcmlvcml0eSA9PT0gbnVsbCkge1xyXG4gICAgICAgIHJldHVybiAnJztcclxuICAgIH1cclxuICAgIFxyXG4gICAgLy8gQ29udmVydCB0byBzdHJpbmcgYW5kIHRyaW1cclxuICAgIGNvbnN0IHByaW9yaXR5U3RyID0gU3RyaW5nKHByaW9yaXR5KS50cmltKCk7XHJcbiAgICBcclxuICAgIC8vIElmIGl0J3MgYSBudW1lcmljIHByaW9yaXR5ICgxLTUpLCByZXR1cm4gYXMtaXNcclxuICAgIGNvbnN0IG51bWVyaWNQcmlvcml0eSA9IHBhcnNlSW50KHByaW9yaXR5U3RyLCAxMCk7XHJcbiAgICBpZiAoIWlzTmFOKG51bWVyaWNQcmlvcml0eSkgJiYgbnVtZXJpY1ByaW9yaXR5ID49IDEgJiYgbnVtZXJpY1ByaW9yaXR5IDw9IDUpIHtcclxuICAgICAgICByZXR1cm4gU3RyaW5nKG51bWVyaWNQcmlvcml0eSk7XHJcbiAgICB9XHJcbiAgICBcclxuICAgIC8vIEZvciBub24tbnVtZXJpYyBwcmlvcml0aWVzLCByZW1vdmUgYWxsIHNwYWNlcyBhbmQgc3BlY2lhbCBjaGFyYWN0ZXJzXHJcbiAgICAvLyBPbmx5IGtlZXAgYWxwaGFudW1lcmljIGNoYXJhY3RlcnMgYW5kIGh5cGhlbnNcclxuICAgIGNvbnN0IHNhbml0aXplZCA9IHByaW9yaXR5U3RyXHJcbiAgICAgICAgLnJlcGxhY2UoL1xccysvZywgJy0nKSAvLyBSZXBsYWNlIHNwYWNlcyB3aXRoIGh5cGhlbnNcclxuICAgICAgICAucmVwbGFjZSgvW15cXHctXS9nLCAnJykgLy8gUmVtb3ZlIG5vbi13b3JkIGNoYXJhY3RlcnMgZXhjZXB0IGh5cGhlbnNcclxuICAgICAgICAucmVwbGFjZSgvLS0rL2csICctJykgLy8gUmVwbGFjZSBtdWx0aXBsZSBoeXBoZW5zIHdpdGggc2luZ2xlIGh5cGhlblxyXG4gICAgICAgIC5yZXBsYWNlKC9eLXwtJC9nLCAnJyk7IC8vIFJlbW92ZSBsZWFkaW5nL3RyYWlsaW5nIGh5cGhlbnNcclxuICAgIFxyXG4gICAgcmV0dXJuIHNhbml0aXplZDtcclxufVxyXG5cclxuLyoqXHJcbiAqIENoZWNrcyBpZiBhIHByaW9yaXR5IHZhbHVlIGlzIHZhbGlkIGZvciB1c2UgaW4gRE9NIG9wZXJhdGlvbnNcclxuICogQHBhcmFtIHByaW9yaXR5IC0gVGhlIHByaW9yaXR5IHZhbHVlIHRvIGNoZWNrXHJcbiAqIEByZXR1cm5zIHRydWUgaWYgdGhlIHByaW9yaXR5IGlzIHZhbGlkLCBmYWxzZSBvdGhlcndpc2VcclxuICovXHJcbmV4cG9ydCBmdW5jdGlvbiBpc1ZhbGlkUHJpb3JpdHkocHJpb3JpdHk6IHN0cmluZyB8IG51bWJlciB8IHVuZGVmaW5lZCB8IG51bGwpOiBib29sZWFuIHtcclxuICAgIGlmIChwcmlvcml0eSA9PT0gdW5kZWZpbmVkIHx8IHByaW9yaXR5ID09PSBudWxsKSB7XHJcbiAgICAgICAgcmV0dXJuIGZhbHNlO1xyXG4gICAgfVxyXG4gICAgXHJcbiAgICBjb25zdCBzYW5pdGl6ZWQgPSBzYW5pdGl6ZVByaW9yaXR5Rm9yQ2xhc3MocHJpb3JpdHkpO1xyXG4gICAgcmV0dXJuIHNhbml0aXplZC5sZW5ndGggPiAwO1xyXG59Il19

@@ -1,0 +1,30 @@
+import { __awaiter } from "tslib";
+import { BaseActionExecutor } from "./base-executor";
+import { OnCompletionActionType, } from "../../types/onCompletion";
+/**
+ * Executor for keep action - leaves the completed task as is (no action)
+ */
+export class KeepActionExecutor extends BaseActionExecutor {
+    executeForCanvas(context, config) {
+        return this.execute(context, config);
+    }
+    executeForMarkdown(context, config) {
+        return this.execute(context, config);
+    }
+    execute(context, config) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.validateConfig(config)) {
+                return this.createErrorResult("Invalid keep configuration");
+            }
+            // Keep action does nothing - just return success
+            return this.createSuccessResult("Task kept in place");
+        });
+    }
+    validateConfig(config) {
+        return config.type === OnCompletionActionType.KEEP;
+    }
+    getDescription(config) {
+        return "Keep the completed task in place (no action)";
+    }
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoia2VlcC1leGVjdXRvci5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbImtlZXAtZXhlY3V0b3IudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IjtBQUFBLE9BQU8sRUFBRSxrQkFBa0IsRUFBRSxNQUFNLGlCQUFpQixDQUFDO0FBQ3JELE9BQU8sRUFJTixzQkFBc0IsR0FFdEIsTUFBTSwwQkFBMEIsQ0FBQztBQUVsQzs7R0FFRztBQUNILE1BQU0sT0FBTyxrQkFBbUIsU0FBUSxrQkFBa0I7SUFDekQsZ0JBQWdCLENBQ2YsT0FBcUMsRUFDckMsTUFBMEI7UUFFMUIsT0FBTyxJQUFJLENBQUMsT0FBTyxDQUFDLE9BQU8sRUFBRSxNQUFNLENBQUMsQ0FBQztJQUN0QyxDQUFDO0lBQ0Qsa0JBQWtCLENBQ2pCLE9BQXFDLEVBQ3JDLE1BQTBCO1FBRTFCLE9BQU8sSUFBSSxDQUFDLE9BQU8sQ0FBQyxPQUFPLEVBQUUsTUFBTSxDQUFDLENBQUM7SUFDdEMsQ0FBQztJQUNZLE9BQU8sQ0FDbkIsT0FBcUMsRUFDckMsTUFBMEI7O1lBRTFCLElBQUksQ0FBQyxJQUFJLENBQUMsY0FBYyxDQUFDLE1BQU0sQ0FBQyxFQUFFO2dCQUNqQyxPQUFPLElBQUksQ0FBQyxpQkFBaUIsQ0FBQyw0QkFBNEIsQ0FBQyxDQUFDO2FBQzVEO1lBRUQsaURBQWlEO1lBQ2pELE9BQU8sSUFBSSxDQUFDLG1CQUFtQixDQUFDLG9CQUFvQixDQUFDLENBQUM7UUFDdkQsQ0FBQztLQUFBO0lBRVMsY0FBYyxDQUFDLE1BQTBCO1FBQ2xELE9BQU8sTUFBTSxDQUFDLElBQUksS0FBSyxzQkFBc0IsQ0FBQyxJQUFJLENBQUM7SUFDcEQsQ0FBQztJQUVNLGNBQWMsQ0FBQyxNQUEwQjtRQUMvQyxPQUFPLDhDQUE4QyxDQUFDO0lBQ3ZELENBQUM7Q0FDRCIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IEJhc2VBY3Rpb25FeGVjdXRvciB9IGZyb20gXCIuL2Jhc2UtZXhlY3V0b3JcIjtcclxuaW1wb3J0IHtcclxuXHRPbkNvbXBsZXRpb25Db25maWcsXHJcblx0T25Db21wbGV0aW9uRXhlY3V0aW9uQ29udGV4dCxcclxuXHRPbkNvbXBsZXRpb25FeGVjdXRpb25SZXN1bHQsXHJcblx0T25Db21wbGV0aW9uQWN0aW9uVHlwZSxcclxuXHRPbkNvbXBsZXRpb25LZWVwQ29uZmlnLFxyXG59IGZyb20gXCIuLi8uLi90eXBlcy9vbkNvbXBsZXRpb25cIjtcclxuXHJcbi8qKlxyXG4gKiBFeGVjdXRvciBmb3Iga2VlcCBhY3Rpb24gLSBsZWF2ZXMgdGhlIGNvbXBsZXRlZCB0YXNrIGFzIGlzIChubyBhY3Rpb24pXHJcbiAqL1xyXG5leHBvcnQgY2xhc3MgS2VlcEFjdGlvbkV4ZWN1dG9yIGV4dGVuZHMgQmFzZUFjdGlvbkV4ZWN1dG9yIHtcclxuXHRleGVjdXRlRm9yQ2FudmFzKFxyXG5cdFx0Y29udGV4dDogT25Db21wbGV0aW9uRXhlY3V0aW9uQ29udGV4dCxcclxuXHRcdGNvbmZpZzogT25Db21wbGV0aW9uQ29uZmlnXHJcblx0KTogUHJvbWlzZTxPbkNvbXBsZXRpb25FeGVjdXRpb25SZXN1bHQ+IHtcclxuXHRcdHJldHVybiB0aGlzLmV4ZWN1dGUoY29udGV4dCwgY29uZmlnKTtcclxuXHR9XHJcblx0ZXhlY3V0ZUZvck1hcmtkb3duKFxyXG5cdFx0Y29udGV4dDogT25Db21wbGV0aW9uRXhlY3V0aW9uQ29udGV4dCxcclxuXHRcdGNvbmZpZzogT25Db21wbGV0aW9uQ29uZmlnXHJcblx0KTogUHJvbWlzZTxPbkNvbXBsZXRpb25FeGVjdXRpb25SZXN1bHQ+IHtcclxuXHRcdHJldHVybiB0aGlzLmV4ZWN1dGUoY29udGV4dCwgY29uZmlnKTtcclxuXHR9XHJcblx0cHVibGljIGFzeW5jIGV4ZWN1dGUoXHJcblx0XHRjb250ZXh0OiBPbkNvbXBsZXRpb25FeGVjdXRpb25Db250ZXh0LFxyXG5cdFx0Y29uZmlnOiBPbkNvbXBsZXRpb25Db25maWdcclxuXHQpOiBQcm9taXNlPE9uQ29tcGxldGlvbkV4ZWN1dGlvblJlc3VsdD4ge1xyXG5cdFx0aWYgKCF0aGlzLnZhbGlkYXRlQ29uZmlnKGNvbmZpZykpIHtcclxuXHRcdFx0cmV0dXJuIHRoaXMuY3JlYXRlRXJyb3JSZXN1bHQoXCJJbnZhbGlkIGtlZXAgY29uZmlndXJhdGlvblwiKTtcclxuXHRcdH1cclxuXHJcblx0XHQvLyBLZWVwIGFjdGlvbiBkb2VzIG5vdGhpbmcgLSBqdXN0IHJldHVybiBzdWNjZXNzXHJcblx0XHRyZXR1cm4gdGhpcy5jcmVhdGVTdWNjZXNzUmVzdWx0KFwiVGFzayBrZXB0IGluIHBsYWNlXCIpO1xyXG5cdH1cclxuXHJcblx0cHJvdGVjdGVkIHZhbGlkYXRlQ29uZmlnKGNvbmZpZzogT25Db21wbGV0aW9uQ29uZmlnKTogYm9vbGVhbiB7XHJcblx0XHRyZXR1cm4gY29uZmlnLnR5cGUgPT09IE9uQ29tcGxldGlvbkFjdGlvblR5cGUuS0VFUDtcclxuXHR9XHJcblxyXG5cdHB1YmxpYyBnZXREZXNjcmlwdGlvbihjb25maWc6IE9uQ29tcGxldGlvbkNvbmZpZyk6IHN0cmluZyB7XHJcblx0XHRyZXR1cm4gXCJLZWVwIHRoZSBjb21wbGV0ZWQgdGFzayBpbiBwbGFjZSAobm8gYWN0aW9uKVwiO1xyXG5cdH1cclxufVxyXG4iXX0=

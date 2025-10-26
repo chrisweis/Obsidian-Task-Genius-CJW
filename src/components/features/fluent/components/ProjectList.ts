@@ -47,7 +47,7 @@ export class ProjectList extends Component {
 	private containerEl: HTMLElement;
 	private plugin: TaskProgressBarPlugin;
 	private projects: Project[] = [];
-	private activeProjectId: string | null = null;
+	private activeProjectIds: Set<string> = new Set();
 	private onProjectSelect: (projectId: string) => void;
 	private currentPopover: ProjectPopover | null = null;
 	private currentSort: SortOption = "name-asc";
@@ -61,18 +61,21 @@ export class ProjectList extends Component {
 	private scrollAreaEl: HTMLElement | null = null;
 	private hideCompletedProjects = false;
 	private readonly HIDE_COMPLETED_KEY = "task-genius-hide-completed-projects";
+	private hideCompletedBtn: HTMLElement | null = null;
 
 	constructor(
 		containerEl: HTMLElement,
 		plugin: TaskProgressBarPlugin,
 		onProjectSelect: (projectId: string) => void,
-		isTreeView = false
+		isTreeView = false,
+		hideCompletedBtn?: HTMLElement
 	) {
 		super();
 		this.containerEl = containerEl;
 		this.plugin = plugin;
 		this.onProjectSelect = onProjectSelect;
 		this.isTreeView = isTreeView;
+		this.hideCompletedBtn = hideCompletedBtn || null;
 
 		// Initialize collator with locale-sensitive sorting
 		// Use numeric option to handle numbers naturally (e.g., "Project 2" < "Project 10")
@@ -225,6 +228,15 @@ export class ProjectList extends Component {
 			this.HIDE_COMPLETED_KEY
 		);
 		this.hideCompletedProjects = saved === true || saved === "true";
+
+		// Update button state after loading preference
+		if (this.hideCompletedBtn) {
+			if (this.hideCompletedProjects) {
+				this.hideCompletedBtn.addClass("is-active");
+			} else {
+				this.hideCompletedBtn.removeClass("is-active");
+			}
+		}
 	}
 
 	private async saveHideCompletedPreference() {
@@ -658,7 +670,7 @@ export class ProjectList extends Component {
 		});
 
 		// Add active class if no project is selected
-		if (!this.activeProjectId) {
+		if (this.activeProjectIds.size === 0) {
 			allProjectsItem.addClass("is-active");
 		}
 
@@ -700,7 +712,7 @@ export class ProjectList extends Component {
 			projectItem.addClass("is-virtual");
 		}
 
-		if (this.activeProjectId === project.id) {
+		if (this.activeProjectIds.has(project.id)) {
 			projectItem.addClass("is-active");
 		}
 
@@ -781,12 +793,26 @@ export class ProjectList extends Component {
 		this.registerDomEvent(projectItem, "click", (e: MouseEvent) => {
 			// Don't trigger if clicking on chevron
 			if (!(e.target as HTMLElement).closest(".fluent-project-chevron")) {
-				// Virtual nodes select all their children
+				// Virtual nodes select/toggle all their children
 				if (project.isVirtual && treeNode) {
-					this.selectVirtualNode(treeNode);
+					if (e.ctrlKey || e.metaKey) {
+						// Ctrl-click: Toggle all children as a group
+						this.toggleVirtualNode(treeNode);
+					} else {
+						// Normal click: Replace selection with all children
+						this.selectVirtualNode(treeNode);
+					}
 				} else {
-					this.setActiveProject(project.id);
-					this.onProjectSelect(project.id);
+					// Multi-select with Ctrl/Cmd key
+					if (e.ctrlKey || e.metaKey) {
+						this.toggleProjectSelection(project.id);
+						// Notify with all selected project IDs
+						this.notifyProjectSelection();
+					} else {
+						// Single select (clears other selections)
+						this.setActiveProject(project.id);
+						this.onProjectSelect(project.id);
+					}
 				}
 			}
 		});
@@ -815,29 +841,126 @@ export class ProjectList extends Component {
 		};
 		collectProjects(node);
 
-		// Select the first real project if any
+		// Select ALL child projects (multi-select)
 		if (projectIds.length > 0) {
-			this.setActiveProject(projectIds[0]);
-			this.onProjectSelect(projectIds[0]);
+			console.log(
+				`[ProjectList] Virtual node selected - adding ${projectIds.length} child projects`
+			);
+			// Clear and add all child projects
+			this.activeProjectIds.clear();
+			projectIds.forEach((id) => this.activeProjectIds.add(id));
+			this.updateVisualSelection();
+			// Notify with multi-select format
+			this.notifyProjectSelection();
 		}
 	}
 
-	public setActiveProject(projectId: string | null) {
-		this.activeProjectId = projectId;
+	private toggleVirtualNode(node: ProjectTreeNode) {
+		// Collect all non-virtual descendant project IDs
+		const projectIds: string[] = [];
+		const collectProjects = (n: ProjectTreeNode) => {
+			if (!n.project.isVirtual) {
+				projectIds.push(n.project.id);
+			}
+			n.children.forEach((child) => collectProjects(child));
+		};
+		collectProjects(node);
 
+		if (projectIds.length === 0) return;
+
+		// Check if all children are currently selected
+		const allSelected = projectIds.every((id) =>
+			this.activeProjectIds.has(id)
+		);
+
+		if (allSelected) {
+			// Remove all children from selection
+			console.log(
+				`[ProjectList] Virtual node Ctrl-clicked - removing ${projectIds.length} child projects`
+			);
+			projectIds.forEach((id) => this.activeProjectIds.delete(id));
+		} else {
+			// Add all children to selection (keeping existing selections)
+			console.log(
+				`[ProjectList] Virtual node Ctrl-clicked - adding ${projectIds.length} child projects`
+			);
+			projectIds.forEach((id) => this.activeProjectIds.add(id));
+		}
+
+		this.updateVisualSelection();
+		this.notifyProjectSelection();
+	}
+
+	public setActiveProject(projectId: string | null) {
+		// Clear all selections if null, otherwise set single selection
+		if (projectId === null) {
+			this.activeProjectIds.clear();
+		} else {
+			this.activeProjectIds.clear();
+			this.activeProjectIds.add(projectId);
+		}
+		this.updateVisualSelection();
+	}
+
+	public setActiveProjects(projectIds: Set<string>) {
+		this.activeProjectIds = new Set(projectIds);
+		this.updateVisualSelection();
+	}
+
+	public toggleProjectSelection(projectId: string) {
+		if (this.activeProjectIds.has(projectId)) {
+			this.activeProjectIds.delete(projectId);
+		} else {
+			this.activeProjectIds.add(projectId);
+		}
+		this.updateVisualSelection();
+	}
+
+	private updateVisualSelection() {
+		// Remove active class from all items
 		this.containerEl
 			.querySelectorAll(".fluent-project-item")
 			.forEach((el) => {
 				el.removeClass("is-active");
 			});
 
-		if (projectId) {
-			const activeEl = this.containerEl.querySelector(
-				`[data-project-id="${projectId}"]`
+		if (this.activeProjectIds.size === 0) {
+			// No projects selected - highlight "All Projects"
+			const allProjectsEl = this.containerEl.querySelector(
+				".fluent-all-projects"
 			);
-			if (activeEl) {
-				activeEl.addClass("is-active");
+			if (allProjectsEl) {
+				allProjectsEl.addClass("is-active");
 			}
+		} else {
+			// Add active class to all selected projects
+			this.activeProjectIds.forEach((projectId) => {
+				const activeEl = this.containerEl.querySelector(
+					`[data-project-id="${projectId}"]`
+				);
+				if (activeEl) {
+					activeEl.addClass("is-active");
+				}
+			});
+		}
+	}
+
+	private notifyProjectSelection() {
+		// For multi-select, we'll pass a special format that can be parsed
+		// Format: "multi:projectId1,projectId2,projectId3"
+		if (this.activeProjectIds.size === 0) {
+			console.log("[ProjectList] Clearing project selection");
+			this.onProjectSelect("");
+		} else if (this.activeProjectIds.size === 1) {
+			// Single selection - pass as before
+			const [projectId] = Array.from(this.activeProjectIds);
+			console.log(`[ProjectList] Single project selected: ${projectId}`);
+			this.onProjectSelect(projectId);
+		} else {
+			// Multiple selections - pass as comma-separated list with prefix
+			const projectIds = Array.from(this.activeProjectIds).join(",");
+			console.log(`[ProjectList] Multiple projects selected: ${projectIds}`);
+			this.onProjectSelect(`multi:${projectIds}`);
 		}
 	}
 
@@ -1221,10 +1344,14 @@ export class ProjectList extends Component {
 					);
 					await this.plugin.saveSettings();
 
-					// If this was the active project, clear selection
-					if (this.activeProjectId === project.id) {
-						this.setActiveProject(null);
-						this.onProjectSelect("");
+					// If this was an active project, remove it from selection
+					if (this.activeProjectIds.has(project.id)) {
+						this.activeProjectIds.delete(project.id);
+						this.updateVisualSelection();
+						// If no projects left selected, trigger "All Projects"
+						if (this.activeProjectIds.size === 0) {
+							this.onProjectSelect("");
+						}
 					}
 
 					// Refresh the project list

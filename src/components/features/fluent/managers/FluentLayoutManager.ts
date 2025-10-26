@@ -181,9 +181,10 @@ export class FluentLayoutManager extends Component {
 	initializeDetailsComponent(): void {
 		if (this.useSideLeaves()) {
 			console.log(
-				"[FluentLayout] Using workspace side leaves: skip in-view details panel"
+				"[FluentLayout] Side leaves mode enabled - creating details panel as fallback"
 			);
-			return;
+			// Still create the details component as a fallback
+			// This ensures details can be shown even if side leaves aren't set up properly
 		}
 
 		// Initialize details component (hidden by default)
@@ -480,9 +481,13 @@ export class FluentLayoutManager extends Component {
 	 */
 	showTaskDetails(task: Task): void {
 		if (this.useSideLeaves()) {
-			// In leaves mode, emit event to side leaf details view
-			// This will be handled by the main view's event emission
-			return;
+			// In leaves mode, details should be shown in a separate leaf
+			// The event is emitted by FluentActionHandlers.handleTaskSelection
+			// If detailsComponent exists anyway (fallback), use it
+			if (!this.detailsComponent) {
+				return;
+			}
+			console.log("[FluentLayout] Side leaves mode enabled but showing details inline as fallback");
 		}
 
 		this.detailsComponent?.showTaskDetails(task);

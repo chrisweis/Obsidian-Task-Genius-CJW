@@ -18,11 +18,6 @@ export class FluentIntegration {
 	 * Register Fluent view and commands
 	 */
 	public register() {
-		// Only register if experimental features are enabled
-		if (!this.isFluentEnabled()) {
-			return;
-		}
-
 		// Register the Fluent view
 		this.plugin.registerView(
 			FLUENT_TASK_VIEW,
@@ -117,12 +112,6 @@ export class FluentIntegration {
 	}
 
 
-	/**
-	 * Check if Fluent features are enabled
-	 */
-	private isFluentEnabled(): boolean {
-		return this.plugin.settings.fluentView?.enableFluent ?? false;
-	}
 
 	/**
 	 * Migrate settings from V1 to V2
@@ -130,7 +119,7 @@ export class FluentIntegration {
 	public async migrateSettings() {
 		if (!this.plugin.settings.fluentView) {
 			this.plugin.settings.fluentView = {
-				enableFluent: false,
+				enableFluent: true,
 				showFluentRibbon: false,
 			};
 		}

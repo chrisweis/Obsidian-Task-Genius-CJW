@@ -1,6 +1,6 @@
 {
 	"name": "task-genius",
-	"version": "9.9.0-beta.6",
+	"version": "1.0.0",
 	"description": "Comprehensive task management plugin for Obsidian with progress bars, task status cycling, and advanced task tracking features.",
 	"main": "main.js",
 	"scripts": {
@@ -55,7 +55,7 @@
 		"cross-env": "^7.0.3",
 		"dotenv": "^17.2.1",
 		"esbuild": "0.25.9",
-		"esbuild-plugin-inline-worker": "https://github.com/mitschabaude/esbuild-plugin-inline-worker",
+		"@aidenlx/esbuild-plugin-inline-worker": "^1.0.1",
 		"globby": "^14.1.0",
 		"husky": "^9.1.7",
 		"jest": "^29.5.0",
@@ -65,8 +65,8 @@
 		"release-it": "^19.0.4",
 		"semver": "^7.7.2",
 		"ts-jest": "^29.1.0",
-		"typescript": "4.7.3",
-		"tslib": "2.4.0"
+		"tslib": "2.4.0",
+		"typescript": "4.7.3"
 	},
 	"dependencies": {
 		"@popperjs/core": "^2.11.8",
@@ -74,10 +74,10 @@
 		"chrono-node": "^2.7.6",
 		"date-fns": "^4.1.0",
 		"localforage": "^1.10.0",
-		"rrule": "^2.8.1",
 		"obsidian": "^1.10.0",
 		"obsidian-daily-notes-interface": "^0.9.4",
-		"sortablejs": "^1.15.6",
-		"regexp-match-indices": "^1.0.2"
+		"regexp-match-indices": "^1.0.2",
+		"rrule": "^2.8.1",
+		"sortablejs": "^1.15.6"
 	}
 }

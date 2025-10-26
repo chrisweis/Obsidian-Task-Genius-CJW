@@ -1,0 +1,18 @@
+/**
+ * Badge component for labels and tags
+ * Follows shadcn design principles with subtle colors
+ */
+export class Badge {
+    /**
+     * Create a badge element
+     */
+    static create(container, text, options = {}) {
+        const { variant = "default", className = "" } = options;
+        const badge = container.createEl("span", {
+            text,
+            cls: `onboarding-badge onboarding-badge-${variant} ${className}`,
+        });
+        return badge;
+    }
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiQmFkZ2UuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJCYWRnZS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFPQTs7O0dBR0c7QUFDSCxNQUFNLE9BQU8sS0FBSztJQUNqQjs7T0FFRztJQUNILE1BQU0sQ0FBQyxNQUFNLENBQ1osU0FBc0IsRUFDdEIsSUFBWSxFQUNaLFVBQXdCLEVBQUU7UUFFMUIsTUFBTSxFQUFFLE9BQU8sR0FBRyxTQUFTLEVBQUUsU0FBUyxHQUFHLEVBQUUsRUFBRSxHQUFHLE9BQU8sQ0FBQztRQUV4RCxNQUFNLEtBQUssR0FBRyxTQUFTLENBQUMsUUFBUSxDQUFDLE1BQU0sRUFBRTtZQUN4QyxJQUFJO1lBQ0osR0FBRyxFQUFFLHFDQUFxQyxPQUFPLElBQUksU0FBUyxFQUFFO1NBQ2hFLENBQUMsQ0FBQztRQUVILE9BQU8sS0FBSyxDQUFDO0lBQ2QsQ0FBQztDQUNEIiwic291cmNlc0NvbnRlbnQiOlsiZXhwb3J0IHR5cGUgQmFkZ2VWYXJpYW50ID0gXCJkZWZhdWx0XCIgfCBcInN1Y2Nlc3NcIiB8IFwid2FybmluZ1wiIHwgXCJpbmZvXCIgfCBcImFjY2VudFwiO1xyXG5cclxuZXhwb3J0IGludGVyZmFjZSBCYWRnZU9wdGlvbnMge1xyXG5cdHZhcmlhbnQ/OiBCYWRnZVZhcmlhbnQ7XHJcblx0Y2xhc3NOYW1lPzogc3RyaW5nO1xyXG59XHJcblxyXG4vKipcclxuICogQmFkZ2UgY29tcG9uZW50IGZvciBsYWJlbHMgYW5kIHRhZ3NcclxuICogRm9sbG93cyBzaGFkY24gZGVzaWduIHByaW5jaXBsZXMgd2l0aCBzdWJ0bGUgY29sb3JzXHJcbiAqL1xyXG5leHBvcnQgY2xhc3MgQmFkZ2Uge1xyXG5cdC8qKlxyXG5cdCAqIENyZWF0ZSBhIGJhZGdlIGVsZW1lbnRcclxuXHQgKi9cclxuXHRzdGF0aWMgY3JlYXRlKFxyXG5cdFx0Y29udGFpbmVyOiBIVE1MRWxlbWVudCxcclxuXHRcdHRleHQ6IHN0cmluZyxcclxuXHRcdG9wdGlvbnM6IEJhZGdlT3B0aW9ucyA9IHt9XHJcblx0KTogSFRNTEVsZW1lbnQge1xyXG5cdFx0Y29uc3QgeyB2YXJpYW50ID0gXCJkZWZhdWx0XCIsIGNsYXNzTmFtZSA9IFwiXCIgfSA9IG9wdGlvbnM7XHJcblxyXG5cdFx0Y29uc3QgYmFkZ2UgPSBjb250YWluZXIuY3JlYXRlRWwoXCJzcGFuXCIsIHtcclxuXHRcdFx0dGV4dCxcclxuXHRcdFx0Y2xzOiBgb25ib2FyZGluZy1iYWRnZSBvbmJvYXJkaW5nLWJhZGdlLSR7dmFyaWFudH0gJHtjbGFzc05hbWV9YCxcclxuXHRcdH0pO1xyXG5cclxuXHRcdHJldHVybiBiYWRnZTtcclxuXHR9XHJcbn1cclxuIl19

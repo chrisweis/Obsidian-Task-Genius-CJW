@@ -1,0 +1,25 @@
+import { t } from "@/translations/helper";
+import { TaskCreationGuide } from "../TaskCreationGuide";
+/**
+ * Task Guide Step - Learn how to create tasks
+ */
+export class TaskGuideStep {
+    /**
+     * Render the task guide step
+     */
+    static render(headerEl, contentEl, _controller, plugin) {
+        // Clear
+        headerEl.empty();
+        contentEl.empty();
+        // Header
+        headerEl.createEl("h1", { text: t("Create Your First Task") });
+        headerEl.createEl("p", {
+            text: t("Learn the fastest ways to capture and format tasks inside Task Genius"),
+            cls: "onboarding-subtitle",
+        });
+        // Use the shared task creation guide to render examples and demos
+        const guide = new TaskCreationGuide(plugin);
+        guide.render(contentEl);
+    }
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiVGFza0d1aWRlU3RlcC5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIlRhc2tHdWlkZVN0ZXAudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEsT0FBTyxFQUFFLENBQUMsRUFBRSxNQUFNLHVCQUF1QixDQUFDO0FBRzFDLE9BQU8sRUFBRSxpQkFBaUIsRUFBRSxNQUFNLHNCQUFzQixDQUFDO0FBRXpEOztHQUVHO0FBQ0gsTUFBTSxPQUFPLGFBQWE7SUFDekI7O09BRUc7SUFDSCxNQUFNLENBQUMsTUFBTSxDQUNaLFFBQXFCLEVBQ3JCLFNBQXNCLEVBQ3RCLFdBQWlDLEVBQ2pDLE1BQTZCO1FBRTdCLFFBQVE7UUFDUixRQUFRLENBQUMsS0FBSyxFQUFFLENBQUM7UUFDakIsU0FBUyxDQUFDLEtBQUssRUFBRSxDQUFDO1FBRWxCLFNBQVM7UUFDVCxRQUFRLENBQUMsUUFBUSxDQUFDLElBQUksRUFBRSxFQUFFLElBQUksRUFBRSxDQUFDLENBQUMsd0JBQXdCLENBQUMsRUFBRSxDQUFDLENBQUM7UUFDL0QsUUFBUSxDQUFDLFFBQVEsQ0FBQyxHQUFHLEVBQUU7WUFDdEIsSUFBSSxFQUFFLENBQUMsQ0FDTix1RUFBdUUsQ0FDdkU7WUFDRCxHQUFHLEVBQUUscUJBQXFCO1NBQzFCLENBQUMsQ0FBQztRQUVILGtFQUFrRTtRQUNsRSxNQUFNLEtBQUssR0FBRyxJQUFJLGlCQUFpQixDQUFDLE1BQU0sQ0FBQyxDQUFDO1FBQzVDLEtBQUssQ0FBQyxNQUFNLENBQUMsU0FBUyxDQUFDLENBQUM7SUFDekIsQ0FBQztDQUNEIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgdCB9IGZyb20gXCJAL3RyYW5zbGF0aW9ucy9oZWxwZXJcIjtcclxuaW1wb3J0IHR5cGUgVGFza1Byb2dyZXNzQmFyUGx1Z2luIGZyb20gXCJAL2luZGV4XCI7XHJcbmltcG9ydCB0eXBlIHsgT25ib2FyZGluZ0NvbnRyb2xsZXIgfSBmcm9tIFwiLi4vT25ib2FyZGluZ0NvbnRyb2xsZXJcIjtcclxuaW1wb3J0IHsgVGFza0NyZWF0aW9uR3VpZGUgfSBmcm9tIFwiLi4vVGFza0NyZWF0aW9uR3VpZGVcIjtcclxuXHJcbi8qKlxyXG4gKiBUYXNrIEd1aWRlIFN0ZXAgLSBMZWFybiBob3cgdG8gY3JlYXRlIHRhc2tzXHJcbiAqL1xyXG5leHBvcnQgY2xhc3MgVGFza0d1aWRlU3RlcCB7XHJcblx0LyoqXHJcblx0ICogUmVuZGVyIHRoZSB0YXNrIGd1aWRlIHN0ZXBcclxuXHQgKi9cclxuXHRzdGF0aWMgcmVuZGVyKFxyXG5cdFx0aGVhZGVyRWw6IEhUTUxFbGVtZW50LFxyXG5cdFx0Y29udGVudEVsOiBIVE1MRWxlbWVudCxcclxuXHRcdF9jb250cm9sbGVyOiBPbmJvYXJkaW5nQ29udHJvbGxlcixcclxuXHRcdHBsdWdpbjogVGFza1Byb2dyZXNzQmFyUGx1Z2luXHJcblx0KSB7XHJcblx0XHQvLyBDbGVhclxyXG5cdFx0aGVhZGVyRWwuZW1wdHkoKTtcclxuXHRcdGNvbnRlbnRFbC5lbXB0eSgpO1xyXG5cclxuXHRcdC8vIEhlYWRlclxyXG5cdFx0aGVhZGVyRWwuY3JlYXRlRWwoXCJoMVwiLCB7IHRleHQ6IHQoXCJDcmVhdGUgWW91ciBGaXJzdCBUYXNrXCIpIH0pO1xyXG5cdFx0aGVhZGVyRWwuY3JlYXRlRWwoXCJwXCIsIHtcclxuXHRcdFx0dGV4dDogdChcclxuXHRcdFx0XHRcIkxlYXJuIHRoZSBmYXN0ZXN0IHdheXMgdG8gY2FwdHVyZSBhbmQgZm9ybWF0IHRhc2tzIGluc2lkZSBUYXNrIEdlbml1c1wiXHJcblx0XHRcdCksXHJcblx0XHRcdGNsczogXCJvbmJvYXJkaW5nLXN1YnRpdGxlXCIsXHJcblx0XHR9KTtcclxuXHJcblx0XHQvLyBVc2UgdGhlIHNoYXJlZCB0YXNrIGNyZWF0aW9uIGd1aWRlIHRvIHJlbmRlciBleGFtcGxlcyBhbmQgZGVtb3NcclxuXHRcdGNvbnN0IGd1aWRlID0gbmV3IFRhc2tDcmVhdGlvbkd1aWRlKHBsdWdpbik7XHJcblx0XHRndWlkZS5yZW5kZXIoY29udGVudEVsKTtcclxuXHR9XHJcbn1cclxuIl19

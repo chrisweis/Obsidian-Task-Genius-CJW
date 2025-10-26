@@ -160,13 +160,6 @@ export class OnboardingView extends ItemView {
 						this.controller,
 					);
 					break;
-				case OnboardingStep.FLUENT_WS_SELECTOR:
-					FluentWorkspaceSelectorStep.render(
-						headerEl,
-						contentEl,
-						this.controller,
-					);
-					break;
 				case OnboardingStep.FLUENT_MAIN_NAV:
 					FluentMainNavigationStep.render(
 						headerEl,

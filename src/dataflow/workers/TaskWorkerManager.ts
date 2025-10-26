@@ -26,7 +26,9 @@ import {
 
 // Import worker and utilities
 // @ts-ignore Ignore type error for worker import
-import TaskWorker from "./TaskIndex.worker";
+import TaskWorkerCode from "worker:./TaskIndex.worker";
+// @ts-ignore Ignore type error for utils import
+import { fromScriptText } from "@aidenlx/esbuild-plugin-inline-worker/utils";
 import { Deferred, deferred } from "./deferred-promise";
 
 // Using similar queue structure as importer.ts
@@ -280,7 +282,7 @@ export class TaskWorkerManager extends Component {
 	private newWorker(): PoolWorker {
 		const worker: PoolWorker = {
 			id: this.nextWorkerId++,
-			worker: new TaskWorker(),
+			worker: fromScriptText(TaskWorkerCode, { name: `TaskWorker-${this.nextWorkerId}` }),
 			availableAt: Date.now(),
 		};
 
@@ -669,7 +671,7 @@ export class TaskWorkerManager extends Component {
 		if (!this.active) return;
 
 		// 检查所有队列，按优先级从高到低获取任务
-		let queueItem: QueueItem | undefined;
+		let queueItem: QueueItem | null = null;
 
 		for (let priority = 0; priority < this.queues.length; priority++) {
 			if (!this.queues[priority].isEmpty()) {

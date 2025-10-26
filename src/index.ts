@@ -69,7 +69,7 @@ import { MinimalQuickCaptureModal } from "./components/features/quick-capture/mo
 import { MinimalQuickCaptureSuggest } from "./components/features/quick-capture/suggest/MinimalQuickCaptureSuggest";
 import { SuggestManager } from "@/components/ui/suggest";
 import { t } from "./translations/helper";
-import { TASK_VIEW_TYPE, TaskView } from "./pages/TaskView";
+// Legacy TaskView removed - using Fluent only
 import "./styles/global.css";
 import "./styles/setting.css";
 import "./styles/view.css";
@@ -255,15 +255,10 @@ export default class TaskProgressBarPlugin extends Plugin {
 			}
 
 			console.time("[TPB] registerViewsAndCommands");
-			// Register the TaskView
+			// Register the Fluent TaskView (only interface mode)
 			this.v2Integration = new FluentIntegration(this);
 			await this.v2Integration.migrateSettings();
 			this.v2Integration.register();
-
-			this.registerView(
-				TASK_VIEW_TYPE,
-				(leaf) => new TaskView(leaf, this),
-			);
 
 			this.registerView(
 				TASK_SPECIFIC_VIEW_TYPE,
@@ -543,16 +538,12 @@ export default class TaskProgressBarPlugin extends Plugin {
 			console.time("[TPB] onLayoutReady");
 
 			// Update workspace leaves when layout is ready
-			const deferWorkspaceLeaves =
-				this.app.workspace.getLeavesOfType(TASK_VIEW_TYPE);
 			const deferSpecificLeaves = this.app.workspace.getLeavesOfType(
 				TASK_SPECIFIC_VIEW_TYPE,
 			);
-			[...deferWorkspaceLeaves, ...deferSpecificLeaves].forEach(
-				(leaf) => {
-					leaf.loadIfDeferred();
-				},
-			);
+			deferSpecificLeaves.forEach((leaf) => {
+				leaf.loadIfDeferred();
+			});
 			// Initialize Task Genius Icon Manager
 			this.taskGeniusIconManager = new TaskGeniusIconManager(this);
 			this.addChild(this.taskGeniusIconManager);
@@ -1634,10 +1625,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 	async closeAllViewsFromTaskGenius() {
 		const { workspace } = this.app;
-		const v1Leaves = workspace.getLeavesOfType(TASK_VIEW_TYPE);
-		v1Leaves.forEach((leaf) => leaf.detach());
-		const v2Leaves = workspace.getLeavesOfType(FLUENT_TASK_VIEW);
-		v2Leaves.forEach((leaf) => leaf.detach());
+		// Close Fluent views
+		const fluentLeaves = workspace.getLeavesOfType(FLUENT_TASK_VIEW);
+		fluentLeaves.forEach((leaf) => leaf.detach());
 		const specificLeaves = workspace.getLeavesOfType(
 			TASK_SPECIFIC_VIEW_TYPE,
 		);
@@ -1778,9 +1768,8 @@ export default class TaskProgressBarPlugin extends Plugin {
 		try {
 			const { workspace } = this.app;
 
-			const viewType = this.settings.fluentView?.enableFluent
-				? FLUENT_TASK_VIEW
-				: TASK_VIEW_TYPE;
+			// Always use Fluent view (Legacy mode removed)
+			const viewType = FLUENT_TASK_VIEW;
 			// Check if view is already open
 			const existingLeaves = workspace.getLeavesOfType(viewType);
 
@@ -1844,23 +1833,7 @@ export default class TaskProgressBarPlugin extends Plugin {
 	}
 
 	async triggerViewUpdate() {
-		// Update Task Views
-		const taskViewLeaves =
-			this.app.workspace.getLeavesOfType(TASK_VIEW_TYPE);
-		if (taskViewLeaves.length > 0) {
-			for (const leaf of taskViewLeaves) {
-				if (leaf.view instanceof TaskView) {
-					// Avoid overwriting existing tasks with empty preloadedTasks during settings updates
-					if (
-						Array.isArray(this.preloadedTasks) &&
-						this.preloadedTasks.length > 0
-					) {
-						leaf.view.tasks = this.preloadedTasks;
-					}
-					leaf.view.triggerViewUpdate();
-				}
-			}
-		}
+		// Legacy TaskView removed - Fluent view handles its own updates
 
 		// Update Timeline Sidebar Views
 		const timelineViewLeaves = this.app.workspace.getLeavesOfType(

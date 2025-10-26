@@ -1,0 +1,60 @@
+/**
+ * Helper functions for displaying dates correctly in the UI
+ * Handles the conversion between UTC noon timestamps and local date display
+ */
+/**
+ * Convert a UTC noon timestamp to a local date string for display in date inputs
+ *
+ * The timestamp is stored as UTC noon (12:00 UTC) to avoid date boundary issues.
+ * This function converts it back to the intended local date for display.
+ *
+ * @param timestamp - The timestamp stored as UTC noon
+ * @returns Date string in YYYY-MM-DD format for the local date
+ */
+export function timestampToLocalDateString(timestamp) {
+    if (!timestamp)
+        return "";
+    const date = new Date(timestamp);
+    // Detect UTC-noon storage (exact 12:00 UTC)
+    const isUTCNoon = date.getUTCHours() === 12 && date.getUTCMinutes() === 0;
+    let year;
+    let month; // 0-based
+    let day;
+    if (isUTCNoon) {
+        // Use UTC calendar date to reconstruct the intended local date
+        year = date.getUTCFullYear();
+        month = date.getUTCMonth();
+        day = date.getUTCDate();
+        const localDate = new Date(year, month, day);
+        const y = localDate.getFullYear();
+        const m = String(localDate.getMonth() + 1).padStart(2, "0");
+        const d = String(localDate.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+    }
+    else {
+        // For local-midnight or arbitrary timestamps, use local calendar date directly
+        year = date.getFullYear();
+        month = date.getMonth();
+        day = date.getDate();
+        return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+}
+/**
+ * Convert a local date string (YYYY-MM-DD) to a UTC noon timestamp for storage
+ *
+ * This ensures consistent date storage across timezones by storing all dates
+ * at UTC noon, avoiding edge cases where dates might shift due to timezone differences.
+ *
+ * @param dateString - Date string in YYYY-MM-DD format
+ * @returns Timestamp at UTC noon for the given date
+ */
+export function localDateStringToTimestamp(dateString) {
+    if (!dateString)
+        return undefined;
+    const [year, month, day] = dateString.split("-").map(Number);
+    if (!year || !month || !day)
+        return undefined;
+    // Create date at noon UTC to ensure consistent storage
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).getTime();
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZGF0ZS1kaXNwbGF5LWhlbHBlci5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbImRhdGUtZGlzcGxheS1oZWxwZXIudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUE7OztHQUdHO0FBRUg7Ozs7Ozs7O0dBUUc7QUFDSCxNQUFNLFVBQVUsMEJBQTBCLENBQ3pDLFNBQTZCO0lBRTdCLElBQUksQ0FBQyxTQUFTO1FBQUUsT0FBTyxFQUFFLENBQUM7SUFFMUIsTUFBTSxJQUFJLEdBQUcsSUFBSSxJQUFJLENBQUMsU0FBUyxDQUFDLENBQUM7SUFFakMsNENBQTRDO0lBQzVDLE1BQU0sU0FBUyxHQUFHLElBQUksQ0FBQyxXQUFXLEVBQUUsS0FBSyxFQUFFLElBQUksSUFBSSxDQUFDLGFBQWEsRUFBRSxLQUFLLENBQUMsQ0FBQztJQUUxRSxJQUFJLElBQVksQ0FBQztJQUNqQixJQUFJLEtBQWEsQ0FBQyxDQUFDLFVBQVU7SUFDN0IsSUFBSSxHQUFXLENBQUM7SUFFaEIsSUFBSSxTQUFTLEVBQUU7UUFDZCwrREFBK0Q7UUFDL0QsSUFBSSxHQUFHLElBQUksQ0FBQyxjQUFjLEVBQUUsQ0FBQztRQUM3QixLQUFLLEdBQUcsSUFBSSxDQUFDLFdBQVcsRUFBRSxDQUFDO1FBQzNCLEdBQUcsR0FBRyxJQUFJLENBQUMsVUFBVSxFQUFFLENBQUM7UUFFeEIsTUFBTSxTQUFTLEdBQUcsSUFBSSxJQUFJLENBQUMsSUFBSSxFQUFFLEtBQUssRUFBRSxHQUFHLENBQUMsQ0FBQztRQUM3QyxNQUFNLENBQUMsR0FBRyxTQUFTLENBQUMsV0FBVyxFQUFFLENBQUM7UUFDbEMsTUFBTSxDQUFDLEdBQUcsTUFBTSxDQUFDLFNBQVMsQ0FBQyxRQUFRLEVBQUUsR0FBRyxDQUFDLENBQUMsQ0FBQyxRQUFRLENBQUMsQ0FBQyxFQUFFLEdBQUcsQ0FBQyxDQUFDO1FBQzVELE1BQU0sQ0FBQyxHQUFHLE1BQU0sQ0FBQyxTQUFTLENBQUMsT0FBTyxFQUFFLENBQUMsQ0FBQyxRQUFRLENBQUMsQ0FBQyxFQUFFLEdBQUcsQ0FBQyxDQUFDO1FBQ3ZELE9BQU8sR0FBRyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsRUFBRSxDQUFDO0tBQ3hCO1NBQU07UUFDTiwrRUFBK0U7UUFDL0UsSUFBSSxHQUFHLElBQUksQ0FBQyxXQUFXLEVBQUUsQ0FBQztRQUMxQixLQUFLLEdBQUcsSUFBSSxDQUFDLFFBQVEsRUFBRSxDQUFDO1FBQ3hCLEdBQUcsR0FBRyxJQUFJLENBQUMsT0FBTyxFQUFFLENBQUM7UUFDckIsT0FBTyxHQUFHLElBQUksSUFBSSxNQUFNLENBQUMsS0FBSyxHQUFHLENBQUMsQ0FBQyxDQUFDLFFBQVEsQ0FBQyxDQUFDLEVBQUUsR0FBRyxDQUFDLElBQUksTUFBTSxDQUM3RCxHQUFHLENBQ0gsQ0FBQyxRQUFRLENBQUMsQ0FBQyxFQUFFLEdBQUcsQ0FBQyxFQUFFLENBQUM7S0FDckI7QUFDRixDQUFDO0FBRUQ7Ozs7Ozs7O0dBUUc7QUFDSCxNQUFNLFVBQVUsMEJBQTBCLENBQ3pDLFVBQWtCO0lBRWxCLElBQUksQ0FBQyxVQUFVO1FBQUUsT0FBTyxTQUFTLENBQUM7SUFFbEMsTUFBTSxDQUFDLElBQUksRUFBRSxLQUFLLEVBQUUsR0FBRyxDQUFDLEdBQUcsVUFBVSxDQUFDLEtBQUssQ0FBQyxHQUFHLENBQUMsQ0FBQyxHQUFHLENBQUMsTUFBTSxDQUFDLENBQUM7SUFDN0QsSUFBSSxDQUFDLElBQUksSUFBSSxDQUFDLEtBQUssSUFBSSxDQUFDLEdBQUc7UUFBRSxPQUFPLFNBQVMsQ0FBQztJQUU5Qyx1REFBdUQ7SUFDdkQsT0FBTyxJQUFJLElBQUksQ0FBQyxJQUFJLENBQUMsR0FBRyxDQUFDLElBQUksRUFBRSxLQUFLLEdBQUcsQ0FBQyxFQUFFLEdBQUcsRUFBRSxFQUFFLEVBQUUsQ0FBQyxFQUFFLENBQUMsQ0FBQyxDQUFDLENBQUMsT0FBTyxFQUFFLENBQUM7QUFDckUsQ0FBQyIsInNvdXJjZXNDb250ZW50IjpbIi8qKlxyXG4gKiBIZWxwZXIgZnVuY3Rpb25zIGZvciBkaXNwbGF5aW5nIGRhdGVzIGNvcnJlY3RseSBpbiB0aGUgVUlcclxuICogSGFuZGxlcyB0aGUgY29udmVyc2lvbiBiZXR3ZWVuIFVUQyBub29uIHRpbWVzdGFtcHMgYW5kIGxvY2FsIGRhdGUgZGlzcGxheVxyXG4gKi9cclxuXHJcbi8qKlxyXG4gKiBDb252ZXJ0IGEgVVRDIG5vb24gdGltZXN0YW1wIHRvIGEgbG9jYWwgZGF0ZSBzdHJpbmcgZm9yIGRpc3BsYXkgaW4gZGF0ZSBpbnB1dHNcclxuICpcclxuICogVGhlIHRpbWVzdGFtcCBpcyBzdG9yZWQgYXMgVVRDIG5vb24gKDEyOjAwIFVUQykgdG8gYXZvaWQgZGF0ZSBib3VuZGFyeSBpc3N1ZXMuXHJcbiAqIFRoaXMgZnVuY3Rpb24gY29udmVydHMgaXQgYmFjayB0byB0aGUgaW50ZW5kZWQgbG9jYWwgZGF0ZSBmb3IgZGlzcGxheS5cclxuICpcclxuICogQHBhcmFtIHRpbWVzdGFtcCAtIFRoZSB0aW1lc3RhbXAgc3RvcmVkIGFzIFVUQyBub29uXHJcbiAqIEByZXR1cm5zIERhdGUgc3RyaW5nIGluIFlZWVktTU0tREQgZm9ybWF0IGZvciB0aGUgbG9jYWwgZGF0ZVxyXG4gKi9cclxuZXhwb3J0IGZ1bmN0aW9uIHRpbWVzdGFtcFRvTG9jYWxEYXRlU3RyaW5nKFxyXG5cdHRpbWVzdGFtcDogbnVtYmVyIHwgdW5kZWZpbmVkXHJcbik6IHN0cmluZyB7XHJcblx0aWYgKCF0aW1lc3RhbXApIHJldHVybiBcIlwiO1xyXG5cclxuXHRjb25zdCBkYXRlID0gbmV3IERhdGUodGltZXN0YW1wKTtcclxuXHJcblx0Ly8gRGV0ZWN0IFVUQy1ub29uIHN0b3JhZ2UgKGV4YWN0IDEyOjAwIFVUQylcclxuXHRjb25zdCBpc1VUQ05vb24gPSBkYXRlLmdldFVUQ0hvdXJzKCkgPT09IDEyICYmIGRhdGUuZ2V0VVRDTWludXRlcygpID09PSAwO1xyXG5cclxuXHRsZXQgeWVhcjogbnVtYmVyO1xyXG5cdGxldCBtb250aDogbnVtYmVyOyAvLyAwLWJhc2VkXHJcblx0bGV0IGRheTogbnVtYmVyO1xyXG5cclxuXHRpZiAoaXNVVENOb29uKSB7XHJcblx0XHQvLyBVc2UgVVRDIGNhbGVuZGFyIGRhdGUgdG8gcmVjb25zdHJ1Y3QgdGhlIGludGVuZGVkIGxvY2FsIGRhdGVcclxuXHRcdHllYXIgPSBkYXRlLmdldFVUQ0Z1bGxZZWFyKCk7XHJcblx0XHRtb250aCA9IGRhdGUuZ2V0VVRDTW9udGgoKTtcclxuXHRcdGRheSA9IGRhdGUuZ2V0VVRDRGF0ZSgpO1xyXG5cclxuXHRcdGNvbnN0IGxvY2FsRGF0ZSA9IG5ldyBEYXRlKHllYXIsIG1vbnRoLCBkYXkpO1xyXG5cdFx0Y29uc3QgeSA9IGxvY2FsRGF0ZS5nZXRGdWxsWWVhcigpO1xyXG5cdFx0Y29uc3QgbSA9IFN0cmluZyhsb2NhbERhdGUuZ2V0TW9udGgoKSArIDEpLnBhZFN0YXJ0KDIsIFwiMFwiKTtcclxuXHRcdGNvbnN0IGQgPSBTdHJpbmcobG9jYWxEYXRlLmdldERhdGUoKSkucGFkU3RhcnQoMiwgXCIwXCIpO1xyXG5cdFx0cmV0dXJuIGAke3l9LSR7bX0tJHtkfWA7XHJcblx0fSBlbHNlIHtcclxuXHRcdC8vIEZvciBsb2NhbC1taWRuaWdodCBvciBhcmJpdHJhcnkgdGltZXN0YW1wcywgdXNlIGxvY2FsIGNhbGVuZGFyIGRhdGUgZGlyZWN0bHlcclxuXHRcdHllYXIgPSBkYXRlLmdldEZ1bGxZZWFyKCk7XHJcblx0XHRtb250aCA9IGRhdGUuZ2V0TW9udGgoKTtcclxuXHRcdGRheSA9IGRhdGUuZ2V0RGF0ZSgpO1xyXG5cdFx0cmV0dXJuIGAke3llYXJ9LSR7U3RyaW5nKG1vbnRoICsgMSkucGFkU3RhcnQoMiwgXCIwXCIpfS0ke1N0cmluZyhcclxuXHRcdFx0ZGF5XHJcblx0XHQpLnBhZFN0YXJ0KDIsIFwiMFwiKX1gO1xyXG5cdH1cclxufVxyXG5cclxuLyoqXHJcbiAqIENvbnZlcnQgYSBsb2NhbCBkYXRlIHN0cmluZyAoWVlZWS1NTS1ERCkgdG8gYSBVVEMgbm9vbiB0aW1lc3RhbXAgZm9yIHN0b3JhZ2VcclxuICpcclxuICogVGhpcyBlbnN1cmVzIGNvbnNpc3RlbnQgZGF0ZSBzdG9yYWdlIGFjcm9zcyB0aW1lem9uZXMgYnkgc3RvcmluZyBhbGwgZGF0ZXNcclxuICogYXQgVVRDIG5vb24sIGF2b2lkaW5nIGVkZ2UgY2FzZXMgd2hlcmUgZGF0ZXMgbWlnaHQgc2hpZnQgZHVlIHRvIHRpbWV6b25lIGRpZmZlcmVuY2VzLlxyXG4gKlxyXG4gKiBAcGFyYW0gZGF0ZVN0cmluZyAtIERhdGUgc3RyaW5nIGluIFlZWVktTU0tREQgZm9ybWF0XHJcbiAqIEByZXR1cm5zIFRpbWVzdGFtcCBhdCBVVEMgbm9vbiBmb3IgdGhlIGdpdmVuIGRhdGVcclxuICovXHJcbmV4cG9ydCBmdW5jdGlvbiBsb2NhbERhdGVTdHJpbmdUb1RpbWVzdGFtcChcclxuXHRkYXRlU3RyaW5nOiBzdHJpbmdcclxuKTogbnVtYmVyIHwgdW5kZWZpbmVkIHtcclxuXHRpZiAoIWRhdGVTdHJpbmcpIHJldHVybiB1bmRlZmluZWQ7XHJcblxyXG5cdGNvbnN0IFt5ZWFyLCBtb250aCwgZGF5XSA9IGRhdGVTdHJpbmcuc3BsaXQoXCItXCIpLm1hcChOdW1iZXIpO1xyXG5cdGlmICgheWVhciB8fCAhbW9udGggfHwgIWRheSkgcmV0dXJuIHVuZGVmaW5lZDtcclxuXHJcblx0Ly8gQ3JlYXRlIGRhdGUgYXQgbm9vbiBVVEMgdG8gZW5zdXJlIGNvbnNpc3RlbnQgc3RvcmFnZVxyXG5cdHJldHVybiBuZXcgRGF0ZShEYXRlLlVUQyh5ZWFyLCBtb250aCAtIDEsIGRheSwgMTIsIDAsIDApKS5nZXRUaW1lKCk7XHJcbn1cclxuIl19

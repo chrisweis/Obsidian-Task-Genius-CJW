@@ -78,6 +78,8 @@ export interface ViewConfig {
 	sortCriteria?: SortCriterion[]; // ADDED: Optional sort criteria for ALL views
 	specificConfig?: SpecificViewConfig; // ADDED: Optional property for view-specific settings
 	region?: "top" | "bottom"; // 视图区域：顶部或底部，用于侧边栏分组
+	ignoreGlobalFilters?: boolean; // ADDED: If true, ignore global filters (project, search, dropdown) and use only view's own filterRules
+	availableModes?: ("list" | "tree" | "kanban" | "calendar")[]; // ADDED: Optional view mode toggles (list/tree/kanban/calendar) - if undefined, uses default based on view type
 }
 
 // ADDED: Specific config interfaces

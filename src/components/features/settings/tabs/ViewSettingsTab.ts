@@ -229,9 +229,8 @@ export function renderViewSettingsTab(
 	// Global filter component
 	let globalFilterComponent: TaskFilterComponent | null = null;
 
-	// Sortable instances for view management
-	let topSortable: Sortable | null = null;
-	let bottomSortable: Sortable | null = null;
+	// Sortable instance for view management
+	let viewsSortable: Sortable | null = null;
 
 	// Initialize global filter component
 	const initializeGlobalFilter = () => {
@@ -295,14 +294,10 @@ export function renderViewSettingsTab(
 			globalFilterComponent.onunload();
 			globalFilterComponent = null;
 		}
-		// Also cleanup sortables
-		if (topSortable) {
-			topSortable.destroy();
-			topSortable = null;
-		}
-		if (bottomSortable) {
-			bottomSortable.destroy();
-			bottomSortable = null;
+		// Also cleanup sortable
+		if (viewsSortable) {
+			viewsSortable.destroy();
+			viewsSortable = null;
 		}
 	};
 
@@ -311,7 +306,7 @@ export function renderViewSettingsTab(
 		.setName(t("Manage Views"))
 		.setDesc(
 			t(
-				"Drag views between sections or within sections to reorder them. Toggle visibility with the eye icon."
+				"Drag views to reorder them. Toggle visibility with the eye icon."
 			)
 		)
 		.setHeading();
@@ -320,57 +315,23 @@ export function renderViewSettingsTab(
 		cls: "view-management-list",
 	});
 
-	// Create two containers for top and bottom sections
-	const topSectionContainer = viewListContainer.createDiv({
-		cls: "view-section-container",
-	});
-	const topSectionHeader = topSectionContainer.createDiv({
-		cls: "view-section-header",
-	});
-	topSectionHeader.createEl("h4", { text: t("Top Section") });
-	const topViewsContainer = topSectionContainer.createDiv({
+	// Create single container for all views
+	const viewsContainer = viewListContainer.createDiv({
 		cls: "view-section-items sortable-views",
-		attr: { "data-region": "top" },
-	});
-
-	const bottomSectionContainer = viewListContainer.createDiv({
-		cls: "view-section-container",
-	});
-	const bottomSectionHeader = bottomSectionContainer.createDiv({
-		cls: "view-section-header",
-	});
-	bottomSectionHeader.createEl("h4", { text: t("Bottom Section") });
-	const bottomViewsContainer = bottomSectionContainer.createDiv({
-		cls: "view-section-items sortable-views",
-		attr: { "data-region": "bottom" },
 	});
 
 	// Function to render the list of views
 	const renderViewList = () => {
-		topViewsContainer.empty();
-		bottomViewsContainer.empty();
+		viewsContainer.empty();
 
-		// Destroy existing sortables before re-rendering
-		if (topSortable) {
-			topSortable.destroy();
-			topSortable = null;
-		}
-		if (bottomSortable) {
-			bottomSortable.destroy();
-			bottomSortable = null;
+		// Destroy existing sortable before re-rendering
+		if (viewsSortable) {
+			viewsSortable.destroy();
+			viewsSortable = null;
 		}
 
-		// Group views by region
-		const topViews: ViewConfig[] = [];
-		const bottomViews: ViewConfig[] = [];
-
-		settingTab.plugin.settings.viewConfiguration.forEach((view) => {
-			if (view.region === "bottom") {
-				bottomViews.push(view);
-			} else {
-				topViews.push(view);
-			}
-		});
+		// Get all views (no region grouping)
+		const allViews: ViewConfig[] = settingTab.plugin.settings.viewConfiguration;
 
 		// Helper function to create view item
 		const createViewItem = (view: ViewConfig, container: HTMLElement) => {
@@ -544,18 +505,15 @@ export function renderViewSettingsTab(
 			return viewEl;
 		};
 
-		// Render views in their respective containers
-		topViews.forEach((view) => createViewItem(view, topViewsContainer));
-		bottomViews.forEach((view) =>
-			createViewItem(view, bottomViewsContainer)
-		);
+		// Render all views in single container
+		allViews.forEach((view) => createViewItem(view, viewsContainer));
 
-		// Setup sortable for both containers
+		// Setup sortable for single container
 		const updateViewOrder = () => {
 			const newOrder: ViewConfig[] = [];
 
-			// Get all views from top container
-			topViewsContainer
+			// Get all views from the container in their new order
+			viewsContainer
 				.querySelectorAll(".sortable-view-item")
 				.forEach((el) => {
 					const viewId = el.getAttribute("data-view-id");
@@ -564,22 +522,6 @@ export function renderViewSettingsTab(
 							(v) => v.id === viewId
 						);
 					if (view) {
-						view.region = "top";
-						newOrder.push(view);
-					}
-				});
-
-			// Get all views from bottom container
-			bottomViewsContainer
-				.querySelectorAll(".sortable-view-item")
-				.forEach((el) => {
-					const viewId = el.getAttribute("data-view-id");
-					const view =
-						settingTab.plugin.settings.viewConfiguration.find(
-							(v) => v.id === viewId
-						);
-					if (view) {
-						view.region = "bottom";
 						newOrder.push(view);
 					}
 				});
@@ -593,21 +535,8 @@ export function renderViewSettingsTab(
 			);
 		};
 
-		// Create sortable instances
-		topSortable = Sortable.create(topViewsContainer, {
-			group: "views",
-			animation: 150,
-			handle: ".view-drag-handle",
-			ghostClass: "sortable-ghost",
-			chosenClass: "sortable-chosen",
-			dragClass: "sortable-drag",
-			onEnd: () => {
-				updateViewOrder();
-			},
-		});
-
-		bottomSortable = Sortable.create(bottomViewsContainer, {
-			group: "views",
+		// Create sortable instance for single container
+		viewsSortable = Sortable.create(viewsContainer, {
 			animation: 150,
 			handle: ".view-drag-handle",
 			ghostClass: "sortable-ghost",

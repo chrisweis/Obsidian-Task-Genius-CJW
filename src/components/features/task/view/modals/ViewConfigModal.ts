@@ -122,6 +122,21 @@ export class ViewConfigModal extends Modal {
 						: "top";
 				}
 
+				// Initialize availableModes if not set (copy from hardcoded config for default views)
+				if (!this.viewConfig.availableModes && resolvedCopySource.type === "default") {
+					// Map view IDs to their default available modes
+					const defaultModes: Record<string, ("list" | "tree" | "kanban" | "calendar")[]> = {
+						inbox: ["list", "tree", "kanban", "calendar"],
+						today: ["list", "tree", "kanban", "calendar"],
+						upcoming: ["list", "tree", "kanban", "calendar"],
+						flagged: ["list", "tree", "kanban", "calendar"],
+						projects: ["list", "tree", "kanban", "calendar"],
+					};
+					if (defaultModes[resolvedCopySource.id]) {
+						this.viewConfig.availableModes = [...defaultModes[resolvedCopySource.id]];
+					}
+				}
+
 				// 如果源视图有过滤规则，也拷贝过来
 				this.viewFilterRule = resolvedCopySource.filterRules
 					? JSON.parse(JSON.stringify(resolvedCopySource.filterRules))
@@ -514,30 +529,6 @@ export class ViewConfigModal extends Modal {
 				});
 			});
 
-		// Add Region setting for sidebar position
-		// Default to 'bottom' for specific views for backward compatibility
-		const bottomViewIds = ["habit", "calendar", "gantt", "kanban"];
-		const defaultRegion = bottomViewIds.includes(this.viewConfig.id)
-			? "bottom"
-			: "top";
-
-		new Setting(contentEl)
-			.setName(t("Sidebar Position"))
-			.setDesc(
-				t(
-					"Choose where this view appears in the sidebar. Views in the bottom section are visually separated from top section views.",
-				),
-			)
-			.addDropdown((dropdown) => {
-				dropdown
-					.addOption("top", t("Top Section"))
-					.addOption("bottom", t("Bottom Section"))
-					.setValue(this.viewConfig.region || defaultRegion)
-					.onChange((value: "top" | "bottom") => {
-						this.viewConfig.region = value;
-						this.checkForChanges();
-					});
-			});
 
 		// 检查是否为日历视图（原始ID或拷贝的日历视图）
 		const isCalendarView =
@@ -1622,6 +1613,49 @@ export class ViewConfigModal extends Modal {
 			}
 		}
 
+		// --- View Mode Toggles ---
+		new Setting(contentEl)
+			.setName(t("View Mode Toggles"))
+			.setDesc(
+				t("Configure which view mode toggles (List/Tree/Kanban/Calendar) are available for this view. Leave all unchecked to hide the toggles completely.")
+			)
+			.setHeading();
+
+		const availableModes = this.viewConfig.availableModes || [];
+		const modeContainer = contentEl.createDiv({ cls: "view-modes-container" });
+
+		const modes: Array<{ id: "list" | "tree" | "kanban" | "calendar", label: string }> = [
+			{ id: "list", label: t("List") },
+			{ id: "tree", label: t("Tree") },
+			{ id: "kanban", label: t("Kanban") },
+			{ id: "calendar", label: t("Calendar") },
+		];
+
+		modes.forEach((mode) => {
+			new Setting(modeContainer)
+				.setName(mode.label)
+				.addToggle((toggle) => {
+					toggle.setValue(availableModes.includes(mode.id));
+					toggle.onChange((value) => {
+						if (!this.viewConfig.availableModes) {
+							this.viewConfig.availableModes = [];
+						}
+						if (value) {
+							// Add mode if not already present
+							if (!this.viewConfig.availableModes.includes(mode.id)) {
+								this.viewConfig.availableModes.push(mode.id);
+							}
+						} else {
+							// Remove mode
+							this.viewConfig.availableModes = this.viewConfig.availableModes.filter(
+								(m) => m !== mode.id
+							);
+						}
+						this.checkForChanges();
+					});
+				});
+		});
+
 		// --- Filter Rules ---
 		new Setting(contentEl).setName(t("Filter Rules")).setHeading();
 
@@ -1643,6 +1677,19 @@ export class ViewConfigModal extends Modal {
 				toggle.setValue(this.viewConfig.filterBlanks);
 				toggle.onChange((value) => {
 					this.viewConfig.filterBlanks = value;
+					this.checkForChanges();
+				});
+			});
+
+		new Setting(contentEl)
+			.setName(t("Ignore global filters"))
+			.setDesc(
+				t("When enabled, this view will ignore global filters from the sidebar (project selection, search, and filter dropdown) and only use its own configured filter rules."),
+			)
+			.addToggle((toggle) => {
+				toggle.setValue(this.viewConfig.ignoreGlobalFilters || false);
+				toggle.onChange((value) => {
+					this.viewConfig.ignoreGlobalFilters = value;
 					this.checkForChanges();
 				});
 			});

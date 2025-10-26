@@ -19,7 +19,6 @@ import "./styles/setting-v2.css";
 import "./styles/beta-warning.css";
 import "./styles/settings-search.css";
 import "./styles/settings-migration.css";
-import "./styles/workspace-settings-selector.css";
 import {
 	renderAboutSettingsTab,
 	renderBetaTestSettingsTab,
@@ -47,7 +46,6 @@ import { renderMcpIntegrationSettingsTab } from "./components/features/settings/
 import { IframeModal } from "@/components/ui/modals/IframeModal";
 import { renderTaskTimerSettingTab } from "./components/features/settings/tabs/TaskTimerSettingsTab";
 import { renderBasesSettingsTab } from "./components/features/settings/tabs/BasesSettingsTab";
-import { renderWorkspaceSettingsTab } from "@/components/features/settings/tabs/WorkspaceSettingTab";
 
 export class TaskProgressBarSettingTab extends PluginSettingTab {
 	plugin: TaskProgressBarPlugin;
@@ -78,14 +76,8 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			category: "core",
 		},
 		{
-			id: "view-settings",
-			name: t("Views"),
-			icon: "layout",
-			category: "core",
-		},
-		{
 			id: "interface",
-			name: t("Interface"),
+			name: t("Interface & Views"),
 			icon: "layout-dashboard",
 			category: "core",
 		},
@@ -209,12 +201,6 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			category: "integration",
 		},
 		{
-			id: "workspaces",
-			name: t("Workspaces"),
-			icon: "layers",
-			category: "integration",
-		},
-		{
 			id: "beta-test",
 			name: t("Beta Features"),
 			icon: "flask-conical",
@@ -326,10 +312,6 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 		this.tabs.forEach((tab) => {
 			// Skip MCP tab on non-desktop platforms
 			if (tab.id === "mcp-integration" && !Platform.isDesktopApp) {
-				return;
-			}
-			// Skip workspaces tab from main navigation (accessed via dropdown)
-			if (tab.id === "workspaces") {
 				return;
 			}
 			const category = tab.category || "core";
@@ -452,17 +434,6 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 					"none";
 		}
 
-		// Special handling for workspaces tab - ensure it's still accessible via dropdown
-		if (tabId === "workspaces") {
-			// Make sure the workspace section is visible even though the tab is hidden
-			const workspaceSection = this.containerEl.querySelector(
-				'[data-tab-id="workspaces"]'
-			);
-			if (workspaceSection) {
-				(workspaceSection as unknown as HTMLElement).style.display = "block";
-				workspaceSection.addClass("settings-tab-section-active");
-			}
-		}
 	}
 
 	public openTab(tabId: string) {
@@ -713,10 +684,6 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 			this.displayBasesSettings(basesSection);
 		}
 
-		// Workspaces Tab
-		const workspacesSection = this.createTabSection("workspaces");
-		this.displayWorkspacesSettings(workspacesSection);
-
 		// Beta Test Tab
 		const betaTestSection = this.createTabSection("beta-test");
 		this.displayBetaTestSettings(betaTestSection);
@@ -778,8 +745,6 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 				return `${base}/bases-support`;
 			case "desktop-integration":
 				return `${base}/bases-support`;
-			case "workspaces":
-				return `${base}/workspaces`;
 			case "beta-test":
 				return `${base}/getting-started`;
 			case "experimental":
@@ -896,10 +861,6 @@ export class TaskProgressBarSettingTab extends PluginSettingTab {
 
 	private displayBetaTestSettings(containerEl: HTMLElement): void {
 		renderBetaTestSettingsTab(this, containerEl);
-	}
-
-	private displayWorkspacesSettings(containerEl: HTMLElement): void {
-		renderWorkspaceSettingsTab(this, containerEl);
 	}
 
 	// private displayExperimentalSettings(containerEl: HTMLElement): void {

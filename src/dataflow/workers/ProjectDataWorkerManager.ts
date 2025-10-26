@@ -17,7 +17,9 @@ import {
 } from "./task-index-message";
 
 // @ts-ignore Ignore type error for worker import
-import ProjectWorker from "./ProjectData.worker";
+import ProjectWorkerCode from "worker:./ProjectData.worker";
+// @ts-ignore Ignore type error for utils import
+import { fromScriptText } from "@aidenlx/esbuild-plugin-inline-worker/utils";
 
 export interface ProjectDataWorkerManagerOptions {
 	vault: Vault;
@@ -106,7 +108,7 @@ export class ProjectDataWorkerManager {
 			);
 
 			for (let i = 0; i < this.maxWorkers; i++) {
-				const worker = new ProjectWorker();
+				const worker = fromScriptText(ProjectWorkerCode, { name: `ProjectWorker-${i}` });
 
 				worker.onmessage = (event: MessageEvent) => {
 					this.handleWorkerMessage(event.data);

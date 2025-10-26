@@ -3,8 +3,12 @@ import process from "process";
 import builtins from "builtin-modules";
 import fs from "fs";
 import path from "path";
+import { config } from "dotenv";
 
-import inlineWorkerPlugin from "esbuild-plugin-inline-worker";
+import { inlineWorkerPlugin } from "@aidenlx/esbuild-plugin-inline-worker";
+
+// Load environment variables from .env.local
+config({ path: ".env.local" });
 
 // Respect release-it dry-run: skip writing build artifacts entirely
 const __D_RY__ =
@@ -129,6 +133,49 @@ const copyManifestPlugin = {
 	},
 };
 
+// Deploy to Obsidian plugin folder in development
+const deployPlugin = {
+	name: "deploy-to-obsidian",
+	setup(build) {
+		build.onEnd(() => {
+			// Only deploy in dev mode
+			if (!prod) {
+				const obsidianPath = process.env.OBSIDIAN_PLUGIN_PATH;
+
+				if (!obsidianPath) {
+					console.log("ℹ️  Skipping deployment: OBSIDIAN_PLUGIN_PATH not set in .env.local");
+					return;
+				}
+
+				try {
+					// Create plugin directory if it doesn't exist
+					if (!fs.existsSync(obsidianPath)) {
+						fs.mkdirSync(obsidianPath, { recursive: true });
+						console.log("✅ Created plugin directory:", obsidianPath);
+					}
+
+					// Copy files
+					const filesToCopy = ["main.js", "styles.css", "manifest.json"];
+
+					for (const file of filesToCopy) {
+						const source = path.join(outDir, file);
+						const dest = path.join(obsidianPath, file);
+
+						if (fs.existsSync(source)) {
+							fs.copyFileSync(source, dest);
+							console.log(`📦 Deployed: ${file}`);
+						}
+					}
+
+					console.log("✨ Deployment complete!");
+				} catch (error) {
+					console.error("❌ Deployment failed:", error.message);
+				}
+			}
+		});
+	},
+};
+
 const buildOptions = {
 	banner: {
 		js: banner,
@@ -136,10 +183,18 @@ const buildOptions = {
 	minify: prod ? true : false,
 	entryPoints: ["src/index.ts"],
 	plugins: [
-		inlineWorkerPlugin({ workerName: "Task Genius Indexer" }),
+		inlineWorkerPlugin({
+			watch: !prod,
+			buildOptions: async () => ({
+				// Return build options for the worker
+				sourcemap: prod ? false : "inline",
+				minify: prod,
+			})
+		}),
 		renamePluginWithDir,
 		cssSettingsPluginWithDir,
 		copyManifestPlugin,
+		deployPlugin,
 	],
 	bundle: true,
 	alias: {

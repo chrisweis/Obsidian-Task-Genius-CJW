@@ -87,6 +87,9 @@ export class FluentTaskView extends ItemView {
 	// Initialization state
 	private isInitializing = true;
 
+	// Debounce timer for updates
+	private updateTimeout: NodeJS.Timeout | null = null;
+
 	// ====================
 	// UI ELEMENTS
 	// ====================
@@ -168,16 +171,53 @@ export class FluentTaskView extends ItemView {
 		await this.workspaceStateManager.applyWorkspaceSettings();
 		const restored =
 			this.workspaceStateManager.restoreFilterStateFromWorkspace();
+
+		console.log("[TG-V2] ===== RESTORED STATE =====", JSON.stringify(restored, null, 2));
+
 		if (restored) {
 			this.viewState.filters = restored.filters;
-			this.viewState.selectedProject = restored.selectedProject;
-			this.currentFilterState = restored.advancedFilter;
 			this.viewState.viewMode = restored.viewMode;
 			if (restored.shouldClearSearch) {
 				this.viewState.searchQuery = "";
 				this.viewState.filterInputValue = "";
 			}
+
+			console.log("[TG-V2] Restored advancedFilter:", JSON.stringify(restored.advancedFilter, null, 2));
+
+			// Handle project selection restoration
+			// IMPORTANT: Don't just set viewState.selectedProject - we need to trigger the full
+			// project selection logic to ensure filter state is cleaned up properly
+			console.log("[TG-V2] Restoring project selection:", restored.selectedProject);
+
+			if (restored.selectedProject && restored.selectedProject !== "") {
+				// Restore specific project selection
+				console.log("[TG-V2] Restoring specific project:", restored.selectedProject);
+				this.viewState.selectedProject = restored.selectedProject;
+				this.currentFilterState = restored.advancedFilter;
+				this.liveFilterState = restored.advancedFilter;
+				this.layoutManager.setActiveProject(restored.selectedProject);
+			} else {
+				// No project selected - completely clear filter state
+				console.log("[TG-V2] No project selected - CLEARING ALL FILTER STATE");
+
+				this.currentFilterState = null;
+				this.liveFilterState = null;
+				this.viewState.selectedProject = undefined;
+				this.layoutManager.setActiveProject(null);
+			}
+		} else {
+			// No restored state - ensure clean state
+			console.log("[TG-V2] No restored state, initializing with clean state");
+			this.currentFilterState = null;
+			this.liveFilterState = null;
+			this.viewState.selectedProject = undefined;
+			this.layoutManager.setActiveProject(null);
 		}
+
+		console.log("[TG-V2] ===== FINAL STATE AFTER RESTORE =====");
+		console.log("[TG-V2] currentFilterState:", JSON.stringify(this.currentFilterState, null, 2));
+		console.log("[TG-V2] liveFilterState:", JSON.stringify(this.liveFilterState, null, 2));
+		console.log("[TG-V2] selectedProject:", this.viewState.selectedProject);
 
 		// Initial data load
 		await this.dataManager.loadTasks(false); // Will trigger onTasksLoaded callback
@@ -262,10 +302,19 @@ export class FluentTaskView extends ItemView {
 				}
 			},
 			onTaskUpdated: (taskId, updatedTask) => {
+				console.log("[TG-V2] onTaskUpdated callback:", taskId, updatedTask);
 				// Update task in cache
 				const index = this.tasks.findIndex((t) => t.id === taskId);
 				if (index !== -1) {
 					this.tasks[index] = updatedTask;
+
+					// If this is the currently selected task, update it and refresh details panel
+					if (this.selectedTask && this.selectedTask.id === taskId) {
+						console.log("[TG-V2] Updated task is selected, refreshing details panel");
+						this.selectedTask = updatedTask;
+						this.layoutManager.showTaskDetails(updatedTask);
+					}
+
 					// Re-apply filters
 					this.filteredTasks = this.dataManager.applyFilters(
 						this.tasks
@@ -309,10 +358,21 @@ export class FluentTaskView extends ItemView {
 			},
 			onProjectSelected: (projectId) => {
 				console.log(`[TG-V2] Project selected: ${projectId}`);
-				this.viewState.selectedProject = projectId;
 
-				// Switch to projects view
-				this.currentViewId = "projects";
+				// Parse multi-select format (multi:id1,id2,id3)
+				let projectIds: string[] = [];
+				if (projectId.startsWith("multi:")) {
+					projectIds = projectId.substring(6).split(",");
+					this.viewState.selectedProject = projectIds[0]; // Store first for compatibility
+					console.log(`[TG-V2] Multi-select mode: ${projectIds.length} projects - ${projectIds.join(", ")}`);
+				} else {
+					this.viewState.selectedProject = projectId;
+					projectIds = projectId ? [projectId] : [];
+					console.log(`[TG-V2] Single project mode: ${projectId || "(none)"}`);
+				}
+
+				// Note: Removed view switching - project selection now only filters without changing the view
+				// Users can stay in Matrix, Calendar, or any other view while filtering by project
 
 				// Reflect selection into the Filter UI state so the top Filter button shows active and can be reset via "X"
 				try {
@@ -332,26 +392,32 @@ export class FluentTaskView extends ItemView {
 						}))
 						.filter((g: any) => g.filters && g.filters.length > 0); // Remove empty groups
 
-					// Only add project filter if projectId is not empty
-					if (projectId && projectId.trim() !== "") {
-						// Convert custom project ID to project name for filtering
+					// Only add project filters if projectIds is not empty
+					if (projectIds.length > 0) {
 						const customProjects = this.plugin.settings.projectConfig?.customProjects || [];
-						const customProject = customProjects.find((p) => p.id === projectId);
-						const projectNameForFilter = customProject ? customProject.name : projectId;
 
-						// Append a dedicated group for project filter to enforce AND semantics
+						// Create filters for each selected project
+						const projectFilters = projectIds.map((pid, index) => {
+							const customProject = customProjects.find((p) => p.id === pid);
+							const projectNameForFilter = customProject ? customProject.name : pid;
+
+							return {
+								id: `fluent-proj-filter-${timestamp}-${index}`,
+								property: "project",
+								condition: "is",
+								value: projectNameForFilter,
+							};
+						});
+
+						// Append a dedicated group for project filters with OR condition (any match)
 						nextState.filterGroups.push({
 							id: `fluent-proj-group-${timestamp}`,
-							groupCondition: "all",
-							filters: [
-								{
-									id: `fluent-proj-filter-${timestamp}`,
-									property: "project",
-									condition: "is",
-									value: projectNameForFilter,
-								},
-							],
+							groupCondition: "any", // Use "any" for OR semantics
+							filters: projectFilters,
 						});
+
+						console.log(`[TG-V2] Created filter group with ${projectFilters.length} project filters (OR condition)`);
+						console.log(`[TG-V2] Filter values: ${projectFilters.map(f => f.value).join(", ")}`);
 					}
 
 					this.liveFilterState = nextState as any;
@@ -787,7 +853,7 @@ export class FluentTaskView extends ItemView {
 	}
 
 	/**
-	 * Update view with current state
+	 * Update view with current state (debounced to prevent rapid successive updates)
 	 */
 	private updateView() {
 		if (this.isInitializing) {
@@ -795,8 +861,24 @@ export class FluentTaskView extends ItemView {
 			return;
 		}
 
+		// Clear any pending update
+		if (this.updateTimeout) {
+			clearTimeout(this.updateTimeout);
+		}
+
+		// Debounce updates by 10ms to batch rapid successive calls
+		this.updateTimeout = setTimeout(() => {
+			this.updateTimeout = null;
+			this.performUpdate();
+		}, 10);
+	}
+
+	/**
+	 * Perform the actual view update
+	 */
+	private performUpdate() {
 		console.log(
-			`[TG-V2] updateView: viewId=${this.currentViewId}, tasks=${this.tasks.length}, filtered=${this.filteredTasks.length}`
+			`[TG-V2] performUpdate: viewId=${this.currentViewId}, tasks=${this.tasks.length}, filtered=${this.filteredTasks.length}`
 		);
 
 		// Update task count
@@ -864,15 +946,33 @@ export class FluentTaskView extends ItemView {
 			return;
 		}
 
-		// Apply the saved filter state
-		this.liveFilterState = config.filterState;
-		this.currentFilterState = config.filterState;
+		// MERGE the saved filter with existing filters instead of replacing
+		const currentState = this.currentFilterState || {
+			rootCondition: "all",
+			filterGroups: [],
+		};
+
+		// Combine existing filter groups with saved filter groups
+		// Use "all" (AND) at root level so tasks must match both existing filters (projects, etc.) AND saved filters
+		const mergedState = {
+			rootCondition: "all" as const, // AND all groups together
+			filterGroups: [
+				...(currentState.filterGroups || []),
+				...(config.filterState.filterGroups || []),
+			],
+		};
+
+		console.log(`[TG-V2] Merged filter state: ${currentState.filterGroups?.length || 0} existing groups + ${config.filterState.filterGroups?.length || 0} saved groups = ${mergedState.filterGroups.length} total groups`);
+
+		// Apply the merged filter state
+		this.liveFilterState = mergedState;
+		this.currentFilterState = mergedState;
 
 		// Save to localStorage
-		this.app.saveLocalStorage(
-			"task-genius-view-filter",
-			config.filterState
-		);
+		this.app.saveLocalStorage("task-genius-view-filter", mergedState);
+
+		// Broadcast filter change so UI components can update
+		this.app.workspace.trigger("task-genius:filter-changed", mergedState);
 
 		// Refresh data
 		this.dataManager.loadTasks();

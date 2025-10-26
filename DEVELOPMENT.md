@@ -24,17 +24,53 @@
 ### Initial Setup
 
 ```bash
-# Clone the repository into your Obsidian vault's plugin folder
-cd {YOUR_OBSIDIAN_VAULT_PATH}/.obsidian/plugins
-git clone https://github.com/Quorafind/Obsidian-Task-Genius.git
-cd Obsidian-Task-Genius
+# Clone the repository
+git clone https://github.com/chrisweis/Obsidian-Task-Genius-CJW.git
+cd Obsidian-Task-Genius-CJW
 
 # Install dependencies
-pnpm install
+npm install
 
-# Start development with hot reload
-pnpm run dev
+# Set up auto-deployment (optional but recommended)
+cp .env.local.example .env.local
+# Edit .env.local and set your OBSIDIAN_PLUGIN_PATH
+
+# Start development with hot reload and auto-deployment
+npm run dev
 ```
+
+### Auto-Deployment Setup (Recommended)
+
+For the best development experience, set up automatic deployment to your Obsidian vault:
+
+1. **Create `.env.local` file** (already in .gitignore):
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+2. **Configure your plugin path** in `.env.local`:
+   ```env
+   # Windows
+   OBSIDIAN_PLUGIN_PATH=C:\Users\YourUsername\YourVault\.obsidian\plugins\obsidian-task-genius-cjw
+
+   # macOS/Linux
+   # OBSIDIAN_PLUGIN_PATH=/Users/YourUsername/YourVault/.obsidian/plugins/obsidian-task-genius-cjw
+   ```
+
+3. **Start development mode**:
+   ```bash
+   npm run dev
+   ```
+
+**What happens:**
+- ✅ Watches for file changes
+- ✅ Rebuilds automatically on save
+- ✅ Deploys `main.js`, `styles.css`, and `manifest.json` to your Obsidian plugin folder
+- ✅ Includes sourcemaps for debugging
+
+**Reload plugin in Obsidian:**
+- Press `Ctrl/Cmd + R` to reload Obsidian (without saving)
+- Or install [Hot Reload](https://github.com/pjeby/hot-reload) plugin for automatic reloading
 
 ### Quick Start Checklist
 

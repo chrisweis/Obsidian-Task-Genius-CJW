@@ -165,19 +165,58 @@ export class FluentActionHandlers extends Component {
 				originalTask,
 				updatedTask
 			);
+			console.log("[FluentAction] Extracted changes:", JSON.stringify(updates, null, 2));
+
+			// Check if there are any actual changes
+			const hasChanges = Object.keys(updates).length > 0 &&
+				(!updates.metadata || Object.keys(updates.metadata).length > 0);
+
+			if (!hasChanges) {
+				console.warn("[FluentAction] No changes detected, skipping update");
+				return;
+			}
+
 			const writeResult = await this.plugin.writeAPI.updateTask({
 				taskId: originalTask.id,
 				updates: updates,
 			});
 
+			console.log("[FluentAction] WriteAPI result:", writeResult);
+
 			if (!writeResult.success) {
 				throw new Error(writeResult.error || "Failed to update task");
 			}
 
-			const updated = writeResult.task || updatedTask;
+			// Give the dataflow more time to reindex the updated task
+			await new Promise(resolve => setTimeout(resolve, 300));
 
-			// Notify about task update
-			this.onTaskUpdated?.(originalTask.id, updated);
+			// Reload the task from dataflow to get the complete, freshly-indexed data
+			let reloadedTask = writeResult.task || updatedTask;
+			if (this.plugin.dataflowOrchestrator) {
+				const queryAPI = this.plugin.dataflowOrchestrator.getQueryAPI();
+				// Force a cache refresh by getting all tasks
+				const allTasks = await queryAPI.getAllTasks();
+				const freshTask = allTasks.find(t => t.id === originalTask.id);
+				if (freshTask) {
+					console.log("[FluentAction] Reloaded fresh task from dataflow:", freshTask);
+					reloadedTask = freshTask;
+				} else {
+					console.warn("[FluentAction] Could not find updated task in dataflow after 300ms, using WriteAPI result");
+					// If still not found, use the WriteAPI result but ensure metadata is properly set
+					if (writeResult.task) {
+						reloadedTask = writeResult.task;
+					} else {
+						// Last resort: use the updated task we constructed
+						console.warn("[FluentAction] Using constructed updatedTask as last resort");
+						reloadedTask = updatedTask;
+					}
+				}
+			}
+
+			console.log("[FluentAction] Final reloaded task being sent to callback:", reloadedTask);
+
+			// Notify about task update with fresh data
+			this.onTaskUpdated?.(originalTask.id, reloadedTask);
 
 			new Notice(t("Task updated"));
 		} catch (error) {
@@ -243,6 +282,9 @@ export class FluentActionHandlers extends Component {
 				// Create menu items from unique statuses
 				for (const [status, mark] of uniqueStatuses) {
 					submenu.addItem((item) => {
+						// Show checkmark if this is the current status
+						item.setIcon(task.status === mark ? "check" : "");
+
 						item.titleEl.createEl(
 							"span",
 							{
@@ -257,11 +299,15 @@ export class FluentActionHandlers extends Component {
 							text: status,
 						});
 						item.onClick(async () => {
+							console.log("[FluentAction] Switch status clicked, changing to:", mark);
 							const willComplete = this.isCompletedMark(mark);
 							const updatedTask = {
 								...task,
 								status: mark,
 								completed: willComplete,
+								metadata: {
+									...task.metadata,
+								},
 							};
 
 							if (!task.completed && willComplete) {
@@ -270,6 +316,7 @@ export class FluentActionHandlers extends Component {
 								updatedTask.metadata.completedDate = undefined;
 							}
 
+							console.log("[FluentAction] Updated task for status change:", updatedTask);
 							await this.handleTaskUpdate(task, updatedTask);
 						});
 					});
@@ -302,6 +349,7 @@ export class FluentActionHandlers extends Component {
 					item.setTitle(t("No Project"));
 					item.setIcon(task.metadata?.project ? "" : "check");
 					item.onClick(async () => {
+						console.log("[FluentAction] Removing project from task:", task.id, "Current project:", task.metadata?.project);
 						const updatedTask = {
 							...task,
 							metadata: {
@@ -309,6 +357,7 @@ export class FluentActionHandlers extends Component {
 								project: undefined,
 							},
 						};
+						console.log("[FluentAction] Updated task metadata:", updatedTask.metadata);
 						await this.handleTaskUpdate(task, updatedTask);
 					});
 				});
@@ -592,6 +641,7 @@ export class FluentActionHandlers extends Component {
 					hasMetadataChanges = true;
 				}
 			} else if (originalValue !== updatedValue) {
+				console.log(`[FluentAction] Field '${field}' changed: ${originalValue} -> ${updatedValue}`);
 				(metadataChanges as any)[field] = updatedValue;
 				hasMetadataChanges = true;
 			}
@@ -600,6 +650,8 @@ export class FluentActionHandlers extends Component {
 		if (hasMetadataChanges) {
 			changes.metadata = metadataChanges as any;
 		}
+
+		console.log("[FluentAction] extractChangedFields result:", { hasMetadataChanges, metadataChanges });
 
 		return changes;
 	}

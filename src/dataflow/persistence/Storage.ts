@@ -68,9 +68,10 @@ export class Storage {
 		this.currentVersion = version || "1.0.0"; // Use stable version instead of "unknown"
 		this.cache = new LocalStorageCache(appId, this.currentVersion);
 		console.log(
-			`[Storage] Initialized with appId: ${appId}, version: ${this.currentVersion}`
+			`[Storage] Initialized with appId: ${appId}, version: ${this.currentVersion}, schema: ${this.schemaVersion}`
 		);
 	}
+
 
 	/**
 	 * Generate content hash for cache validation

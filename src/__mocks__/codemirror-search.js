@@ -1,0 +1,8 @@
+// Mock for @codemirror/search
+export const search = {
+    findNext: () => null,
+    findPrevious: () => null,
+    openSearchPanel: () => null,
+    closeSearchPanel: () => null
+};
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY29kZW1pcnJvci1zZWFyY2guanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJjb2RlbWlycm9yLXNlYXJjaC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSw4QkFBOEI7QUFFOUIsTUFBTSxDQUFDLE1BQU0sTUFBTSxHQUFHO0lBQ3BCLFFBQVEsRUFBRSxHQUFHLEVBQUUsQ0FBQyxJQUFJO0lBQ3BCLFlBQVksRUFBRSxHQUFHLEVBQUUsQ0FBQyxJQUFJO0lBQ3hCLGVBQWUsRUFBRSxHQUFHLEVBQUUsQ0FBQyxJQUFJO0lBQzNCLGdCQUFnQixFQUFFLEdBQUcsRUFBRSxDQUFDLElBQUk7Q0FDN0IsQ0FBQyIsInNvdXJjZXNDb250ZW50IjpbIi8vIE1vY2sgZm9yIEBjb2RlbWlycm9yL3NlYXJjaFxyXG5cclxuZXhwb3J0IGNvbnN0IHNlYXJjaCA9IHtcclxuICBmaW5kTmV4dDogKCkgPT4gbnVsbCxcclxuICBmaW5kUHJldmlvdXM6ICgpID0+IG51bGwsXHJcbiAgb3BlblNlYXJjaFBhbmVsOiAoKSA9PiBudWxsLFxyXG4gIGNsb3NlU2VhcmNoUGFuZWw6ICgpID0+IG51bGxcclxufTsiXX0=

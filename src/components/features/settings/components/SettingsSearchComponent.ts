@@ -3,7 +3,6 @@ import { SettingsIndexer } from "@/components/features/settings/core/SettingsInd
 import { SearchResult } from "@/types/SettingsSearch";
 import { t } from "@/translations/helper";
 import { TaskProgressBarSettingTab } from "@/setting";
-import { WorkspaceSettingsSelector } from "./WorkspaceSettingsSelector";
 
 /**
  * 设置搜索组件
@@ -22,7 +21,6 @@ export class SettingsSearchComponent extends Component {
 	private debouncedSearch: (query: string) => void;
 	private isVisible = false;
 	private blurTimeoutId = 0;
-	private workspaceSelector: WorkspaceSettingsSelector | null = null;
 
 	constructor(
 		settingTab: TaskProgressBarSettingTab,
@@ -52,25 +50,8 @@ export class SettingsSearchComponent extends Component {
 		const mainContainer = this.containerEl.createDiv();
 		mainContainer.addClass("tg-settings-main-container");
 
-		// 创建头部栏（包含workspace选择器和搜索框）
-		const headerBar = mainContainer.createDiv();
-		headerBar.addClass("tg-settings-header-bar");
-
-		// 创建workspace选择器容器
-		const workspaceSelectorContainer = headerBar.createDiv();
-		workspaceSelectorContainer.addClass("tg-workspace-selector-container");
-
-		// 初始化workspace选择器
-		if (this.settingTab.plugin.workspaceManager) {
-			this.workspaceSelector = new WorkspaceSettingsSelector(
-				workspaceSelectorContainer,
-				this.settingTab.plugin,
-				this.settingTab
-			);
-		}
-
 		// 创建搜索容器
-		const searchContainer = headerBar.createDiv();
+		const searchContainer = mainContainer.createDiv();
 		searchContainer.addClass("tg-settings-search-container");
 
 		// 创建搜索输入框容器

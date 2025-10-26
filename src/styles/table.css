@@ -53,11 +53,11 @@
 }
 
 .task-table-header-row {
-	height: 40px;
+	height: 32px;
 }
 
 .task-table-header-cell {
-	padding: 8px 12px;
+	padding: 4px 10px;
 	text-align: left;
 	font-weight: 600;
 	color: var(--text-muted);
@@ -132,7 +132,7 @@
 }
 
 .task-table-row {
-	height: 40px;
+	height: 30px;
 	border-bottom: 1px solid var(--background-modifier-border);
 	transition: background-color 0.2s;
 }
@@ -158,7 +158,7 @@
 }
 
 .task-table-cell {
-	padding: 8px 12px;
+	padding: 4px 10px;
 	vertical-align: middle;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -485,15 +485,15 @@
 
 	.task-table-header-cell,
 	.task-table-cell {
-		padding: 6px 8px;
+		padding: 3px 6px;
 	}
 
 	.task-table-row {
-		height: 36px;
+		height: 28px;
 	}
 
 	.task-table-header-row {
-		height: 36px;
+		height: 28px;
 	}
 }
 

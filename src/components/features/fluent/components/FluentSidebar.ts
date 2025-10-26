@@ -1,13 +1,6 @@
 import { Component, setIcon, Menu, Notice, Modal, Platform, SearchComponent, DropdownComponent } from "obsidian";
-import { WorkspaceSelector } from "./WorkspaceSelector";
 import { ProjectList } from "@/components/features/fluent/components/ProjectList";
 import { FluentTaskNavigationItem } from "@/types/fluent-types";
-import { WorkspaceData } from "@/types/workspace";
-import {
-	onWorkspaceSwitched,
-	onWorkspaceDeleted,
-	onWorkspaceCreated,
-} from "@/components/features/fluent/events/ui-event";
 import TaskProgressBarPlugin from "@/index";
 import { t } from "@/translations/helper";
 import { ViewConfigModal } from "@/components/features/task/view/modals/ViewConfigModal";
@@ -21,15 +14,15 @@ import {
 export class FluentSidebar extends Component {
 	private containerEl: HTMLElement;
 	private plugin: TaskProgressBarPlugin;
-	private workspaceSelector: WorkspaceSelector;
 	public projectList: ProjectList;
 	private collapsed = false;
-	private currentWorkspaceId: string;
 	private isTreeView = false;
 	private otherViewsSection: HTMLElement | null = null;
 	private railEl: HTMLElement | null = null;
 	private filterDropdownContainer: HTMLElement | null = null;
 	private filterDropdown: import("obsidian").DropdownComponent | null = null;
+	private searchComponent: SearchComponent | null = null;
+	private clearFiltersBtn: HTMLElement | null = null;
 
 	// Resizable sections
 	private projectsSection: HTMLElement | null = null;
@@ -83,8 +76,6 @@ export class FluentSidebar extends Component {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
 		this.collapsed = collapsed;
-		this.currentWorkspaceId =
-			plugin.workspaceManager?.getActiveWorkspace().id || "";
 
 		// Load saved section height
 		this.loadSectionHeight();
@@ -122,19 +113,10 @@ export class FluentSidebar extends Component {
 			return;
 		}
 
-		// Header with workspace selector and new task button
+		// Header with new task button
 		const header = this.containerEl.createDiv({
 			cls: "fluent-sidebar-header",
 		});
-
-		const workspaceSelectorEl = header.createDiv();
-		if (this.plugin.workspaceManager) {
-			this.workspaceSelector = new WorkspaceSelector(
-				workspaceSelectorEl,
-				this.plugin,
-				(workspaceId: string) => this.handleWorkspaceChange(workspaceId)
-			);
-		}
 
 		// New Task Button
 		const newTaskBtn = header.createEl("button", {
@@ -172,13 +154,30 @@ export class FluentSidebar extends Component {
 				cls: "fluent-sidebar-search-container",
 			});
 
-			new SearchComponent(searchContainer)
+			this.searchComponent = new SearchComponent(searchContainer)
 				.setPlaceholder(t("Search tasks, projects"))
 				.onChange((value) => {
 					if (this.onSearch) {
 						this.onSearch(value);
 					}
+					// Update clear button state when search changes
+					this.updateClearButtonState();
 				});
+
+			// Clear filters button
+			this.clearFiltersBtn = searchContainer.createDiv({
+				cls: "fluent-clear-filters-btn",
+				attr: {"aria-label": t("Clear all filters")},
+			});
+			setIcon(this.clearFiltersBtn, "x-circle");
+			this.clearFiltersBtn.addEventListener("click", () => {
+				if (!this.clearFiltersBtn?.hasClass("is-disabled")) {
+					this.clearAllFilters();
+				}
+			});
+
+			// Set initial state
+			this.updateClearButtonState();
 		}
 
 		// Projects section (third - resizable)
@@ -275,17 +274,16 @@ export class FluentSidebar extends Component {
 		this.projectList = new ProjectList(
 			projectListEl,
 			this.plugin,
-			this.onProjectSelect,
-			this.isTreeView
+			(projectId: string) => {
+				this.onProjectSelect(projectId);
+				// Update clear button state when project selection changes
+				this.updateClearButtonState();
+			},
+			this.isTreeView,
+			hideCompletedBtn
 		);
 		// Add ProjectList as a child component
 		this.addChild(this.projectList);
-
-		// Set initial state of hide completed button
-		const isHidden = (this.projectList as any).getHideCompletedProjects?.() || false;
-		if (isHidden) {
-			hideCompletedBtn.addClass("is-active");
-		}
 
 		// Resize handle
 		const resizeHandle = content.createDiv({
@@ -293,53 +291,23 @@ export class FluentSidebar extends Component {
 		});
 		this.setupResizeHandle(resizeHandle);
 
-		// VIEWS AT BOTTOM (in a resizable container)
+		// VIEWS AT BOTTOM (in a resizable container with scrollbar)
 		this.otherViewsSection = content.createDiv({
 			cls: "fluent-sidebar-section fluent-sidebar-section-resizable fluent-sidebar-views-section",
 		});
 		// Calculate and apply views section height
 		this.otherViewsSection.style.height = `${100 - this.projectsSectionHeight}%`;
 
-		// Primary navigation (Inbox, Today, Upcoming, Flagged)
-		const primarySection = this.otherViewsSection.createDiv({
-			cls: "fluent-sidebar-section",
-		});
-		this.renderNavigationItems(primarySection, this.primaryItems);
+		// Get all views (combining primary and other)
+		const allViews = this.computeAllViews();
 
-		// Other views (Calendar, Gantt, Review, Tags, etc.)
-		const allOtherItems = this.computeOtherItems();
-		const visibleCount =
-			this.plugin?.settings?.fluentView?.fluentConfig
-				?.maxOtherViewsBeforeOverflow ?? 5;
-		const displayedOther: FluentTaskNavigationItem[] = allOtherItems.slice(
-			0,
-			visibleCount
-		);
-		const remainingOther: FluentTaskNavigationItem[] =
-			allOtherItems.slice(visibleCount);
-
-		// Create other views section with header
-		const otherViewsSubSection = this.otherViewsSection.createDiv({
-			cls: "fluent-sidebar-section",
+		// Create scrollable views container (no header, no divider, no overflow button)
+		const viewsContainer = this.otherViewsSection.createDiv({
+			cls: "fluent-sidebar-views-container",
 		});
 
-		const otherHeader = otherViewsSubSection.createDiv({
-			cls: "fluent-section-header",
-		});
-		otherHeader.createSpan({text: t("Other Views")});
-
-		if (remainingOther.length > 0) {
-			const moreBtn = otherHeader.createDiv({
-				cls: "fluent-section-action",
-				attr: {"aria-label": t("More views")},
-			});
-			setIcon(moreBtn, "more-horizontal");
-			moreBtn.addEventListener("click", (e) =>
-				this.showOtherViewsMenu(e as MouseEvent, remainingOther)
-			);
-		}
-
-		this.renderNavigationItems(otherViewsSubSection, displayedOther);
+		// Render all views (scrollbar will handle overflow)
+		this.renderNavigationItems(viewsContainer, allViews);
 	}
 
 	private setupResizeHandle(resizeHandle: HTMLElement) {
@@ -410,18 +378,11 @@ export class FluentSidebar extends Component {
 		// Clear existing content
 		this.railEl.empty();
 
-		// Workspace menu button
-		const wsBtn = this.railEl.createDiv({
-			cls: "fluent-rail-btn",
-			attr: {"aria-label": t("Workspace")},
-		});
-		setIcon(wsBtn, "layers");
-		wsBtn.addEventListener("click", (e) =>
-			this.showWorkspaceMenuWithManager(e as MouseEvent)
-		);
+		// All view icons (combined, no regions)
+		const allViews = this.computeAllViews();
 
-		// Primary view icons
-		this.primaryItems.forEach((item) => {
+		// Render all views (rail mode will scroll if needed)
+		allViews.forEach((item: FluentTaskNavigationItem) => {
 			const btn = this.railEl!.createDiv({
 				cls: "fluent-rail-btn",
 				attr: {"aria-label": item.label, "data-view-id": item.id},
@@ -436,45 +397,6 @@ export class FluentSidebar extends Component {
 				this.showViewContextMenu(e as MouseEvent, item.id);
 			});
 		});
-
-		// Other view icons with overflow menu when > 5
-		const allOtherItems = this.computeOtherItems();
-		const visibleCount =
-			this.plugin?.settings?.fluentView?.fluentConfig
-				?.maxOtherViewsBeforeOverflow ?? 5;
-		const displayedOther: FluentTaskNavigationItem[] = allOtherItems.slice(
-			0,
-			visibleCount
-		);
-		const remainingOther: FluentTaskNavigationItem[] =
-			allOtherItems.slice(visibleCount);
-
-		displayedOther.forEach((item: FluentTaskNavigationItem) => {
-			const btn = this.railEl!.createDiv({
-				cls: "fluent-rail-btn",
-				attr: {"aria-label": item.label, "data-view-id": item.id},
-			});
-			setIcon(btn, item.icon);
-			btn.addEventListener("click", () => {
-				this.setActiveItem(item.id);
-				this.onNavigate(item.id);
-			});
-			// Add context menu handler for rail button
-			btn.addEventListener("contextmenu", (e) => {
-				this.showViewContextMenu(e as MouseEvent, item.id);
-			});
-		});
-
-		if (remainingOther.length > 0) {
-			const moreBtn = this.railEl!.createDiv({
-				cls: "fluent-rail-btn",
-				attr: {"aria-label": t("More views")},
-			});
-			setIcon(moreBtn, "more-horizontal");
-			moreBtn.addEventListener("click", (e) =>
-				this.showOtherViewsMenu(e as MouseEvent, remainingOther)
-			);
-		}
 
 		// Projects menu button
 		const projBtn = this.railEl!.createDiv({
@@ -503,54 +425,72 @@ export class FluentSidebar extends Component {
 		// Clear existing content
 		this.otherViewsSection.empty();
 
-		// Create header
-		const otherHeader = this.otherViewsSection.createDiv({
-			cls: "fluent-section-header",
+		// Get all views (combined, no regions)
+		const allViews = this.computeAllViews();
+
+		// Create scrollable views container (no header, no overflow button)
+		const viewsContainer = this.otherViewsSection.createDiv({
+			cls: "fluent-sidebar-views-container",
 		});
 
-		const allOtherItems = this.computeOtherItems();
-		const visibleCount =
-			this.plugin?.settings?.fluentView?.fluentConfig
-				?.maxOtherViewsBeforeOverflow ?? 5;
-		const displayedOther: FluentTaskNavigationItem[] = allOtherItems.slice(
-			0,
-			visibleCount
-		);
-		const remainingOther: FluentTaskNavigationItem[] =
-			allOtherItems.slice(visibleCount);
-
-		otherHeader.createSpan({text: t("Other Views")});
-
-		if (remainingOther.length > 0) {
-			const moreBtn = otherHeader.createDiv({
-				cls: "fluent-section-action",
-				attr: {"aria-label": t("More views")},
-			});
-			setIcon(moreBtn, "more-horizontal");
-			moreBtn.addEventListener("click", (e) =>
-				this.showOtherViewsMenu(e as MouseEvent, remainingOther)
-			);
-		}
-
-		this.renderNavigationItems(this.otherViewsSection, displayedOther);
+		// Render all views (scrollbar will handle overflow)
+		this.renderNavigationItems(viewsContainer, allViews);
 	}
 
-	private computeOtherItems(): FluentTaskNavigationItem[] {
+	/**
+	 * Compute primary (top region) views from viewConfiguration
+	 */
+	private computePrimaryItems(): FluentTaskNavigationItem[] {
 		try {
 			const cfg = this.plugin?.settings?.viewConfiguration;
-			if (!Array.isArray(cfg)) return this.otherItems;
+			if (!Array.isArray(cfg)) return this.primaryItems;
 
-			const primaryIds = new Set(this.primaryItems.map((i) => i.id));
-			// Exclude views that are represented elsewhere in the sidebar (e.g., Projects list)
+			// Exclude views that are represented elsewhere in the sidebar
 			const excludeIds = new Set<string>(["projects"]);
 			const seen = new Set<string>();
 			const items: FluentTaskNavigationItem[] = [];
 
 			for (const v of cfg) {
-				if (!v || v.visible === false) continue;
+				// Only include visible views from the top region
+				if (!v || v.visible === false || v.region !== "top") continue;
 				const id = String(v.id);
-				if (primaryIds.has(id) || excludeIds.has(id)) continue;
-				if (seen.has(id)) continue;
+				if (excludeIds.has(id) || seen.has(id)) continue;
+				items.push({
+					id,
+					label: v.name || id,
+					icon: v.icon || "list-plus",
+					type: "primary",
+				});
+				seen.add(id);
+			}
+
+			// Fallback to default primary items if no top region views
+			return items.length > 0 ? items : this.primaryItems;
+		} catch (e) {
+			return this.primaryItems;
+		}
+	}
+
+	/**
+	 * Compute other (bottom region) views from viewConfiguration
+	 */
+	private computeOtherItems(): FluentTaskNavigationItem[] {
+		try {
+			const cfg = this.plugin?.settings?.viewConfiguration;
+			if (!Array.isArray(cfg)) return this.otherItems;
+
+			// Exclude views that are represented elsewhere in the sidebar
+			const excludeIds = new Set<string>(["projects"]);
+			const seen = new Set<string>();
+			const items: FluentTaskNavigationItem[] = [];
+
+			for (const v of cfg) {
+				// Only include visible views from the bottom region (or no region specified for backwards compat)
+				if (!v || v.visible === false) continue;
+				const region = v.region || "bottom"; // Default to bottom for backwards compatibility
+				if (region !== "bottom") continue;
+				const id = String(v.id);
+				if (excludeIds.has(id) || seen.has(id)) continue;
 				items.push({
 					id,
 					label: v.name || id,
@@ -560,9 +500,47 @@ export class FluentSidebar extends Component {
 				seen.add(id);
 			}
 
-			return items.length ? items : this.otherItems;
+			// Fallback to default other items if no bottom region views
+			return items.length > 0 ? items : this.otherItems;
 		} catch (e) {
 			return this.otherItems;
+		}
+	}
+
+	/**
+	 * Compute all views (combining primary and other, ignoring regions)
+	 */
+	private computeAllViews(): FluentTaskNavigationItem[] {
+		try {
+			const cfg = this.plugin?.settings?.viewConfiguration;
+			if (!Array.isArray(cfg)) {
+				// Return combined default items
+				return [...this.primaryItems, ...this.otherItems];
+			}
+
+			// Exclude views that are represented elsewhere in the sidebar
+			const excludeIds = new Set<string>(["projects"]);
+			const seen = new Set<string>();
+			const items: FluentTaskNavigationItem[] = [];
+
+			for (const v of cfg) {
+				// Include all visible views (ignore region)
+				if (!v || v.visible === false) continue;
+				const id = String(v.id);
+				if (excludeIds.has(id) || seen.has(id)) continue;
+				items.push({
+					id,
+					label: v.name || id,
+					icon: v.icon || "list-plus",
+					type: "primary",
+				});
+				seen.add(id);
+			}
+
+			// Fallback to combined default items if no views found
+			return items.length > 0 ? items : [...this.primaryItems, ...this.otherItems];
+		} catch (e) {
+			return [...this.primaryItems, ...this.otherItems];
 		}
 	}
 
@@ -582,6 +560,8 @@ export class FluentSidebar extends Component {
 					// null for "All Tasks", otherwise the config ID
 					this.onFilterSelect(value || null);
 				}
+				// Update clear button state when filter changes
+				this.updateClearButtonState();
 			});
 
 		// Add saved filter options
@@ -600,6 +580,77 @@ export class FluentSidebar extends Component {
 		}
 	}
 
+	/**
+	 * Clear all filters - resets filter to "All tasks" and project to "All Projects"
+	 */
+	public clearAllFilters() {
+		// Reset filter dropdown to "All tasks"
+		this.resetFilterDropdown();
+
+		// Clear the filter by calling onFilterSelect with null
+		if (this.onFilterSelect) {
+			this.onFilterSelect(null);
+		}
+
+		// Clear search query
+		if (this.searchComponent) {
+			this.searchComponent.setValue("");
+		}
+		if (this.onSearch) {
+			this.onSearch("");
+		}
+
+		// Clear project selection (set to "All Projects")
+		if (this.projectList) {
+			(this.projectList as any).setActiveProject?.(null);
+		}
+
+		// Update button state after clearing
+		this.updateClearButtonState();
+	}
+
+	/**
+	 * Check if any filters are currently active
+	 */
+	private hasActiveFilters(): boolean {
+		// Check search query
+		const searchValue = this.searchComponent?.getValue() || "";
+		if (searchValue.trim() !== "") {
+			return true;
+		}
+
+		// Check filter dropdown (empty string means "All Tasks")
+		const filterValue = this.filterDropdown?.getValue() || "";
+		if (filterValue !== "") {
+			return true;
+		}
+
+		// Check if any projects are selected
+		const activeProjects = (this.projectList as any)?.activeProjectIds;
+		if (activeProjects && activeProjects instanceof Set && activeProjects.size > 0) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Update the clear filters button disabled state
+	 */
+	public updateClearButtonState() {
+		if (!this.clearFiltersBtn) return;
+
+		const hasFilters = this.hasActiveFilters();
+
+		if (hasFilters) {
+			this.clearFiltersBtn.removeClass("is-disabled");
+			this.clearFiltersBtn.setAttribute("aria-disabled", "false");
+		} else {
+			this.clearFiltersBtn.addClass("is-disabled");
+			this.clearFiltersBtn.setAttribute("aria-disabled", "true");
+		}
+	}
+
 	onload() {
 		// On mobile, ensure we render the full sidebar content
 		// even though it starts "collapsed" (hidden off-screen)
@@ -613,28 +664,6 @@ export class FluentSidebar extends Component {
 			this.containerEl.addClass("is-collapsed");
 		} else {
 			this.render();
-		}
-
-		// Subscribe to workspace events
-		if (this.plugin.workspaceManager) {
-			this.registerEvent(
-				onWorkspaceSwitched(this.plugin.app, (payload) => {
-					this.currentWorkspaceId = payload.workspaceId;
-					this.render();
-				})
-			);
-
-			this.registerEvent(
-				onWorkspaceDeleted(this.plugin.app, () => {
-					this.render();
-				})
-			);
-
-			this.registerEvent(
-				onWorkspaceCreated(this.plugin.app, () => {
-					this.render();
-				})
-			);
 		}
 	}
 
@@ -653,116 +682,6 @@ export class FluentSidebar extends Component {
 			// Just toggle the class for mobile
 			this.containerEl.toggleClass("is-collapsed", collapsed);
 		}
-	}
-
-	private async handleWorkspaceChange(workspaceId: string) {
-		if (this.plugin.workspaceManager) {
-			await this.plugin.workspaceManager.setActiveWorkspace(workspaceId);
-			this.currentWorkspaceId = workspaceId;
-		}
-	}
-
-	private showWorkspaceMenuWithManager(event: MouseEvent) {
-		if (!this.plugin.workspaceManager) return;
-
-		const menu = new Menu();
-		const workspaces = this.plugin.workspaceManager.getAllWorkspaces();
-		const currentWorkspace =
-			this.plugin.workspaceManager.getActiveWorkspace();
-
-		workspaces.forEach((w) => {
-			menu.addItem((item) => {
-				const isDefault =
-					this.plugin.workspaceManager?.isDefaultWorkspace(w.id);
-				const title = isDefault ? `${w.name} 🔒` : w.name;
-
-				item.setTitle(title)
-					.setIcon("layers")
-					.onClick(async () => {
-						await this.handleWorkspaceChange(w.id);
-					});
-				if (w.id === currentWorkspace.id) item.setChecked(true);
-			});
-		});
-
-		menu.addSeparator();
-		menu.addItem((item) => {
-			item.setTitle(t("Create Workspace"))
-				.setIcon("plus")
-				.onClick(() => this.showCreateWorkspaceDialog());
-		});
-
-		menu.showAtMouseEvent(event);
-	}
-
-	private showCreateWorkspaceDialog() {
-		class CreateWorkspaceModal extends Modal {
-			private nameInput: HTMLInputElement;
-
-			constructor(
-				private plugin: TaskProgressBarPlugin,
-				private onCreated: () => void
-			) {
-				super(plugin.app);
-			}
-
-			onOpen() {
-				const {contentEl} = this;
-				contentEl.createEl("h2", {text: t("Create New Workspace")});
-
-				const inputContainer = contentEl.createDiv();
-				inputContainer.createEl("label", {
-					text: t("Workspace Name:"),
-				});
-				this.nameInput = inputContainer.createEl("input", {
-					type: "text",
-					placeholder: t("Enter workspace name..."),
-				});
-
-				const buttonContainer = contentEl.createDiv({
-					cls: "modal-button-container",
-				});
-				const createButton = buttonContainer.createEl("button", {
-					text: t("Create"),
-				});
-				const cancelButton = buttonContainer.createEl("button", {
-					text: t("Cancel"),
-				});
-
-				createButton.addEventListener("click", async () => {
-					const name = this.nameInput.value.trim();
-					if (name && this.plugin.workspaceManager) {
-						await this.plugin.workspaceManager.createWorkspace(
-							name
-						);
-						new Notice(
-							t('Workspace "{{name}}" created', {
-								interpolation: {
-									name: name,
-								},
-							})
-						);
-						this.onCreated();
-						this.close();
-					} else {
-						new Notice(t("Please enter a workspace name"));
-					}
-				});
-
-				cancelButton.addEventListener("click", () => {
-					this.close();
-				});
-
-				this.nameInput.focus();
-			}
-
-			onClose() {
-				const {contentEl} = this;
-				contentEl.empty();
-			}
-		}
-
-		new CreateWorkspaceModal(this.plugin, () => this.render()).open();
 	}
 
 	private showProjectMenu(event: MouseEvent) {
@@ -817,7 +736,8 @@ export class FluentSidebar extends Component {
 		const menu = new Menu();
 
 		// Check if this is a primary view
-		const isPrimaryView = this.primaryItems.some(
+		const primaryItems = this.computePrimaryItems();
+		const isPrimaryView = primaryItems.some(
 			(item) => item.id === viewId
 		);
 
@@ -1071,15 +991,5 @@ export class FluentSidebar extends Component {
 			`[data-view-id="${viewId}"]`
 		);
 		activeEls.forEach((el) => el.addClass("is-active"));
-	}
-
-	public updateWorkspace(workspaceOrId: string | WorkspaceData) {
-		const workspaceId =
-			typeof workspaceOrId === "string"
-				? workspaceOrId
-				: workspaceOrId.id;
-		this.currentWorkspaceId = workspaceId;
-		this.workspaceSelector?.setWorkspace(workspaceId);
-		this.projectList?.refresh();
 	}
 }
