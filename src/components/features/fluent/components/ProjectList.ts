@@ -1,4 +1,4 @@
-import { Component, Platform, setIcon, Menu, Modal, App, SearchComponent } from "obsidian";
+import { Component, Platform, setIcon, Menu, Modal, App, SearchComponent, TFile } from "obsidian";
 import TaskProgressBarPlugin from "@/index";
 import { Task } from "@/types/task";
 import {
@@ -1165,25 +1165,33 @@ export class ProjectList extends Component {
 		const menu = new Menu();
 
 		// Check if this is a custom project
-		const isCustomProject =
-			this.plugin.settings.projectConfig?.customProjects?.some(
+		const customProject =
+			this.plugin.settings.projectConfig?.customProjects?.find(
 				(cp) => cp.id === project.id || cp.name === project.name
 			);
+		const isCustomProject = !!customProject;
 
-		// Edit Project option
+		// Open Project option (only if markdown file is linked)
+		if (customProject?.markdownFile) {
+			menu.addItem((item) => {
+				item.setTitle(t("Open Project File"))
+					.setIcon("file-text")
+					.onClick(async () => {
+						await this.openProjectFile(customProject.markdownFile!);
+					});
+			});
+		}
+
+		// Edit Project option - now available for ALL projects
 		menu.addItem((item) => {
-			item.setTitle(t("Edit Project")).setIcon("edit");
-
-			if (isCustomProject) {
-				item.onClick(() => {
+			item.setTitle(t("Edit Project"))
+				.setIcon("edit")
+				.onClick(() => {
 					this.editProject(project);
 				});
-			} else {
-				item.setDisabled(true);
-			}
 		});
 
-		// Delete Project option
+		// Delete Project option - only for custom projects
 		menu.addItem((item) => {
 			item.setTitle(t("Delete Project")).setIcon("trash");
 
@@ -1199,6 +1207,15 @@ export class ProjectList extends Component {
 		menu.showAtMouseEvent(event);
 	}
 
+	private async openProjectFile(filePath: string) {
+		const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
+		if (file instanceof TFile) {
+			// Open file in a new leaf
+			const leaf = this.plugin.app.workspace.getLeaf('tab');
+			await leaf.openFile(file);
+		}
+	}
+
 	private editProject(project: Project) {
 		// Find the custom project data
 		let customProject =
@@ -1206,8 +1223,10 @@ export class ProjectList extends Component {
 				(cp) => cp.id === project.id || cp.name === project.name
 			);
 
+		const wasAutoDetected = !customProject;
+
 		if (!customProject) {
-			// Create a new custom project entry if it doesn't exist
+			// Create a new custom project entry for auto-detected project
 			customProject = {
 				id: project.id,
 				name: project.name,
@@ -1215,6 +1234,7 @@ export class ProjectList extends Component {
 				color: project.color,
 				createdAt: Date.now(),
 				updatedAt: Date.now(),
+				isAutoDetectedOverride: true, // Mark as converted from auto-detected
 			};
 		}
 

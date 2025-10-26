@@ -554,6 +554,12 @@ export interface CustomProject {
 	color: string;
 	createdAt: number;
 	updatedAt: number;
+	/** Path to linked markdown file for project notes/metadata */
+	markdownFile?: string;
+	/** Whether this project was auto-detected and converted to custom */
+	isAutoDetectedOverride?: boolean;
+	/** Description/notes about the project */
+	description?: string;
 }
 
 /** Enhanced project configuration */
