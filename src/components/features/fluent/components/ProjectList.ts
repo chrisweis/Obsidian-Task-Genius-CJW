@@ -785,6 +785,19 @@ export class ProjectList extends Component {
 			text: displayText,
 		});
 
+		// Add file icon if project has a linked markdown file
+		const customProject =
+			this.plugin.settings.projectConfig?.customProjects?.find(
+				(cp) => cp.id === project.id || cp.name === project.name
+			);
+		if (customProject?.markdownFile) {
+			const fileIcon = projectItem.createSpan({
+				cls: "fluent-project-file-icon",
+			});
+			setIcon(fileIcon, "file-text");
+			fileIcon.setAttribute("aria-label", "Linked to markdown file");
+		}
+
 		const projectCount = projectItem.createSpan({
 			cls: "fluent-project-count",
 			text: String(project.taskCount),
@@ -825,6 +838,19 @@ export class ProjectList extends Component {
 				(e: MouseEvent) => {
 					e.preventDefault();
 					this.showProjectContextMenu(e, project);
+				}
+			);
+		}
+
+		// Add double-click handler to open markdown file (if linked)
+		if (!project.isVirtual && customProject?.markdownFile) {
+			this.registerDomEvent(
+				projectItem,
+				"dblclick",
+				async (e: MouseEvent) => {
+					e.preventDefault();
+					e.stopPropagation();
+					await this.openProjectFile(customProject.markdownFile!);
 				}
 			);
 		}
@@ -1298,7 +1324,8 @@ export class ProjectList extends Component {
 		await this.plugin.saveSettings();
 
 		// Refresh the project list
-		this.loadProjects();
+		await this.loadProjects();
+		this.render();
 	}
 
 	private deleteProject(project: Project) {

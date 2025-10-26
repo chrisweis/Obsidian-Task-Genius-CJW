@@ -94,6 +94,13 @@ const TASK_GENIUS_BASES_VIEWS: TaskGeniusBasesViewType[] = [
 		icon: 'lucide-grid',
 		defaultViewMode: 'quadrant',
 		description: 'Organize tasks using the Eisenhower Matrix'
+	},
+	{
+		id: 'task-genius-project-manager',
+		name: 'Project Manager (Task Genius)',
+		icon: 'lucide-list-ordered',
+		defaultViewMode: 'project-manager',
+		description: 'Manage and prioritize projects with drag-and-drop'
 	}
 ];
 

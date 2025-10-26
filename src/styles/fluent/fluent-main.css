@@ -519,6 +519,25 @@ body.fluent-sidebar-resizing {
 	color: var(--text-muted);
 }
 
+.fluent-project-file-icon {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 6px;
+	color: var(--text-muted);
+	opacity: 0.6;
+	transition: opacity 0.2s ease;
+}
+
+.fluent-project-file-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.fluent-project-item:hover .fluent-project-file-icon {
+	opacity: 1;
+	color: var(--text-accent);
+}
+
 /* Tree View Styles */
 .fluent-project-list.is-tree-view .fluent-project-item {
 	transition: all 0.15s ease;

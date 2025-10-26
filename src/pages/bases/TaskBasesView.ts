@@ -25,6 +25,7 @@ import { GanttComponent } from '@/components/features/gantt/gantt';
 import { QuadrantComponent } from '@/components/features/quadrant/quadrant';
 import { TaskPropertyTwoColumnView } from '@/components/features/task/view/TaskPropertyTwoColumnView';
 import { ViewComponentManager } from '@/components/ui';
+import { ProjectManagerComponent } from '@/components/features/task/view/ProjectManagerView';
 import { Habit as HabitsComponent } from '@/components/features/habit/habit';
 import { createTaskCheckbox, TaskDetailsComponent } from '@/components/features/task/view/details';
 import { QuickCaptureModal } from '@/components/features/quick-capture/modals/QuickCaptureModal';
@@ -1008,6 +1009,17 @@ export class TaskBasesView extends BasesView {
 					);
 					this.addChild(habitsComp);
 					targetComponent = habitsComp;
+					break;
+
+				case 'project-manager':
+					const projectManagerComp = new ProjectManagerComponent(
+						this.app,
+						this.plugin,
+						this.rootContainerEl
+					);
+					this.addChild(projectManagerComp);
+					projectManagerComp.load();
+					targetComponent = projectManagerComp;
 					break;
 
 				default:

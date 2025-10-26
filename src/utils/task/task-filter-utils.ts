@@ -30,6 +30,9 @@ interface FilterOptions {
 
 	// 添加高级过滤器选项
 	advancedFilter?: RootFilterState;
+
+	// Whether to ignore global filters (project, search, etc.) and skip default view logic
+	ignoreGlobalFilters?: boolean;
 }
 
 /**
@@ -736,10 +739,16 @@ export function filterTasks(
 	// We only apply these if no specific rules were matched, OR if the view ID has hardcoded logic.
 	// A better approach might be to represent *all* default views with filterRules in DEFAULT_SETTINGS.
 	// For now, keep the switch for explicit default behaviours not covered by rules.
-	if (Object.keys(filterRules).length === 0) {
-		// Only apply default logic if no rules were defined for this view
+	console.log(`[filterTasks] Checking default view logic for viewId: ${viewId}, filterRules keys:`, Object.keys(filterRules).length);
+	console.log(`[filterTasks] ignoreGlobalFilters from options:`, options.ignoreGlobalFilters);
+
+	// Skip default view logic if ignoreGlobalFilters is enabled
+	if (Object.keys(filterRules).length === 0 && !options.ignoreGlobalFilters) {
+		// Only apply default logic if no rules were defined for this view AND not ignoring global filters
+		console.log(`[filterTasks] No filter rules found, applying default logic for viewId: ${viewId}`);
 		switch (viewId) {
 			case "inbox": {
+				console.log("[filterTasks] Applying inbox default: filtering tasks without projects");
 				filtered = filtered.filter((task) => !hasProject(task));
 				break;
 			}
