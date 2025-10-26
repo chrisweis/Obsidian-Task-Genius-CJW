@@ -61,6 +61,12 @@ export class FluentSidebar extends Component {
 			type: "other",
 		},
 		{id: "tags", label: t("Tags"), icon: "tag", type: "other"},
+		{
+			id: "project-manager",
+			label: t("Project Manager"),
+			icon: "list-ordered",
+			type: "other",
+		},
 	];
 
 	constructor(

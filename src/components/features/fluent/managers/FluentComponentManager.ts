@@ -12,6 +12,7 @@ import { KanbanComponent } from "@/components/features/kanban/kanban";
 import { GanttComponent } from "@/components/features/gantt/gantt";
 import { ViewComponentManager } from "@/components/ui/behavior/ViewComponentManager";
 import { TaskPropertyTwoColumnView } from "@/components/features/task/view/TaskPropertyTwoColumnView";
+import { ProjectManagerComponent } from "@/components/features/task/view/ProjectManagerView";
 import { getViewSettingOrDefault, TwoColumnSpecificConfig, } from "@/common/setting-definition";
 import { filterTasks } from "@/utils/task/task-filter-utils";
 import { RootFilterState } from "@/components/features/task/filter/ViewTaskFilter";
@@ -36,6 +37,7 @@ const VIEW_MODE_CONFIG: Record<string, ViewMode[]> = {
 	gantt: [],
 	calendar: [],
 	kanban: [],
+	"project-manager": [],
 };
 
 /**
@@ -59,6 +61,7 @@ export class FluentComponentManager extends Component {
 	private calendarComponent: CalendarComponent;
 	private kanbanComponent: KanbanComponent;
 	private ganttComponent: GanttComponent;
+	private projectManagerComponent: ProjectManagerComponent;
 	private viewComponentManager: ViewComponentManager;
 
 	// Two column view components
@@ -336,6 +339,15 @@ export class FluentComponentManager extends Component {
 		this.parentView.addChild(this.ganttComponent);
 		this.ganttComponent.load();
 
+		// Initialize ProjectManagerComponent
+		this.projectManagerComponent = new ProjectManagerComponent(
+			this.app,
+			this.plugin,
+			this.contentArea
+		);
+		this.parentView.addChild(this.projectManagerComponent);
+		this.projectManagerComponent.load();
+
 		// Create legacy containers for backward compatibility
 		this.listContainer = this.contentArea.createDiv({
 			cls: "task-list-container",
@@ -381,6 +393,7 @@ export class FluentComponentManager extends Component {
 			this.calendarComponent?.containerEl.hide();
 			this.kanbanComponent?.containerEl.hide();
 			this.ganttComponent?.containerEl.hide();
+			this.projectManagerComponent?.containerEl.hide();
 			this.viewComponentManager?.hideAllComponents();
 
 			// Hide two column views
@@ -532,6 +545,9 @@ export class FluentComponentManager extends Component {
 					case "gantt":
 						targetComponent = this.ganttComponent;
 						break;
+					case "project-manager":
+						targetComponent = this.projectManagerComponent;
+						break;
 					case "inbox":
 					case "today":
 					case "upcoming":
@@ -553,10 +569,22 @@ export class FluentComponentManager extends Component {
 		if (targetComponent) {
 			console.log(
 				`[FluentComponent] Activating component for view ${viewId}:`,
-				targetComponent.constructor.name
+				targetComponent.constructor.name,
+				`Container visible:`,
+				targetComponent.containerEl.style.display !== 'none'
 			);
 			targetComponent.containerEl.show();
 			this.currentVisibleComponent = targetComponent;
+
+			// Force a DOM update before continuing
+			targetComponent.containerEl.offsetHeight; // Force reflow
+
+			console.log(
+				`[FluentComponent] After show() - Container visible:`,
+				targetComponent.containerEl.style.display !== 'none',
+				`offsetParent:`,
+				!!targetComponent.containerEl.offsetParent
+			);
 
 			// Set view mode first for ContentComponent
 			if (typeof targetComponent.setViewMode === "function") {
@@ -566,8 +594,13 @@ export class FluentComponentManager extends Component {
 				targetComponent.setViewMode(modeForComponent as any, project);
 			}
 
-			// Set tasks on the component
-			if (typeof targetComponent.setTasks === "function") {
+			// Set tasks on the component (skip for project-manager which doesn't use tasks)
+			console.log(
+				`[FluentComponent] setTasks check - viewId: ${viewId}, ` +
+				`is not project-manager: ${viewId !== "project-manager"}, ` +
+				`has setTasks: ${typeof targetComponent.setTasks === "function"}`
+			);
+			if (viewId !== "project-manager" && typeof targetComponent.setTasks === "function") {
 				// Special handling for components that need only all tasks (single parameter)
 				if (viewId === "review" || viewId === "tags") {
 					console.log(
@@ -592,6 +625,14 @@ export class FluentComponentManager extends Component {
 					);
 					targetComponent.setTasks(filteredTasksLocal, tasks);
 				}
+			} else {
+				console.log(`[FluentComponent] Skipping setTasks for ${viewId}`);
+			}
+
+			// Refresh project-manager view when switching to it
+			if (viewId === "project-manager" && typeof targetComponent.refresh === "function") {
+				console.log("[FluentComponent] Refreshing project-manager view");
+				targetComponent.refresh();
 			}
 
 			// Handle updateTasks method for table view adapter

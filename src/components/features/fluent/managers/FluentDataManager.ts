@@ -118,6 +118,7 @@ export class FluentDataManager extends Component {
 		const filterState = this.getCurrentFilterState();
 
 		console.log("[FluentData] ===== APPLY FILTERS =====");
+		console.log(`[FluentData] Current ViewID: ${viewId}`);
 		console.log("[FluentData] Input tasks:", tasks.length);
 		console.log("[FluentData] Current filterState:", JSON.stringify({
 			liveFilterState: filterState.liveFilterState,
@@ -174,21 +175,28 @@ export class FluentDataManager extends Component {
 			filterOptions.v2Filters = filterState.viewStateFilters;
 		}
 
-		// Global project filter - Skip for Inbox view, if ignoring global filters, or if advanced filter already has project filters
+		// Global project filter - Skip if ignoring global filters or if advanced filter already has project filters
+		// NOTE: Removed hardcoded inbox exclusion - let ignoreGlobalFilters setting control this
 		if (
 			!ignoreGlobalFilters &&
 			filterState.selectedProject &&
-			viewId !== "inbox" &&
 			!hasAdvancedProjectFilter
 		) {
 			console.log(
-				`[FluentData] Applying legacy project filter: ${filterState.selectedProject}`
+				`[FluentData] Applying project filter: ${filterState.selectedProject} to view: ${viewId}`
 			);
 			filterOptions.v2Filters = {
 				...(filterOptions.v2Filters || {}),
 				project: filterState.selectedProject,
 			};
+		} else if (ignoreGlobalFilters && filterState.selectedProject) {
+			console.log(
+				`[FluentData] Skipping project filter for view: ${viewId} because ignoreGlobalFilters is enabled`
+			);
 		}
+
+		// Pass ignoreGlobalFilters to the filter utility so it can skip default view logic
+		filterOptions.ignoreGlobalFilters = ignoreGlobalFilters;
 
 		console.log("[FluentData] Final filterOptions:", JSON.stringify(filterOptions, null, 2));
 
@@ -202,14 +210,16 @@ export class FluentDataManager extends Component {
 
 		console.log(`[FluentData] After filterTasks utility: ${filteredTasks.length} tasks`);
 
-		// Apply additional fluent-specific filters if needed
-		if (filterOptions.v2Filters) {
+		// Apply additional fluent-specific filters if needed (but NOT when ignoring global filters)
+		if (filterOptions.v2Filters && !ignoreGlobalFilters) {
 			console.log("[FluentData] Applying v2Filters:", JSON.stringify(filterOptions.v2Filters, null, 2));
 			filteredTasks = this.applyV2Filters(
 				filteredTasks,
 				filterOptions.v2Filters
 			);
 			console.log(`[FluentData] After v2Filters: ${filteredTasks.length} tasks`);
+		} else if (filterOptions.v2Filters && ignoreGlobalFilters) {
+			console.log("[FluentData] Skipping v2Filters because ignoreGlobalFilters is enabled");
 		}
 
 		console.log(
@@ -227,6 +237,8 @@ export class FluentDataManager extends Component {
 	 */
 	private applyV2Filters(tasks: Task[], filters: any): Task[] {
 		const viewId = this.getCurrentViewId();
+		console.log(`[FluentData] applyV2Filters - viewId from getCurrentViewId(): ${viewId}`);
+		console.log(`[FluentData] applyV2Filters - filters.project: ${filters.project}`);
 		let result = [...tasks]; // Copy array to avoid mutation
 
 		// Status filter
@@ -262,6 +274,7 @@ export class FluentDataManager extends Component {
 
 		// Project filter - Skip for Inbox view
 		if (filters.project && viewId !== "inbox") {
+			console.log(`[FluentData] applyV2Filters - Applying project filter for viewId: ${viewId}`);
 			// Get custom project to find the actual project name
 			const customProjects = this.plugin.settings.projectConfig?.customProjects || [];
 			const customProject = customProjects.find((p) => p.id === filters.project);
@@ -269,10 +282,15 @@ export class FluentDataManager extends Component {
 			// If it's a custom project (with generated ID), match by name
 			// Otherwise, match by the project value directly
 			const projectToMatch = customProject ? customProject.name : filters.project;
+			console.log(`[FluentData] applyV2Filters - Filtering to project: ${projectToMatch}`);
 
+			const beforeCount = result.length;
 			result = result.filter(
 				(task) => task.metadata?.project === projectToMatch
 			);
+			console.log(`[FluentData] applyV2Filters - Project filter: ${beforeCount} -> ${result.length} tasks`);
+		} else if (filters.project && viewId === "inbox") {
+			console.log(`[FluentData] applyV2Filters - SKIPPING project filter because viewId is inbox`);
 		}
 
 		// Tags filter

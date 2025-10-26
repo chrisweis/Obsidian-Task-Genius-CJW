@@ -907,6 +907,12 @@ export class FluentTaskView extends ItemView {
 			return;
 		}
 
+		// CRITICAL: Re-apply filters with the current viewId before switching components
+		// This ensures filteredTasks are filtered with the NEW view's logic, not the old view's
+		console.log(`[TG-V2] performUpdate: Re-applying filters for viewId=${this.currentViewId}`);
+		this.filteredTasks = this.dataManager.applyFilters(this.tasks);
+		console.log(`[TG-V2] performUpdate: After re-filter: ${this.filteredTasks.length} tasks`);
+
 		// Update available view modes for top navigation based on current view
 		const availableModes = this.componentManager.getAvailableModesForView(
 			this.currentViewId

@@ -554,6 +554,14 @@ export interface CustomProject {
 	color: string;
 	createdAt: number;
 	updatedAt: number;
+	/** Path to linked markdown file for project notes/metadata */
+	markdownFile?: string;
+	/** Whether this project was auto-detected and converted to custom */
+	isAutoDetectedOverride?: boolean;
+	/** Description/notes about the project */
+	description?: string;
+	/** Priority rank (1 = highest priority) */
+	priority?: number;
 }
 
 /** Enhanced project configuration */
@@ -1421,6 +1429,17 @@ export const DEFAULT_SETTINGS: TaskProgressBarSettings = {
 					notUrgentNotImportant: "#6c757d",
 				},
 			} as QuadrantSpecificConfig,
+		},
+		{
+			id: "project-manager",
+			name: t("Project Manager"),
+			icon: "list-ordered",
+			type: "default",
+			visible: true,
+			hideCompletedAndAbandonedTasks: false,
+			filterRules: {},
+			filterBlanks: false,
+			region: "bottom",
 		},
 	],
 

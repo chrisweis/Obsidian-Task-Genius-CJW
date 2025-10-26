@@ -1,4 +1,4 @@
-import { Component, Platform, Modal, App } from "obsidian";
+import { Component, Platform, Modal, App, TFile, TFolder } from "obsidian";
 import { createPopper, Instance as PopperInstance } from "@popperjs/core";
 import TaskProgressBarPlugin from "@/index";
 import type { CustomProject } from "@/common/setting-definition";
@@ -778,6 +778,8 @@ export class EditProjectModal extends Modal {
 	private onSave: (project: CustomProject) => void;
 	private nameInput: HTMLInputElement | null = null;
 	private displayNameInput: HTMLInputElement | null = null;
+	private markdownFileInput: HTMLInputElement | null = null;
+	private descriptionInput: HTMLTextAreaElement | null = null;
 	private selectedColor: string;
 	private eventListeners: Array<{
 		element: HTMLElement;
@@ -847,6 +849,57 @@ export class EditProjectModal extends Modal {
 				value: this.project.displayName || this.project.name,
 			},
 		});
+
+		// Markdown file section
+		const markdownFileSection = contentEl.createDiv({
+			cls: "fluent-modal-section",
+		});
+		const fileLabel = markdownFileSection.createDiv({cls: "fluent-modal-label-with-button"});
+		fileLabel.createEl("label", {text: t("Project File (Optional)")});
+
+		const fileButtonGroup = fileLabel.createDiv({cls: "fluent-button-group-inline"});
+		const createFileBtn = fileButtonGroup.createEl("button", {
+			cls: "fluent-button-small",
+			text: t("Create New"),
+		});
+		const linkFileBtn = fileButtonGroup.createEl("button", {
+			cls: "fluent-button-small",
+			text: t("Link Existing"),
+		});
+
+		this.markdownFileInput = markdownFileSection.createEl("input", {
+			cls: "fluent-modal-input",
+			attr: {
+				type: "text",
+				placeholder: t("No file linked"),
+				value: this.project.markdownFile || "",
+				readonly: "true",
+			},
+		});
+
+		this.addEventListener(createFileBtn, "click", async () => {
+			await this.createProjectFile();
+		});
+
+		this.addEventListener(linkFileBtn, "click", async () => {
+			await this.linkExistingFile();
+		});
+
+		// Description section
+		const descriptionSection = contentEl.createDiv({
+			cls: "fluent-modal-section",
+		});
+		descriptionSection.createEl("label", {text: t("Description (Optional)")});
+		this.descriptionInput = descriptionSection.createEl("textarea", {
+			cls: "fluent-modal-textarea",
+			attr: {
+				placeholder: t("Add a description for this project..."),
+				rows: "3",
+			},
+		});
+		if (this.project.description) {
+			this.descriptionInput.value = this.project.description;
+		}
 
 		// Color picker section
 		const colorSection = contentEl.createDiv({
@@ -968,6 +1021,143 @@ export class EditProjectModal extends Modal {
 		}
 	}
 
+	private async createProjectFile() {
+		// Generate filename from project name
+		const fileName = `${this.project.name}.md`;
+		const folderPath = "Projects"; // Default folder for project files
+
+		try {
+			// Ensure Projects folder exists
+			const folder = this.app.vault.getAbstractFileByPath(folderPath);
+			if (!folder) {
+				await this.app.vault.createFolder(folderPath);
+			}
+
+			const filePath = `${folderPath}/${fileName}`;
+
+			// Check if file already exists
+			const existingFile = this.app.vault.getAbstractFileByPath(filePath);
+			if (existingFile) {
+				// File exists, just link to it
+				this.project.markdownFile = filePath;
+				if (this.markdownFileInput) {
+					this.markdownFileInput.value = filePath;
+				}
+				return;
+			}
+
+			// Create frontmatter template
+			const displayName = this.project.displayName || this.project.name;
+			const description = this.descriptionInput?.value || "";
+			const template = `---
+project: ${this.project.name}
+type: project
+created: ${new Date().toISOString().split('T')[0]}
+color: ${this.selectedColor}
+---
+
+# ${displayName}
+
+${description ? `## Description\n\n${description}\n\n` : ''}## Overview
+
+Add project overview here...
+
+## Goals
+
+- Goal 1
+- Goal 2
+
+## Resources
+
+- [Resource 1]()
+- [Resource 2]()
+
+## Notes
+
+`;
+
+			// Create the file
+			await this.app.vault.create(filePath, template);
+
+			// Link to the new file
+			this.project.markdownFile = filePath;
+			if (this.markdownFileInput) {
+				this.markdownFileInput.value = filePath;
+			}
+		} catch (error) {
+			console.error("Error creating project file:", error);
+		}
+	}
+
+	private async linkExistingFile() {
+		// Create a file suggester modal
+		const files = this.app.vault.getMarkdownFiles();
+		const fileNames = files.map(f => f.path);
+
+		// Simple prompt for file selection
+		const selectedPath = await this.promptForFile(fileNames);
+
+		if (selectedPath && this.markdownFileInput) {
+			this.project.markdownFile = selectedPath;
+			this.markdownFileInput.value = selectedPath;
+		}
+	}
+
+	private async promptForFile(files: string[]): Promise<string | null> {
+		return new Promise((resolve) => {
+			const modal = new Modal(this.app);
+			modal.titleEl.setText("Select Markdown File");
+
+			const inputEl = modal.contentEl.createEl("input", {
+				cls: "fluent-modal-input",
+				attr: {
+					type: "text",
+					placeholder: "Type to search files...",
+				},
+			});
+
+			const listEl = modal.contentEl.createDiv({
+				cls: "fluent-file-list",
+			});
+
+			const renderList = (filter: string) => {
+				listEl.empty();
+				const filtered = files.filter(f =>
+					f.toLowerCase().includes(filter.toLowerCase())
+				).slice(0, 10);
+
+				filtered.forEach(filePath => {
+					const item = listEl.createDiv({
+						cls: "fluent-file-item",
+						text: filePath,
+					});
+					item.addEventListener("click", () => {
+						resolve(filePath);
+						modal.close();
+					});
+				});
+			};
+
+			inputEl.addEventListener("input", () => {
+				renderList(inputEl.value);
+			});
+
+			renderList("");
+
+			const footer = modal.contentEl.createDiv({cls: "fluent-modal-footer"});
+			const cancelBtn = footer.createEl("button", {
+				cls: "fluent-button fluent-button-secondary",
+				text: "Cancel",
+			});
+			cancelBtn.addEventListener("click", () => {
+				resolve(null);
+				modal.close();
+			});
+
+			modal.open();
+		});
+	}
+
 	private save() {
 		if (!this.displayNameInput) return;
 
@@ -977,6 +1167,10 @@ export class EditProjectModal extends Modal {
 		this.project.displayName = displayNameValue || this.project.name;
 		this.project.color = this.selectedColor;
 		this.project.updatedAt = Date.now();
+
+		// Update markdown file and description
+		this.project.markdownFile = this.markdownFileInput?.value || undefined;
+		this.project.description = this.descriptionInput?.value || undefined;
 
 		this.onSave(this.project);
 		this.close();
